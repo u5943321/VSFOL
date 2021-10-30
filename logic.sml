@@ -307,11 +307,19 @@ fvf phi,[] |- (?!a. ϕ(a)) <=> ?a. ϕ(a) & !a'. ϕ(a') ==> a' = a
 **********************************************************************)
 
 
+fun uex_def f = 
+    case view_form f of
+        vQ("?!",n,s,b) => 
+        let val n' = n ^ "'"
+            val phia' = substf((n,s),mk_var(n',s)) b
+            val impf = mk_imp phia' (mk_eq (mk_var(n,s)) (mk_var(n',s)))
+            val allimpf = mk_forall n' s impf
+            val rhs = mk_exists n s (mk_conj b allimpf)
+        in
+            mk_thm(fvf f,[],mk_dimp f rhs)
+        end
+      | _ => raise ERR ("uex_def.input is not a unique existence",[],[],[f])
 
-(*
-fun uexists_rule th = 
-case concl 
-*)
 
 
 fun refl t = thm (fvt t,[],mk_eq t t) 

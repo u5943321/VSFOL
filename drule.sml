@@ -1030,4 +1030,52 @@ fun NEG_CONJ2IMP_NEG0 A B =
 
 val NEG_CONJ2IMP_NEG = NEG_CONJ2IMP_NEG0 (mk_fvar "A") (mk_fvar "B")
 
+
+
+fun forall_iff (n,s) th = 
+    let val (G,A,C0) = dest_thm th
+    in
+        case view_form C0 of 
+            vConn("<=>",[P,Q]) => 
+            let val allP = mk_forall n s P
+                val allQ = mk_forall n s Q
+                val allP2allQ = disch allP (allI (n,s) (dimp_mp_l2r ((C allE) (assume allP) (mk_var(n,s))) th))
+                val allQ2allP = disch allQ (allI (n,s) (dimp_mp_r2l th ((C allE) (assume allQ) (mk_var(n,s)))))
+        in
+            dimpI allP2allQ allQ2allP
+        end
+      | _ => raise ERR ("all_iff.conclusion of theorem is not an iff:",[],[],[C0])
+    end
+
+
+
+
+fun exists_iff (n,s) th = 
+    let
+        val (G,A,C) = dest_thm th
+        val (P,Q) = dest_dimp C
+        val P2Q = undisch (conjE1 (dimpE th))
+        val Q2P = undisch (conjE2 (dimpE th))
+        val eP = mk_exists n s P
+        val eQ = mk_exists n s Q
+        val P2eQ = existsI (n,s) (mk_var(n,s)) Q P2Q
+        val Q2eP = existsI (n,s) (mk_var(n,s)) P Q2P
+        val eP2eQ = existsE (n,s) (assume eP) P2eQ |> disch eP
+        val eQ2eP = existsE (n,s) (assume eQ) Q2eP |> disch eQ
+    in dimpI eP2eQ eQ2eP
+    end
+
+val CONJ_COMM = 
+    let val p = mk_fvar "P"
+        val q = mk_fvar "Q"
+        val lhs = mk_conj p q
+        val rhs = mk_conj q p
+        val l2r = conjI (assume lhs |> conjE2) (assume lhs |> conjE1) 
+                        |> disch lhs
+        val r2l = conjI (assume rhs |> conjE2) (assume rhs |> conjE1) 
+                        |> disch rhs
+    in
+        dimpI l2r r2l
+    end
+
 end

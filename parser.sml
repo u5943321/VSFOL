@@ -669,7 +669,7 @@ fun ast2pt ast env =
             end
            | SOME ps =>  (pAnno(pVar(n,ps),psrt(sn,[dom,cod])),env2)
         end *)
-      | aInfix(aId(n),":",sast) =>
+     (* | aInfix(aId(n),":",sast) =>
         let val (st0,env1) = ast2ps sast env
         in
             case ps_of env n of 
@@ -677,7 +677,24 @@ fun ast2pt ast env =
                          record_ps n st0 env1)
               | SOME ps => 
                 (pAnno(pVar(n,ps),st0),env1)
-        end
+        end *)
+      | aInfix(tast,":",sast) =>
+        case tast of 
+            aId(n) => 
+            let val (st0,env1) = ast2ps sast env
+            in
+                case ps_of env n of 
+                    NONE => (pAnno(pVar(n,st0),st0),
+                             record_ps n st0 env1)
+                  | SOME ps => 
+                    (pAnno(pVar(n,ps),st0),env1)
+            end
+          | _ =>
+            let val (st0,env1) = ast2ps sast env
+                val (pt0,env2) = ast2pt tast env1
+            in
+                (pAnno(pt0,st0),env2)
+            end 
       | aInfix(ast1,str,ast2) => 
         if mem str ["*","+","^","o"] then
             let val (pt1,env1) = ast2pt ast1 env

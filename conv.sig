@@ -56,7 +56,7 @@ val rconj_fconv: fconv -> fconv
 val rdimp_fconv: fconv -> fconv
 val rdisj_fconv: fconv -> fconv
 val redepth_fconv: conv -> fconv -> fconv
-val refl_fconv: fconv
+val refl_fconv: string list -> fconv
 val repeatfc: fconv -> fconv
 val right_imp_forall_fconv: fconv
 val rimp_fconv: fconv -> fconv

@@ -225,7 +225,7 @@ fun rdimp_fconv fc f =
       | _ => raise ERR ("rdimp_fconv.not an iff",[],[],[f])
 
 
-(*
+
 
 
 fun forall_fconv fc f = 
@@ -239,12 +239,20 @@ fun exists_fconv fc f =
         (vQ("?",n,s,b)) => 
         exists_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
       | _ => raise ERR ("exists_fconv.not an all",[],[],[f])
-*)
 
 
+(*
 val refl_fconv = 
     let val srts = List.map fst $ Binarymap.listItems (!SortDB)
         val refls = mapfilter (eqT_intro o refl o mk_var o srt2ns) srts
+    in
+        first_fconv (List.map rewr_fconv refls)
+    end 
+*)
+
+fun refl_fconv eqsorts = 
+    let
+        val refls = mapfilter (eqT_intro o refl o mk_var o srt2ns) eqsorts 
     in
         first_fconv (List.map rewr_fconv refls)
     end 
@@ -255,6 +263,8 @@ fun sub_fconv c fc =
                  imp_fconv fc,
                  dimp_fconv fc,
                  neg_fconv fc,
+                 forall_fconv fc,
+                 exists_fconv fc,
                  pred_fconv c])
 
 
@@ -317,7 +327,7 @@ val basic_taut_fconv =
 
 val nFT_fconv = first_fconv [rewr_fconv nF2T,rewr_fconv nT2F]
 
-val taut_fconv = basic_taut_fconv orelsec refl_fconv orelsec nFT_fconv
+val taut_fconv = basic_taut_fconv (*orelsec (refl_fconv (!EqSorts))*) orelsec nFT_fconv
 
 fun top_depth_fconv c fc f =
    (repeatfc fc thenfc
@@ -334,7 +344,7 @@ fun once_depth_fconv c fc f =
 
 fun basic_once_fconv c fc = 
     once_depth_fconv (once_depth_conv c) 
-                     (fc orelsefc taut_fconv orelsefc refl_fconv)
+                     (fc orelsefc taut_fconv orelsefc (refl_fconv (!EqSorts)))
 
 
 
@@ -375,7 +385,7 @@ fun double_neg_fconv f = rewr_fconv double_neg_elim f
 
 fun basic_fconv c fc =
     top_depth_fconv (top_depth_conv c) 
-                    (fc orelsefc taut_fconv orelsefc refl_fconv orelsefc double_neg_fconv)
+                    (fc orelsefc taut_fconv orelsefc (refl_fconv (!EqSorts)) orelsefc double_neg_fconv)
 
 val neg_neg_elim = conv_rule (once_depth_fconv no_conv double_neg_fconv)
 
