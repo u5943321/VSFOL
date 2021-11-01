@@ -312,7 +312,7 @@ fun uex_def f =
         vQ("?!",n,s,b) => 
         let val n' = n ^ "'"
             val phia' = substf((n,s),mk_var(n',s)) b
-            val impf = mk_imp phia' (mk_eq (mk_var(n,s)) (mk_var(n',s)))
+            val impf = mk_imp phia' (mk_eq (mk_var(n',s)) (mk_var(n,s)))
             val allimpf = mk_forall n' s impf
             val rhs = mk_exists n s (mk_conj b allimpf)
         in
@@ -467,25 +467,10 @@ fun define_fun f =
     in mk_thm(essps,[],f)
     end
 
-(*              
 
+(*edit ex2fsym 1.!A B C. P(A,B,C) ==> ?Q.
 
-fun ex2fsym fsym strl th = 
-    let val th' = spec_all th
-        val (ct,asl) = (cont th',ant th')
-        val (hyp,conc) = dest_imp (concl th')
-        val inputvars0 = filter_cont (cont th') 
-        val inputvars = List.foldr (fn (s,e) => HOLset.add(e,s)) essps 
-                                   (List.map (dest_var o (pwct ct)) strl)
-        val _ = HOLset.isSubset(inputvars0,inputvars) orelse 
-                raise simple_fail "there are necessary input variables missing"
-        val inputvl = List.map (pwct ct) strl
-        val ((n,s),b) = dest_exists conc
-        val _ = new_fun fsym (s,List.map dest_var inputvl)
-        val fterm = mk_fun fsym inputvl
-        val b' = substf ((n,s),fterm) b
-    in mk_thm (ct,asl,mk_imp hyp b')
-    end
-*)
+2.deal with uex*)
+
 
 end

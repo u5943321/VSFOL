@@ -141,4 +141,5 @@ val split_assum0: form -> thm -> thm
 val strip_all_and_imp: thm -> thm
 val strip_neg: thm -> thm
 val forall_iff: (string * sort) -> thm -> thm
+val CONJ_COMM:thm
 end
