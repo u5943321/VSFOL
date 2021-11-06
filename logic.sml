@@ -399,7 +399,7 @@ fun check_wffv fvs =
 
 fun wffv_ok f = check_wffv (HOLset.listItems (fvf f))
   
-
+(*
 fun new_ax f = 
     let val _ = wffv_ok f orelse
                 raise ERR ("formula contains ill-formed free variable(s)",[],[],[])
@@ -408,6 +408,17 @@ fun new_ax f =
     in
         mk_thm(essps,[],f)
     end
+
+*)
+
+fun new_ax f = 
+    let
+        val _ = HOLset.equal(fvf f,essps) orelse
+                raise simple_fail"formula has free variables"
+    in
+        mk_thm(essps,[],f)
+    end
+
 
 fun all_distinct l = 
     case l of [] => true
@@ -433,7 +444,7 @@ fun define_pred f =
         val _ = List.all is_var args orelse raise simple_fail"input arguments is not a variable list"
         val _ = HOLset.isSubset (fvf r,fvf l) 
                 orelse raise simple_fail"unexpected free variable on RHS"
-        val _ = case lookup_pred (psyms0) P of NONE => () | _ => raise simple_fail ("redefining predicate: " ^ P)
+      (*  val _ = case lookup_pred (psyms0) P of NONE => () | _ => raise simple_fail ("redefining predicate: " ^ P) *)
         val _ = all_distinct args orelse 
                 raise simple_fail 
                       "input arguments are not all distinct"
@@ -461,7 +472,7 @@ fun define_fun f =
         val _ = List.all is_var args orelse raise simple_fail"input arguments is not a variable list"
         val _ = HOLset.isSubset (fvt r,fvt l) 
                 orelse raise simple_fail"unexpected free variable on RHS"
-        val _ = case lookup_fun fsyms0 nf of NONE => () | _ => raise simple_fail("redefining predicate: " ^ nf)
+       (* val _ = case lookup_fun fsyms0 nf of NONE => () | _ => raise simple_fail("redefining predicate: " ^ nf) *)
         val _ = all_distinct args orelse raise simple_fail"input arguments are not all distinct"
         val fsyms0 = new_fun nf (sf,(List.map dest_var args))
     in mk_thm(essps,[],f)
@@ -471,6 +482,8 @@ fun define_fun f =
 (*edit ex2fsym 1.!A B C. P(A,B,C) ==> ?Q.
 
 2.deal with uex*)
+
+
 
 
 end

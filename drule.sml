@@ -1078,4 +1078,119 @@ val CONJ_COMM =
         dimpI l2r r2l
     end
 
-end
+
+(*(!A. P(A) ==>Q) <=> (?A.P(A)) ==> Q
+
+but it will require the !A is quantified in innermost
+
+“!h.isFun(f) & isFun(g) & isFun(h) ==>
+      pi1(A, B) o SPa(f, g) = f & pi2(A, B) o SPa(f, g) = g” fine
+
+“!h:C->D g:X->B f:X->A.isFun(f) & isFun(g) & isFun(h) ==>
+      pi1(A, B) o SPa(f, g) = f & pi2(A, B) o SPa(f, g) = g”) does not work
+
+
+*)
+
+fun COND_EXISTS_FCONV f =
+    let val ((n,s),b) = dest_forall f
+        val (ant,conc) = dest_imp b
+        val concvs = fvf conc
+        val _ = not (HOLset.member(concvs,(n,s))) orelse
+                raise ERR ("COND_EXISTS_FCONV.universal variable occurs in conclusion",[],[mk_var (n,s)],[])
+        val ant' = mk_exists n s ant
+        val asmant' = assume ant'
+        val fth = assume f
+        val specfth = allE (mk_var(n,s)) fth 
+        val mped = mp specfth (assume ant)
+        val l2r = existsE (n,s) asmant' mped |> disch ant' |> disch f
+        val r2l = assume (mk_imp ant' conc) 
+                         |> C mp (existsI (n,s) (mk_var(n,s)) ant (assume ant))
+                         |> disch ant |> allI (n,s) |> disch (mk_imp ant' conc)
+    in dimpI l2r r2l
+    end
+
+
+fun SWAP_UQV f = 
+    case view_form f of 
+        vQ("!",n1,s1,b1) => 
+        let val ((n2,s2),b2) = dest_forall b1
+            val fvs = fvf f
+            val RHS = mk_forall n2 s2 (mk_forall n1 s1 b2)
+        in mk_thm(fvs,[],mk_dimp f RHS)
+        end
+      | _ =>  raise ERR ("REORDER_UQV.not a double forall",[],[],[f])
+
+
+fun SWAP_EXQV f = 
+    case view_form f of 
+        vQ("?",n1,s1,b1) => 
+        let val ((n2,s2),b2) = dest_exists b1
+            val fvs = fvf f
+            val RHS = mk_exists n2 s2 (mk_exists n1 s1 b2)
+        in mk_thm(fvs,[],mk_dimp f RHS)
+        end
+      | _ =>  raise ERR ("REORDER_EXQV.not a double forall",[],[],[f])
+
+(*COND_EXISTS_FCONV 
+!a.P(a,b) ==> Q(b)
+(?a.P(a,b)) ==> Q(b)
+
+!a b c.P(a,b,c) ==> Q(b,c)
+
+into !b c a.P(a,b,c) ==> Q(b,c)
+
+*)
+
+
+(*
+
+
+
+
+*)
+
+fun mk_foralls l f = 
+    case l of [] => f
+            | (n,s) :: l0 => mk_forall n s $ mk_foralls l0 f
+
+fun PUSHIN_UQV (ns as (n,s)) f  = 
+    let val (b,vars) =  strip_forall f
+        val (sing,rest) = partition (fn ns0 => ns0 = ns) vars 
+        val vars' = rest @ sing 
+        val RHS = mk_foralls vars' b
+        val L2R = assume f |> spec_all |> abstl vars' |> disch f
+        val R2L = assume RHS |> spec_all |> abstl vars |> disch RHS
+    in dimpI L2R R2L
+    end
+
+ 
+fun PUSHIN_UQVS_FCONV vl = 
+    case vl of
+        [] => all_fconv
+      | h :: t =>  (PUSHIN_UQVS_FCONV t) thenfc (PUSHIN_UQV h) 
+
+
+(*consider the aaa case*)
+val aaa = 
+“!h:C->D i:P->Q g:X->B f:X->A.isFun(f) & isFun(g) & isFun(h) ==>
+      pi1(A, B) o SPa(f, g) = f & pi2(A, B) o SPa(f, g) = g” 
+
+
+
+val aaa1 = 
+“!h:C->D i:P->Q g:X->B f:X->A.isFun(f) & isFun(g) & isFun(h) & isFun(i) ==>
+      pi1(A, B) o SPa(f, g) = f & pi2(A, B) o SPa(f, g) = g” 
+
+fun COND_EXISTSL_FCONV f = 
+    let val (b,vs) = strip_forall f
+        val (ant0,conc0) = dest_imp b
+        (*val diff0 = HOLset.difference(fvf ant0,fvf conc0)
+        val vars0 = HOLset.filter (fn ns => mem ns vs) diff0 *)
+        val vars0 = List.filter (fn ns => not $ HOLset.member(fvf conc0,ns)) vs
+        val conv1 = PUSHIN_UQVS_FCONV vars0 (*previously list itemm of vars0*)
+        val conv2 = top_depth_fconv no_conv COND_EXISTS_FCONV
+    in (conv1 thenfc conv2) f
+    end 
+
+top_depth_fconv no_conv COND_EXISTS_FCONV (concl $ PUSHIN_UQV f ns)

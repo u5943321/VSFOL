@@ -746,6 +746,87 @@ and ast2ps ast env =
        end
 | _ => raise PER ("ast2ps.wrong attempt of trying to turn an aBinder into a pre-sort",[],[])
 
+(*
+fun ast2pt ast (env,n) = 
+    case ast of 
+        aId(a) =>
+        if is_const a then
+            (pFun(a,ps_of_const a,[]),(env,n))
+        else
+        (let val a' = if a = "_" then a ^ Int.toString n else a 
+             val n' = if a = "_" then n + 1 else n
+         in case ps_of env a' of 
+             NONE => let val (Av,env1) = fresh_var env 
+                         val env2 = record_ps a' (psvar Av) env1
+                     in (pVar(a',psvar Av),(env2,n'))
+                     end
+           | SOME ps => (pVar(a',ps),(env,n'))
+         end)
+      | aApp(str,astl) => 
+        if is_fun str then 
+            case astl of
+                [] => 
+                let val (Av,env1) = fresh_var env
+                in (pFun(str,psvar Av,[]),(env1,n))
+                end
+              | h :: t => 
+                let val (pt0,(env1,n1)) = ast2pt (aApp(str,t)) (env,n)
+                    val (pt,(env2,n2)) = ast2pt h (env1,n1)
+                in (pFun_cons pt0 pt,(env2,n2))
+                end 
+        else raise simple_fail ("not a function symbol: " ^ str) 
+      | aInfix(ast1,str,ast2) => 
+        if str = ":" then 
+            case ast1 of 
+            aId(name) => 
+            let val (st0,(env1,n1)) = ast2ps ast2 (env,n)
+            in
+                case ps_of env name of 
+                    NONE => (pAnno(pVar(name,st0),st0),
+                             (record_ps name st0 env1,n1))
+                  | SOME ps => 
+                    (pAnno(pVar(name,ps),st0),(env1,n1))
+            end
+          | _ =>
+            let val (st0,(env1,n1)) = ast2ps ast2 (env,n)
+                val (pt0,(env2,n2)) = ast2pt ast1 (env1,n1)
+            in
+                (pAnno(pt0,st0),(env2,n2))
+            end 
+        else
+        if mem str ["*","+","^","o"] then
+            let val (pt1,(env1,n1)) = ast2pt ast1 (env,n)
+                val (pt2,(env2,n2)) = ast2pt ast2 (env1,n1)
+                val (Av,env3) = fresh_var env2
+            in
+                (pFun(str,psvar Av,[pt1,pt2]),(env3,n2))
+            end
+        else raise simple_fail ("not an infix operator: " ^ str)
+      | aBinder(str,ns,b) => 
+        raise simple_fail "quantified formula parsed as a term!"
+and ast2ps ast (env,n) = 
+    case ast of
+        aId(ns) => (psrt(ns,[]),(env,ns))
+      | aApp(ns,atl) => 
+        let val (ptl,env1) = 
+            foldr 
+            (fn (tast,(l,env)) => 
+             let val (pt1,env1) = ast2pt tast env
+             in (pt1 :: l,env1)
+             end) ([],env) atl
+        in (psrt(ns,ptl),env1)
+        end
+      |aInfix(ast1,inx,ast2) =>
+       let 
+           val (dom,env1) = ast2pt ast1 env
+           val (cod,env2) = ast2pt ast2 env1
+           val sn = sortname_of_infix inx
+       in 
+           (psrt(sn,[dom,cod]),env2)
+       end
+| _ => raise PER ("ast2ps.wrong attempt of trying to turn an aBinder into a pre-sort",[],[])
+
+*)
 fun ast2pf ast (env:env) = 
     case ast of 
         aId(a) => 
@@ -982,6 +1063,35 @@ fun parse_form_with_cont ct fstr =
         form_from_pf env1 pf
     end
 
+
+(*
+fun qmatch_parse0 ct fq fl = 
+    let val f0 = rapf $ q2str fq
+        fun mfn _ asm = 
+            let val menv = match_form essps f0 asm mempty
+            in SOME asm
+                    (*only care about the fact that it can match, do not care about the menv, what to write in this case?*)
+            end
+            handle _ => NONE
+    in case first_opt mfn fl of
+           NONE => raise simple_fail "qmatch_parse.no match"
+         | SOME f => f
+    end
+*)
+
+
+fun match_parse ct fl fq = 
+    let val f0 = parse_form_with_cont ct fq
+        fun mfn _ asm = 
+            let val menv = match_form essps f0 asm mempty
+            in SOME asm
+                    (*only care about the fact that it can match, do not care about the menv, what to write in this case?*)
+            end
+            handle _ => NONE
+    in case first_opt mfn fl of
+           NONE => raise simple_fail "qmatch_parse.no match"
+         | SOME f => f
+    end
 
 end
 

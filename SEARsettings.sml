@@ -119,6 +119,9 @@ val _ = new_pred "isBij" [("R",rel_sort (mk_set "A") (mk_set "B"))]
 
 val Fun_def = new_ax “!A B R:rel(A,B). isFun(R) <=> !x:mem(A). ?!y:mem(B). Holds(R,x,y)”
 
+(*
+val _ = define_pred “!A B R:rel(A,B). isFun(R) <=> !x:mem(A). ?!y:mem(B). Holds(R,x,y)”;
+*)
 
 val _ = new_fun "Eval" (mem_sort (mk_set "B"),[("R",rel_sort (mk_set "A") (mk_set "B")),
                         ("x",mem_sort (mk_set "A"))])
@@ -236,7 +239,32 @@ fun uex_ex f =
     end
 
 (*val P = “a:mem(A) = b”*)
+(*P(a#)
 
+ {(A : set), (b : mem(A))}, 
+   |- ?!(R : rel(1, A)).
+        !(one0 : mem(1))  (a : mem(A)).
+          Holds(R#, one0#, a#) <=> one0# = one0# & P(a#): thm
+
+{(A : set), (b : mem(A))}, 
+   |- ?(B : set)  (i : rel(B#, A)).
+        !(a : mem(A)). P(a#) <=> ?(b : mem(B#)). a# = Eval(i#, b#):
+
+fvar of string
+fVar of (string * term list)
+
+
+!a. P(a)
+
+when specalise a function term, check not inst into an fvar.
+
+P(a)
+
+P(f(a))
+
+a 
+*)
+val ns = ("a",mem_sort  (mk_set "A"))
 fun Thm_2_4 P (ns as (n,s)) = 
     let val l1 = Rel2Pred P ns
         val l1' = dimp_mp_l2r l1 (uex_def $ concl l1)
@@ -325,6 +353,7 @@ e0
    !r s. Eval(pi1,r) = Eval(pi1,s) & Eval(pi2,r) = Eval(pi2,s)
   ”)
 
+
 val Cross_def = 
     Cross_ex |> spec_all |> eqT_intro 
              |> iffRL |> ex2fsym "*" ["A","B"] 
@@ -375,6 +404,32 @@ let val th0 = rewr_rule[SetPr_def] Thm_2_8_SetPr
     val th2 = mp th1 th0' 
 in disch_all th2 |> gen_all
 end 
+
+(*
+
+val th0 = proved_th $
+e0
+cheat
+(form_goal
+“isFun(f) & isFun(g) & isFun(h) ==>
+      pi1(A, B) o SPa(f, g) = f & pi2(A, B) o SPa(f, g) = g”)
+
+val th0' = proved_th $
+e0
+cheat
+(form_goal
+“!h.isFun(f) & isFun(g) & isFun(h) ==>
+      pi1(A, B) o SPa(f, g) = f & pi2(A, B) o SPa(f, g) = g”)
+
+redepth_fconv no_fconv COND_EXISTS_FCONV (concl $ gen_all th0)
+ basic_fconv no_fconv COND_EXISTS_FCONV (concl th0)
+
+ basic_fconv no_fconv COND_EXISTS_FCONV (concl $ gen_all th0)
+example here.
+th0 |> gen_all |> basic_fconv no_fconv COND_EXISTS_FCONV spec_all |> ex2fsym "SPa" ["f","g"] 
+*)
+
+
 
 val SPa_def = 
     SPa_ex |> spec_all |> ex2fsym "SPa" ["f","g"] 
@@ -736,12 +791,15 @@ can not have im(p) as function, since then we have func that takes ar into sets
 
 fun Eval f e = mk_fun "Eval" [f,e] 
 
+(*
 val P = “?f:A-> X. Eval(f,a) = x0”
 val (n,s) = ("a", mem_sort (mk_set "A"))
 val ns = (n,s)
 val (sn,ss) = ("X",set_sort)
 val S0 = (sn,ss)
  
+*)
+
 fun AX5 P (ns as (n,s)) (S0 as(sn,ss)) = 
     let val (sortname,A0) = dest_sort s
         val A = if sortname = "mem" then hd A0
@@ -773,4 +831,48 @@ fun AX5 P (ns as (n,s)) (S0 as(sn,ss)) =
     in mk_thm(fvf f,[],f) 
     end
 
+(*
+!a b c. P(a,b,c) ==> ?d.Q(c,d) does not work
 
+!c a b. P(a,b,c) ==> ?d.Q(c,d)
+
+!c.(?a b.P(a,b,c)) ==> ?d.Q(c,d)
+
+
+a rule that swaps 
+
+fun form var 
+
+?x. x = y & P(x) <=> P(y)
+
+?x. P(x) /\ x = y 
+
+?x.x = y /\ P(x,z) /\ z = z'
+
+?x.x = y /\ P(x,z) /\ z = z'
+
+1) reorder 2) swap once needed TODO.
+
+
+
+
+
+*)
+
+(*
+1.Have so many axiom schema or even thm schema, is that a reason to have formula variables which takes variable list as input?
+2.Algorithm sketch for moving equality to leftmost.
+3. COND_EXISTS_FCONV requires the variable to be quantified in the innermost.
+4.phi ϕ cannot be read, different versions of phis?
+5.have a ref for strings which are parsable, so user can define a symbol for subset?
+6.store thm, how to just type the name once and just do two things of 1) create a term of thm with val ... name 2) store it in dict, in one function?
+7.new filter_cont
+8.truth table proof tool for propositional tautalogy?
+9.Look at Isabelle's axiom scheme.
+10. if time permits, tokenizer, fixed somehow, but still not pretty.
+
+
+
+look a bit to the current file to see if any obvious improvement
+Any particularly interesting things to do in the setting of SEAR, maybe defining recursive set using AX5 is one thing to do, as suggested in SEAR nlab, and forcing in SEARC seems interesting but a bit ambitious.
+*)
