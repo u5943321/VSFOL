@@ -435,25 +435,25 @@ fun F_imp f = assume f|> (C negE) (assume (mk_neg f)) |> disch f |> disch (mk_ne
 
 (*theorems with fVars to be matched, to deal with propositional taut*)
 
-val T_conj_1 = T_conj1 (mk_fvar "f0")
-val T_conj_2 = T_conj2 (mk_fvar "f0")
-val F_conj_1 = F_conj1 (mk_fvar "f0")
-val F_conj_2 = F_conj2 (mk_fvar "f0")
+val T_conj_1 = T_conj1 (mk_fvar "f0" [])
+val T_conj_2 = T_conj2 (mk_fvar "f0" [])
+val F_conj_1 = F_conj1 (mk_fvar "f0" [])
+val F_conj_2 = F_conj2 (mk_fvar "f0" [])
 
-val T_disj_1 = T_disj1 (mk_fvar "f0")
-val T_disj_2 = T_disj2 (mk_fvar "f0")
-val F_disj_1 = F_disj1 (mk_fvar "f0")
-val F_disj_2 = F_disj2 (mk_fvar "f0")
+val T_disj_1 = T_disj1 (mk_fvar "f0" [])
+val T_disj_2 = T_disj2 (mk_fvar "f0" [])
+val F_disj_1 = F_disj1 (mk_fvar "f0" [])
+val F_disj_2 = F_disj2 (mk_fvar "f0" [])
 
-val T_imp_1 = T_imp1 (mk_fvar "f0")
-val T_imp_2 = T_imp2 (mk_fvar "f0")
-val F_imp_1 = F_imp1 (mk_fvar "f0")
-val F_imp_2 = F_imp2 (mk_fvar "f0")
+val T_imp_1 = T_imp1 (mk_fvar "f0" [])
+val T_imp_2 = T_imp2 (mk_fvar "f0" [])
+val F_imp_1 = F_imp1 (mk_fvar "f0" [])
+val F_imp_2 = F_imp2 (mk_fvar "f0" [])
 
-val T_dimp_1 = T_dimp1 (mk_fvar "f0")
-val T_dimp_2 = T_dimp2 (mk_fvar "f0")
-val F_dimp_1 = F_dimp1 (mk_fvar "f0")
-val F_dimp_2 = F_dimp2 (mk_fvar "f0")
+val T_dimp_1 = T_dimp1 (mk_fvar "f0" [])
+val T_dimp_2 = T_dimp2 (mk_fvar "f0" [])
+val F_dimp_1 = F_dimp1 (mk_fvar "f0" [])
+val F_dimp_2 = F_dimp2 (mk_fvar "f0" [])
 
 
 fun forall_true_sort srt = forall_true (srt2ns srt)
@@ -775,7 +775,7 @@ fun elim_double_neg th =
 
 fun exists_forall (n,s) = 
     let 
-        val f0 = mk_fvar "f0"
+        val f0 = mk_fvar "f0" []
         val af0 = mk_forall n s (mk_neg f0)
         val ef0 = mk_exists n s f0
         val d1 = (C negI)
@@ -822,7 +822,7 @@ val nT2F =
     in dimpI l2r r2l
     end
 
-val double_neg_elim = double_neg (mk_fvar "f0")
+val double_neg_elim = double_neg (mk_fvar "f0" [])
 
 
 (*
@@ -867,9 +867,9 @@ if have P
 
 fun pe_cl1 (n,s) = 
     let 
-        val P = mk_fvar "f0"
+        val P = mk_fvar "f0" []
         val ef = mk_exists n s P
-        val Q = mk_fvar "f1"
+        val Q = mk_fvar "f1" []
         val lhs = mk_imp ef Q 
         val Px2Q = mk_imp P Q
         val rhs = mk_forall n s Px2Q
@@ -890,8 +890,8 @@ fun pe_cl1 (n,s) =
 
 fun pe_cl2 (n,s) = 
     let
-        val P = mk_fvar "f0"
-        val Q = mk_fvar "f1"
+        val P = mk_fvar "f0" []
+        val Q = mk_fvar "f1" []
         val eP = mk_exists n s P
         val lhs = mk_conj eP Q
         val PxQ = mk_conj P Q
@@ -913,8 +913,8 @@ fun pe_cl2 (n,s) =
 
 fun pe_cl3 (n,s) = 
     let
-        val P = mk_fvar "f0"
-        val Q = mk_fvar "f1"
+        val P = mk_fvar "f0" []
+        val Q = mk_fvar "f1" []
         val eP = mk_exists n s P
         val lhs = mk_conj Q eP
         val QxP = mk_conj Q P
@@ -999,11 +999,11 @@ fun conj_assoc A B C =
         dimpI l2r r2l
     end
 
-val CONJ_ASSOC = conj_assoc (mk_fvar "A") (mk_fvar "B") (mk_fvar "C")
+val CONJ_ASSOC = conj_assoc (mk_fvar "A" []) (mk_fvar "B" []) (mk_fvar "C" [])
 
 (*A /\ B ==> C <=> A ==> B ==> C*)
 
-val CONJ_IMP_IMP = conj_imp_equiv (mk_fvar "A") (mk_fvar "B") (mk_fvar "C")
+val CONJ_IMP_IMP = conj_imp_equiv (mk_fvar "A" []) (mk_fvar "B" []) (mk_fvar "C" [])
 (*
 (*cannot do this all in rewr_rule because want to strip...*)
 fun strip_split th = 
@@ -1028,7 +1028,7 @@ fun NEG_CONJ2IMP_NEG0 A B =
     in dimpI l2r r2l
     end
 
-val NEG_CONJ2IMP_NEG = NEG_CONJ2IMP_NEG0 (mk_fvar "A") (mk_fvar "B")
+val NEG_CONJ2IMP_NEG = NEG_CONJ2IMP_NEG0 (mk_fvar "A" []) (mk_fvar "B" [])
 
 
 
@@ -1066,8 +1066,8 @@ fun exists_iff (n,s) th =
     end
 
 val CONJ_COMM = 
-    let val p = mk_fvar "P"
-        val q = mk_fvar "Q"
+    let val p = mk_fvar "P" []
+        val q = mk_fvar "Q" []
         val lhs = mk_conj p q
         val rhs = mk_conj q p
         val l2r = conjI (assume lhs |> conjE2) (assume lhs |> conjE1) 
@@ -1225,5 +1225,13 @@ val pred = fn f =>
  top_depth_fconv no_conv (PULL_CJ_FCONV (CONTAIN_CJ pred) orelsefc (rewr_fconv CONJ_ASSOC)) f
 
 *)
+(*
+
+val T_disj_1 = T_disj1 (mk_fvar "f0")
+val T_disj_2 = T_disj2 (mk_fvar "f0")
+val F_disj_1 = F_disj1 (mk_fvar "f0")
+val F_disj_2 = F_disj2 (mk_fvar "f0")
+*)
+
 
 end

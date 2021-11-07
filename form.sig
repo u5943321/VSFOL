@@ -8,7 +8,7 @@ datatype form_view =
     vConn of string * form list
   | vQ of string * string * sort * form
   | vPred of string * term list
-  | vfVar of string
+  | vfVar of string * term list
 
 val view_form: form -> form_view
 
@@ -45,7 +45,7 @@ val mk_uex: string -> sort -> form -> form
 val mk_quant: string -> string -> sort -> form -> form
 val mk_pred: string -> term list -> form
 val mk_P0: string -> term list -> form
-val mk_fvar: string -> form
+val mk_fvar: string -> term list -> form
 val mk_eq: term -> term -> form
 
 val dest_eq: form -> term * term

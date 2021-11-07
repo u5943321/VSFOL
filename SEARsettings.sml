@@ -834,6 +834,7 @@ fun AX5 P (ns as (n,s)) (S0 as(sn,ss)) =
 
 
 
+
 (*
 !a b c. P(a,b,c) ==> ?d.Q(c,d) does not work
 

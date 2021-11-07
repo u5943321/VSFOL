@@ -289,7 +289,7 @@ val taut_disj_fconv =
         (List.map rewr_fconv 
                   [T_disj_1,T_disj_2,F_disj_1,F_disj_2])
 
-val f2f = disch (mk_fvar "f0") (assume (mk_fvar "f0"))
+val f2f = disch (mk_fvar "f0" []) (assume (mk_fvar "f0" []))
 val f2f_T  = eqT_intro f2f
 
 val taut_imp_fconv = 
@@ -300,7 +300,7 @@ val taut_imp_fconv =
 val taut_dimp_fconv = 
     first_fconv 
         (List.map rewr_fconv 
-                  [T_dimp_1,T_dimp_2,F_dimp_1,F_dimp_2,eqT_intro (frefl (mk_fvar "f0"))])
+                  [T_dimp_1,T_dimp_2,F_dimp_1,F_dimp_2,eqT_intro (frefl (mk_fvar "f0" []))])
 
 
 (*
@@ -426,9 +426,9 @@ fun rand_fconv c fc f =
 
 
 val IMP_IFF_DISTR = 
-    let val p = mk_fvar "p"
-        val q = mk_fvar "q"
-        val q' = mk_fvar "q'"
+    let val p = mk_fvar "p" []
+        val q = mk_fvar "q" []
+        val q' = mk_fvar "q'" []
     in 
         mk_thm(essps,[],mk_dimp (mk_imp p (mk_dimp q q')) (mk_dimp (mk_imp p q) (mk_imp p q')))
     end
@@ -477,10 +477,10 @@ fun conj_fconv fc f =
       | _ => raise ERR ("conj_fconv.not a conjunction",[],[],[f])
 
 val ASSUME_CONJUNCT_LEMMA = 
-    let val P1 = mk_fvar "P1"
-        val P2 = mk_fvar "P2"
-        val Q1 = mk_fvar "Q1"
-        val Q2 = mk_fvar "Q2"
+    let val P1 = mk_fvar "P1" []
+        val P2 = mk_fvar "P2" []
+        val Q1 = mk_fvar "Q1" []
+        val Q2 = mk_fvar "Q2" []
         val f0 = mk_imp (mk_conj (mk_imp P1 (mk_dimp Q1 Q2)) 
                                  (mk_imp Q2 (mk_dimp P1 P2)))
                         (mk_dimp (mk_conj P1 Q1) (mk_conj P2 Q2))

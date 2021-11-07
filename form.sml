@@ -6,7 +6,7 @@ datatype form =
 Pred of string * term list
 | Conn of string * form list
 | Quant of string * string * sort * form
-| fVar of string;   
+| fVar of string * term list;   
 
 exception ERR of string * sort list * term list * form list
 
@@ -23,7 +23,7 @@ fun subst_bound t =
           | subst i (Conn(b,As)) = Conn(b, List.map (subst i) As) 
           | subst i (Quant(q,n,s,b)) =
             Quant(q, n, replaces (mk_bound (i + 1),t) s, subst (i+1) b)
-          | subst i (fVar fm) = fVar fm 
+          | subst i (fVar(a,ts)) =  fVar(a, List.map (replacet (mk_bound i, t)) ts) 
     in subst 0 end
 
 
@@ -32,14 +32,14 @@ fun substf (V,t2) f =
         Pred(P,tl) => Pred(P,List.map (substt (V,t2)) tl)
       | Conn(co,fl) => Conn(co,List.map (substf (V,t2)) fl)
       | Quant(q,n,s,b) => Quant(q,n,substs (V,t2) s,substf (V,t2) b)
-      | _ => f
+      | fVar(P,tl) => fVar(P,List.map (substt (V,t2)) tl)
 
 fun abstract t = 
     let fun abs i (Pred(a,ts)) = Pred(a, List.map (substt (t,mk_bound i)) ts) 
           | abs i (Conn(b,As)) = Conn(b, List.map (abs i) As) 
           | abs i (Quant(q,b,s,A)) = 
             Quant(q, b, substs (t, mk_bound (i + 1)) s, abs (i+1) A)
-          | abs i (fVar fm) = fVar fm 
+          | abs i (fVar(a,ts)) = fVar(a, List.map (substt (t,mk_bound i)) ts) 
     in abs 0 end;
 
 
@@ -48,7 +48,7 @@ fun fvf f =
         Pred(P,tl) => fvtl tl
       | Conn(co,fl) => fvfl fl
       | Quant(q,n,s,b) => HOLset.union (fvs s,fvf b)
-      | _ => essps
+      | fVar(P,tl) => fvtl tl
 and fvfl G = 
     case G of [] => essps
             | h :: t => HOLset.union (fvf h,fvfl t)
@@ -106,11 +106,16 @@ fun is_quant f =
         Quant _ => true
       | _ => false
 
+fun is_var f = 
+    case f of
+        fVar _ => true
+      | _ => false
+
 fun boundst t = 
     case view_term t of
         vVar(n,s) => boundss s
       | vB i => HOLset.add(HOLset.empty Int.compare,i)
-| vFun(f,s,tl) => HOLset.union(boundss s,bigunion Int.compare (List.map boundst tl))
+      | vFun(f,s,tl) => HOLset.union(boundss s,bigunion Int.compare (List.map boundst tl))
 and boundss s = 
     case dest_sort s of
         (_, tl) => bigunion Int.compare (List.map boundst tl)
@@ -143,7 +148,7 @@ fun mk_quant q n s b = Quant(q,n,s,abstract (n,s) b)
 
 fun mk_P0 p tl = Pred(p,tl)
 
-fun mk_fvar f = fVar f
+fun mk_fvar f tl = fVar(f,tl)
 
 (*destructor functions*)
 
@@ -209,6 +214,11 @@ fun dest_uex f =
         in (ns',subst_bound (mk_var ns') b)
         end
       | _ => raise ERR ("not a unique existantial",[],[],[f])
+
+fun dest_fvar f =
+    case f of
+        fVar pair => pair
+      | _ => raise ERR ("not a formula variable",[],[],[f])
 
 fun eq_form fp = PolyML.pointerEq (fst fp,snd fp) orelse
     case fp of 
@@ -282,6 +292,8 @@ fun match_sort' nss s1 s2 env0 =
     end
 
 
+
+
 fun match_form nss pat cf env:menv = 
     case (pat,cf) of
         (Pred(P1,l1),Pred(P2,l2)) => 
@@ -296,11 +308,12 @@ fun match_form nss pat cf env:menv =
         if q1 <> q2 then 
             raise ERR ("different quantifiers: ",[],[],[pat,cf])
         else match_form nss b1 b2 (match_sort' nss s1 s2 env)
-      | (fVar fm,_) => 
+      | (fVar (fm,[]),_) => 
             (case (lookup_f' env fm) of
                  SOME f => if eq_form(f,cf) then env else
                            raise ERR ("double bind of formula variables",[],[],[pat,f,cf])
                | _ => fv2f' fm cf env)
+      | (fVar (fm,h :: t),_) => env
       | _ => raise ERR ("different formula constructors",[],[],[pat,cf])
 and match_fl nss l1 l2 env = 
     case (l1,l2) of 
@@ -375,10 +388,14 @@ fun inst_form env f =
         in 
             Quant(q,n',s',b')
         end
-      | fVar fvn => 
+      | fVar(f,tl) => 
+        (case lookup_f' env f of
+             SOME f' => inst_form env f'
+           | NONE => fVar(f,List.map (inst_term' env) tl))
+    (*  | fVar fvn => 
         (case lookup_f' env fvn of
              SOME f' => f'
-           | NONE => f)
+           | NONE => f)*)
 
 
 fun psymsf f = 
@@ -399,7 +416,13 @@ fun fsymsf f =
       | Conn("~",[A]) => fsymsf A
       | Conn(_,[A,B]) => HOLset.union(fsymsf A,fsymsf B)
       | Quant(_,_,_,b) => fsymsf b
-      | _ => raise ERR ("fsymfs.ill-formed formula: ",[],[],[f])
+      | fVar(_,l) => 
+        List.foldr 
+            (fn (t,fs) => HOLset.union (fsymst t,fs))
+            (HOLset.empty String.compare)
+            l
+      | _ => raise ERR ("fsyms.ill-formed formula",[],[],[f])
+     (* | _ => raise ERR ("fsymfs.ill-formed formula: ",[],[],[f])*)
 
 
 
@@ -441,7 +464,7 @@ datatype form_view =
     vConn of string * form list
   | vQ of string * string * sort * form
   | vPred of string * term list
-  | vfVar of string
+  | vfVar of string * term list
 
 
 fun dest_forall f = 

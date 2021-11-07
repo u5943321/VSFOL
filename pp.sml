@@ -179,7 +179,9 @@ fun ppform (ss:bool) g (f:form) =
                           >> 
                           add_string "." >> add_break(1,2) >> ppform ss (LR (NONE,NONE)) b0)
          end
-      | vfVar fv => add_string fv
+      | vfVar(p,args) => 
+        if length args = 0 then add_string p else
+        add_string p >> paren (pr_list (ppterm ss (LR (NONE,NONE))) (add_string "," >> add_break (1,0)) args)
       | _ => raise ERR ("ill-formed formula",[],[],[f])
 
 
