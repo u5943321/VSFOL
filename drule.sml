@@ -1092,6 +1092,7 @@ but it will require the !A is quantified in innermost
 
 *)
 
+(* match until the end of the file
 fun COND_EXISTS_FCONV f =
     let val ((n,s),b) = dest_forall f
         val (ant,conc) = dest_imp b
@@ -1193,4 +1194,36 @@ fun COND_EXISTSL_FCONV f =
     in (conv1 thenfc conv2) f
     end 
 
-top_depth_fconv no_conv COND_EXISTS_FCONV (concl $ PUSHIN_UQV f ns)
+
+fun SWAP_CONJ_FCONV f = rewr_fconv CONJ_COMM f
+
+(*maybe have pull*)
+
+fun PULL_CJ_FCONV pred f = 
+    case view_form f of
+        vConn("&",[c1,c2]) => 
+        if pred c1 = false then 
+            if pred c2 then SWAP_CONJ_FCONV f
+            else raise ERR ("PULL_CJ_FCONV.none of the conjuncts satisfy the predicate",[],[],[c1,c2])
+        else no_fconv f
+      | _ => raise ERR ("PULL_CJ_FCONV.not a conjunction",[],[],[f])
+
+fun CONTAIN_CJ pred f = 
+    case view_form f of
+        vConn("&",[c1,c2]) => 
+        pred c1 orelse pred c2 orelse 
+        CONTAIN_CJ pred c1 orelse CONTAIN_CJ pred c2
+      | _ => pred f
+
+
+val f1 = “x:A->B = y & y = z & k:C->D = h & k = i”
+val f = f1
+
+val pred = fn f => 
+(fst o dest_var o fst o dest_eq) f = "k" handle _ => false 
+(*top_depth_fconv no_conv COND_EXISTS_FCONV (concl $ PUSHIN_UQV f ns)*)
+ top_depth_fconv no_conv (PULL_CJ_FCONV (CONTAIN_CJ pred) orelsefc (rewr_fconv CONJ_ASSOC)) f
+
+*)
+
+end

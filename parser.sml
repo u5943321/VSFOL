@@ -746,7 +746,7 @@ and ast2ps ast env =
        end
 | _ => raise PER ("ast2ps.wrong attempt of trying to turn an aBinder into a pre-sort",[],[])
 
-(*
+
 fun ast2pt ast (env,n) = 
     case ast of 
         aId(a) =>
@@ -806,75 +806,83 @@ fun ast2pt ast (env,n) =
         raise simple_fail "quantified formula parsed as a term!"
 and ast2ps ast (env,n) = 
     case ast of
-        aId(ns) => (psrt(ns,[]),(env,ns))
+        aId(ns) => (psrt(ns,[]),(env,n))
       | aApp(ns,atl) => 
-        let val (ptl,env1) = 
+        let val (ptl,(env1,n1)) = 
             foldr 
-            (fn (tast,(l,env)) => 
-             let val (pt1,env1) = ast2pt tast env
-             in (pt1 :: l,env1)
-             end) ([],env) atl
-        in (psrt(ns,ptl),env1)
+            (fn (tast,(l,(env,n))) => 
+             let val (pt1,(env1,n1)) = ast2pt tast (env,n)
+             in (pt1 :: l,(env1,n1))
+             end) ([],(env,n)) atl
+        in (psrt(ns,ptl),(env1,n1))
         end
       |aInfix(ast1,inx,ast2) =>
        let 
-           val (dom,env1) = ast2pt ast1 env
-           val (cod,env2) = ast2pt ast2 env1
+           val (dom,(env1,n1)) = ast2pt ast1 (env,n)
+           val (cod,(env2,n2)) = ast2pt ast2 (env1,n1)
            val sn = sortname_of_infix inx
        in 
-           (psrt(sn,[dom,cod]),env2)
+           (psrt(sn,[dom,cod]),(env2,n2))
        end
 | _ => raise PER ("ast2ps.wrong attempt of trying to turn an aBinder into a pre-sort",[],[])
 
+(*
+val str0 = "_ = _ & isFun(_)"
+
+val tl0 = lex str0
+val ast0 = parse_ast tl0
+val ast0 = fst ast0
+val pf0 = ast2pf ast0 (empty,0)
 *)
-fun ast2pf ast (env:env) = 
+
+fun ast2pf ast (env:env,n) = 
     case ast of 
         aId(a) => 
-        if a = "T" then (pPred("T",[]),env) else 
-        if a = "F" then (pPred("F",[]),env) else
+        if a = "T" then (pPred("T",[]),(env,n)) else 
+        if a = "F" then (pPred("F",[]),(env,n)) else
         raise simple_fail("variable:" ^ a ^ " is parsed as a predicate")
       | aApp("~",[ast]) => 
-        let val (pf,env1) = ast2pf ast env in
-            (pConn("~",[pf]),env1)
+        let val (pf,(env1,n1)) = ast2pf ast (env,n) in
+            (pConn("~",[pf]),(env1,n1))
         end
       | aApp(str,astl) => 
         if is_pred str then 
             case astl of
-                [] => (pPred(str,[]),env)
+                [] => (pPred(str,[]),(env,n))
               | h :: t => 
-                let val (pf,env1) = ast2pf (aApp(str,t)) env
-                    val (pt,env2) = ast2pt h env1
-                in (pPred_cons pf pt,env2)
+                let val (pf,(env1,n1)) = ast2pf (aApp(str,t)) (env,n)
+                    val (pt,(env2,n2)) = ast2pt h (env1,n1)
+                in (pPred_cons pf pt,(env2,n2))
                 end
         else raise simple_fail("not a predicate symbol: "^ str)
       | aInfix(ast1,str,ast2) => 
         if mem str ["&","|","<=>","==>"] then
             let
-                val (pf1,env1) = ast2pf ast1 env
-                val (pf2,env2) = ast2pf ast2 env1
+                val (pf1,(env1,n1)) = ast2pf ast1 (env,n)
+                val (pf2,(env2,n2)) = ast2pf ast2 (env1,n1)
             in
-                (pConn(str,[pf1,pf2]),env2)
+                (pConn(str,[pf1,pf2]),(env2,n2))
             end else 
         if mem str ["=","=="] then
             let
-                val (pt1,env1) = ast2pt ast1 env
-                val (pt2,env2) = ast2pt ast2 env1
+                val (pt1,(env1,n1)) = ast2pt ast1 (env,n)
+                val (pt2,(env2,n2)) = ast2pt ast2 (env1,n1)
             in
-                (pPred(str,[pt1,pt2]),env2)
+                (pPred(str,[pt1,pt2]),(env2,n2))
             end else
         raise simple_fail ("not an infix operator: " ^ str)
       | aBinder(str,ns,b) => 
         if str = "!" orelse str = "?" orelse str = "?!" then
-            let val (pt,env1) = ast2pt ns env in 
+            let val (pt,(env1,n1)) = ast2pt ns (env,n) in 
                 case pt of 
-                    pVar(n,s) => 
+                    pVar(n0,s0) => 
                     let 
-                        val (pf,env2) = ast2pf b env1 in
-                        (mk_pQuant str n s pf,clear_ps n env2)
+                        val (pf,(env2,n2)) = ast2pf b (env1,n1) in
+                        (mk_pQuant str n0 s0 pf,(clear_ps n0 env2,n2))
                     end
-                  | pAnno(pVar(n,s),ps) => 
-                    let val (pf,env2) = ast2pf b env1 in
-                        (mk_pQuant str n ps pf,clear_ps n env2)
+                  | pAnno(pVar(n0,s0),ps) => 
+                    let val (pf,(env2,n2)) = ast2pf b (env1,n1) in
+                        (mk_pQuant str n0 ps pf,(clear_ps n0 env2,n2))
                     end
                   | _ => raise simple_fail"err in parsing bound variable,maybe the bounded variable name clash with a constant"
             end
@@ -887,10 +895,10 @@ fun parse_ast_end (x:ast, l:token list) =
     else raise ERROR "Extra characters in formula";
 
 fun read_ast_pf a =
-    ast2pf (parse_ast_end (parse_ast (lex a))) empty
+    ast2pf (parse_ast_end (parse_ast (lex a))) (empty,0)
 
 fun read_ast_pt a = 
-    ast2pt (parse_ast_end (parse_ast (lex a))) empty
+    ast2pt (parse_ast_end (parse_ast (lex a))) (empty,0)
 
 
 (*parser may have another flag: parse as fun, as pred *)
@@ -909,14 +917,14 @@ fun form_from_pf env pf =
 (*mk_P0 should be mk_pred! just testing! need to change it back*)
 
 fun read_ast_t t = 
-    let val (pt,env) = read_ast_pt t
+    let val (pt,(env,_)) = read_ast_pt t
         val (ps,env0) = ps_of_pt pt env
         val env1 = type_infer env0 pt ps
     in (term_from_pt env1 pt,pdict env1)
     end
 
 fun read_ast_f f = 
-    let val (pf,env) = read_ast_pf f
+    let val (pf,(env,_)) = read_ast_pf f
         val env1 = type_infer_pf env pf
     in (form_from_pf env1 pf,pdict env1)
     end
@@ -1047,7 +1055,7 @@ fun anno_cont_ast ct ast =
 fun parse_term_with_cont ct tstr = 
     let val ast0 = parse_ast_end (parse_ast (lex tstr))
         val ast1 = anno_cont_ast ct ast0
-        val (pt,env) = ast2pt ast1 empty
+        val (pt,(env,_)) = ast2pt ast1 (empty,0)
         val (ps,env1) = ps_of_pt pt env
         val env1 = type_infer env1 pt ps
     in 
@@ -1057,7 +1065,7 @@ fun parse_term_with_cont ct tstr =
 fun parse_form_with_cont ct fstr = 
     let val ast0 = parse_ast_end (parse_ast (lex fstr))
         val ast1 = anno_cont_ast ct ast0
-        val (pf,env) = ast2pf ast1 empty
+        val (pf,(env,_)) = ast2pf ast1 (empty,0)
         val env1 = type_infer_pf env pf
     in 
         form_from_pf env1 pf

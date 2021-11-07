@@ -831,6 +831,9 @@ fun AX5 P (ns as (n,s)) (S0 as(sn,ss)) =
     in mk_thm(fvf f,[],f) 
     end
 
+
+
+
 (*
 !a b c. P(a,b,c) ==> ?d.Q(c,d) does not work
 
