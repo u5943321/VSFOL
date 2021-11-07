@@ -879,3 +879,6 @@ fun form var
 look a bit to the current file to see if any obvious improvement
 Any particularly interesting things to do in the setting of SEAR, maybe defining recursive set using AX5 is one thing to do, as suggested in SEAR nlab, and forcing in SEARC seems interesting but a bit ambitious.
 *)
+
+
+(*how to use formula variables also for rw? using the bound variable*)

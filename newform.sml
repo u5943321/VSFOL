@@ -308,16 +308,12 @@ fun match_form nss pat cf env:menv =
         if q1 <> q2 then 
             raise ERR ("different quantifiers: ",[],[],[pat,cf])
         else match_form nss b1 b2 (match_sort' nss s1 s2 env)
-      | (fVar (P1,args1), fVar(P2,args2)) =>
-
-      | (fVar (P,args),_) => 
-        case (lookup_f' env P) of 
-            SOME f => 
-      | (fVar fm,_) => 
+      | (fVar (fm,[]),_) => 
             (case (lookup_f' env fm) of
                  SOME f => if eq_form(f,cf) then env else
                            raise ERR ("double bind of formula variables",[],[],[pat,f,cf])
                | _ => fv2f' fm cf env)
+      | (fVar (fm,h :: t),_) => env
       | _ => raise ERR ("different formula constructors",[],[],[pat,cf])
 and match_fl nss l1 l2 env = 
     case (l1,l2) of 
@@ -392,10 +388,14 @@ fun inst_form env f =
         in 
             Quant(q,n',s',b')
         end
-      | fVar fvn => 
+      | fVar(f,tl) => 
+        (case lookup_f' env f of
+             SOME f' => inst_form env f'
+           | NONE => fVar(f,List.map (inst_term' env) tl))
+    (*  | fVar fvn => 
         (case lookup_f' env fvn of
              SOME f' => f'
-           | NONE => f)
+           | NONE => f)*)
 
 
 fun psymsf f = 
@@ -416,7 +416,13 @@ fun fsymsf f =
       | Conn("~",[A]) => fsymsf A
       | Conn(_,[A,B]) => HOLset.union(fsymsf A,fsymsf B)
       | Quant(_,_,_,b) => fsymsf b
-      | _ => raise ERR ("fsymfs.ill-formed formula: ",[],[],[f])
+      | fVar(_,l) => 
+        List.foldr 
+            (fn (t,fs) => HOLset.union (fsymst t,fs))
+            (HOLset.empty String.compare)
+            l
+      | _ => raise ERR ("fsyms.ill-formed formula",[],[],[f])
+     (* | _ => raise ERR ("fsymfs.ill-formed formula: ",[],[],[f])*)
 
 
 
@@ -458,7 +464,7 @@ datatype form_view =
     vConn of string * form list
   | vQ of string * string * sort * form
   | vPred of string * term list
-  | vfVar of string
+  | vfVar of string * term list
 
 
 fun dest_forall f = 
