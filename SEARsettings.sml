@@ -63,30 +63,80 @@ fun dest_mem_sort s =
     let val (sn,tl) = dest_sort s
     in if sn = "mem" then hd tl else raise ERR ("dest_mem_sort.input sort is not a mem sort",[s],[],[])
     end
-(*
-fun AX1 (f:form) (a,b) = 
-    let val fvs = fvf f
-        val (n1,s1) = dest_var a
-        val aset = dest_mem_sort s1
-        val (n2,s2) = dest_var b
-        val bset = dest_mem_sort s2
-        val _ = HOLset.member(fvs,(n1,s1)) orelse 
-                raise ERR ("AX1.first variable not occurs in the input formula",[],[a],[f])
-        val _ = HOLset.member(fvs,(n2,s2)) orelse 
-                raise ERR ("AX1.second variable not occurs in the input formula",[],[b],[f])
-        val rs = rel_sort aset bset
-        val rvar = mk_var("R",rs)
-        val holdspred = mk_pred "Holds" [rvar,a,b]
-        val f0 = mk_dimp holdspred f
-        val f1 = mk_exists "R" rs
-                (mk_forall n1 s1 
-                           (mk_forall n2 s2
-                                     f0))
-    in
-        mk_thm(fvf f1,[],f1)
-    end
+
+(*Axiom 1 (Relational comprehension): For any two sets A and B, and any property P that can obtain of an element of A and an element of B, there exists a unique relation φ:A↬B such that φ(x,y) if and only if P obtains of x and y.
 
 *)
+(*
+
+ fVarInst : (string * (var list * form)) list -> thm -> thm
+
+entry point.  The variables are the bound variables and the form is the body of the abstraction.  Then after you substitute, you check that the list of arguments is the right length, and then do the beta-reduction to eliminate the bound variables.
+
+fun abstractl l fm = 
+    case l of [] => fm
+            | h :: t => abstract h (abstractl t fm)
+ 
+fun fVarInst_fm1 (pair as (fvn:string,(vl:(string * sort) list,fm:form))) f0 = 
+    case view_form f0 of 
+        vfVar(fv0,args) => 
+        if fv0 = fvn then if length args = length vl then
+                             (* abstractl vl *) fm
+                          else raise ERR ("fVarInst.list length differs.",[],[],[f0])
+        else f0
+      | vQ(q,n,s,b) => mk_quant q n s (fVarInst_fm1 pair b)
+      | vConn(co,l) => mk_conn co (List.map (fVarInst_fm1 pair) l)
+      | vPred _ => f0
+
+“”
+
+val f0 = concl AX1
+val fm = “Holds(Q:B->A,b,a)”
+val fvn = "P"
+val vl = [("a",mem_sort (mk_set "A")),("b",mem_sort (mk_set "B"))]
+val pair = (fvn,(vl,fm))
+
+fVarInst_fm1 pair f0
+
+want inst 
+fVarInst_fm1 pair $ concl AX1
+val f0 = “!b:mem(C). Q(b) & (!b:mem(B).Holds(R:A->B,a,b) <=>P(a,b))”
+
+
+
+val f0 = “!b:mem(B).P(a,b)”
+
+val f0 = “P(a:mem(A),b:mem(B))”
+fun fVarInst_fm l f = 
+    case l of 
+        [] => f
+      | (fvn,(vl,fm)) :: t => 
+        let val f' = fVarInst_fm t f
+            val 
+fun fVarInst l th = 
+    case l of 
+        [] => th 
+      | h :: t =>
+        let val (ct,asl,w) = dest_thm th
+            val 
+
+*)
+
+val AX1 = new_ax
+“!A B:set.?!R:A->B.!a:mem(A) b:mem(B).Holds(R,a,b)<=> P(a,b)”
+
+(*
+inst_thm (mk_inst 
+              [(("a",mem_sort $mk_set "A"),mk_var("a",mem_sort $mk_set "A")),
+               (("b",mem_sort $mk_set "B"),mk_var("b",mem_sort $mk_set "B"))] [("P",“Holds(Q:A->B,a,b)”)]) (spec_all AX1)
+*)
+
+
+(*must be able to inst the P(a,b) into P0(B(1),B(0))
+in the case that 
+
+*)
+
 
 
 fun AX1 (f:form) (a0 as (n1,s1),b0 as (n2,s2)) = 
@@ -166,7 +216,7 @@ local
 val lemma = AX1 “~(a:mem(A) = a) & b:mem(A) = b” (("a",mem_sort (mk_set "A")),("b",mem_sort (mk_set "A")))
 val lemma' = dimp_mp_l2r lemma (uex_def $ concl lemma) 
 in
-val Thm_2_2 = proved_th $ (*val (ct,_,_) = cg $*)
+val Thm_2_2 = proved_th $ (*val (ct,asl,w) = cg $*)
 e0
 (strip_assume_tac AX0 >> strip_assume_tac lemma' >>
  qspecl_then [‘A’,‘A’,‘R’] strip_assume_tac AX2 >>
@@ -180,6 +230,21 @@ e0
 (form_goal
 “?Empty. !a:mem(Empty).F”)
 end
+
+
+(*
+ val (ct,asl,w) = cg $
+e0
+(strip_assume_tac AX0 >> strip_assume_tac lemma' >>
+ qspecl_then [‘A’,‘A’,‘R’] strip_assume_tac AX2 >>
+ qexists_tac ‘TR’ >> strip_tac >> 
+ by_tac “!a b. ~Holds(R:A->A,a:mem(A),b:mem(A))” 
+ >-- (rpt strip_tac >> pop_assum (K all_tac) >> pop_assum (K all_tac) >>
+      pop_assum (K all_tac) >> last_x_assum (K all_tac) >> once_arw[] >> rw[]))
+(form_goal
+“?Empty. !a:mem(Empty).F”)
+*)
+
 
 val _ = store_thm("Thm_2_2",Thm_2_2)
 
@@ -883,3 +948,20 @@ Any particularly interesting things to do in the setting of SEAR, maybe defining
 
 
 (*how to use formula variables also for rw? using the bound variable*)
+
+
+val f =  "!a:set a:mem(A).Holds(R:A->B,a,b)"
+
+val ast = fst $ parse_ast $ lex f
+
+val ns =  aInfix (aId "a", ":", aId "set")
+
+val b = aBinder
+      ("!", aInfix (aId "a", ":", aApp ("mem", [aId "A"])),
+       aApp
+        ("Holds",
+         [aInfix (aId "R", ":", aInfix (aId "A", "->", aId "B")), aId "a",
+          aId "b"]))
+
+val str = "!"
+

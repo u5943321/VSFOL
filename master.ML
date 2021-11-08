@@ -13,9 +13,11 @@ use "logic.sig";
 use "logic.sml";
 open logic;
 
+
 use "pp.sig";
 use "pp.sml";
 open pp;
+
 
 
 
@@ -67,3 +69,5 @@ use "Q.sig";
 use "Q.sml";
 open Q;
 
+
+use "proofmanager.sml";

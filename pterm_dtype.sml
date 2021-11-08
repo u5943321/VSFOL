@@ -11,7 +11,8 @@ and pterm =
 datatype pform =
          pPred of string * pterm list
          | pConn of string * pform list
-         | pQuant of string * string * psort * pform;  
+         | pQuant of string * string * psort * pform
+         | pfVar of string * pterm list ;  
 
 end
 

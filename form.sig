@@ -55,8 +55,10 @@ val dest_neg: form -> form
 val dest_conj: form -> form * form
 val dest_disj: form -> form * form
 val dest_pred: form -> string * term list
+val dest_fvar: form -> string * term list
 val dest_exists: form -> (string * sort) * form
 val dest_forall: form -> (string * sort) * form
+val dest_uex: form -> (string * sort) * form
 
 val eq_form: form * form -> bool
 val substf: (string * sort) * term -> form -> form
