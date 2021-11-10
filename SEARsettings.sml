@@ -67,7 +67,7 @@ fun dest_mem_sort s =
 (*Axiom 1 (Relational comprehension): For any two sets A and B, and any property P that can obtain of an element of A and an element of B, there exists a unique relation φ:A↬B such that φ(x,y) if and only if P obtains of x and y.
 
 *)
-(*
+
 
  fVarInst : (string * (var list * form)) list -> thm -> thm
 
@@ -88,7 +88,34 @@ fun fVarInst_fm1 (pair as (fvn:string,(vl:(string * sort) list,fm:form))) f0 =
       | vConn(co,l) => mk_conn co (List.map (fVarInst_fm1 pair) l)
       | vPred _ => f0
 
-“”
+fun subst_form (f0,f) fm = 
+    case view_form fm of 
+
+val ifffm = “!a b. P(a,b) <=> Holds(Q:B->A,b,a)”
+fun fVarInst_fm1 ifffm f0 = 
+    let val (iff,bvs) = strip_forall ifffm 
+        val (fV,actu) = dest_dimp iff 
+
+
+
+(*
+
+fun fVarInst_fm1 Q l ct f0 = 
+    let val Qfvs = fvf Q
+        val (orgvs,tms) = List.map fst l
+        (*variables in Q to terms which can be constructed from ct*)
+        val _ = HOLset.isSubset(List.foldr (fn (t,set) => HOLset.union(fvt t,set)) essps tms,ct) orelse
+                raise ERR ("fVarInst_fm1, extra variables.",[],[],[f0])
+        val Q' = mk_inst l [] Q
+        val _ = HOLset.isSubset(fvf Q',ct)
+        val 
+*)
+fun fVarInst_fm pairl f0 = 
+List.foldr (uncurry fVarInst_fm1) f0 pairl
+
+val AX1 = new_ax
+“!A B:set.?!R:A->B.!a:mem(A) b:mem(B).Holds(R,a,b)<=> P(a,b)”
+
 
 val f0 = concl AX1
 val fm = “Holds(Q:B->A,b,a)”
@@ -120,10 +147,6 @@ fun fVarInst l th =
         let val (ct,asl,w) = dest_thm th
             val 
 
-*)
-
-val AX1 = new_ax
-“!A B:set.?!R:A->B.!a:mem(A) b:mem(B).Holds(R,a,b)<=> P(a,b)”
 
 (*
 inst_thm (mk_inst 
@@ -169,12 +192,13 @@ val _ = new_pred "isBij" [("R",rel_sort (mk_set "A") (mk_set "B"))]
 
 val Fun_def = new_ax “!A B R:rel(A,B). isFun(R) <=> !x:mem(A). ?!y:mem(B). Holds(R,x,y)”
 
+
 (*
-val _ = define_pred “!A B R:rel(A,B). isFun(R) <=> !x:mem(A). ?!y:mem(B). Holds(R,x,y)”;
+val _ = rapf "!A B R:rel(A,B). isFun(R) <=> !x:mem(A). ?!y:mem(B). Holds(R,x,y)";
 *)
 
 val _ = new_fun "Eval" (mem_sort (mk_set "B"),[("R",rel_sort (mk_set "A") (mk_set "B")),
-                        ("x",mem_sort (mk_set "A"))])
+                        ("x",mem_sort (mk_set "A"))]) 
 
 val Eval_def = new_ax “!A B Fn:rel(A,B). isFun(Fn) ==>!x y. Holds(Fn,x,y) <=> y = Eval(Fn,x)”
 
@@ -940,17 +964,23 @@ fun form var
 9.Look at Isabelle's axiom scheme.
 10. if time permits, tokenizer, fixed somehow, but still not pretty.
 
+want a truth table tactic for propositional taut, so all the propositional drules can be solved by it immediately.
 
+rapf "!a:mem(A). (!a:mem(B).P(a)) & P(a)";
+val it = !(a' : mem(A)). (!(a : mem(B)). P(a#)) & P(a): form
 
 look a bit to the current file to see if any obvious improvement
 Any particularly interesting things to do in the setting of SEAR, maybe defining recursive set using AX5 is one thing to do, as suggested in SEAR nlab, and forcing in SEARC seems interesting but a bit ambitious.
 *)
-
+rapf "!a.P(a) & (!a:mem(A).Q(a))"
+“!a.P(a) & (!a.Q(a))“”
 
 (*how to use formula variables also for rw? using the bound variable*)
 
 
 val f =  "!a:set a:mem(A).Holds(R:A->B,a,b)"
+
+
 
 val ast = fst $ parse_ast $ lex f
 
@@ -965,3 +995,192 @@ val b = aBinder
 
 val str = "!"
 
+val env = empty; val n = 0
+
+
+f you want equation
+
+  !a b…c.  P(a,b,…c) <=> ..a..b..c
+
+then you can use 
+
+  ("P", ([a,b,…,c], ..a..b..c))
+
+how to deal  with P(f(a))?
+
+In which case will we need / should we allow partial application
+
+(*skip if it is premature *)
+
+(* (P(a) ==> P(f(a))) ===> ...*)
+
+fun fVar_Inst (pair as (P,(argl:(string * sort) list,Q))) f = 
+    case view_form f of
+        vfVar(P0,args0) =>
+(*ListPair.map ListPair.foldl*)
+(*mk_inst (zip argl args0)ListPair. [] *)
+        if P0 = P then
+            let val venv = match_tl essps (List.map mk_var argl) args0 emptyvd 
+            in inst_form (mk_menv venv emptyfvd) Q
+            end
+(*if the number of arguments is wrong, or the sorts is wrong, then handle the matching exn by returning f *)
+        else f
+      | vConn(co,fl) => mk_conn co (List.map (fVar_Inst pair) fl)
+      | vQ(q,n,s,b) => mk_quant q n s (fVar_Inst pair b)
+      | vPred _ => f
+
+P(a:mem(A),b:mem(B))
+
+Q(c:mem(C),d:mem(D))
+
+(*don;t do the inst above in this function, but need to call other functions to do the inst_sort first*)
+
+
+
+val f0 = concl AX1
+
+val P = "P";val argl = [("a",mem_sort (mk_set "A")),("b",mem_sort (mk_set "B"))];val Q = “Holds(Q:B->A,b,a)”;
+
+fVar_Inst (P,(argl,Q)) f0
+
+
+A & B <=> B & A
+
+(A & B) & C <=> A & B & C
+
+
+rapf "ϕ"; (*0x03D5*)
+
+rapf "!a:mem(A). (!a:mem(B).P(a)) & P(a)";
+val pf =
+   pQuant
+    ("!", "a", psrt ("mem", [pVar ("A", psvar " 0")]),
+     pConn
+      ("&",
+       [pQuant
+         ("!", "a", psrt ("mem", [pVar ("B", psvar " 1")]),
+          pfVar ("P", [pVar ("a", psrt ("mem", [pVar ("B", psvar " 1")]))])),
+        pfVar ("P", [pVar ("a", psvar " 2")])])): pform
+
+
+below unexpected, should record pAnno info in env
+
+
+> val f = "!a:mem(A).P(a)";
+val f = "!a:mem(A).P(a)": string
+> val ast = fst $ parse_ast $ lex f;
+val ast =
+   aBinder
+    ("!", aInfix (aId "a", ":", aApp ("mem", [aId "A"])),
+     aApp ("P", [aId "a"])): ast
+> val (pf,(env,_)) = ast2pf ast (empty,0);
+val env = (?, ?, ?, ?, 2): env
+val pf =
+   pQuant ("!", "a", psvar " 0", pfVar ("P", [pVar ("a", psvar " 0")])):
+   pform
+> pdict env;
+val it = ([], [], ["(A -> psv  1)"], [], 2):
+   string list * string list * string list * string list * int
+
+
+here 
+ast2pt ns (env3,n) 
+
+problematic: 
+
+ns Infix (aId "a", ":", aApp ("mem", [aId "A"])): ast
+
+env3 = ([], [], ["(a -> psv  2)", "(A -> psv  1)"], [], 3):
+
+“!A B:set.?!R:A->B.T”
+
+val f = "!A B:set.?!R:A->B.T"
+
+--
+
+think about later:
+
+ val f = "!A B:set.?!R:A->B.T": string
+> val ast = fst $ parse_ast $ lex f;
+val ast =
+   aBinder
+    ("!", aId "A",
+     aBinder
+      ("!", aInfix (aId "B", ":", aId "set"),
+       aBinder
+        ("?!", aInfix (aId "R", ":", aInfix (aId "A", "->", aId "B")),
+         aId "T"))): ast
+> val (pf,(env,_)) = ast2pf ast (empty,0);
+val env = (?, ?, ?, ?, 3): env
+val pf =
+   pQuant
+    ("!", "A", psvar " 0",
+     pQuant
+      ("!", "B", psvar " 1", pQuant ("?!", "R", psvar " 2", pPred ("T", [])))):
+   pform
+> pdict env;
+val it =
+   ([], ["( 2 -> rel(pv A : psv  0,pv B : psv  1))", "( 1 -> set)"], [], [],
+    3): string list * string list * string list * string list * int
+> type_infer_pf env pf;
+val it = (?, ?, ?, ?, 6): env
+> pdict it;
+val it =
+   ([],
+    ["( 5 -> psv  2)", "( 4 -> psv  1)", "( 3 -> psv  0)",
+     "( 2 -> rel(pv A : psv  0,pv B : psv  1))", "( 1 -> set)"], [], [], 6):
+   string list * string list * string list * string list * int
+
+the 5 |-> psvar 2, 4 |-> psv 1, useless
+----
+rapf "!A B:set.?!R:A->B.!a:mem(A) b:mem(B).Holds(R,a,b)<=> P(a,b)"
+
+val f = "y = a:mem(A) & z = a";
+val ast = fst $ parse_ast $ lex f;
+val (pf,(env,_)) = ast2pf ast (empty,0);
+pdict env;
+
+(*trouble here
+try:
+
+val t = "a:mem(A)";
+val ast = fst $ parse_ast $ lex t;
+val (pt,(env,_)) = ast2pt ast (empty,0);
+
+*)
+
+
+type_infer_pf env pf loops;
+dest pf into
+val h = pPredf;
+       ("=",
+        [pVar ("y", psvar " 0"),
+         pAnno
+          (pVar ("a", psvar " 1"), psrt ("mem", [pVar ("A", psvar " 1")]))]);
+val t = [pPred ("=", [pVar ("z", psvar " 2"), pVar ("a", psvar " 1")])];
+ type_infer_pf env h loops
+val ptl = [pVar ("z", psvar " 2"), pVar ("a", psvar " 1")];
+foldr deal with the a first
+val pt = pVar ("a", psvar " 1");
+val (ps,env) = ps_of_pt pt env;
+pdict $ snd ps;
+val it =
+   ([], ["( 1 -> mem(pv A : psv  1))"],
+    ["(z -> psv  2)", "(y -> psv  0)", "(a -> psv  1)"], [], 3):
+   string list * string list * string list * string list * int
+> pdict env;
+val it =
+   ([], ["( 1 -> mem(pv A : psv  1))"],
+    ["(z -> psv  2)", "(y -> psv  0)", "(a -> psv  1)"], [], 3):
+   string list * string list * string list * string list * int
+
+env does not change here
+
+type_infer env pt ps loops where
+# val it = pVar ("a", psvar " 1"): pterm
+> # val it = psvar " 1": psort
+> pdict env;
+val it =
+   ([], ["( 1 -> mem(pv A : psv  1))"],
+    ["(z -> psv  2)", "(y -> psv  0)", "(a -> psv  1)"], [], 3):
+   string list * string list * string list * string list * int

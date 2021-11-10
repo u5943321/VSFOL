@@ -441,7 +441,17 @@ fun type_infer_args env pf =
    
 fun type_infer_pf env pf = 
     case pf of 
-        pQuant(q,n,ps,pb) => type_infer_pf env pb
+        pQuant(q,n,ps,pb) =>
+(*edited 11.8*)
+        let val env = clear_ps n env
+            val (Av,env1) = fresh_var env
+            val env2 = record_ps n (psvar Av) env1
+            val env3 = insert_ps Av ps env2
+            val env4 = type_infer_pf env3 pb
+        in
+           (*type_infer_pf env1 pb*)
+           clear_ps n env4
+        end
       | pConn(co,pfl) => 
         (case pfl of 
              [] => env
@@ -653,6 +663,16 @@ fun ps_of_const c =
 
 
 
+(*task of ast2pt ast2ps: for each variable, these two functions do not know if they are free or not, so it just assign every variable a psvar. here ps_of function is the only way required to find if the variable is already binded to some psvar. this function does not do type inference, so never call insert_ps,
+in the case that pVar is produced, it can only be pVar(name,psvar num)
+
+
+Later realised that need to do insert_ps when coming across pAnno, because for 
+!a:mem(A). P(a), the constructor of pQuant does not allow us to store that a is annotated, we can only use env to remember it.
+
+But now think having pAnno as a constructor and store the psvar is redundant work.
+ *)
+fun psvar_name ps = case ps of psvar n => n | _ => raise PER ("not a psvar",[],[])
 
 fun ast2pt ast (env,n) = 
     case ast of 
@@ -660,15 +680,16 @@ fun ast2pt ast (env,n) =
         if is_const a then
             (pFun(a,ps_of_const a,[]),(env,n))
         else
-        (let val a' = if a = "_" then a ^ Int.toString n else a 
-             val n' = if a = "_" then n + 1 else n
-         in case ps_of env a' of 
-             NONE => let val (Av,env1) = fresh_var env 
-                         val env2 = record_ps a' (psvar Av) env1
-                     in (pVar(a',psvar Av),(env2,n'))
-                     end
-           | SOME ps => (pVar(a',ps),(env,n'))
-         end)
+            let val a' = if a = "_" then a ^ Int.toString n else a 
+                val n' = if a = "_" then n + 1 else n
+            in case ps_of env a' of 
+                   NONE => let val (Av,env1) = fresh_var env 
+                               val env2 = record_ps a' (psvar Av) env1
+                           in (pVar(a',psvar Av),(env2,n'))
+                           end
+                 | SOME ps => (pVar(a',ps),(env,n'))
+            end
+      (*that means only produces pVar(a,psvar n)*)
       | aApp(str,astl) => 
         if is_fun str then 
             case astl of
@@ -683,32 +704,44 @@ fun ast2pt ast (env,n) =
                 end 
         else raise simple_fail ("not a function symbol: " ^ str) 
       | aInfix(ast1,str,ast2) => 
+        (*the case happens only for pAnno.*)
         if str = ":" then 
             case ast1 of 
-            aId(name) => 
-            let val (st0,(env1,n1)) = ast2ps ast2 (env,n)
-            in
-                case ps_of env name of 
-                    NONE => (pAnno(pVar(name,st0),st0),
-                             (record_ps name st0 env1,n1))
-                  | SOME ps => 
-                    (pAnno(pVar(name,ps),st0),(env1,n1))
-            end
-          | _ =>
-            let val (st0,(env1,n1)) = ast2ps ast2 (env,n)
-                val (pt0,(env2,n2)) = ast2pt ast1 (env1,n1)
-            in
-                (pAnno(pt0,st0),(env2,n2))
-            end 
+                aId(name) => 
+                let val (ps0,(env1,n1)) = ast2ps ast2 (env,n)
+                in
+                    case ps_of env name of 
+                        NONE => 
+                        let val (Av,env2) = fresh_var env1
+                            val env3 = record_ps name (psvar Av) env2
+                            val ps = psvar Av
+                            val env4 = insert_ps Av ps0 env3
+                        in
+                            (pAnno(pVar(name,ps),ps0), (env4,n1))
+                        end
+                      | SOME ps => 
+                        let val name0 = psvar_name ps
+                            val env2 = insert_ps name0 ps0 env1
+                        in
+                        (pAnno(pVar(name,ps),ps0),(env2,n1))
+                        end
+                end
+              | _ =>
+                let val (ps0,(env1,n1)) = ast2ps ast2 (env,n)
+                    val (pt0,(env2,n2)) = ast2pt ast1 (env1,n1)
+                in
+                    (pAnno(pt0,ps0),(env2,n2))
+                        (*It can be pAnno(pAnno(pVar(name,psvar),ps1),ps2)*)
+                end 
         else
-        if mem str ["*","+","^","o"] then
-            let val (pt1,(env1,n1)) = ast2pt ast1 (env,n)
-                val (pt2,(env2,n2)) = ast2pt ast2 (env1,n1)
-                val (Av,env3) = fresh_var env2
-            in
-                (pFun(str,psvar Av,[pt1,pt2]),(env3,n2))
-            end
-        else raise simple_fail ("not an infix operator: " ^ str)
+            if mem str ["*","+","^","o"] then
+                let val (pt1,(env1,n1)) = ast2pt ast1 (env,n)
+                    val (pt2,(env2,n2)) = ast2pt ast2 (env1,n1)
+                    val (Av,env3) = fresh_var env2
+                in
+                    (pFun(str,psvar Av,[pt1,pt2]),(env3,n2))
+                end
+            else raise simple_fail ("not an infix operator: " ^ str)
       | aBinder(str,ns,b) => 
         raise simple_fail "quantified formula parsed as a term!"
 and ast2ps ast (env,n) = 
@@ -716,11 +749,11 @@ and ast2ps ast (env,n) =
         aId(ns) => (psrt(ns,[]),(env,n))
       | aApp(ns,atl) => 
         let val (ptl,(env1,n1)) = 
-            foldr 
-            (fn (tast,(l,(env,n))) => 
-             let val (pt1,(env1,n1)) = ast2pt tast (env,n)
-             in (pt1 :: l,(env1,n1))
-             end) ([],(env,n)) atl
+                foldr 
+                    (fn (tast,(l,(env,n))) => 
+                        let val (pt1,(env1,n1)) = ast2pt tast (env,n)
+                        in (pt1 :: l,(env1,n1))
+                        end) ([],(env,n)) atl
         in (psrt(ns,ptl),(env1,n1))
         end
       |aInfix(ast1,inx,ast2) =>
@@ -731,16 +764,9 @@ and ast2ps ast (env,n) =
        in 
            (psrt(sn,[dom,cod]),(env2,n2))
        end
-| _ => raise PER ("ast2ps.wrong attempt of trying to turn an aBinder into a pre-sort",[],[])
+      | _ => raise PER ("ast2ps.wrong attempt of trying to turn an aBinder into a pre-sort",[],[])
 
-(*
-val str0 = "_ = _ & isFun(_)"
-
-val tl0 = lex str0
-val ast0 = parse_ast tl0
-val ast0 = fst ast0
-val pf0 = ast2pf ast0 (empty,0)
-*)
+(*a |-> psvar n is only used to identify the same occurence of a*)
 
 fun name_of_ast ast = 
     case ast of 
@@ -748,35 +774,35 @@ fun name_of_ast ast =
       | aInfix(a,":",_) => name_of_ast a
       | _ => raise PER ("current ast does not have a name",[],[])
 
+fun contain_aBinder ast n = 
+    case ast of aBinder (_,ast1,ast2) => if name_of_ast ast1 = n then true else 
+                                        contain_aBinder ast2 n
+              | _ => false
+
+
 fun ast2pf ast (env:env,n) = 
     case ast of 
         aId(a) => 
         if a = "T" then (pPred("T",[]),(env,n)) else 
         if a = "F" then (pPred("F",[]),(env,n)) else
-        (pPred(a,[]),(env,n))
-        (*raise simple_fail("variable:" ^ a ^ " is parsed as a predicate")*)
+        (pfVar(a,[]),(env,n))
       | aApp("~",[ast]) => 
         let val (pf,(env1,n1)) = ast2pf ast (env,n) in
             (pConn("~",[pf]),(env1,n1))
         end
       | aApp(str,astl) =>
-        if is_pred str orelse str = "=" then 
-            (case astl of
-                 [] => (pPred(str,[]),(env,n))
+        let val (constr,cconstr) = 
+                if is_pred str orelse str = "=" then (pPred,pPred_cons)
+                else (pfVar,pfVar_cons)
+        in
+            case astl of
+                 [] => (constr(str,[]),(env,n))
                | h :: t => 
                  let val (pf,(env1,n1)) = ast2pf (aApp(str,t)) (env,n)
                      val (pt,(env2,n2)) = ast2pt h (env1,n1)
-                 in (pPred_cons pf pt,(env2,n2))
-                 end)
-        else (case astl of
-                 [] => (pfVar(str,[]),(env,n))
-               | h :: t => 
-                 let val (pf,(env1,n1)) = ast2pf (aApp(str,t)) (env,n)
-                     val (pt,(env2,n2)) = ast2pt h (env1,n1)
-                 in (pfVar_cons pf pt,(env2,n2))
-                 end)
-       (* if is_pred str then 
-        else raise simple_fail("not a predicate symbol: "^ str) *)
+                 in (cconstr pf pt,(env2,n2))
+                 end
+        end
       | aInfix(ast1,str,ast2) => 
         if mem str ["&","|","<=>","==>"] then
             let
@@ -793,43 +819,37 @@ fun ast2pf ast (env:env,n) =
                 (pPred(str,[pt1,pt2]),(env2,n2))
             end else
         raise simple_fail ("not an infix operator: " ^ str)
-      (*| aBinder(str,ns,b) => 
-        if str = "!" orelse str = "?" orelse str = "?!" then
-            let val (pt,(env1,n1)) = ast2pt ns (env,n) in 
-                case pt of 
-                    pVar(n0,s0) => 
-                    let 
-                        val (pf,(env2,n2)) = ast2pf b (env1,n1) in
-                        (mk_pQuant str n0 s0 pf,(clear_ps n0 env2,n2))
-                    end
-                  | pAnno(pVar(n0,s0),ps) => 
-                    let val (pf,(env2,n2)) = ast2pf b (env1,n1) in
-                        (mk_pQuant str n0 ps pf,(clear_ps n0 env2,n2))
-                    end
-                  | _ => raise simple_fail"err in parsing bound variable,maybe the bounded variable name clash with a constant"
-            end
-   (*this does not allow us to use constants for bounded variable names*)
-        else raise simple_fail "not a quantifier" *)
      | aBinder(str,ns,b) => 
-        if str = "!" orelse str = "?" orelse str = "?!" then
+        if mem str ["!","?","?!"] then
             let val name = name_of_ast ns
-                val env = clear_ps name env
-                val (pt,(env1,n1)) = ast2pt ns (env,n) in 
-                case pt of 
-                    pVar(n0,s0) => 
-                    let 
-                        val (pf,(env2,n2)) = ast2pf b (env1,n1) in
-                        (mk_pQuant str n0 s0 pf,(clear_ps n0 env2,n2))
-                    end
-                  | pAnno(pVar(n0,s0),ps) => 
-                    let val (pf,(env2,n2)) = ast2pf b (env1,n1) in
-                        (mk_pQuant str n0 ps pf,(clear_ps n0 env2,n2))
-                    end
-                  | _ => raise simple_fail"err in parsing bound variable,maybe the bounded variable name clash with a constant"
+                val pso = ps_of env name
+                val env1 = clear_ps name env
+                val (Av,env2) = fresh_var env1 
+                val env3 = record_ps name (psvar Av) env2 
+                val (pt,(env4,n1)) = ast2pt ns (env3,n) 
+                val (ps,env5) = ps_of_pt pt env4
+                val (pf,(env6,n2)) = ast2pf b (env5,n1)
+                val env7 = clear_ps name env6
+                val env8 = case pso of SOME ps => record_ps name ps env7 | _ => env7
+            in 
+                (mk_pQuant str name ps pf,(env8,n2))
             end
-   (*this does not allow us to use constants for bounded variable names*)
         else raise simple_fail "not a quantifier" 
  
+
+(*
+(C ast2pf (empty,0)) $ fst o parse_ast $ lex "!a:mem(A). (!a:mem(B).P(a)) & P(a)";
+val it =
+   (pQuant
+     ("!", "a", psvar " 0",
+      pConn
+       ("&",
+        [pQuant ("!", "a", psvar " 2", pfVar ("P", [pVar ("a", psvar " 2")])),
+         pfVar ("P", [pVar ("a", psvar " 4")])])), ((?, ?, ?, ?, 5), 0)):
+   pform * (env * int)
+
+that is why the ast2pf in the same level of connective is not a fold.
+*)
 
 
 fun parse_ast_end (x:ast, l:token list) =
@@ -850,7 +870,7 @@ fun form_from_pf env pf =
     case pf of 
         pQuant(q,n,ps,pb) => 
         mk_quant q n (sort_from_ps env ps) 
-                 (abstract (n,sort_from_ps env ps) (form_from_pf env pb))
+                 (abstract (n,sort_from_ps env ps) (form_from_pf env pb)) 
       | pConn(co,pfl) => 
         mk_conn co (List.map (form_from_pf env) pfl)
       | pPred(P,ptl) => 
@@ -1044,7 +1064,7 @@ fun match_parse ct fl fq =
            NONE => raise simple_fail "qmatch_parse.no match"
          | SOME f => f
     end
-
+ 
 end
 
 

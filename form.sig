@@ -87,6 +87,7 @@ val mk_menv: vd -> fvd -> menv
 
 val match_form: (string * sort) set -> form -> form -> menv -> menv
 val strip_forall: form -> form * (string * sort) list
+val strip_forall0: form -> form * (string * sort) list
 val strip_exists: form -> form * (string * sort) list
 val strip_quants: form -> form * (string * sort) list
 

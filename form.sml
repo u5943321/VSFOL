@@ -333,6 +333,15 @@ fun strip_forall f =
             (b1,dest_var (pvariantt (fvf f) (mk_var(n,s))) :: l) end
       | _ => (f,[])
 
+
+fun strip_forall0 f = 
+    case f of 
+        Quant("!",n,s,b) => 
+        let 
+            val (b1,l) = strip_forall0 b in
+            (b1,dest_var (pvariantt (fvf f) (mk_var(n,s))) :: l) end
+      | _ => (f,[])
+
 fun strip_exists f = 
     case f of 
         Quant("?",n,s,b) => 
