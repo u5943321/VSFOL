@@ -27,4 +27,10 @@ val qterml_tac :
 val qterml_tcl :
    (term list -> thm_tactic -> thm_tactic) ->
      term frag list list -> thm_tactic -> thm -> tactic
+val qspec: term frag list -> thm -> thm
+val qspecl: term frag list list -> thm -> thm
+val qterm_rule: (term -> thm -> thm) -> term frag list -> thm -> thm
+val qterml_rule:
+   (term list -> thm -> thm) -> term frag list list -> thm -> thm
+
 end

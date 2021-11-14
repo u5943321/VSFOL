@@ -296,7 +296,7 @@ fun fconv_tac fc (G,fl,f) =
         val (_,rhs) = dest_dimp (concl th)
     in
         if eq_form (rhs,TRUE) 
-        then ([],empty (dimp_mp_l2r (trueI []) (iff_swap th)))
+        then ([],empty (add_cont G' $ dimp_mp_l2r (trueI []) (iff_swap th)))
         else
             ([(G',fl,rhs)],
               sing (dimp_mp_r2l (fc f)))

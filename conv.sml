@@ -267,6 +267,8 @@ fun sub_fconv c fc =
                  exists_fconv fc,
                  pred_fconv c])
 
+(*TODO: uex_fconv*)
+
 
 
 fun depth_fconv c fc f =

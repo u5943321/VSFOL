@@ -1030,6 +1030,30 @@ fun NEG_CONJ2IMP_NEG0 A B =
 
 val NEG_CONJ2IMP_NEG = NEG_CONJ2IMP_NEG0 (mk_fvar "A" []) (mk_fvar "B" [])
 
+(*P <=> Q
+?!x. P <=> ?x.P & !*)
+
+(*?!x.P(x) <=> ?!x.Q(x)*)
+
+(*?!x.P(x) <=> *)
+
+
+(*
+fun uex_iff_lemma (n,s) th = 
+    let val (G,A,C0) = 
+fun uex_iff (n,s) th = 
+    let val (G,A,C0) = dest_thm th
+    in 
+        case view_form C0 of 
+            vConn("<=>",[P,Q]) => 
+            let val uexP = mk_uex n s P
+                val uexQ = mk_uex n s Q
+                val uexPth = uex_def uexP
+                val (G1,A1,C1) = dest_thm uexPth
+                val (_,uexP') = dest_dimp C1
+                val (_,_,b) = dest_exists uexP'
+                val th0 = exists_iff 
+*)
 
 
 fun forall_iff (n,s) th = 

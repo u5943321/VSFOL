@@ -39,6 +39,11 @@ fun qterml_tcl (tltcl:term list -> thm_tactic -> thm_tactic) qtl thtac th :tacti
 val qspecl_then = qterml_tcl specl_then
 
 
+fun qterm_rule (rule:term -> thm -> thm) tql th = rule (qparse_term_with_cont (cont th) tql) th
+fun qterml_rule (rule:term list -> thm -> thm) tql th = rule (List.map (qparse_term_with_cont (cont th)) tql) th
+val qspec = qterm_rule spec
+val qspecl = qterml_rule specl
+
 fun qpick_assum fq (thtac:thm_tactic): tactic = 
     fn (ct,asl,w) => 
        pick_assum (qparse_form_with_cont ct fq) 
