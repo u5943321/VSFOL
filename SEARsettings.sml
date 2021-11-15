@@ -1701,10 +1701,6 @@ known that a = (pi1(a),pi2(a)), sufficitnet to show f(pi1(a)) = pi2(a), but by a
 end
 
 
-(*
-
-Theorem 2.14. If R is an equivalence relation on A, then there is a surjective function q:A↠B such that R(x,y) holds iff q(x)=q(y).
-*)
 val _ = new_pred "ER" [("R",rel_sort (mk_set "A") (mk_set "A"))]
 
 val _ = new_pred "Refl" [("R",rel_sort (mk_set "A") (mk_set "A"))]
@@ -1724,9 +1720,59 @@ val Trans_def = new_ax
 val ER_def = new_ax
 “!A R:A->A. ER(R) <=> Refl(R) & Sym(R) & Trans(R)”
 
+
+val Sym_Trans_Rright = proved_th $
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *) >--
+ (qby_tac ‘Holds(R,y,x)’ >-- 
+  (fs[Sym_def] >> first_x_assum rev_drule >> arw[]) >>
+  fs[Trans_def] >> first_x_assum irule >>
+  qexists_tac ‘x’ >> arw[]) >>
+ fs[Trans_def] >> first_x_assum irule >>
+ qexists_tac ‘y’ >> arw[])
+(form_goal
+ “!A R:A->A.Sym(R) & Trans(R)==> !x y. Holds(R,x,y) ==>
+  (!z.Holds(R,x,z) <=> Holds(R,y,z))”)
+
+
+(*
+
+Theorem 2.14. If R is an equivalence relation on A, then there is a surjective function q:A↠B such that R(x,y) holds iff q(x)=q(y).
+
+Proof. R induces a function fR:A→PA as above; let B be im(fR) and q the surjective part of the image factorization. If R(x,y) holds, then by symmetry and transitivity, R(x,z)⇔R(y,z) for all z; hence fR(x)=fR(y) and so q(x)=q(y). Conversely, if q(x)=q(y), then fR(x)=fR(y); but y∈fR(y) by reflexivity, hence y∈fR(x) and thus R(x,y) holds.  ▮
+
+*)
+
+(*TODO: spec_tac*)
 val Thm_2_14 = proved_th $
 e0
-(cheat)
+(rpt strip_tac >>
+ qspecl_then [‘A’,‘A’,‘R’] (strip_assume_tac o uex_expand) Thm_2_12 >>
+ drule Thm_2_10 >> pop_assum strip_assume_tac >>
+ qexistsl_tac [‘M’,‘e’] >> strip_tac >-- arw[] >>
+ rpt strip_tac >> dimp_tac >> strip_tac (* 2 *) >--
+ (qsuff_tac ‘Eval(fR,x) = Eval(fR,y)’ >--
+  (arw[] >> fs[Inj_def] >> strip_tac >> first_x_assum irule >>
+   qby_tac ‘Eval(m, Eval(e, x)) = Eval(m o e, x) &
+            Eval(m, Eval(e, y)) = Eval(m o e, y)’ >--
+   (strip_tac >> irule o_Eval >> fs[Surj_def]) >>
+   fs[]) >>
+  irule In_EXT >> strip_tac >> 
+  first_assum (qspecl_then [‘y’,‘x'’] (assume_tac o GSYM)) >>
+  first_x_assum (qspecl_then [‘x’,‘x'’] (assume_tac o GSYM)) >>
+  arw[] >> 
+  qby_tac ‘Sym(R) & Trans(R)’ >-- fs[ER_def] >>
+  drule Sym_Trans_Rright >> first_x_assum drule >> arw[]) >>
+  arw[] >> 
+  qsuff_tac ‘Holds(In(A),y,Eval(fR,y)) & Eval(fR,y) = Eval(fR,x)’ >--
+  (strip_tac >> rev_full_simp_tac[] >> fs[]) >>
+  strip_tac (* 2 *) >--
+  (first_x_assum (irule o iffLR) >> fs[ER_def,Refl_def]) >>
+  arw[] >> 
+  qby_tac ‘isFun(e) & isFun(m)’ >-- fs[Inj_def,Surj_def] >>
+  drule (o_Eval |> strip_all_and_imp |> gen_all |> disch_all |> gen_all
+         |> GSYM) >>
+  arw[])
 (form_goal
 “!A R:A->A. ER(R) ==> ?B q:A->B. isSurj(q) & !x y.Holds(R,x,y) <=> Eval(q,x) = Eval(q,y)”)
 
