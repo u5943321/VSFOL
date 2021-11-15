@@ -99,7 +99,7 @@ fun dest_mem_sort s =
 
 *)
 
-
+(*
 fun AX1 (f:form) (a0 as (n1,s1),b0 as (n2,s2)) = 
     let val fvs = fvf f
         val a = mk_var a0
@@ -121,6 +121,8 @@ fun AX1 (f:form) (a0 as (n1,s1),b0 as (n2,s2)) =
     in
         mk_thm(fvf f1,[],f1)
     end
+*)
+
 
 (*Definition 2.1. A relation φ:A↬B is called a function from A to B if for any x∈A, there exists exactly one y∈B with φ(x,y).*)
 val _ = new_pred "isFun" [("R",rel_sort (mk_set "A") (mk_set "B"))]
@@ -402,10 +404,7 @@ val lemma = fVar_Inst [("P",([("y",mem_sort (mk_set "A")),("z",mem_sort (mk_set 
 val lemma' = dimp_mp_l2r lemma (uex_def $ concl lemma)
 *)
 
-val th= assume “Holds(R:1->A,dot,a) <=> P(a)”
 
-val f = “Holds(R:1->A,dot,a) <=> Holds(Q,a,b)”
-basic_fconv no_conv (rewr_fconv th) f
 (*
 
  BA(i : rel(B, A))(R : rel(1, A))
@@ -872,7 +871,7 @@ val SetPr_def = new_ax
 val _ = new_pred "RelcP" [("i1",rel_sort (mk_set "A") (mk_set "AuB")),
                             ("i2",rel_sort (mk_set "B") (mk_set "AuB"))]
 
-val RelcoPr_def = new_ax
+val RelcP_def = new_ax
 “!A B AuB i1:A->AuB i2:B->AuB. 
 RelcP(i1,i2) <=>
 !X f:A->X g:B->X.?!fg:AuB ->X. fg o i1 = f & fg o i2 = g”
@@ -1042,20 +1041,46 @@ e0
           Holds(i2,b,ab) <=> b = Eval(pi2(A,B),ab)”)
 
 val tau1_def = 
+fVar_Inst [("P",([("a",mem_sort (mk_set "A")),("ab",mem_sort (Cross (mk_set "A") (mk_set "B")))],“a = Eval(pi1(A,B),ab)”))]
+(AX1 |> qspecl [‘A’,‘A * B’]) |> uex_expand
+|> spec_all |> eqT_intro 
+|> iffRL |> ex2fsym "tau1" ["A","B"] 
+|> C mp (trueI []) |> gen_all
+
+(*
     RelcP_ex |> spec_all |> eqT_intro 
              |> iffRL |> ex2fsym "tau1" ["A","B"] 
              |> C mp (trueI []) |> gen_all
+*)
 
 val tau2_def = 
-    tau1_def |> spec_all |> eqT_intro 
-             |> iffRL |> ex2fsym "tau2" ["A","B"] 
-             |> C mp (trueI []) |> gen_all
+fVar_Inst [("P",([("b",mem_sort (mk_set "B")),("ab",mem_sort (Cross (mk_set "A") (mk_set "B")))],“b = Eval(pi2(A,B),ab)”))]
+(AX1 |> qspecl [‘B’,‘A * B’]) |> uex_expand
+|> spec_all |> eqT_intro 
+|> iffRL |> ex2fsym "tau2" ["A","B"] 
+|> C mp (trueI []) |> gen_all
 
+(*
+local
+val lemma =
+fVar_Inst [("P",([("ab",mem_sort (Cross (mk_set "A") (mk_set "B"))),
+("x",mem_sort (mk_set "X"))],
+ “Holds(f:A->X,Eval(pi1(A,B),ab),x) & ~(Holds(g:B->X,Eval(pi2(A,B),ab),x))| Holds(g:B->X,Eval(pi2(A,B),ab),x) & ~Holds(f:A->X,Eval(pi1(A,B),ab),x)”))]
+(AX1 |> qspecl [‘A * B’,‘X’]) |> uex_expand
+in
 val Thm_2_8_RelcP = proved_th $
 e0
-(cheat)
+(rpt strip_tac >> rw[RelcP_def] >> rpt strip_tac >>
+ uex_tac >> x_choose_then "fg" strip_assume_tac lemma >>
+ qexists_tac ‘fg’ >>
+ qby_tac ‘fg o tau1(A,B) = f’>--
+ (rw[R_EXT] >> rw[tau1_def] >> rw[GSYM o_def] >> rw[tau1_def] >>
+  rpt strip_tac >> dimp_tac >> strip_tac >> rev_full_simp_tac[]    )
+ )
 (form_goal
-“!A B. isRelcP(tau1(A,B),tau2(A,B))”)
+“!A B. RelcP(op(pi1(A,B)),op(pi2(A,B)))”)
+end
+*)
 
 (*
 Theorem 2.9. The category Set has finite limits.
@@ -1218,6 +1243,7 @@ val In_def =
 
 (*base change*)
 
+(*
 val BC_ex = proved_th $
 e0
 (cheat)
@@ -1394,10 +1420,14 @@ cheat
  “!A B r:A->B C s:A->C. ?sdr:B->C. 
   !t.Sub(t,sdr) <=> Sub(t o r,s)”)
 
+
+here is the commenting out thm 11
+*)
 (*
 Theorem 2.12. For any relation R:B↬A, there exists a unique function fR:B→PA such that R(y,x) if and only if ϵ(x,fR(y)). It follows that Set is a topos (and Rel is a power allegory).
 Proof. We simply define fR elementwise; for each y we define fR(y) to be the unique element of PA such that ϵ(x,fR(y)) holds iff R(y,x) holds. Extensionality of functions implies that it is unique.  ▮
 *)
+
 fun Pow A = mk_fun "Pow" [A]
 
 val uex_tac:tactic = fn (ct,asl,w) =>
@@ -1591,6 +1621,15 @@ e0
  first_x_assum irule >> rw[Pair_def])
 (form_goal
  “!A B ab:mem(A * B). Pair(Eval(pi1(A,B),ab),Eval(pi2(A,B),ab)) = ab”)
+
+(*
+fVar_Inst 
+[("P",([("a",mem_sort (mk_set "A")),("b",mem_sort (mk_set "B"))],
+“!x:mem(A).?!y:mem(B).Holds(In(A * B),Pair(x,y),s)”))]
+(AX1|> qspecl [‘A’,‘B’]) |> uex_expand
+
+therefore not ?R. R(a,b) <=> !P.P(a,b)
+*)
 
 local 
 val lemma = 

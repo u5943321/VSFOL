@@ -293,6 +293,17 @@ fun match_sort' nss s1 s2 env0 =
 
 
 
+(*
+testing match form:
+
+val f1 = “P(a:set)”
+val f2 = “P(Pow(a))”
+match_form essps f1 f2 mempty
+
+
+!a. P(a) ==> Q(b) <=> (?a.P(a)) ==> Q(b)
+
+*)
 
 fun match_form nss pat cf env:menv = 
     case (pat,cf) of
