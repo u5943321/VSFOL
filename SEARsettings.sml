@@ -1564,14 +1564,142 @@ e0
 
 (*
 Theorem 2.13. For any two sets A and B, there exists a set BA and a function ev:BA×A→B such that for any function f:A→B there exists a unique element sf∈BA such that ev(sf,a)=f(a) for all a∈A. It follows that Set is a cartesian closed category.
+
+Proof. We take BA to be a tabulation of the subset of P(A×B) containing only the functions. More precisely, define F⊆P(A×B) such that s∈F iff for every x∈A, there exists a unique y∈B such that ϵ((x,y),s), and let BA=|F|.  ▮
 *)
 
+val Pair_ex = pi2_def |> spec_all |> conjE2 |> conjE2 
+                      |> conjE1 |> spec_all
+val Pair_def = 
+    Pair_ex |> spec_all |> eqT_intro 
+            |> iffRL |> ex2fsym "Pair" ["x","y"] 
+            |> C mp (trueI []) |> gen_all
+
+(*
+val Pow_R = proved_th $
+e0
+()
+(form_goal
+ “!A B R:A->B. ?!r:mem(Pow(A * B)).
+  !x:mem(A * B).”)
+*)
+
+val Pair_pi12 = proved_th $
+e0
+(rpt strip_tac >>
+ qspecl_then [‘A’,‘B’] strip_assume_tac pi2_def >>
+ first_x_assum irule >> rw[Pair_def])
+(form_goal
+ “!A B ab:mem(A * B). Pair(Eval(pi1(A,B),ab),Eval(pi2(A,B),ab)) = ab”)
+
+local 
+val lemma = 
+fVar_Inst 
+[("P",([("s",mem_sort (Pow (Cross (mk_set "A") (mk_set "B"))))],
+“!x:mem(A).?!y:mem(B).Holds(In(A * B),Pair(x,y),s)”))]
+(Thm_2_4 |> qspecl [‘Pow(A * B)’])
+val lemma1 = 
+fVar_Inst 
+[("P",([("fa",mem_sort (Cross (mk_set "A2B") (mk_set "A"))),
+        ("b",mem_sort (mk_set "B"))],
+“Holds(In(A * B),Pair(Eval(pi2(A2B,A),fa),b),Eval(i,Eval(pi1(A2B,A),fa)))”))]
+(AX1 |> qspecl [‘A2B * A’,‘B’]) |> uex_expand
+val lemma2 = 
+fVar_Inst 
+[("P",([("ab",mem_sort (Cross (mk_set "A") (mk_set "B")))],
+“Holds(f:A->B,Eval(pi1(A,B),ab),Eval(pi2(A,B),ab))”))]
+(In_def_P |> qspecl [‘A * B’]) |> uex_expand
+in
 val Thm_2_13 = proved_th $
 e0
-(cheat)
+(rpt strip_tac >> 
+ x_choosel_then ["A2B","i"] strip_assume_tac lemma >>
+ x_choose_then "ev" strip_assume_tac lemma1 >> 
+ qexistsl_tac [‘A2B’,‘ev’] >> 
+ qby_tac ‘isFun(ev)’ >--
+ (rw[Fun_expand] >> arw[] >> rpt strip_tac (* 2 *) >--
+  (first_x_assum 
+    (qspecl_then [‘Eval(i, Eval(pi1(A2B, A), a))’] assume_tac) >>
+   qby_tac ‘?b:mem(A2B).Eval(i,Eval(pi1(A2B,A),a)) = Eval(i,b)’ >--
+    (qexists_tac ‘Eval(pi1(A2B, A), a)’ >> rw[]) >>
+   fs[] >> pop_assum (assume_tac o GSYM) >> arw[] >>
+   pop_assum (K all_tac) >> 
+   first_x_assum 
+    (qspecl_then [‘Eval(pi2(A2B, A), a)’]  
+     (strip_assume_tac o uex_expand)) >>
+   qexists_tac ‘y’ >> arw[]) >>
+  first_x_assum 
+    (qspecl_then [‘Eval(i, Eval(pi1(A2B, A), a))’] assume_tac) >>
+   qby_tac ‘?b:mem(A2B).Eval(i,Eval(pi1(A2B,A),a)) = Eval(i,b)’ >--
+    (qexists_tac ‘Eval(pi1(A2B, A), a)’ >> rw[]) >>
+   fs[] >> pop_assum (assume_tac o GSYM) >> arw[] >>
+   pop_assum (K all_tac) >> 
+   first_x_assum 
+    (qspecl_then [‘Eval(pi2(A2B, A), a)’]  
+     (strip_assume_tac o uex_expand)) >>
+  qsuff_tac ‘b1 = y & b2 = y’ >-- (strip_tac >> arw[]) >>
+  strip_tac (* 2 *) >> first_x_assum irule >> arw[]) >> arw[] >>
+ (*the 2 conds of fun above has repeated proof*)
+ rpt strip_tac >> uex_tac >> 
+ x_choose_then "grf" strip_assume_tac $ GSYM lemma2 >>
+ last_assum (qspecl_then [‘grf’] assume_tac) >>
+ qby_tac ‘!x.?!y.Holds(In(A * B),Pair(x,y),grf)’ >--
+ (strip_tac >> uex_tac >> arw[] >> rw[Pair_def] >>
+  qpick_x_assum ‘isFun(f)’ assume_tac >>
+ (*should diectly from def of fun, just because 2 vers of def of uex*)
+  drule $ iffLR Fun_expand >> pop_assum strip_assume_tac >> 
+  last_x_assum (qspecl_then [‘x’] strip_assume_tac) >> 
+  qexists_tac ‘b’ >> arw[] >> rpt strip_tac >> first_x_assum irule >>
+  qexists_tac ‘x’ >> arw[]) >>
+ (*TODO: if use fs here, will give !x.T instead of T, that is because quantifiers has no chance to be seen by rw, but is discarded by rw canon*)
+  qby_tac ‘?b : mem(A2B). grf = Eval(i, b)’ >--
+  (pop_assum mp_tac >> pop_assum (assume_tac o GSYM) >> 
+   once_arw[] >> first_x_assum (accept_tac o iffLR)) >>
+  pop_assum (x_choose_then "fbar" assume_tac) >>
+  qexists_tac ‘fbar’ >> 
+  qpick_x_assum ‘isFun(ev)’ assume_tac >> drule Eval_def >>
+  fconv_tac (once_depth_fconv no_conv (rewr_fconv (eq_sym "mem"))) >>
+  fs[Pair_def] >> rpt strip_tac (* 2 *) >--
+  (rev_drule Holds_Eval >> arw[]) >>
+  fs[Inj_def] >> first_x_assum irule >> first_x_assum irule >>
+  strip_tac >> 
+  first_x_assum (qspecl_then [‘Eval(i,sf')’] assume_tac) >>
+  (*?(b : mem(A2B)). Eval(i, sf') = Eval(i, b#) should automatically become true , happens twice in this proof, todo, stupid*)
+  qby_tac ‘?b.Eval(i,sf') = Eval(i,b)’ >--
+  (qexists_tac ‘sf'’ >> rw[]) >> fs[] >>
+  pop_assum (assume_tac o GSYM) >> arw[] >>
+  pop_assum (K all_tac) >>
+  qpick_x_assum ‘isFun(f)’ assume_tac >> drule Eval_def >> fs[] >>
+  dimp_tac >> strip_tac (* 2 *) >--
+  (*a:A * B \in i(sf') <=> pi2(a) = Eval(f,pi1(a))
+    if a in i(sf'), then want pi2(a) = Eval(f,pi1(a))
+    from assumtpion 10, (pi1(a),f(pi1(a))) \in i(sf)
+known that a = (pi1(a),pi2(a)), sufficitnet to show f(pi1(a)) = pi2(a), but by assumption 11, !a?!b. (a,b)\in i(sf')
+*)
+  (qpick_x_assum ‘!x:mem(A).?!y:mem(B).Holds(In(A * B),Pair(x,y),Eval(i,sf'))’ assume_tac >> 
+   first_x_assum (qspecl_then [‘Eval(pi1(A,B),a)’] $
+     strip_assume_tac o uex_expand) >>
+   qsuff_tac ‘Eval(pi2(A, B), a) = y & 
+              Eval(f, Eval(pi1(A, B), a)) = y’ >--
+   (strip_tac >> arw[]) >>
+   strip_tac >> first_x_assum irule  (* 2 *)
+   >-- arw[Pair_pi12] >>
+   (*qpick_x_assum ‘!a.Holds(In(A* B),Pair(a,Eval(f,a)),Eval(i,sf'))’
+     assume_tac
+     Exception- UNIFY ("terms cannot be unified", [])
+    do not know why... *)
+   pick_x_assum  “!a.Holds(In(A* B),Pair(a,Eval(f,a)),Eval(i:A2B->Pow(A * B),sf':mem(A2B)))” assume_tac >>
+   first_x_assum (qspecl_then [‘Eval(pi1(A,B),a)’] assume_tac) >>
+   arw[]) >> 
+  once_rw[GSYM Pair_pi12] >> once_arw[] >>
+  pick_x_assum  “!a.Holds(In(A* B),Pair(a,Eval(f,a)),Eval(i:A2B->Pow(A * B),sf':mem(A2B)))” assume_tac >>
+   first_x_assum (qspecl_then [‘Eval(pi1(A,B),a)’] assume_tac) >>
+   arw[])
 (form_goal
 “!A B.?A2B ev:A2B * A ->B. isFun(ev) & 
- !f:A->B.isFun(f) ==> ?!sf:mem(A2B).!a:mem(A).Eval(ev,Eval(SPa(MF(sf),MF(a)),dot)) = Eval(f,a)”)
+ !f:A->B.isFun(f) ==> ?!sf:mem(A2B).!a:mem(A).Eval(ev,Pair(sf,a)) = Eval(f,a)”)
+end
+
 
 (*
 
