@@ -41,4 +41,6 @@ val trans: thm -> thm -> thm
 val trueI: form list -> thm
 val view_thm: thm -> thm_view
 val uex_def:form -> thm
+val define_pred: form -> thm 
+
 end

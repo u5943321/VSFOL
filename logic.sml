@@ -479,6 +479,9 @@ fun define_fun f =
     end
 
 
+
+
+
 (*edit ex2fsym 1.!A B C. P(A,B,C) ==> ?Q.
 
 2.deal with uex*)

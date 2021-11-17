@@ -1,6 +1,51 @@
+
+local
+fun delete'(set,mem) = HOLset.delete(set,mem) handle _ => set
+in
+fun filter_cont ct = 
+    HOLset.foldr 
+        (fn (ns,set) => 
+            case HOLset.find 
+                     (fn (vn,vs) => HOLset.member(fvs vs,ns)) set of 
+                SOME _ => delete'(set,ns)
+              | NONE => set) ct ct
+end
+
+fun ex2fsym fsym strl th = 
+    let val th' = spec_all th
+        val (ct,asl) = (cont th',ant th')
+        val (hyp,conc) = dest_imp (concl th')
+        val inputvars0 = filter_cont (cont th') 
+        val inputvars = List.foldr (fn (s,e) => HOLset.add(e,s)) essps 
+                                   (List.map (dest_var o (parse_term_with_cont ct)) strl)
+        val _ = HOLset.isSubset(inputvars0,inputvars) orelse 
+                raise simple_fail "there are necessary input variables missing"
+        val inputvl = List.map (parse_term_with_cont ct) strl
+        val ((n,s),b) = dest_exists conc
+        val _ = new_fun fsym (s,List.map dest_var inputvl)
+        val fterm = mk_fun fsym inputvl
+        val b' = substf ((n,s),fterm) b
+    in mk_thm (ct,asl,mk_imp hyp b')
+    end
+
+fun uex_ex f = 
+    let val th0 = iffLR $ uex_def f |> undisch
+        val c0 = concl th0
+        val ((n,s),b) = dest_exists c0
+        val th1 = assume b |> conjE1 
+        val th2 = existsI (n,s) (mk_var(n,s)) (concl th1) th1
+        val th3 = existsE (n,s) th0 th2
+    in disch f th3
+    end
+
+fun uex2ex_rule th = mp (uex_ex $concl th) th
+fun uex_expand th = rewr_rule [uex_def $ concl th] th
+
+
+
 val _ = new_sort "ob" [] 
 val _ = new_sort "ar" [("A",mk_sort "ob" []),("B",mk_sort "ob" [])]
-
+val _ = EqSorts := "ar" :: (!EqSorts)
 val ob_sort = mk_sort "ob" [];
 fun ar_sort A B = mk_sort "ar" [A,B];
 
@@ -48,177 +93,178 @@ val idR = new_ax “!A B f:A->B. f o id(A) = f”
 
 val o_assoc = new_ax “!A.!B.!f: A -> B.!C.!g:B -> C.!D.!h: C -> D.(h o g) o f = h o g o f”
 
-val To1_def = new_ax “!X f:X->1. f = To1(X)”;
+val _ = new_pred "is1" [("ONE",ob_sort)]
 
-val From0_def = new_ax “!X f:0->X. f = From0(X)”;
+val is1_def = new_ax “!ONE. is1(ONE) <=> !X.?!f:X->ONE.T”
 
-val _ = new_fun "π₁" 
-                (ar_sort (Po (mk_ob "A") (mk_ob "B")) 
-                         (mk_ob "A"),
-                 [("A",ob_sort),("B",ob_sort)])
+val ONE_ex = new_ax “?ONE.is1(ONE)”
 
-val _ = new_fun "π₂" 
-                (ar_sort (Po (mk_ob "A") (mk_ob "B")) 
-                         (mk_ob "B"),
-                 [("A",ob_sort),("B",ob_sort)])
+fun ex2fsym0 name args th = th |> eqT_intro |> iffRL |> ex2fsym name args
+                               |> C mp (trueI [])
+                    
+val ONE_def = ex2fsym0 "1" [] ONE_ex
 
-val _ = new_fun "Pa" 
-                (ar_sort (mk_ob "X") 
-                         (Po (mk_ob "A") (mk_ob "B")),
-                 [("f",ar_sort (mk_ob "X") (mk_ob "A")),
-                  ("g",ar_sort (mk_ob "X") (mk_ob "B"))])
+val ONE_prop = ONE_def |> rewr_rule [is1_def]
+(*why rewr_rule with is1_def loops? it thought is1 is fVar notpred  TODO*)
 
-val Pa_def = new_ax “!A X f:X->A B g:X->B fg:X->A * B. (π₁(A,B) o fg = f & π₂(A,B) o fg = g) <=> fg = Pa(f,g)”
+val To1_def = ONE_prop |> spec_all |> uex_expand |> ex2fsym0 "To1" ["X"] |> gen_all
+
+val _ = new_pred "is0" [("ZERO",ob_sort)]
+
+val is0_def = new_ax “!ZERO.is0(ZERO) <=> !X.?!f:ZERO ->X. T”
+
+val ZERO_ex = new_ax “?ZERO.is0(ZERO)”
+
+val ZERO_def = ex2fsym0 "0" [] ZERO_ex
+
+val ZERO_prop = ZERO_def |> conv_rule (once_depth_fconv no_conv (rewr_fconv (spec_all is0_def)))
+
+val From0_def = ZERO_prop |> spec_all |> uex_expand |> ex2fsym0 "From0" ["X"] |> gen_all
+
+val _ = new_pred "isPr" [("p1",ar_sort (mk_ob "AB") (mk_ob "A")),
+                         ("p2",ar_sort (mk_ob "AB") (mk_ob "B"))]
+
+val isPr_def = new_ax “!A B AB p1:AB->A p2:AB->B. isPr(p1,p2) <=>
+   !X f:X->A g:X->B.?!fg:X->AB. p1 o fg = f & p2 o fg = g”
+
+val isPr_ex = new_ax “!A B.?AB p1:AB->A p2:AB->B.isPr(p1,p2)”;
+
+val Po_def = isPr_ex |> spec_all |> ex2fsym0 "*" ["A","B"] |> gen_all
+
+val p1_def = Po_def |> spec_all |> ex2fsym0 "p1" ["A","B"] |> gen_all
+
+val p2_def = p1_def |> spec_all |> ex2fsym0 "p2" ["A","B"] |> gen_all
+
+val Pa_def = p2_def |> rewr_rule[isPr_def] |> spec_all
+                    |> uex_expand 
+                    |> ex2fsym0 "Pa" ["f","g"]
 
 
-val _ = new_fun "τ₁" 
-                (ar_sort (mk_ob "A") 
-                         (coPo (mk_ob "A") (mk_ob "B")),
-                 [("A",ob_sort),("B",ob_sort)])
+val _ = new_pred "iscoPr" [("i1",ar_sort (mk_ob "A") (mk_ob "AB")),
+                           ("i2",ar_sort (mk_ob "B") (mk_ob "AB"))]
 
-val _ = new_fun "τ₂" 
-                (ar_sort (mk_ob "B")
-                         (coPo (mk_ob "A") (mk_ob "B")),
-                 [("A",ob_sort),("B",ob_sort)])
+val iscoPr_def = new_ax “!A B AB i1:A->AB i2:B->AB. iscoPr(i1,i2) <=>
+   !X f:A->X g:B->X.?!fg:AB->X.fg o i1 = f & fg o i2 = g”
 
-val _ = new_fun "coPa" 
-                (ar_sort (coPo (mk_ob "A") (mk_ob "B"))
-                         (mk_ob "X") ,
-                 [("f",ar_sort (mk_ob "A") (mk_ob "X")),
-                  ("g",ar_sort (mk_ob "B") (mk_ob "X"))])
+val iscoPr_ex = new_ax “!A B.?AB i1:A->AB i2:B->AB.iscoPr(i1,i2)”;
 
-val coPa_def = new_ax “!A X f:A->X B g:B->X fg:A + B->X. (fg o τ₁(A,B) = f & fg o τ₂(A,B) = g) <=> fg = coPa(f,g)”;
+val coPo_def = iscoPr_ex |> spec_all |> ex2fsym0 "+" ["A","B"] |> gen_all
 
-val _ = new_fun "Eqa" 
-                (ar_sort (coPo (mk_ob "A") (mk_ob "B"))
-                         (mk_ob "X") ,
+val i1_def = coPo_def |> spec_all |> ex2fsym0 "i1" ["A","B"] |> gen_all
+
+val i2_def = i1_def |> spec_all |> ex2fsym0 "i2" ["A","B"] |> gen_all
+
+val coPa_def = i2_def |> rewr_rule[iscoPr_def] |> spec_all
+                      |> uex_expand 
+                      |> ex2fsym0 "coPa" ["f","g"]
+
+
+(*TODO: if ispr i.e. formula variable, then will loop*)
+
+val _ = new_pred "isEq" 
                  [("f",ar_sort (mk_ob "A") (mk_ob "B")),
                   ("g",ar_sort (mk_ob "A") (mk_ob "B")),
-                  ("e",ar_sort (mk_ob "E") (mk_ob "A"))])
+                  ("e",ar_sort (mk_ob "E") (mk_ob "A"))]
+
+val isEq_def = new_ax 
+“!A B f:A->B g E e:E->A. 
+      isEq(f,g,e) <=> 
+      f o e = g o e & 
+      !X a:X->A. f o a = g o a ==>
+      ?!a0:X->E. a = e o a0”
+
+val isEq_ex = new_ax “!A B f:A->B g:A->B.?E e:E->A.isEq(f,g,e)”
+
+val Eqa_def = 
+    isEq_def |> iffLR 
+             |> spec_all |> undisch |> conjE2 
+             |> spec_all |> undisch |> uex_expand
+             |> conj_all_assum |> disch_all
+             |> ex2fsym "Eqa" ["f","g","e","a"]
 
 
-val Eqa_def = new_ax
-“!A B f:A->B g:A->B.?E e:E->A. f o e = g o e & !X x:X->A. f o x = g o x ==> (!)”
+val _ = new_pred "iscoEq" 
+                 [("f",ar_sort (mk_ob "A") (mk_ob "B")),
+                  ("g",ar_sort (mk_ob "A") (mk_ob "B")),
+                  ("ce",ar_sort (mk_ob "B") (mk_ob "cE"))]
 
-val eqind_def = read_axiom "!A.!B.!f:A->B.!g:A->B.!E.!e:E->A.iseq(e,f,g)==> f o e = g o e & !X.!x:X->A.f o x = g o x ==> (!x0:X->E.e o x0 = x <=> x0 = eqind(e,f,g,x))"
+val iscoEq_def = new_ax 
+“!A B f:A->B g cE ce:B -> cE. 
+      iscoEq(f,g,ce) <=> 
+      ce o f = ce o g & 
+      !X x:B->X. x o f = x o g ==>
+      ?!x0:cE->X. x = x0 o ce”
 
-val eq_ex = read_axiom "!A.!B.!f:A->B.!g:A->B.?E.?e:E->A.iseq(e,f,g)";
+val iscoEq_ex = new_ax “!A B f:A->B g:A->B.?cE ce:B->cE.iscoEq(f,g,ce)”;
 
-val ax1_5 = eq_ex
-
-val coeqind_def = read_axiom "!A.!B.!f:A->B.!g:A->B.!cE.!ce:B->cE.iscoeq(ce,f,g)==> ce o f = ce o g & !X.!x:B->X. x o f = x o g ==> (!x0:cE->X.x0 o ce = x <=> x0 = coeqind(ce,f,g,x))"
-
-val coeq_ex = read_axiom "!A.!B.!f:A->B.!g:A->B.?cE.?ce:B->cE.iscoeq(ce,f,g)"
-
-val ax1_6 = coeq_ex
-
-val tp_def = read_axiom "!A.!B.!A2B.!efs.!p1:efs ->A.!p2:efs ->A2B.!ev:efs->B.isexp(p1,p2,ev)==> ispr(p1,p2) & !X.!AX.!p1':AX->A.!p2':AX->X. ispr(p1',p2') ==> !f:AX->B.!h:X->A2B. ev o pa(p1,p2,p1',h o p2') = f <=> h = tp(p1,p2,ev,p1',p2',f)"
-
-val exp_ex = read_axiom "!A.!B.?A2B efs p1:efs ->A p2:efs ->A2B ev:efs->B.isexp(p1,p2,ev)"
-
-val ax2 = exp_ex
-
-val Nind0_def = read_axiom "!N0 one z0:one -> N0 s0:N0->N0. isN0(z0,s0) ==> is1(one) & !X x0:one -> X t:X -> X x:N0 -> X. x o z0 = x0 & x o s0 = t o x <=> x = Nind0(z0,s0,x0,t)";
-
-
-val constN_def = read_axiom "!X x0:1->X t:X ->X x:N->X.(x o z = x0 & x o s = t o x) <=> x = Nind(x0,t)"
-
-(*to be edited, switch the ordrr of s0 and z0*)
-val ax3 = constN_def
-
-val ax_wp = read_axiom "!A B f: A -> B g:A ->B.(~(f = g)) ==> ?a: 1 -> A. ~(f o a = g o a)";
-
-val ax4 = ax_wp
+val coEqa_def = 
+    iscoEq_def |> iffLR 
+               |> spec_all |> undisch |> conjE2 
+               |> spec_all |> undisch |> uex_expand
+               |> conj_all_assum |> disch_all
+               |> ex2fsym "coEqa" ["f","g","ce","x"]
+(*TodO tidy the conjs to imp here*)
 
 
-val ismono_def = read_axiom "!A B f: A -> B. ismono(f) <=> !X g:X -> A h. f o g = f o h ==> h = g"
+(*
+e that given any pair of objects A, B there exists an
+object BA and a mapping A × BA→
+e
+B with the property that for any object X and any
+mapping A × X →
+f
+B there is a unique mapping X →
+h
+BA such that (A × h)e = f. This
+universal mapping property is partly expressed by the following diagram.
+*)
+val _ = new_pred "isExp" 
+ [("ev",ar_sort (Po (mk_ob "A") (mk_ob "A2B")) (mk_ob "B"))]
 
-val ax_el = read_axiom "!X.(~is0(X)) ==> ?x:1->X.T";
+val isExp_def =
+ new_ax “!A B A2B ev:A * A2B -> B.
+         isExp(ev) <=> !X f:A * X->B. ?!h:X->A2B. ev o Pa(p1(A,X), h o p2(A,X)) = f”
 
-val ax6 = ax_el
 
-val ac = read_axiom "!A one a: one -> A B f: A -> B. is1(one) ==> ?g : B -> A. f o g o f = f"
+(*example here : we cannot get function for eqlz, because the inputs are a pair of ars, and we need to produce an object first. But here the input are objects, we can produce an object from the objects first, the exp, and then have ev(A,B)*)
 
-val ax5 = ac
+val isExp_ex = new_ax “!A B. ?A2B ev:A * A2B->B. isExp(ev)”
+
+val Exp_def = isExp_ex |> spec_all 
+                       |> ex2fsym0 "Exp" ["A","B"] |> gen_all
+
+val Ev_def = Exp_def |> spec_all |> rewr_rule[isExp_def]
+                     |> ex2fsym0 "Ev" ["A","B"]
+
+val Tp_def = Ev_def |> spec_all |> uex_expand 
+                    |> ex2fsym0 "Tp" ["f"]
+
+
+val N_ex = new_ax “?N O:1->N SUC:N->N.
+ !X x0:1->X t:X->X.?!x:N->X. x o O = x0 & x o SUC = t o x”
+
+val N_def = N_ex |> ex2fsym0 "N" []
+
+val O_def = N_def |> ex2fsym0 "O" []
+
+val SUC_def = O_def |> ex2fsym0 "SUC" []
+
+val WP = new_ax “!A B f:A->B g.~(f = g) ==> ?a:1->A. ~(f o a = g o a)”
+
+
+(*mono does not need "is" version becuase it does not induce any function*)
+val _ = new_pred "Mono" [("f",ar_sort (mk_ob "A") (mk_ob "B"))]
+
+val Mono_def = new_ax “!A B f:A->B. Mono(f) <=> !X g:X->A h. f o g = f o h ==> g = h”
+
+val NONZERO_EL = new_ax “!X.~(is0(X)) ==>?x:1->X.T”
+
+val AC = new_ax “!A B f:A->B. ?g:B->A. f o g o f = f”;
+
 
 val ismem_def = read_axiom "!A x:1-> A A0 a:A0 -> A. ismem(x,a) <=> ismono(a) & ?x0:1 -> A0. a o x0 = x";
 
-new_pred "ismem0" ([("x",mk_ar_sort (mk_ob "one") (mk_ob "A")),("a",mk_ar_sort (mk_ob "A0") (mk_ob "A"))]);
+val INC_FAC = new_ax “!A B f:1->A + B. (?f0:1->A.i1(A,B) o f0 = f) |(?f0:1->B.i2(A,B) o f0 = f)”
 
-val ismem0_def = read_axiom "!A one x:one-> A A0 a:A0 -> A. ismem0(x,a) <=> is1(one) & ismono(a) & ?x0:one -> A0. a o x0 = x";
-
-val ax_incfac0 = read_axiom "!A B AB i1:A->AB i2:B->AB one f:one -> AB. iscopr(i1,i2) & is1(one) ==> ismem0(f,i1)| ismem0(f,i2)";
-
-val ax7 = ax_incfac0 
-
-val ax_2el = read_axiom "?X x1: 1 -> X x2: 1 -> X. ~ (x1 = x2)"
-
-
-val ax8 = ax_2el
-
-
-val _ = new_fun "*" (mk_ar_sort (mk_ob "X") (mk_ob "two"),[("i1",mk_ar_sort one (mk_ob "two")),("i2",mk_ar_sort one (mk_ob "two")),("a",mk_ar_sort (mk_ob "A") (mk_ob "X"))])
-
-val prsym_def = ex2fsym "*" ["A","B"] (iffRL $ eqT_intro $ spec_all pr_ex)
-                        |> C mp (trueI []) |> gen_all
-
-val p1_def = ex2fsym "p1" ["A","B"] (iffRL $ eqT_intro $ spec_all prsym_def)
-                        |> C mp (trueI []) |> gen_all
-
-val p2_def = ex2fsym "p2" ["A","B"] (iffRL $ eqT_intro $ spec_all p1_def)
-                        |> C mp (trueI []) |> gen_all
-
-
-val coprsym_def = ex2fsym "+" ["A","B"] (iffRL $ eqT_intro $ spec_all copr_ex)
-                        |> C mp (trueI []) |> gen_all
-
-val i1_def = ex2fsym "i1" ["A","B"] (iffRL $ eqT_intro $ spec_all prsym_def)
-                        |> C mp (trueI []) |> gen_all
-
-val i2_def = ex2fsym "i2" ["A","B"] (iffRL $ eqT_intro $ spec_all p1_def)
-                        |> C mp (trueI []) |> gen_all
-
-val expsym_def = ex2fsym "^" ["A","B"] (iffRL $ eqT_intro $ spec_all exp_ex)
-                        |> C mp (trueI []) |> gen_all
-
-
-
-fun po A B = mk_fun "*" [A,B]
-
-val _ = new_fun "p1" (ar_sort (po (mk_ob "A") (mk_ob "B")) (mk_ob "A"),[("A",ob_sort),("B",ob_sort)])
-
-val _ = new_fun "p2" (ar_sort (po (mk_ob "A") (mk_ob "B")) (mk_ob "B"),[("A",ob_sort),("B",ob_sort)])
-
-
-val _ = new_fun "+" (ob_sort,[("A",ob_sort),("B",ob_sort)])
-
-fun copo A B = mk_fun "+" [A,B]
-
-val _ = new_fun "i1" (ar_sort (mk_ob "A") (copo (mk_ob "A") (mk_ob "B")),[("A",ob_sort),("B",ob_sort)])
-
-val _ = new_fun "i2" (ar_sort (mk_ob "B") (copo (mk_ob "A") (mk_ob "B")),[("A",ob_sort),("B",ob_sort)])
-
-
-val _ = new_fun "exp" (ob_sort,[("A",ob_sort),("B",ob_sort)])
-
-fun exp A B = mk_fun "exp" [A,B]
-
-val _ = new_fun "ev" (ar_sort (po (mk_ob "A") (exp (mk_ob "A") (mk_ob "B"))) (mk_ob "B"),[("A",ob_sort),("B",ob_sort)])
-
-
-
-
-val prod_def = new_ax “!A B. ispr(p1(A,B),p2(A,B))” 
-
-val exp_def = mk_ax 
-“!A B.isexp(p1(A,exp(A,B)),p2(A,exp(A,B)),ev(A,B))”
-
-
-rapf "!B A f:B ->A. id (A) o f = f";
-rapf "!A B f: A -> B. f o id(A) = f";
-rapf "!A.!B.!f: A -> B.!C.!g:B -> C.!D.!h: C -> D.(h o g) o f = h o g o f";
-
-
-
-
+val DISTI_EL = new_ax “?X x1:1->X x2. ~(x1 = x2)”
 

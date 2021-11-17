@@ -300,9 +300,35 @@ val f1 = “P(a:set)”
 val f2 = “P(Pow(a))”
 match_form essps f1 f2 mempty
 
+ <=> (?a:A->B.P(a)) ==> Q(b)
+val f0 = “!a:A->B. P(a) ==> Q(b)”;
 
-!a. P(a) ==> Q(b) <=> (?a.P(a)) ==> Q(b)
+val f1 = “!a:A->B.(?a0 b.Holds(a,a0,b)) ==> Q(b)”;
+match_form essps f0 f1 mempty
 
+does inst_term coincide wth fVar_Inst1 for empty input fVars?
+
+val f0 = “!a. P”;
+val env0 = mk_inst [] [("P",“a = a”)] ;
+
+fVar_Inst1 ("P",([],“a = a”)) f0
+
+inst_form env0 f0 not coincide.
+
+val f0 = “!c. !a.P(a)”
+fVar_Inst1 ("P",([("a",set_sort)],“a = c”)) f0
+seems that fVar_Inst is wrong for empty case, it is just a constant lambda 
+
+
+inst_form
+
+P(a:mem(A),b:mem(B))
+
+Q(c:mem(A),d:mem(B))
+
+Q(c:mem(C),d:mem(D))
+
+(*don;t do the inst above in this function, but need to call other functions to do the inst_sort first*)
 *)
 
 fun match_form nss pat cf env:menv = 
@@ -324,7 +350,19 @@ fun match_form nss pat cf env:menv =
                  SOME f => if eq_form(f,cf) then env else
                            raise ERR ("double bind of formula variables",[],[],[pat,f,cf])
                | _ => fv2f' fm cf env)
-      | (fVar (fm,h :: t),_) => env
+ (*P(a) <=> Q(a) match to P(f(a)) gives a|-> f(a), obtains
+ P(f(a)) <=> Q(f(a)), if in second clause ,match a to a, useless *)
+      | (fVar(fm1,args1),cf) => 
+        (case cf of 
+             fVar(fm2,args2) => 
+             if fm1 = fm2 then match_tl' nss args1 args2 env
+             else env
+            | _ => if length args1 = 1 andalso 
+                      length (HOLset.listItems (fvf cf)) = 1
+                   then 
+                       match_tl' nss [(hd args1)] 
+                                 [mk_var $ hd (HOLset.listItems (fvf cf))]    env
+                   else env)
       | _ => raise ERR ("different formula constructors",[],[],[pat,cf])
 and match_fl nss l1 l2 env = 
     case (l1,l2) of 

@@ -13,6 +13,15 @@ fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f =
       | vQ(q,n,s,b) => mk_quant q n s (fVar_Inst1 pair b)
       | vPred _ => f
 
+
+(*in last meeting discussed that :
+P(a:mem(A),b:mem(B))
+
+Q(c:mem(C),d:mem(D))
+
+should not be allowed since the sort is incorrect, but if use rw, then can just use fVar to inst form. 
+*)
+
 (*ex2fsym should check that the input thm does not contain fvars*)
 
 fun fVar_Instl l f = 
