@@ -302,7 +302,13 @@ val R_EXT = new_ax “!A B R1:A->B R2. R1 = R2 <=> !a b.Holds(R1,a,b) <=> Holds(
 
 val FUN_EXT = proved_th $
 e0
-cheat
+(rpt strip_tac >> drule Eval_def >> 
+ rev_drule Eval_def >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (drule $ iffLR R_EXT >>
+      first_x_assum (qspecl_then [‘a’,‘Eval(f2,a)’] assume_tac) >>
+      rev_full_simp_tac[]) >>
+ irule $ iffRL R_EXT >> rpt strip_tac >>
+ arw[])
 (form_goal “!A B f1:A->B f2. isFun(f1) & isFun(f2) ==>
  (f1 = f2 <=> (!a.Eval(f1,a) = Eval(f2,a)))”)
 
@@ -1252,56 +1258,230 @@ val In_def =
 
 (*base change*)
 
-(*
-val BC_ex = proved_th $
-e0
-(cheat)
-(form_goal
-“!Z Y f:Z->Y. ?BCf:Pow(Y) -> Pow(Z). 
- !ys:mem(Pow(Y)) zs:mem(Pow(Z)). Holds(BCf,ys,zs) <=>
- !z:mem(Z). Holds(eps(Z),z,zs) ==> Holds(eps(Y),Eval(f,z),ys)”)
+fun ex2fsym0 name args th = th |> eqT_intro |> iffRL |> ex2fsym name args
+                               |> C mp (trueI [])
+
+
+
+
 
 val BC_def = 
-    BC_ex |> spec_all |> eqT_intro 
-          |> iffRL |> ex2fsym "BC" ["f"] 
-          |> C mp (trueI []) |> gen_all
+fVar_Inst 
+[("P",([("ys",mem_sort (Pow (mk_set "Y"))),("zs",mem_sort (Pow (mk_set "Z")))],
+“!z:mem(Z). Holds(In(Z),z,zs) <=> Holds(In(Y),Eval(f,z),ys)”))]
+(AX1|> qspecl [‘Pow(Y)’,‘Pow(Z)’]) 
+|> uex_expand |> ex2fsym0 "BC" ["f"] |> gen_all
+
+local
+val lemma = 
+fVar_Inst 
+[("P",([("z",mem_sort (mk_set "Z"))],
+“Holds(In(Y), Eval(f:Z->Y, z), a)”))]
+(In_def_P |> qspecl [‘Z’]) 
+|> uex_expand
+in
+val BC_isFun = proved_th $
+e0
+(rpt strip_tac >> 
+ qspecl_then [‘Y’,‘Z’,‘f’] strip_assume_tac BC_def >>
+ rw[Fun_expand] >> arw[] >> strip_tac (* 2 *) >--
+ (strip_tac >> strip_assume_tac lemma >> qexists_tac ‘s’ >>
+ strip_tac >> first_x_assum (qspecl_then [‘z’] assume_tac) >> arw[]) >>
+ rpt strip_tac >> irule In_EXT >> arw[] >> strip_tac >> rw[])
+(form_goal “!Z Y f:Z->Y.isFun(BC(f))”)
+end
 
 (*TODO: show BC is a functor Pow(B) ->Pow (A)*)
+
+(*
 val InPow_def = 
- let val f = concl $ spec_all eps_def
+ let val f = concl $ spec_all In_def
      val uth = uex_def f
-     val th0 = rewr_rule[uth] eps_def
+     val th0 = rewr_rule[uth] In_def
      val th1 = spec_all th0
  in th1 |>  eqT_intro |> iffRL |> ex2fsym "InPow" ["S0"] 
         |> C mp (trueI []) |> gen_all
  end
-
+*)
 
 (*sub*)
 fun Pow A = mk_fun "Pow" [A]
 
+
+val Ex_def = 
+fVar_Inst 
+[("P",([("zs",mem_sort (Pow (mk_set "Z"))),("ys",mem_sort (Pow (mk_set "Y")))],
+“!y:mem(Y). Holds(In(Y),y,ys) <=> ?z:mem(Z).Holds(In(Z),z,zs) & Eval(f,z) = y”))]
+(AX1|> qspecl [‘Pow(Z)’,‘Pow(Y)’]) 
+|> uex_expand |> ex2fsym0 "Ex" ["f"] |> gen_all
+
+
+
+val All_def = 
+fVar_Inst 
+[("P",([("zs",mem_sort (Pow (mk_set "Z"))),("ys",mem_sort (Pow (mk_set "Y")))],
+“!y:mem(Y). Holds(In(Y),y,ys) <=> !z:mem(Z). Holds(f,z,y) ==> Holds(In(Z),z,zs) ”))]
+(AX1|> qspecl [‘Pow(Z)’,‘Pow(Y)’]) 
+|> uex_expand |> ex2fsym0 "All" ["f"] |> gen_all
+
+
+local
+val lemma = 
+fVar_Inst 
+[("P",([("y",mem_sort (mk_set "Y"))],
+“?z:mem(Z).Holds(In(Z),z,a) & Eval(f:Z->Y,z) = y”))]
+(In_def_P |> qspecl [‘Y’]) 
+|> uex_expand
+in
+val Ex_isFun = proved_th $
+e0
+(rpt strip_tac >> rw[Fun_expand] >> strip_tac (* 2 *) >-- 
+ (strip_tac >> 
+  qspecl_then [‘Y’,‘Z’,‘f’] strip_assume_tac Ex_def >>
+  arw[] >> x_choose_then "b" strip_assume_tac lemma >> 
+  qexists_tac ‘b’ >> strip_tac >> arw[]) >>
+ rpt strip_tac >> irule In_EXT >> strip_tac >>
+  qspecl_then [‘Y’,‘Z’,‘f’] strip_assume_tac Ex_def >> fs[])
+(form_goal 
+“!Z Y f:Z->Y.isFun(Ex(f))”)
+end
+
+
+local
+val lemma = 
+fVar_Inst 
+[("P",([("y",mem_sort (mk_set "Y"))],
+“!z:mem(Z). Holds(f:Z->Y,z,y) ==> Holds(In(Z),z,a)”))]
+(In_def_P |> qspecl [‘Y’]) 
+|> uex_expand
+in
+val All_isFun = proved_th $
+e0
+(rpt strip_tac >> rw[Fun_expand] >> strip_tac (* 2 *) >-- 
+ (strip_tac >> 
+  qspecl_then [‘Y’,‘Z’,‘f’] strip_assume_tac All_def >>
+  arw[] >> 
+  x_choose_then "b" strip_assume_tac lemma >> 
+  qexists_tac ‘b’ >> strip_tac >> arw[]) >>
+ rpt strip_tac >> irule In_EXT >> strip_tac >>
+  qspecl_then [‘Y’,‘Z’,‘f’] strip_assume_tac All_def >> fs[])
+(form_goal 
+“!Z Y f:Z->Y.isFun(All(f))”)
+end
+
+
+
+
+
 (*poset order of P(A)*)
-val _ = new_pred "PO"[("S1",mem_sort (Pow (mk_set "A"))),
+val _ = new_pred "PO" [("S1",mem_sort (Pow (mk_set "A"))),
                        ("S2",mem_sort (Pow (mk_set "A")))]
 
 val PO_def = new_ax
 “!A S1:mem(Pow(A)) S2:mem(Pow(A)).
- PO(S1,S2) <=> !a. Holds(eps(A),a,S1) ==> Holds(eps(A),a,S1)”
+ PO(S1,S2) <=> !a. Holds(In(A),a,S1) ==> Holds(In(A),a,S2)”
+
+
+(*in In_Eval_BC, there is a step that have Eval, not have assumption that f is function, a bit worry
+not the fact that Eval .. <=> isFun & Holds. but only one direction
+*)
+val In_Eval_BC = proved_th $
+e0
+(rpt strip_tac >> 
+ qspecl_then [‘Y’,‘Z’,‘f’] (assume_tac o conjE1) BC_def >>
+ qspecl_then [‘Z’,‘Y’,‘f’] assume_tac BC_isFun >> dimp_tac >> strip_tac (* 2 *)
+ >-- (first_x_assum $ irule o iffLR o iffLR >>
+     qexists_tac ‘Eval(BC(f),ys)’ >> arw[] >> irule Holds_Eval >> arw[]) >>
+ first_x_assum $ irule o iffRL o iffLR >> qexists_tac ‘ys’ >> arw[] >>
+ irule Holds_Eval >> arw[]
+  )
+(form_goal
+ “!Z Y f:Z->Y z ys.Holds(In(Z),z,Eval(BC(f),ys)) <=> Holds(In(Y),Eval(f,z),ys) ”)
+
+val In_Eval_Ex = proved_th $
+e0
+(rpt strip_tac >> 
+ qspecl_then [‘Y’,‘Z’,‘f’] (assume_tac o conjE1) Ex_def >> 
+ qspecl_then [‘Z’,‘Y’,‘f’] assume_tac Ex_isFun >>
+ dimp_tac >> strip_tac (* 2 *) >--
+ (first_x_assum $ irule o iffLR o iffLR >> 
+  qexists_tac ‘Eval(Ex(f),zs)’ >> arw[] >>
+  irule Holds_Eval >> arw[]) >>
+ first_x_assum $ irule o iffRL o iffLR >> qexists_tac ‘zs’ >> strip_tac (* 2 *)
+ >-- (qexists_tac ‘z’ >> arw[]) >> 
+ irule Holds_Eval >> arw[])
+(form_goal
+ “!Z Y f:Z->Y y zs. Holds(In(Y),y,Eval(Ex(f),zs)) <=> 
+   ?z:mem(Z).Holds(In(Z),z,zs) & Eval(f,z) = y”)
+
+
+
+
+val In_Eval_All = proved_th $
+e0
+(rpt strip_tac >> 
+ qspecl_then [‘Y’,‘Z’,‘f’] (assume_tac o conjE1) All_def >> 
+ qspecl_then [‘Z’,‘Y’,‘f’] assume_tac All_isFun >>
+ dimp_tac >> strip_tac (* 2 *) >--
+ (rpt strip_tac >> 
+ (*TODO: irule cannot find it if not strip *)
+ first_x_assum $ irule o iffLR o iffLR >> 
+ qexistsl_tac [‘Eval(All(f),zs)’,‘y’] >> arw[] >> 
+ irule Holds_Eval >> arw[]) >>
+ first_x_assum $ irule o iffRL o iffLR >> qexists_tac ‘zs’ >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> first_x_assum drule >> arw[]) >> 
+ irule Holds_Eval >> arw[])
+(form_goal
+ “!Z Y f:Z->Y y zs. Holds(In(Y),y,Eval(All(f),zs)) <=> 
+   !z:mem(Z).Holds(f,z,y) ==> Holds(In(Z),z,zs)”)
+
+
+
+
 
 val Thm_2_11_SEx_ex = proved_th $
 e0
-cheat
+(rpt strip_tac >> rw[PO_def] >> 
+ qby_tac ‘!z.Holds(In(Z),z,Eval(BC(f),ys)) <=> Holds(In(Y),Eval(f,z),ys)’
+ >-- (rw[In_Eval_BC] >> strip_tac >> rw[]) >> arw[] >>
+ qby_tac ‘!y. Holds(In(Y),y,Eval(Ex(f),zs)) <=> 
+   ?z:mem(Z).Holds(In(Z),z,zs) & Eval(f,z) = y’ 
+ >-- (rw[In_Eval_Ex] >> strip_tac >> rw[]) >>
+ arw[] >> dimp_tac >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> first_x_assum irule >> qexists_tac ‘a’ >> arw[]) >>
+ rpt strip_tac >> pop_assum (assume_tac o GSYM) >> arw[] >>
+ first_x_assum irule>> arw[]
+ )
 (form_goal
- “!Z Y f:Z->Y. ?Ef:Pow(Z)-> Pow(Y). isFun(Ef) &
-  !zs:mem(Pow(Z)) ys:mem(Pow(Y)). PO(Eval(Ef,zs),ys) <=> PO(zs,Eval(BC(f),ys))”)
+ “!Z Y f:Z->Y. 
+  !zs:mem(Pow(Z)) ys:mem(Pow(Y)). (*isFun(f) ==> *)
+  (PO(Eval(Ex(f),zs),ys) <=> PO(zs,Eval(BC(f),ys)))”)
 
+val Holds_IMP_Eval = proved_th $
+e0
+(rpt strip_tac >> drule Eval_def >> 
+ first_x_assum (irule o iffLR) >> arw[])
+(form_goal
+ “!A B f:A->B.isFun(f) ==>
+  !a b. Holds(f,a,b) ==> b = Eval(f,a)”)
 
 val Thm_2_11_SAll_ex = proved_th $
 e0
-cheat
+(rpt strip_tac >> rw[PO_def] >> 
+ rw[In_Eval_BC] >> 
+ rw[In_Eval_All] >> dimp_tac >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> first_x_assum irule >> 
+      qsuff_tac ‘Eval(f,z) = a’ >-- (strip_tac >> fs[]) >>
+      fconv_tac (rewr_fconv (eq_sym "mem")) >>
+      irule Holds_IMP_Eval >> arw[]
+      ) >>
+ rpt strip_tac >> pop_assum (assume_tac o GSYM) >> arw[] >>
+ first_x_assum irule >> qexists_tac ‘Eval(f,a)’ >> arw[] >>
+ irule Holds_Eval >> arw[])
 (form_goal
- “!Z Y f:Z->Y. ?Af:Pow(Z)-> Pow(Y). isFun(Af) &
-  !ys:mem(Pow(Y)) zs:mem(Pow(Z)). PO(Eval(BC(f),ys),zs) <=> PO(ys,Eval(Af,zs))”)
+ “!Z Y f:Z->Y. isFun(f) ==> 
+  !ys:mem(Pow(Y)) zs:mem(Pow(Z)). PO(Eval(BC(f),ys),zs) <=> PO(ys,Eval(All(f),zs))”)
+
 
 (*
 Definition 2.1. An allegory is a locally posetal 2-category A equipped with an involution (−)o:Aop→A which is the identity on objects, such that
@@ -1314,11 +1494,21 @@ each hom-poset A(x,y) has binary meets, and
 val _ = new_fun "OP" (rel_sort (mk_set "A") (mk_set "B"),
                       [("R",rel_sort (mk_set "A") (mk_set "B"))])
 
+local 
+val lemma = 
+fVar_Inst 
+[("P",([("b",mem_sort (mk_set "B")),
+        ("a",mem_sort (mk_set "A"))],
+“Holds(R:A->B,a,b)”))]
+(AX1 |> qspecl [‘B’,‘A’]) |> uex_expand
+in
 val OP_ex = proved_th $
 e0
-cheat
+(rpt strip_tac >> strip_assume_tac lemma >> qexists_tac ‘R'’ >> arw[] >>
+ rpt strip_tac >> rw[])
 (form_goal
 “!A B R:A->B. ?R':B->A. !a b. Holds(R,a,b) <=> Holds(R',b,a)”)
+end
 
 val OP_def = 
     OP_ex |> spec_all |> eqT_intro |> iffRL |> ex2fsym "OP" ["R"] 
@@ -1326,7 +1516,10 @@ val OP_def =
 
 val OP_DISTR = proved_th $
 e0
-cheat
+(rpt strip_tac >> irule $ iffRL R_EXT >> rw[GSYM OP_def,GSYM o_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *) >--
+ (qexists_tac ‘b'’ >> arw[]) >>
+ qexists_tac ‘b'’ >> arw[])
 (form_goal
 “!A B phi:A->B C psi:B->C. OP(psi o phi) = OP(phi) o OP(psi)”)
 
@@ -1343,32 +1536,52 @@ val _ = new_pred "Sub" [("R1",rel_sort (mk_set "A") (mk_set "B")),
 val Sub_def = new_ax 
 “!A B R1:A->B R2. Sub(R1,R2) <=> !a b. Holds(R1,a,b) ==> Holds(R2,a,b)”
 
-
+(*TODO: Seems like R_EXT can be proved rather then a def*)
+local 
+val lemma = 
+fVar_Inst 
+[("P",([("a",mem_sort (mk_set "A")),
+        ("b",mem_sort (mk_set "B"))],
+“Holds(R1:A->B,a,b) & Holds(R2:A->B,a,b)”))]
+(AX1 |> qspecl [‘A’,‘B’]) |> uex_expand
+in
 val Meet_ex = proved_th $
 e0
-(cheat)
+(rpt strip_tac >> strip_assume_tac lemma >> 
+ qexists_tac ‘R’ >> arw[] >> rpt strip_tac >> rw[])
 (form_goal 
  “!A B R1:A->B R2:A->B. ?M:A->B. !a b. Holds(M,a,b) <=> Holds(R1,a,b) & Holds(R2,a,b)”)
+end
 
 
 val Meet_def = Meet_ex |> spec_all |> eqT_intro |> iffRL 
                        |> ex2fsym "Meet" ["R1","R2"] 
                        |> C mp (trueI []) |> gen_all
 
-val Meet_property = proved_th $
+val Sub_Meet = proved_th $
 e0
-(cheat)
+(rpt strip_tac >> fs[Meet_def,Sub_def] >> rpt strip_tac >>
+ first_x_assum irule >> arw[])
 (form_goal
 “!A B R1:A->B R2:A->B. Sub(Meet(R1,R2),R1) & Sub(Meet(R1,R2),R2) &
  !R0. Sub(R0,R1) & Sub(R0,R2) ==> Sub(R0,Meet(R1,R2))”)
 
-
+local 
+val lemma = 
+fVar_Inst 
+[("P",([("a",mem_sort (mk_set "A")),
+        ("b",mem_sort (mk_set "B"))],
+“Holds(R1:A->B,a,b) | Holds(R2:A->B,a,b)”))]
+(AX1 |> qspecl [‘A’,‘B’]) |> uex_expand
+in
 val Join_ex = proved_th $
 e0
-(cheat)
+(rpt strip_tac >> strip_assume_tac lemma >> 
+ qexists_tac ‘R’ >> arw[] >> rpt strip_tac >> rw[])
 (form_goal 
  “!A B R1:A->B R2:A->B. ?J:A->B. !a b. Holds(J,a,b) <=> Holds(R1,a,b) | Holds(R2,a,b)”)
-
+end
+ 
 
 val Join_def = Join_ex |> spec_all |> eqT_intro |> iffRL 
                        |> ex2fsym "Join" ["R1","R2"] 
@@ -1382,18 +1595,23 @@ if x≤a and y≤a, then x∨y≤a.
 
 *)
 
-val Join_property = proved_th $
+val Sub_Join = proved_th $
 e0
-(cheat)
+(rpt strip_tac >> fs[Join_def,Sub_def] >> rpt strip_tac (* 4 *)
+ >-- (disj1_tac >> arw[]) >-- (disj2_tac >> arw[]) >--
+ (last_x_assum irule >> arw[]) >>
+  first_x_assum irule >> arw[])
 (form_goal
 “!A B R1:A->B R2:A->B. Sub(R1,Join(R1,R2)) & Sub(R2,Join(R1,R2)) &
- !R0. Sub(R0,R1) & Sub(R0,R2) ==> Sub(Join(R1,R2),R0)”)
-
+ !R0. (Sub(R1,R0) & Sub(R2,R0)) ==> Sub(Join(R1,R2),R0)”)
+ 
 (*the modular law holds: for ϕ:x→y, ψ:y→z, and χ:x→z, we have ψϕ∩χ≤ψ(ϕ∩ψoχ).*)
 
 val MODULAR_LAW = proved_th $
 e0
-(cheat)
+(rpt strip_tac >> rw[Sub_def,Meet_def,GSYM OP_def,GSYM o_def] >>
+ rpt strip_tac >> qexists_tac ‘b'’ >> arw[] >>
+ qexists_tac ‘b’ >> arw[])
 (form_goal
  “!x y phi:x->y z psi:y->z chi:x->z. 
   Sub(Meet(psi o phi,chi),psi o Meet(phi,OP(psi) o chi))”)
@@ -1401,17 +1619,29 @@ e0
 (*
 A union allegory Is an allegory whose hom-posets have finite joins that are preserved by composition. Thus a union allegory is locally a lattice. If additionally it is locally a distributive lattice, it is called a distributive allegory.
 *)
-
+ 
 val left_o_pres_Join = proved_th $
 e0
-cheat
+(rpt strip_tac >> irule $ iffRL R_EXT >> rw[GSYM o_def,Join_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 4 *)
+ >-- (disj1_tac >> qexists_tac ‘b'’ >> arw[])
+ >-- (disj2_tac >> qexists_tac ‘b'’ >> arw[])
+ >-- (qexists_tac ‘b'’ >> rpt strip_tac (* 2 *)
+      >-- (disj1_tac >> arw[]) >> arw[]) >>
+ qexists_tac ‘b'’ >> rpt strip_tac (* 2 *)
+  >-- (disj2_tac >> arw[]) >> arw[])
 (form_goal
- “!A B R1:A->B R2:A->B R:B->C. R o Join(R1,R2) = Join(R o R1, R o R2)”)
+ “!A B R1:A->B R2:A->B C R:B->C. R o Join(R1,R2) = Join(R o R1, R o R2)”)
 
 
 val right_o_pres_Join = proved_th $
 e0
-cheat
+(rpt strip_tac >> irule $ iffRL R_EXT >> rw[GSYM o_def,Join_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 4 *)
+ >-- (disj1_tac >> qexists_tac ‘b'’ >> arw[])
+ >-- (disj2_tac >> qexists_tac ‘b'’ >> arw[])
+ >-- (qexists_tac ‘b'’ >> arw[]) >>
+ qexists_tac ‘b'’ >> arw[])
 (form_goal
  “!A B R1:A->B R2:A->B R:C->A. Join(R1,R2) o R = Join(R1 o R, R2 o R)”)
 
@@ -1422,16 +1652,27 @@ A division allegory is a distributive allegory in which composition on one (and 
 t≤s/r∈hom(B,C)⇔t∘r≤s∈hom(A,C)
 *)
 
+local 
+val lemma = fVar_Inst 
+[("P",([("b",mem_sort (mk_set "B")),
+        ("c",mem_sort (mk_set "C"))],
+“!a:mem(A). Holds(r:A->B,a,b) ==> Holds(s:A->C,a,c)”))]
+(AX1 |> qspecl [‘B’,‘C’]) |> uex_expand
+in
 val Div_ex = proved_th $
 e0
-cheat
+(rpt strip_tac >> rw[Sub_def,GSYM o_def] >>
+ strip_assume_tac lemma >> qexists_tac ‘R’ >> 
+ strip_tac >> dimp_tac (* 2 *) >--
+ (rpt strip_tac >> first_x_assum $ irule o iffLR >>
+  qexists_tac ‘b'’ >> arw[] >> first_x_assum irule >> arw[]) >>
+ rpt strip_tac >> arw[] >> rpt strip_tac >> first_x_assum irule >>
+ qexists_tac ‘a’ >> arw[])
 (form_goal
  “!A B r:A->B C s:A->C. ?sdr:B->C. 
   !t.Sub(t,sdr) <=> Sub(t o r,s)”)
+end
 
-
-here is the commenting out thm 11
-*)
 (*
 Theorem 2.12. For any relation R:B↬A, there exists a unique function fR:B→PA such that R(y,x) if and only if ϵ(x,fR(y)). It follows that Set is a topos (and Rel is a power allegory).
 Proof. We simply define fR elementwise; for each y we define fR(y) to be the unique element of PA such that ϵ(x,fR(y)) holds iff R(y,x) holds. Extensionality of functions implies that it is unique.  ▮
