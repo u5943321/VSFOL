@@ -1244,7 +1244,7 @@ val Pow_def =
     AX3 |> spec_all |> eqT_intro 
         |> iffRL |> ex2fsym "Pow" ["A"] 
         |> C mp (trueI []) |> gen_all
-
+fun Pow A = mk_fun "Pow" [A]
 
 val In_def = 
     Pow_def |> spec_all |> eqT_intro 
@@ -1678,7 +1678,7 @@ Theorem 2.12. For any relation R:B↬A, there exists a unique function fR:B→PA
 Proof. We simply define fR elementwise; for each y we define fR(y) to be the unique element of PA such that ϵ(x,fR(y)) holds iff R(y,x) holds. Extensionality of functions implies that it is unique.  ▮
 *)
 
-fun Pow A = mk_fun "Pow" [A]
+
 
 val uex_tac:tactic = fn (ct,asl,w) =>
     let val th = uex_def w

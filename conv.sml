@@ -304,8 +304,35 @@ val taut_dimp_fconv =
         (List.map rewr_fconv 
                   [T_dimp_1,T_dimp_2,F_dimp_1,F_dimp_2,eqT_intro (frefl (mk_fvar "f0" []))])
 
+fun forall_T sname = 
+    let val (n,s) = srt2ns sname
+        val var = mk_var (n,s)
+        val lform = mk_forall n s TRUE
+        val l2r = trueI [lform] |> disch lform
+        val r2l = add_cont (fvt var) $ trueI []
+                           |> allI (n,s) |> add_assum TRUE
+                           |> disch TRUE
+    in dimpI l2r r2l
+    end
+
+
+
+fun taut_forall_fconv sortnames = 
+    let val thms = List.map forall_T sortnames
+    in first_fconv (List.map rewr_fconv thms)
+    end
 
 (*
+
+
+fun refl_fconv eqsorts = 
+    let
+        val refls = mapfilter (eqT_intro o refl o mk_var o srt2ns) eqsorts 
+    in
+        first_fconv (List.map rewr_fconv refls)
+    end 
+
+
 val taut_forall_fconv = 
     first_fconv 
         (List.map rewr_fconv 
@@ -346,7 +373,7 @@ fun once_depth_fconv c fc f =
 
 fun basic_once_fconv c fc = 
     once_depth_fconv (once_depth_conv c) 
-                     (fc orelsefc taut_fconv orelsefc (refl_fconv (!EqSorts)))
+                     (fc orelsefc taut_fconv orelsefc (refl_fconv (!EqSorts)) orelsefc (taut_forall_fconv $ List.map fst $ listof_sorts (!SortDB)))
 
 
 
@@ -387,7 +414,8 @@ fun double_neg_fconv f = rewr_fconv double_neg_elim f
 
 fun basic_fconv c fc =
     top_depth_fconv (top_depth_conv c) 
-                    (fc orelsefc taut_fconv orelsefc (refl_fconv (!EqSorts)) orelsefc double_neg_fconv)
+                    (fc orelsefc taut_fconv orelsefc (refl_fconv (!EqSorts)) orelsefc double_neg_fconv orelsefc
+(taut_forall_fconv $ List.map fst $ listof_sorts (!SortDB)))
 
 val neg_neg_elim = conv_rule (once_depth_fconv no_conv double_neg_fconv)
 
