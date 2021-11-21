@@ -808,7 +808,7 @@ fun abbrev_tac eq0:tactic =
                    raise simple_fail "the term to be abbrev has unknown variable" 
            val _ = not (mem n (List.map fst (HOLset.listItems ct)))
                    orelse raise simple_fail "name of the abbrev is already used"
-           val eth =  existsI (n,s) lhs (mk_pred "=" [lhs,mk_var(n,s)]) (refl lhs) 
+           val eth =  existsI (n,s) lhs (mk_eq lhs (mk_var(n,s))) (refl lhs) 
        in
            ([(HOLset.add(ct,(n,s)),eq0::asl,w)],sing $ existsE (n,s) eth)
        end
