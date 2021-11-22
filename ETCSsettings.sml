@@ -2096,7 +2096,44 @@ e0
 val Thm5_Epi_ex_xp = prove_store(
 "Thm5_Epi_ex_xp",
 e0
-(cheat)
+(rpt strip_tac >> 
+ assume_tac (Thm5_Epi_ex_xp_a2phi0 |> strip_all_and_imp) >>
+ qby_tac
+ ‘?phi0':1->L. u o phi0' = Tp(phi o p1(X,1))’
+ >-- (qexists_tac ‘Eqa(a2,j0 o To1(Exp(X,1+1)),u,phi0)’ >>
+      arw[] >> flip_tac >> irule Eqa_eqn >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘ub o Pa(b, phi0') = 
+  (i2(1,1) o To1 (X * L)) o Pa(b, phi0')’
+ >-- (qby_tac ‘Pa(p1(X,L),u o p2(X,L)) o Pa(b, phi0') = 
+               Pa(b, u o phi0')’
+      >-- (irule to_P_eq >> rw[p12_of_Pa] >>
+           rw[GSYM o_assoc,p12_of_Pa] >> 
+           rw[o_assoc,p12_of_Pa]) >>
+      qsuff_tac ‘Ev(X,1+1) o Pa(b,phi0) = phi o b’
+      >-- (strip_tac >> rw[o_assoc] >>
+           once_rw[one_to_one_id] >> rw[idR] >>
+           qpick_x_assum 
+           ‘Ev(X, 1 + 1) o Pa(p1(X, L), u o p2(X, L)) = ub’
+           (assume_tac o GSYM) >>
+           arw[o_assoc]) >> 
+      qpick_x_assum 
+      ‘Tp(phi o p1(X, 1)) = phi0’ (assume_tac o GSYM) >>
+      arw[] >> 
+      qby_tac ‘Tp(phi o p1(X, 1)) = 
+      Tp(phi o p1(X, 1)) o id(1)’ >-- rw[idR] >>
+      once_arw[] >> rw[Ev_of_Tp_el,o_assoc,p1_of_Pa]>>
+      first_x_assum accept_tac) >>
+ qby_tac
+ ‘?bp0:1->E.k o bp0 = Pa(b,phi0')’ 
+ >-- (qexists_tac 
+      ‘Eqa(ub,i2(1,1) o To1(X * L),k,Pa(b, phi0'))’ >>
+      flip_tac >> irule Eqa_eqn >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘bp0’ >> irule to_P_eq >>
+ rw[p12_of_Pa] >> rw[GSYM o_assoc,p12_of_Pa] >>
+ arw[o_assoc,p12_of_Pa])
 (form_goal
 “!A X a:A->X.Mono(a) ==> 
  !j0:1->Exp(A,1 + 1). Tp(i1(1,1) o To1(A * 1)) = j0 ==>
