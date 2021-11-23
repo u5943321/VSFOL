@@ -2811,3 +2811,91 @@ val f0g_eq_f1g = prove_store("f0g_eq_f1g",
 “!R A f0:R->A f1:R->A. Sym(f0,f1) & Trans(f0,f1) ==> 
  Bar(f1) o Tp(Ev(A,1+1) o Pa(f0 o p1(R,Exp(A,1+1)), p2(R,Exp(A,1+1)))) o Sing(A) o f0 = 
   Bar(f1) o Tp(Ev(A,1+1) o Pa(f0 o p1(R,Exp(A,1+1)), p2(R,Exp(A,1+1)))) o Sing(A) o f1”));
+
+
+val Thm6_page29_means_just_that = prove_store
+("Thm6_page29_means_just_that",
+e0
+(rpt strip_tac >> 
+ qspecl_then [‘R’,‘A’,‘f0’,‘f1’,‘a'’,‘a0’] 
+ (assume_tac o GSYM) Thm6_g_ev' >>
+ qspecl_then [‘R’,‘A’,‘f0’,‘f1’,‘a'’,‘a1’] 
+ (assume_tac o GSYM) Thm6_g_ev' >>
+ once_arw[] >>  pop_assum (K all_tac) >>
+ pop_assum (K all_tac) >> 
+ fs[GSYM o_assoc])
+(form_goal
+“!A a0:1->A a1:1->A R f0:R->A f1:R->A.
+ Bar(f1) o 
+ Tp(Ev(A,1+1) o Pa(f0 o p1(R,Exp(A,1+1)),p2(R,Exp(A,1+1)))) o
+ Sing(A) o a0 = 
+ Bar(f1) o 
+ Tp(Ev(A,1+1) o Pa(f0 o p1(R,Exp(A,1+1)),p2(R,Exp(A,1+1)))) o
+ Sing(A) o a1 ==>
+ !a':1->A.(?r:1->R. f0 o r = a0 & f1 o r = a') <=>
+          (?r:1->R. f0 o r = a1 & f1 o r = a')”));
+
+
+(*TO-DO: let rw be able to solve f <=>f*)
+val compose_with_g_eq_equiv = prove_store
+("compose_with_g_eq_equiv",
+e0
+(rpt strip_tac >>
+ drule Thm6_page29_means_just_that >>
+ irule equiv_to_same_element >> arw[])
+(form_goal
+“!A a0:1->A a1:1->A R f0:R->A f1:R->A.
+ Bar(f1) o 
+ Tp(Ev(A,1+1) o Pa(f0 o p1(R,Exp(A,1+1)),p2(R,Exp(A,1+1)))) o
+ Sing(A) o a0 = 
+  Bar(f1) o 
+ Tp(Ev(A,1+1) o Pa(f0 o p1(R,Exp(A,1+1)),p2(R,Exp(A,1+1)))) o
+ Sing(A) o a1 ==>
+ Refl(f0,f1) ==>
+ ?r:1->R. f0 o r = a0 & f1 o r = a1”));
+
+
+
+val Thm6_page29_picture = prove_store(
+"Thm6_page29_picture",
+e0
+(rpt strip_tac >>
+ qby_tac ‘Sym(f0, f1) & Trans(f0, f1)’ >-- arw[] >> 
+ drule f0g_eq_f1g >> 
+ abbrev_tac
+ “Bar(f1:R->A) o Tp((Ev(A, 1 + 1) o
+                Pa(f0 o p1(R, Exp(A, 1 + 1)), p2(R, Exp(A, 1 + 1))))) o
+               Sing(A) = l” >>
+ fs[GSYM o_assoc] >>  
+ qsuff_tac ‘?u. u o ce = l’
+ >-- (strip_tac >> pop_assum (assume_tac o GSYM) >> fs[] >>
+      arw[o_assoc]) >>
+ qexists_tac ‘coEqa(f0,f1,ce,l)’ >> 
+ flip_tac >> irule coEqa_eqn >> arw[])
+(form_goal
+“!R A f0:R->A f1:R->A. Sym(f0,f1) ==> Trans(f0,f1) ==> 
+ !cE ce:A->cE. iscoEq(f0,f1,ce) ==>
+ !a0:1->A a1:1->A.
+ ce o a0 = ce o a1 ==>
+  Bar(f1) o 
+ Tp(Ev(A,1+1) o Pa(f0 o p1(R,Exp(A,1+1)),p2(R,Exp(A,1+1)))) o
+ Sing(A) o a0 = 
+  Bar(f1) o 
+ Tp(Ev(A,1+1) o Pa(f0 o p1(R,Exp(A,1+1)),p2(R,Exp(A,1+1)))) o
+ Sing(A) o a1”));
+
+
+val Thm6 = prove_store("Thm6",
+e0
+(rpt strip_tac >> irule Thm6_first_sentence >> 
+ qexistsl_tac [‘A’,‘e’,‘f0’,‘f1’,‘cE’,‘ce’] >>
+ arw[] >> rpt strip_tac >> irule equiv_to_same_element >>
+ arw[] >> irule Thm6_page29_means_just_that >>
+ irule Thm6_page29_picture >> arw[] >>
+ qexistsl_tac [‘cE’,‘ce’] >> arw[])
+(form_goal
+“!R A f0:R->A f1:R->A. Mono(Pa(f0,f1)) ==>
+ Refl(f0,f1) & Sym(f0,f1) & Trans(f0,f1) ==> 
+ !cE ce:A->cE. iscoEq(f0,f1,ce) ==>
+ !E e:E->A * A. isEq(ce o p1(A,A),ce o p2(A,A),e) ==>
+ areiso(R,E)”));
