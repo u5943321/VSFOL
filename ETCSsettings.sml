@@ -2899,3 +2899,5 @@ e0
  !cE ce:A->cE. iscoEq(f0,f1,ce) ==>
  !E e:E->A * A. isEq(ce o p1(A,A),ce o p2(A,A),e) ==>
  areiso(R,E)”));
+
+
