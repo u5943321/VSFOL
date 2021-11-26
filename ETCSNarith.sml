@@ -1988,37 +1988,35 @@ e0
   Char(LE) o Pa(l,n) = TRUE”));
 
 val eq_sym = 
-proved_th $
+prove_store("eq_sym",
 e0
 (rpt strip_tac >> dimp_tac >> strip_tac >> once_arw[] >> rw[])
 (form_goal
-“!A B f:A->B g:A->B. f = g <=> g = f”) 
+“!A B f:A->B g:A->B. f = g <=> g = f”));
 
-val pred_subset_ex = proved_th $
+val pred_subset_ex = prove_store("pred_subset_ex",
 e0
 (rpt strip_tac >> 
- assume_tac $
- aspec (List.map rastt ["pred:X->2","TRUE"]) pb_ex >>
- pop_assum strip_assume_tac >>
- drule $ GSYM pb_fac_iff_1 >>
- qex_tac ‘P’ >> qex_tac ‘p’ >> arw[] >> strip_tac >>
+ qspecl_then [‘X’,‘1+1’,‘pred’,‘1’,‘TRUE’] strip_assume_tac isPb_ex >>
+ drule $ GSYM Pb_fac_iff_1 >>
+ qexistsl_tac [‘P’,‘p’] >> arw[] >> strip_tac >> 
  (*TODO: write one function do the long thing parametized by the eq_sym.*)
  fconv_tac (rand_fconv no_conv (once_depth_fconv no_conv (rewr_fconv (spec_all eq_sym)))) >> rw[] (*almost equally stupid*)
  (*stupid *) (*rpt strip_tac >> dimp_tac >> rpt strip_tac >--
  (qex_tac ‘a’ >> arw[]) >> qex_tac ‘x0’ >> arw[]*))
 (form_goal
-“!X pred:X->2.?A ss:A ->X.
- (!x:1->X. pred o x = TRUE <=> ?x0:1->A. x = ss o x0)”)
+“!X pred:X->1+1.?A ss:A ->X.
+ (!x:1->X. pred o x = TRUE <=> ?x0:1->A. x = ss o x0)”));
 
 val ZRel_subset_ex = 
     pred_subset_ex |> allE $ rastt "(N * N) * (N * N)"
                    |> allE $ rastt $ q2str
 ‘Eq(N) o Pa(ADD o 
-     Pa(π1(N,N) o π1(N * N,N * N),
-        π2(N,N) o π2(N * N,N * N)),
+     Pa(p1(N,N) o p1(N * N,N * N),
+        p2(N,N) o p2(N * N,N * N)),
      ADD o 
-     Pa(π2(N,N) o π1(N * N,N * N), 
-        π1(N,N) o π2(N * N,N * N)))’
+     Pa(p2(N,N) o p1(N * N,N * N), 
+        p1(N,N) o p2(N * N,N * N)))’
 
 val ZRel_subset_def = ex2fsym "ZRel" [] (iffRL $ eqT_intro $ spec_all ZRel_subset_ex)
                         |> C mp (trueI []) |> gen_all
@@ -2028,10 +2026,10 @@ ex2fsym "ZRinc" [] (iffRL $ eqT_intro $ spec_all ZRel_subset_def)
                         |> C mp (trueI []) |> gen_all
 
 val intZ_ex = 
-    coeq_ex |> allE $ rastt "ZRel" 
+    iscoEq_ex |> allE $ rastt "ZRel" 
             |> allE $ rastt "N * N"
-            |> allE $ rastt "π1(N * N, N * N) o ZRinc"
-            |> allE $ rastt "π2(N * N, N * N) o ZRinc"
+            |> allE $ rastt "p1(N * N, N * N) o ZRinc"
+            |> allE $ rastt "p2(N * N, N * N) o ZRinc"
 
 val intZ_def = ex2fsym "intZ" [] (iffRL $ eqT_intro $ spec_all intZ_ex)
                         |> C mp (trueI []) |> gen_all
