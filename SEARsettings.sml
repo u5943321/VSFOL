@@ -382,8 +382,8 @@ e0
 (assume_tac l0 >> strip_tac >>
  first_x_assum (qspecl_then [‘A’] assume_tac) >>
  first_assum (fn th => assume_tac (uex_def $ concl th)) >> fs[] >>
- rw[uth] >> qexists_tac ‘R’ >> once_arw[] >> rw[] >> conj_tac (* 2 *)
- >-- (strip_tac >> once_rw[]) >> 
+ rw[uth] >> qexists_tac ‘R’ >> once_arw[] >> rw[](* >> conj_tac (* 2 *)
+ >-- (strip_tac >> once_rw[])11. 26 *) >> 
  rpt strip_tac >> first_x_assum irule >> once_rw[dot_def] >> arw[] >>
  rpt strip_tac >> rw[])
 (form_goal
@@ -696,15 +696,15 @@ e0
 val Inj_R_expand = proved_th $
 e0
 (rpt strip_tac >> rw[Inj_def,Fun_expand] >> dimp_tac >> strip_tac (* 2 *)
- >-- (arw[] >> rpt strip_tac (* 3  2T*) >-- rw[] >-- rw[] >>
+ >-- (arw[] >> rpt strip_tac (* 3  2T*) >>
       first_x_assum irule >> 
       qby_tac ‘isFun(R)’ 
-      >-- (rw[Fun_expand] >> arw[] >> rpt strip_tac >-- rw[] >> rw[]) >>
+      >-- (rw[Fun_expand] >> arw[] >> rpt strip_tac) >>
       drule Eval_def >> fs[]) >>
- arw[] >> rpt strip_tac (* 3  2 T*) >-- rw[] >-- rw[] >>
+ arw[] >> rpt strip_tac (* 3  2 T*) >>
  first_x_assum irule >> qexists_tac ‘Eval(R,x1)’ >> 
  qby_tac ‘isFun(R)’ 
-      >-- (rw[Fun_expand] >> arw[] >> rpt strip_tac >-- rw[] >> rw[]) >>
+      >-- (rw[Fun_expand] >> arw[] >> rpt strip_tac) >>
  drule Eval_def >> arw[])
 (form_goal
 “!A B R:A->B. isInj(R) <=>
@@ -715,16 +715,16 @@ e0
 val Surj_R_expand = proved_th $
 e0
 (rpt strip_tac >> rw[Surj_def,Fun_expand] >> dimp_tac >> strip_tac (* 2 *)
- >-- (arw[] >> rpt strip_tac >-- rw[] >-- rw[] >>
+ >-- (arw[] >> rpt strip_tac >>
       qby_tac ‘isFun(R)’ 
-      >-- (rw[Fun_expand] >> arw[] >> rpt strip_tac >-- rw[] >> rw[]) >>
+      >-- (rw[Fun_expand] >> arw[]) >>
       drule Eval_def >> arw[] >> 
       fconv_tac (once_depth_fconv no_conv (rewr_fconv (eq_sym "mem"))) >>
       arw[]) >>
  arw[] >>
  qby_tac ‘isFun(R)’ 
- >-- (rw[Fun_expand] >> arw[] >> rpt strip_tac >-- rw[] >> rw[]) >>
- rpt strip_tac >-- rw[] >-- rw[] >>
+ >-- (rw[Fun_expand] >> arw[]) >>
+ rpt strip_tac >>
  drule Eval_def >> fs[] >> 
  fconv_tac (once_depth_fconv no_conv (rewr_fconv (eq_sym "mem"))) >>
  arw[])
@@ -1272,6 +1272,92 @@ fVar_Inst
 (AX1|> qspecl [‘Pow(Y)’,‘Pow(Z)’]) 
 |> uex_expand |> ex2fsym0 "BC" ["f"] |> gen_all
 
+
+val uex_tac:tactic = fn (ct,asl,w) =>
+    let val th = uex_def w
+        val w' = snd $ dest_dimp $ concl th
+    in ([(ct,asl,w')],(sing (dimp_mp_r2l th)))
+    end
+
+
+local 
+val lemma = 
+fVar_Inst 
+[("P",([("star",mem_sort ONE),("a",mem_sort (mk_set "A"))],
+“(?a0. a = Eval(s0:A0->A,a0))”))]
+(AX1|> qspecl [‘1’,‘A’]) 
+|> uex_expand 
+in
+(*todo: both once_depth_fconv and basic_once_fconv cannot turn the a into dot*)
+val In_def_Inj = proved_th $
+e0
+(rpt strip_tac >> assume_tac In_def >>
+ strip_assume_tac lemma >>
+ first_x_assum (qspecl_then [‘A’,‘R’] $ strip_assume_tac o uex_expand) >>
+ uex_tac >>
+ qexists_tac ‘s’ >> 
+ qpick_x_assum ‘!a b. Holds(R,a,b) <=> ?a0.b = Eval(s0,a0)’
+ (mp_tac o GSYM) >> once_rw[dot_def] >> strip_tac >>
+ first_x_assum (qspecl_then [‘dot’] assume_tac) >> arw[] >>
+ rev_full_simp_tac[] >> rpt strip_tac >> rw[]
+ )
+(form_goal
+“!A A0 s0:A0->A.isInj(s0) ==>
+ ?!s:mem(Pow(A)).!x:mem(A). (?a0.x = Eval(s0,a0)) <=> Holds(In(A),x,s)”)
+end
+
+(*In_def_P currently have to be like this because if there is P(a)in the assumption then every arw causes mess, extremely ugly, need to fix this*)
+local
+val lemma = 
+fVar_Inst 
+[("P",([("a",mem_sort (mk_set "A"))],
+“(?a0. a = Eval(s0:A0->A,a0))”))]
+(Thm_2_4 |> qspecl [‘A’]) 
+in
+val In_def_P = proved_th $
+e0
+(strip_tac >> uex_tac >> 
+ strip_assume_tac $ spec_all Thm_2_4 >>
+ drule In_def_Inj >> pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘s’ >> strip_tac (* 2 *)>--
+ (strip_tac >> 
+ first_x_assum (qspecl_then [‘a’] assume_tac) >>
+ first_x_assum (qspecl_then [‘a’] assume_tac) >>
+ accept_tac
+ (iff_trans (assume “P(a:mem(A)) <=> ?b:mem(B).a = Eval(i:B->A,b)”)
+            (assume “(?a0.a = Eval(i:B->A,a0)) <=> Holds(In(A),a,s)”))) >>
+ rpt strip_tac >> first_x_assum irule >>
+ strip_tac >>
+ first_x_assum (qspecl_then [‘x’] assume_tac) >>
+ last_x_assum (qspecl_then [‘x’] assume_tac) >>
+ accept_tac
+ (iff_trans 
+  (GSYM $ assume “P(x) <=> ?b.x = Eval(i:B->A,b)”)
+  (assume “P(x:mem(A)) <=> Holds(In(A),x,s')”)))
+(form_goal
+ “!A.?!s:mem(Pow(A)).!a.P(a) <=> Holds(In(A),a,s)”)
+end
+
+
+
+local
+val lemma = 
+fVar_Inst 
+[("P",([("a",mem_sort (mk_set "A"))],
+“Holds(In(A),a,s1)”))]
+(In_def_P|> qspecl [‘A’]) |> uex_expand
+in
+val In_EXT = proved_th $
+e0
+(rpt strip_tac >> strip_assume_tac lemma >>
+ qsuff_tac ‘s1 = s & s2 = s’ >-- (strip_tac >> arw[]) >>
+ strip_tac >> first_x_assum irule >> rpt strip_tac (*2  *)
+ >-- rw[] >> pop_assum (K all_tac) >> arw[])
+(form_goal
+ “!A s1:mem(Pow(A)) s2. (!x.Holds(In(A),x,s1) <=> Holds(In(A),x,s2)) ==>
+ s1 = s2”)
+end
+
 local
 val lemma = 
 fVar_Inst 
@@ -1687,81 +1773,6 @@ val uex_tac:tactic = fn (ct,asl,w) =>
     end
 
 
-local 
-val lemma = 
-fVar_Inst 
-[("P",([("star",mem_sort ONE),("a",mem_sort (mk_set "A"))],
-“(?a0. a = Eval(s0:A0->A,a0))”))]
-(AX1|> qspecl [‘1’,‘A’]) 
-|> uex_expand 
-in
-(*todo: both once_depth_fconv and basic_once_fconv cannot turn the a into dot*)
-val In_def_Inj = proved_th $
-e0
-(rpt strip_tac >> assume_tac In_def >>
- strip_assume_tac lemma >>
- first_x_assum (qspecl_then [‘A’,‘R’] $ strip_assume_tac o uex_expand) >>
- uex_tac >>
- qexists_tac ‘s’ >> 
- qpick_x_assum ‘!a b. Holds(R,a,b) <=> ?a0.b = Eval(s0,a0)’
- (mp_tac o GSYM) >> once_rw[dot_def] >> strip_tac >>
- first_x_assum (qspecl_then [‘dot’] assume_tac) >> arw[] >>
- rev_full_simp_tac[] >> rpt strip_tac >> rw[]
- )
-(form_goal
-“!A A0 s0:A0->A.isInj(s0) ==>
- ?!s:mem(Pow(A)).!x:mem(A). (?a0.x = Eval(s0,a0)) <=> Holds(In(A),x,s)”)
-end
-
-(*In_def_P currently have to be like this because if there is P(a)in the assumption then every arw causes mess, extremely ugly, need to fix this*)
-local
-val lemma = 
-fVar_Inst 
-[("P",([("a",mem_sort (mk_set "A"))],
-“(?a0. a = Eval(s0:A0->A,a0))”))]
-(Thm_2_4 |> qspecl [‘A’]) 
-in
-val In_def_P = proved_th $
-e0
-(strip_tac >> uex_tac >> 
- strip_assume_tac $ spec_all Thm_2_4 >>
- drule In_def_Inj >> pop_assum (strip_assume_tac o uex_expand) >>
- qexists_tac ‘s’ >> strip_tac (* 2 *)>--
- (strip_tac >> 
- first_x_assum (qspecl_then [‘a’] assume_tac) >>
- first_x_assum (qspecl_then [‘a’] assume_tac) >>
- accept_tac
- (iff_trans (assume “P(a:mem(A)) <=> ?b:mem(B).a = Eval(i:B->A,b)”)
-            (assume “(?a0.a = Eval(i:B->A,a0)) <=> Holds(In(A),a,s)”))) >>
- rpt strip_tac >> first_x_assum irule >>
- strip_tac >>
- first_x_assum (qspecl_then [‘x’] assume_tac) >>
- last_x_assum (qspecl_then [‘x’] assume_tac) >>
- accept_tac
- (iff_trans 
-  (GSYM $ assume “P(x) <=> ?b.x = Eval(i:B->A,b)”)
-  (assume “P(x:mem(A)) <=> Holds(In(A),x,s')”)))
-(form_goal
- “!A.?!s:mem(Pow(A)).!a.P(a) <=> Holds(In(A),a,s)”)
-end
-
-local
-val lemma = 
-fVar_Inst 
-[("P",([("a",mem_sort (mk_set "A"))],
-“Holds(In(A),a,s1)”))]
-(In_def_P|> qspecl [‘A’]) |> uex_expand
-in
-val In_EXT = proved_th $
-e0
-(rpt strip_tac >> strip_assume_tac lemma >>
- qsuff_tac ‘s1 = s & s2 = s’ >-- (strip_tac >> arw[]) >>
- strip_tac >> first_x_assum irule >> rpt strip_tac (*2  *)
- >-- rw[] >> pop_assum (K all_tac) >> arw[])
-(form_goal
- “!A s1:mem(Pow(A)) s2. (!x.Holds(In(A),x,s1) <=> Holds(In(A),x,s2)) ==>
- s1 = s2”)
-end
 
 local
 val lemma = 
@@ -1949,8 +1960,12 @@ e0
   qpick_x_assum ‘isFun(ev)’ assume_tac >> drule Eval_def >>
   fconv_tac (once_depth_fconv no_conv (rewr_fconv (eq_sym "mem"))) >>
   fs[Pair_def] >> rpt strip_tac (* 2 *) >--
-  (rev_drule Holds_Eval >> arw[]) >>
-  fs[Inj_def] >> first_x_assum irule >> first_x_assum irule >>
+  (rev_drule Holds_Eval >> 
+  qpick_x_assum ‘Eval(i, fbar) = Eval(i, b)’ (assume_tac o GSYM) >>
+  arw[Pair_def]) >>
+  fs[Inj_def] >> first_x_assum irule >> 
+  qpick_x_assum ‘Eval(i, fbar) = Eval(i, b)’ (assume_tac o GSYM) >>
+  fs[] >> first_x_assum irule >>
   strip_tac >> 
   first_x_assum (qspecl_then [‘Eval(i,sf')’] assume_tac) >>
   (*?(b : mem(A2B)). Eval(i, sf') = Eval(i, b#) should automatically become true , happens twice in this proof, todo, stupid*)
@@ -1988,7 +2003,6 @@ known that a = (pi1(a),pi2(a)), sufficitnet to show f(pi1(a)) = pi2(a), but by a
 “!A B.?A2B ev:A2B * A ->B. isFun(ev) & 
  !f:A->B.isFun(f) ==> ?!sf:mem(A2B).!a:mem(A).Eval(ev,Pair(sf,a)) = Eval(f,a)”)
 end
-
 
 val _ = new_pred "ER" [("R",rel_sort (mk_set "A") (mk_set "A"))]
 
@@ -2079,6 +2093,9 @@ can not have im(p) as function, since then we have func that takes ar into sets
 *)
 
 fun Eval f e = mk_fun "Eval" [f,e] 
+
+
+
 
 (*
 val P = “?f:A-> X. Eval(f,a) = x0”
