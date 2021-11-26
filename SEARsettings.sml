@@ -1,3 +1,9 @@
+fun store_as name th = 
+let val _ = store_thm(name, th)
+in th
+end
+
+
 fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f = 
     case view_form f of
         vfVar(P0,args0) =>
@@ -76,7 +82,7 @@ fun new_ax f =
     in
         mk_thm(essps,[],f)
     end
-
+fun store_ax (name,f) = store_as name (new_ax f)
 
 val _ = new_sort "set" [];
 val _ = new_sort "mem" [("A",mk_sort "set" [])];
@@ -2084,8 +2090,309 @@ Axiom 4 (Infinity): There exists a set N, containing an element o, and a functio
 *)
 
 val AX4 = new_ax
-“?N z:mem(N) s:N->N. isFun(s) & !n:mem(N). ~(Eval(s,n) = z) & 
- !n m. Eval(s,n) = Eval(s,m) <=> n = m”
+“?N0 O0:mem(N0) S0:N0->N0. isFun(S0) & !n:mem(N0). ~(Eval(S0,n) = O0) & 
+ !n m. Eval(S0,n) = Eval(S0,m) <=> n = m”
+
+val N0_def = AX4 |> ex2fsym0 "N0" [] |> store_as "N0_def";
+
+val O0_def = N0_def |> ex2fsym0 "O0" [] |> store_as "O0_def";
+
+val S0_def = O0_def |> ex2fsym0 "S0" [] |> store_as "S0_def";
+
+
+val N0 = mk_fun "N0" []
+
+val lemma0 = 
+fVar_Inst 
+[("P",([("s",mem_sort $ Pow N0)],
+“Holds(In(N0),O0,s) & !n. Holds(In(N0),n,s) ==> Holds(In(N0),Eval(S0,n),s)”))]
+(In_def_P|> qspecl [‘Pow(N0)’]) |> uex_expand
+
+
+val Ns_def = lemma0 |> ex2fsym0 "Ns" [] |> store_as "Ns_def";
+
+
+val _ = new_pred "IN" [("a",mem_sort (mk_set "A")),("ss",mem_sort $ Pow (mk_set "A"))];
+
+val IN_def = store_ax("IN_def",
+“!A a ss.IN(a,ss) <=> Holds(In(A),a,ss)”);
+
+val IN_def_P_expand = In_def_P |> spec_all
+                        |> uex_expand 
+                        |>rewr_rule[spec_all $ GSYM IN_def]
+                        |> gen_all
+                        |> store_as "IN_def_P_expand";
+
+val IN_EXT = In_EXT |> rewr_rule[GSYM IN_def]
+                    |> store_as "IN_EXT";
+local
+val lemma =
+fVar_Inst [("P",([("sss",mem_sort $ Pow $ Pow (mk_set "A")),
+                  ("ss",mem_sort $ Pow (mk_set "A"))],
+“!a:mem(A).IN(a,ss) <=> !ss0. IN(ss0,sss) ==> IN(a,ss0)”))] 
+(AX1|> qspecl [‘Pow(Pow(A))’,‘Pow(A)’])
+|> uex_expand
+val lemma' = 
+fVar_Inst [("P",([("a",mem_sort (mk_set "A"))],
+“!ss0. IN(ss0,sss) ==> IN(a:mem(A),ss0)”))] 
+(IN_def_P_expand|> qspecl [‘A’]) |> GSYM
+in
+val BIGINTER_ex = prove_store("BIGINTER_ex",
+e0
+(strip_tac >> 
+ x_choosel_then ["BI"] strip_assume_tac lemma >>
+ qexists_tac ‘BI’ >> 
+ qsuff_tac ‘isFun(BI)’ >--
+ (strip_tac >> arw[] >> rpt strip_tac >>
+ first_x_assum $ irule o iffLR >>
+ drule Holds_Eval >> arw[]) >>
+ rw[Fun_expand] >> 
+ qby_tac ‘!sss. ?ss. Holds(BI,sss,ss)’ >--
+ (strip_tac >> once_arw[] >> 
+  x_choose_then "ss" strip_assume_tac lemma' >>
+  qexists_tac ‘ss’ >> once_arw[] >> rw[]) >>
+ strip_tac >-- arw[] >>
+ rpt strip_tac >> irule IN_EXT >> 
+ rfs[])
+(form_goal
+ “!A. ?BI:Pow(Pow(A)) -> Pow(A). 
+  isFun(BI) & 
+  !sss:mem(Pow(Pow(A))) a:mem(A). IN(a,Eval(BI,sss)) <=>
+  !ss.IN(ss,sss) ==> IN(a,ss)”));
+end
+
+val BI_def = BIGINTER_ex |> spec_all |> ex2fsym0 "BI" ["A"]
+                         |> gen_all
+                         |> store_as "BI_def";
+
+val BI_isFun = BI_def |> spec_all |> conjE1 |> gen_all 
+                      |> store_as "BI_isFun";
+
+
+val BI_property = BI_def |> spec_all |> conjE2 |> gen_all 
+                         |> store_as "BI_property";
+
+val Ns_property = Ns_def |> spec_all |> conjE1
+                         |> GSYM
+                         |> store_as "Ns_property";
+
+
+val N_lemma =
+fVar_Inst 
+[("P",([("a",mem_sort N0)],
+“Holds(In(N0),a,Eval(BI(N0),Ns))”))]
+(Thm_2_4 |> qspecl [‘N0’]) |> conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all BI_property)
+|>conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all Ns_property) |> ex2fsym0 "N" []
+|> ex2fsym0 "N2N0" []
+
+val N2N0_Inj = N_lemma |> conjE1
+
+val N = mk_fun "N" []
+
+val N_lemma' = N_lemma |> conjE2 |> iffRL
+                       |> allE (rastt "Eval(N2N0,b)")
+                       |> C mp
+                       (existsI ("b'",mem_sort N) (rastt "b:mem(N)")
+                                “Eval(N2N0, b) = Eval(N2N0, b')”
+                                (refl (rastt "Eval(N2N0, b)")))
+                       |> strip_all_and_imp
+                       |> gen_all
+                       |> disch_all
+                       |> gen_all
+
+
+
+val Ns_property' = Ns_def |> spec_all |> conjE1
+                         |> GSYM |> rewr_rule[GSYM IN_def]
+                         |> store_as "Ns_property";
+
+val N_constr =
+fVar_Inst 
+[("P",([("a",mem_sort N0)],
+“IN(a,Eval(BI(N0),Ns))”))]
+(Thm_2_4 |> qspecl [‘N0’]) |> conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all BI_property)
+|>conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all Ns_property') |> ex2fsym0 "N" []
+|> ex2fsym0 "N2N0" []
+
+val N2N0_Inj = N_constr |> conjE1 |> store_as "N2N0_Inj";
+
+val N = mk_fun "N" []
+
+val N_ind_lemma = N_constr |> conjE2 |> iffRL
+                       |> allE (rastt "Eval(N2N0,b)")
+                       |> C mp
+                       (existsI ("b'",mem_sort N) (rastt "b:mem(N)")
+                                “Eval(N2N0, b) = Eval(N2N0, b')”
+                                (refl (rastt "Eval(N2N0, b)")))
+                       |> strip_all_and_imp
+                       |> gen_all
+                       |> disch_all
+                       |> gen_all
+
+val N_cond = N_constr |> conjE2 |> GSYM
+                      |> store_as "N_cond";
+
+val N_has_O0 = prove_store("N_has_O",
+e0
+(rw[N_cond] >> rpt strip_tac)
+(form_goal
+ “?z. O0 = Eval(N2N0,z)”));
+
+
+
+val N_has_S0 = prove_store("N_has_S0",
+e0
+(rw[N_cond] >> rpt strip_tac >>
+ first_assum irule >> 
+ first_assum (qspecl_then [‘ss’] strip_assume_tac) >>
+ first_assum irule >> arw[])
+(form_goal
+ “!n0.(?n:mem(N). n0 = Eval(N2N0,n)) ==> 
+  ?sn.Eval(S0,n0) = Eval(N2N0,sn)”));
+
+val SUC_uex = fVar_Inst 
+[("P",([("n",mem_sort N),("sn",mem_sort N)],
+“Eval(S0 o N2N0,n) = Eval(N2N0,sn)”))] (AX1|> qspecl [‘N’,‘N’])
+|> uex_expand |> store_as "SUC_uex";
+
+val SUC_def = SUC_uex |> ex2fsym0 "SUC" [] |> store_as "SUC_def";
+
+(*
+val N_ind_lemma' = prove_store("N_ind_lemma'",
+e0
+()
+(form_goal
+ “!ss:mem(Pow(N)). IN()”));
+*)
+
+(*
+val N_O0_or_S0 = prove_store("N_O0_or_S0",
+e0
+()
+(form_goal
+ “!n0. (?n.n0 = Eval(N2N0,n)) ==> n0 = O0”))
+
+val lemma = 
+ fVar_Inst 
+[("P",([("n",mem_sort N0)],
+“?a. n = Eval(N2N0,a) & ?b.Holds(SUC,a,b) & !b'. Holds(SUC,a,b') ==> b' = b”))] 
+(In_def_P |> qspecl [‘N0’]) |> uex_expand
+
+*)
+
+(*
+val PI_ex = prove_store("PI_ex",
+e0
+()
+(form_goal
+ “”));
+
+induced functions,later
+
+*)
+
+val N2N0_Fun = prove_store("N2N0_Fun",
+e0
+(assume_tac N2N0_Inj >> fs[Inj_def])
+(form_goal “isFun(N2N0)”));
+
+val lemma = 
+ fVar_Inst 
+[("P",([("a",mem_sort N)],
+“?b.Holds(SUC,a,b) & !b'. Holds(SUC,a,b') ==> b' = b”))] 
+(IN_def_P_expand |> qspecl [‘N’]) 
+val lemma' = 
+fVar_Inst 
+[("P",([("n0",mem_sort N0)],
+“?n. IN(n,ss) & n0 = Eval(N2N0,n)”))] 
+(IN_def_P_expand |> qspecl [‘N0’]) 
+val SUC_isFun = prove_store("SUC_isFun",
+e0
+(rw[Fun_expand] >>
+ qsuff_tac ‘!a.?b.Holds(SUC,a,b) & !b'. Holds(SUC,a,b') ==>b' = b’
+ >-- (rpt strip_tac >--
+     (first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+      qexists_tac ‘b’ >> arw[]) >>
+     first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+     qsuff_tac ‘b1 = b & b2 = b’ >-- (strip_tac >> arw[]) >>
+     strip_tac >> first_x_assum irule >> arw[]) >>
+ x_choose_then "ss" strip_assume_tac lemma >>
+ pop_assum (K all_tac) >>
+ once_arw[] >> rw[GSYM IN_def] >> 
+ x_choose_then "ss0" strip_assume_tac lemma' >>
+ pop_assum (K all_tac) >> 
+ qsuff_tac ‘!b.IN(Eval(N2N0,b),ss0)’ >-- 
+ (pop_assum (assume_tac o GSYM) >> arw[] >>
+  rpt strip_tac >> 
+  first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+  assume_tac N2N0_Inj >> fs[Inj_def]  >> first_x_assum drule >>
+  fs[])  >>
+ irule N_ind_lemma >>
+ pop_assum (assume_tac o GSYM) >> once_arw[] >>
+ pop_assum (K all_tac) >>
+ pop_assum (assume_tac o GSYM) >> once_arw[] >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘b’ >> 
+      qby_tac ‘Eval(S0, n) = Eval(N2N0, b)’ 
+      >-- (once_arw[] >> fs[SUC_def] >> 
+           qpick_x_assum ‘Eval(S0 o N2N0, n') = Eval(N2N0, b)’
+           (assume_tac o GSYM) >> once_arw[] >>
+           irule o_Eval >> rw[S0_def] >> 
+           assume_tac N2N0_Inj >> fs[Inj_def]) >>
+      arw[] >> fs[SUC_def] >> 
+      qby_tac ‘?b'.Eval(S0,Eval(N2N0,b)) = Eval(N2N0,b')’ 
+      >-- (irule N_has_S0 >> qexists_tac ‘b’ >> rw[]) >>
+      pop_assum strip_assume_tac >> qexists_tac ‘b'’ >> 
+      pop_assum (assume_tac o GSYM) >> once_arw[] >> strip_tac (* 2 *)
+      >-- (irule $ GSYM o_Eval >> rw[S0_def]  >>
+          assume_tac N2N0_Inj >> fs[Inj_def]) >>
+      rpt strip_tac >> 
+      qby_tac ‘Eval(S0 o N2N0, b) = Eval(S0,Eval(N2N0, b))’ 
+      >-- (irule $ GSYM o_Eval >> rw[S0_def,N2N0_Fun]) >>
+      fs[] >>  assume_tac N2N0_Inj >> fs[Inj_def] >>
+      first_x_assum irule >> arw[]) >>
+ strip_assume_tac N_has_O0 >>
+ qexists_tac ‘b’ >> arw[] >> fs[SUC_def] >> 
+ qby_tac ‘Eval(S0 o N2N0, b) = Eval(S0, Eval(N2N0,b))’ 
+ >-- (irule $ GSYM o_Eval >> rw[S0_def,N2N0_Fun]) >> fs[] >>
+ qby_tac ‘?b'.Eval(S0,Eval(N2N0,b)) = Eval(N2N0,b')’ 
+ >-- (irule N_has_S0 >> qexists_tac ‘b’ >> rw[]) >>
+ pop_assum strip_assume_tac >> 
+ qexists_tac ‘b'’ >> arw[] >> rpt strip_tac >> assume_tac N2N0_Inj >>
+ fs[Inj_def] >> first_x_assum irule >> arw[])
+(form_goal
+ “isFun(SUC)”)
+);
+
+
+val O0_xor_S0 = prove_store("O0_xor_S0",
+e0
+()
+(form_goal
+ “!n:mem(N). Eval(N2N0,n) = O0 | ?pn:mem(N). Eval(S0 o N2N0,pn) = n”)
+)
+
+
+
+val Nind_ex = prove_store("Nind_ex",
+e0
+()
+(form_goal
+ “!X a:mem(X) f:X->X. isFun(f) ==>
+ ?u:N->X. Eval(u,dot) = a & !n:mem(N).Eval(u o SUC,n) = Eval(f o u,n)”));
+
+Proposition: Given a set 𝑋, a 𝑓:𝑋→𝑋, and 𝑎∈𝑋
+
+∃!𝑢:ℕ→𝑋 such that:
+
+(1) 𝑢(1)=𝑎
+
+(2) ∀𝑛∈ℕ  (  𝑢(𝑠(𝑛))=𝑓(𝑢(𝑛))  )
+
+
 
 (*Axiom 5 (Collection): For any set A and any property P which can obtain of an element of A and a set, there exists a set B, function p:B→A, and a B-indexed family of sets M:B↬Y such that (1) P(p(b),Mb) holds for any b∈B, and (2) for any a∈A, if there exists a set X with P(a,X), then a∈im(p).
 
