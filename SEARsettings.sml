@@ -2779,6 +2779,8 @@ e0
      rpt strip_tac >> first_assum irule >>
      qpick_x_assum ‘Holds(R, Eval(SUC, n'), x')’ mp_tac >> 
      arw[] >> rpt strip_tac >> first_assum irule >> arw[]) >>
+ 
+
  x_choose_then "R1" strip_assume_tac R1_l >> pop_assum (K all_tac) >>
  qby_tac ‘Holds(R1,O,a) &
           !n x. Holds(R1,n,x) ==> Holds(R1,Eval(SUC,n),Eval(f,x))’

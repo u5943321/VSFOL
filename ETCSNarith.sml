@@ -1,6 +1,3 @@
-structure Narith = 
-struct 
-
 val INV_SUC_EQ = prove_store("INV_SUC_EQ",
 e0
 (assume_tac Thm2_2 >> fs[Mono_def] >> 
