@@ -636,6 +636,40 @@ val _ = new_fun "id" (rel_sort (mk_set "A") (mk_set "A"),
 
 val id_def = new_ax “!A a:mem(A) b. Holds(id(A),a,b) <=> a = b”;
 
+
+val id_Fun = prove_store("id_Fun",
+e0
+(strip_tac >> rw[Fun_expand,id_def] >> flip_tac >> rpt strip_tac >>
+ arw[] >> qexists_tac ‘a’ >> rw[]
+ )
+(form_goal
+ “!A. isFun(id(A))”));
+
+val idL = prove_store("idL",
+e0
+(rpt strip_tac >> irule $ iffRL R_EXT >> 
+ rw[GSYM o_def,id_def] >> rpt strip_tac >> dimp_tac >> strip_tac
+ >-- fs[] >> qexists_tac ‘b’ >> arw[])
+(form_goal
+ “!A B f:A->B. id(B) o f = f”));
+
+
+
+val idR = prove_store("idR",
+e0
+(rpt strip_tac >> irule $ iffRL R_EXT >> 
+ rw[GSYM o_def,id_def] >> rpt strip_tac >> dimp_tac >> strip_tac
+ >-- fs[] >> qexists_tac ‘a’ >> arw[])
+(form_goal
+ “!A B f:A->B. f o id(A) = f”));
+
+val Eval_id = prove_store("Eval_id",
+e0
+(rpt strip_tac >> qspecl_then [‘A’] assume_tac id_Fun >>
+ drule $ GSYM Eval_def >> flip_tac >> arw[] >> rw[id_def])
+(form_goal
+ “!A a.Eval(id(A),a) = a”));
+
 val Thm_2_7_assoc = proved_th $
 e0
 (rpt strip_tac >> rw[R_EXT,GSYM o_def] >> rpt strip_tac >>
@@ -1013,7 +1047,7 @@ e0
 “!A B. SetPr(pi1(A,B),pi2(A,B))”)
 
 
-val SPa_ex =
+val Pa_ex =
 let val th0 = rewr_rule[SetPr_def] Thm_2_8_SetPr
     val f = th0 |> spec_all |> concl |> snd o dest_imp
     val th1 = uex_def f
@@ -1049,8 +1083,26 @@ th0 |> gen_all |> basic_fconv no_fconv COND_EXISTS_FCONV spec_all |> ex2fsym "SP
 
 
 
-val SPa_def = 
-    SPa_ex |> spec_all |> ex2fsym "SPa" ["f","g"] 
+val Pa_def = 
+    Pa_ex |> spec_all |> ex2fsym "Pa" ["f","g"] 
+          |> qgen ‘g’ |> qgen ‘B’ |> gen_all
+          |> store_as "Pa_def";
+
+val Pa_Fun = Pa_def |> spec_all |> undisch |> conjE1
+                    |> conjE1 |> disch_all 
+                    |> qgen ‘g’ |> qgen ‘B’ |> gen_all
+                    |> store_as "Pa_Fun";
+
+val pi12_of_Pa = Pa_def |> spec_all |> undisch |> conjE1 |> conjE2
+                        |> disch_all 
+                        |> qgen ‘g’ |> qgen ‘B’ |> gen_all
+                        |> store_as "pi12_of_Pa";
+
+val is_Pa = Pa_def |> spec_all |> undisch |> conjE2
+                   |> disch_all 
+                   |> qgen ‘g’ |> qgen ‘B’ |> gen_all
+                   |> store_as "pi12_of_Pa";
+
  
 
 val RelcP_ex = proved_th $
@@ -2016,6 +2068,23 @@ known that a = (pi1(a),pi2(a)), sufficitnet to show f(pi1(a)) = pi2(a), but by a
  !f:A->B.isFun(f) ==> ?!sf:mem(A2B).!a:mem(A).Eval(ev,Pair(sf,a)) = Eval(f,a)”)
 end
 
+val Exp_def = Thm_2_13 |> spec_all |> ex2fsym0 "Exp" ["A","B"]
+                       |> gen_all |> store_as "Exp_def";
+
+val Ev_def = Exp_def |> spec_all |> ex2fsym0 "Ev" ["A","B"]
+                     |> gen_all |> store_as "Ev_def";
+
+val Ev_Fun = Ev_def |> spec_all |> conjE1 |> gen_all
+                    |> store_as "Ev_Fun";
+
+val Tp_def = Ev_def |> spec_all |> conjE2
+                    |> strip_all_and_imp
+                    |> uex_expand
+                    |> ex2fsym0 "Tp" ["f"]
+                    |> disch_all |> gen_all
+                    |> store_as "Tp_def";
+
+
 val _ = new_pred "ER" [("R",rel_sort (mk_set "A") (mk_set "A"))]
 
 val _ = new_pred "Refl" [("R",rel_sort (mk_set "A") (mk_set "A"))]
@@ -2553,128 +2622,6 @@ e0
 (form_goal
  “!n1 n2. Eval(SUC,n1) = Eval(SUC,n2) <=> n1 = n2”));
 
-
-val Ins_ex = 
-fVar_Inst 
-[("P",([("x",mem_sort (mk_set "X"))],
-“x:mem(X) = x0 | IN(x,s0)”))] 
-(IN_def_P_expand |> qspecl [‘X’]) |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
-|> store_as "Ins_ex";
-
-
-val Ins_def = Ins_ex |> spec_all |> ex2fsym0 "Ins" ["x0","s0"]
-                     |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
-                     |> store_as "Ins_def";
-
-val Ins_property = Ins_def |> spec_all |> conjE1
-                           |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
-                           |> store_as "Ins_property";
-
-
-val Insert_ex = prove_store("Insert_ex",
-e0
-(rpt strip_tac)
-(form_goal
- “!X x0:mem(X) s0:mem(Pow(X)). ?xs:mem(Pow(X)).
-  !x. IN(x,xs) <=> x = x0 | IN(x,s0) ”))
-
-
-val Empty_ex = 
-fVar_Inst 
-[("P",([("x",mem_sort (mk_set "X"))],
-“F”))] 
-(IN_def_P_expand |> qspecl [‘X’]) |> gen_all
-|> store_as "Empty_ex";
-
-val Empty_def = Empty_ex |> spec_all |> ex2fsym0 "Empty" ["X"] 
-                         |> gen_all |> store_as "Empty_def";
-
-val Empty_property = Empty_def |> spec_all |> conjE1 |> GSYM 
-                               |> gen_all |> store_as "Empty_property";
-
-
-val cFins_ex = 
-fVar_Inst 
-[("P",([("xss",mem_sort $ Pow $Pow (mk_set "X"))],
-“IN(Empty(X),xss) & !xs0. IN(xs0,xss) ==> !x0. IN(Ins(x0,xs0),xss)”))] 
-(IN_def_P_expand |> qspecl [‘Pow(Pow(X))’]) |> gen_all
-|> store_as "cFins_ex";
-
-val cFins_def =  cFins_ex |> spec_all |> ex2fsym0 "cFins" ["X"]
-                       |> gen_all
-                       |> store_as "cFins_def";
-
-val cFins_property = cFins_def |> spec_all |> conjE1
-                             |> gen_all |> store_as "cFins_property";   
-
-val Fin_lemma = 
-fVar_Inst 
-[("P",([("xs",mem_sort $ Pow (mk_set "X"))],
-“IN(xs,Eval(BI(Pow(X)),cFins(X)))”))]
-(Thm_2_4 |> qspecl [‘Pow(X)’]) |> conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all BI_property) 
-|>conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all $ GSYM cFins_property) 
-|> ex2fsym0 "Fins" ["X"] |> ex2fsym0 "FI" ["X"]
-
-
-val Fin_lemma' = Fin_lemma |> conjE2 |> iffRL
-                       |> allE (rastt "Eval(FI(X),b)")
-                       |> C mp
-                       (existsI ("b'",mem_sort (rastt "Fins(X)")) (rastt "b:mem(Fins(X))")
-                                “Eval(FI(X), b) = Eval(FI(X), b')”
-                                (refl (rastt "Eval(FI(X), b)")))
-                       |> strip_all_and_imp
-                       |> gen_all
-                       |> disch_all
-                       |> gen_all
-
-
-val _ = new_pred "Fin" [("A",mem_sort $ Pow (mk_set "X"))]
-
-val Fin_def = store_ax("Fin_def",
-“!X A:mem(Pow(X)). Fin(A) <=> ?b:mem(Fins(X)). A = Eval(FI(X),b)”)
-
-val Fin_property = prove_store("Fin_property",
-e0
-(rw[Fin_def] >> once_rw[GSYM Fin_lemma] >> rpt strip_tac >> 
- first_assum irule >> first_assum irule >> arw[])
-(form_goal
- “!X. Fin(Empty(X)) & !A:mem(Pow(X)). Fin(A) ==> !x. Fin(Ins(x,A))”));
-
-val Fin_ind = prove_store("Fin_ind",
-e0
-(strip_tac >> strip_tac >> disch_tac >> drule Fin_lemma' >>
- rw[Fin_def] >> rpt strip_tac >> arw[])
-(form_goal
- “!X ss. (IN(Empty(X),ss) & 
-  !xs0. IN(xs0,ss) ==> !x0. IN(Ins(x0,xs0),ss)) ==>
-  !A. Fin(A) ==> IN(A,ss)”));
-
-
-local
-val l0 = 
-(IN_def_P_expand |> qspecl [‘Pow(X)’]) 
-in
-val Fin_ind_P = prove_store("Fin_ind_P",
-e0
-(rpt strip_tac >> strip_assume_tac l0 >> pop_assum (K all_tac) >>
- qsuff_tac ‘IN(A,s)’
- >-- (strip_tac >> first_assum (qspecl_then [‘A’] assume_tac) >>
-      accept_tac (dimp_mp_r2l (assume “P(A:mem(Pow(X))) <=> IN(A, s)”)
-                              (assume “IN(A:mem(Pow(X)), s)”))) >>
- irule Fin_ind >> strip_tac (* 2 *)
- >-- first_assum accept_tac >>
- strip_tac >-- (first_assum (irule o iffLR) >> first_assum accept_tac) >>
- rpt strip_tac >> first_assum (irule o iffLR) >> 
- qsuff_tac ‘!x0. P(Ins(x0,xs0))’
- >-- (strip_tac >> first_assum (qspecl_then [‘x0’] accept_tac)) >>
- first_assum irule >> first_assum (irule o iffRL) >>
- first_assum accept_tac)
-(form_goal
- “!X.(P(Empty(X)) & !xs0:mem(Pow(X)). P(xs0) ==> !x0. P(Ins(x0,xs0))) ==> 
-  !A:mem(Pow(X)). Fin(A) ==> P(A)”));
-end
 
 local
 val lemma = 
