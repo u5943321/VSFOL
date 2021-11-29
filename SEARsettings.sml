@@ -874,7 +874,7 @@ val pi1_def =
 val pi2_def = 
    pi1_def |> spec_all |> eqT_intro 
              |> iffRL |> ex2fsym "pi2" ["A","B"] 
-             |> C mp (trueI []) |> gen_all
+             |> C mp (trueI []) |> gen_all |> store_as "pi2_def";
 
 val _ = new_fun "Top" (rel_sort (mk_set "A") (mk_set "B"),
                        [("A",set_sort),("B",set_sort)])
@@ -1241,6 +1241,12 @@ Axiom 3 (power sets): For any set A, there exists a set PA and a relation ϵ:A�
 val AX3 = new_ax 
 “!A. ?PA e:A->PA. !S0:1->A.?!s:mem(PA). !x:mem(A). Holds(S0,dot,x) <=> 
  Holds(e,x,s)”
+
+val AX3 = new_ax 
+“!A. ?PA e:A->PA. !S0:1->A.?!s:mem(PA). !x:mem(A). Holds(S0,dot,x) <=> 
+ Holds(e,x,s)”
+
+
 
 (*
 Theorem 2.12. For any relation R:B↬A, there exists a unique function fR:B→PA such that R(y,x) if and only if ϵ(x,fR(y)). It follows that Set is a topos (and Rel is a power allegory).
@@ -1870,7 +1876,7 @@ val Pair_ex = pi2_def |> spec_all |> conjE2 |> conjE2
 val Pair_def = 
     Pair_ex |> spec_all |> eqT_intro 
             |> iffRL |> ex2fsym "Pair" ["x","y"] 
-            |> C mp (trueI []) |> gen_all
+            |> C mp (trueI []) |> gen_all |> store_as "Pair_def";
 
 (*
 val Pow_R = proved_th $
@@ -2538,6 +2544,138 @@ e0
  “!n. ~(n = O) <=> ?pn. Eval(SUC, pn) = n”));
 end
 
+
+
+val SUC_eq_eq = prove_store("SUC_eq_eq",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ assume_tac SUC_Inj >> fs[Inj_def] >> first_x_assum irule >> arw[])
+(form_goal
+ “!n1 n2. Eval(SUC,n1) = Eval(SUC,n2) <=> n1 = n2”));
+
+
+val Ins_ex = 
+fVar_Inst 
+[("P",([("x",mem_sort (mk_set "X"))],
+“x:mem(X) = x0 | IN(x,s0)”))] 
+(IN_def_P_expand |> qspecl [‘X’]) |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
+|> store_as "Ins_ex";
+
+
+val Ins_def = Ins_ex |> spec_all |> ex2fsym0 "Ins" ["x0","s0"]
+                     |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
+                     |> store_as "Ins_def";
+
+val Ins_property = Ins_def |> spec_all |> conjE1
+                           |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
+                           |> store_as "Ins_property";
+
+
+val Insert_ex = prove_store("Insert_ex",
+e0
+(rpt strip_tac)
+(form_goal
+ “!X x0:mem(X) s0:mem(Pow(X)). ?xs:mem(Pow(X)).
+  !x. IN(x,xs) <=> x = x0 | IN(x,s0) ”))
+
+
+val Empty_ex = 
+fVar_Inst 
+[("P",([("x",mem_sort (mk_set "X"))],
+“F”))] 
+(IN_def_P_expand |> qspecl [‘X’]) |> gen_all
+|> store_as "Empty_ex";
+
+val Empty_def = Empty_ex |> spec_all |> ex2fsym0 "Empty" ["X"] 
+                         |> gen_all |> store_as "Empty_def";
+
+val Empty_property = Empty_def |> spec_all |> conjE1 |> GSYM 
+                               |> gen_all |> store_as "Empty_property";
+
+
+val cFins_ex = 
+fVar_Inst 
+[("P",([("xss",mem_sort $ Pow $Pow (mk_set "X"))],
+“IN(Empty(X),xss) & !xs0. IN(xs0,xss) ==> !x0. IN(Ins(x0,xs0),xss)”))] 
+(IN_def_P_expand |> qspecl [‘Pow(Pow(X))’]) |> gen_all
+|> store_as "cFins_ex";
+
+val cFins_def =  cFins_ex |> spec_all |> ex2fsym0 "cFins" ["X"]
+                       |> gen_all
+                       |> store_as "cFins_def";
+
+val cFins_property = cFins_def |> spec_all |> conjE1
+                             |> gen_all |> store_as "cFins_property";   
+
+val Fin_lemma = 
+fVar_Inst 
+[("P",([("xs",mem_sort $ Pow (mk_set "X"))],
+“IN(xs,Eval(BI(Pow(X)),cFins(X)))”))]
+(Thm_2_4 |> qspecl [‘Pow(X)’]) |> conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all BI_property) 
+|>conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all $ GSYM cFins_property) 
+|> ex2fsym0 "Fins" ["X"] |> ex2fsym0 "FI" ["X"]
+
+
+val Fin_lemma' = Fin_lemma |> conjE2 |> iffRL
+                       |> allE (rastt "Eval(FI(X),b)")
+                       |> C mp
+                       (existsI ("b'",mem_sort (rastt "Fins(X)")) (rastt "b:mem(Fins(X))")
+                                “Eval(FI(X), b) = Eval(FI(X), b')”
+                                (refl (rastt "Eval(FI(X), b)")))
+                       |> strip_all_and_imp
+                       |> gen_all
+                       |> disch_all
+                       |> gen_all
+
+
+val _ = new_pred "Fin" [("A",mem_sort $ Pow (mk_set "X"))]
+
+val Fin_def = store_ax("Fin_def",
+“!X A:mem(Pow(X)). Fin(A) <=> ?b:mem(Fins(X)). A = Eval(FI(X),b)”)
+
+val Fin_property = prove_store("Fin_property",
+e0
+(rw[Fin_def] >> once_rw[GSYM Fin_lemma] >> rpt strip_tac >> 
+ first_assum irule >> first_assum irule >> arw[])
+(form_goal
+ “!X. Fin(Empty(X)) & !A:mem(Pow(X)). Fin(A) ==> !x. Fin(Ins(x,A))”));
+
+val Fin_ind = prove_store("Fin_ind",
+e0
+(strip_tac >> strip_tac >> disch_tac >> drule Fin_lemma' >>
+ rw[Fin_def] >> rpt strip_tac >> arw[])
+(form_goal
+ “!X ss. (IN(Empty(X),ss) & 
+  !xs0. IN(xs0,ss) ==> !x0. IN(Ins(x0,xs0),ss)) ==>
+  !A. Fin(A) ==> IN(A,ss)”));
+
+
+local
+val l0 = 
+(IN_def_P_expand |> qspecl [‘Pow(X)’]) 
+in
+val Fin_ind_P = prove_store("Fin_ind_P",
+e0
+(rpt strip_tac >> strip_assume_tac l0 >> pop_assum (K all_tac) >>
+ qsuff_tac ‘IN(A,s)’
+ >-- (strip_tac >> first_assum (qspecl_then [‘A’] assume_tac) >>
+      accept_tac (dimp_mp_r2l (assume “P(A:mem(Pow(X))) <=> IN(A, s)”)
+                              (assume “IN(A:mem(Pow(X)), s)”))) >>
+ irule Fin_ind >> strip_tac (* 2 *)
+ >-- first_assum accept_tac >>
+ strip_tac >-- (first_assum (irule o iffLR) >> first_assum accept_tac) >>
+ rpt strip_tac >> first_assum (irule o iffLR) >> 
+ qsuff_tac ‘!x0. P(Ins(x0,xs0))’
+ >-- (strip_tac >> first_assum (qspecl_then [‘x0’] accept_tac)) >>
+ first_assum irule >> first_assum (irule o iffRL) >>
+ first_assum accept_tac)
+(form_goal
+ “!X.(P(Empty(X)) & !xs0:mem(Pow(X)). P(xs0) ==> !x0. P(Ins(x0,xs0))) ==> 
+  !A:mem(Pow(X)). Fin(A) ==> P(A)”));
+end
+
 local
 val lemma = 
  fVar_Inst 
@@ -2678,12 +2816,6 @@ e0
 end
 
 
-val SUC_eq_eq = prove_store("SUC_eq_eq",
-e0
-(cheat)
-(form_goal
- “!n1 n2. Eval(SUC,n1) = Eval(SUC,n2) <=> n1 = n2”));
-
 val AX1' = new_ax
 “!A B:set.?!R0:A->B.!a:mem(A) b:mem(B).Holds(R0,a,b)<=> P(a,b)”
 
@@ -2708,6 +2840,12 @@ fVar_Inst
 [("P",([("n",mem_sort N),("x",mem_sort (mk_set "X"))],
 “?r.Eval(u0:U-> N * X,r) = Pair(n,x)”))]
 (AX1 |> qspecl [‘N’,‘X’]) |> uex_expand
+
+
+val rel_ind_lemma = 
+rel_ex_lemma |> ex2fsym0 "R0" ["u0"]
+|> iffRL
+
 val Fun_ind_l = 
 fVar_Inst 
 [("P",([("n",mem_sort N)],
@@ -2744,6 +2882,12 @@ fVar_Inst
 “?x. Holds(R1:N->X,n,x) & 
      !x0. Holds(R1,n,x0) ==> x0 = x”))]
 N_ind_P
+val O_case_u_l = 
+fVar_Inst 
+[("P",([("nx",mem_sort $ Cross N (mk_set "X"))],
+“Holds(R,Eval(pi1(N,X),nx),Eval(pi2(N,X),nx)) & 
+ ~(Eval(pi1(N,X),nx) = O & Eval(pi2(N,X),nx) = x)”))] 
+(IN_def_P_expand |> qspecl [‘(N * X)’]) 
 val Nind_ex = prove_store("Nind_ex",
 e0
 (rpt strip_tac >> 
@@ -2779,7 +2923,32 @@ e0
      rpt strip_tac >> first_assum irule >>
      qpick_x_assum ‘Holds(R, Eval(SUC, n'), x')’ mp_tac >> 
      arw[] >> rpt strip_tac >> first_assum irule >> arw[]) >>
- 
+ qby_tac ‘!x. Holds(R,O,x) ==> x = a’
+ >-- (rpt strip_tac >> ccontra_tac >>
+      qsuff_tac ‘?ss. IN(Pair(O,a),ss) & 
+      (!n x.IN(Pair(n,x),ss) ==> IN(Pair(Eval(SUC,n),Eval(f,x)),ss)) &
+      ~(IN(Pair(O,x),ss))’
+      >-- (last_assum (drule o iffLR) >> rpt strip_tac >>
+          qsuff_tac ‘IN(Pair(O, x), ss)’
+          >-- arw[] >>
+          first_x_assum irule >> arw[]) >>
+      x_choose_then "ss" strip_assume_tac O_case_u_l >>
+      pop_assum (K all_tac) >>
+      qby_tac ‘~(IN(Pair(O,x),ss))’
+      >-- (pop_assum (assume_tac o GSYM) >> once_arw[] >>
+          rw[Pair_def]) >>
+      qby_tac ‘IN(Pair(O,a),ss)’
+      >-- (pop_assum (K all_tac) >> pop_assum (assume_tac o GSYM) >>
+           once_arw[] >> rw[Pair_def] >> arw[] >>
+           flip_tac >> first_x_assum accept_tac) >>
+      qexists_tac ‘ss’ >> arw[] >>
+      pop_assum (K all_tac) >> pop_assum (K all_tac) >>
+      pop_assum (assume_tac o GSYM) >> strip_tac >> strip_tac >> 
+      once_arw[] >> rw[Pair_def] >> rpt strip_tac >-- 
+      (first_x_assum irule >> arw[]) >>
+      rw[SUC_NONZERO]) >>
+  qby_tac
+  ‘!n. ?’
 
  x_choose_then "R1" strip_assume_tac R1_l >> pop_assum (K all_tac) >>
  qby_tac ‘Holds(R1,O,a) &
@@ -2890,6 +3059,32 @@ e0
  ?u:N->X. isFun(u) & Eval(u,O) = a & 
  !n:mem(N).Eval(u,Eval(SUC,n)) = Eval(f,Eval(u,n))”));
 end
+
+
+
+
+val lemma = 
+ fVar_Inst 
+[("P",([("A",mem_sort$ Pow $ Cross N (mk_set "X"))],
+“IN(Pair(O,a:mem(X)),A) &
+ (!n x.IN(Pair(n,x),A) ==> IN(Pair(Eval(SUC,n),Eval(f,x)),A))”))] 
+(IN_def_P_expand |> qspecl [‘Pow(N * X)’]) 
+val As_def = lemma |> ex2fsym0 "As" ["a","f"] |> conjE1 
+                   |> gen_all |> GSYM
+val U_ex_lemma = fVar_Inst 
+[("P",([("nx",mem_sort $ Cross N (mk_set "X"))],
+“IN(nx,Eval(BI(N * X),As(a0,f)))”))]
+(Thm_2_4 |> qspecl [‘N * X’]) 
+|> conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all BI_property)
+|> conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all As_def) |> gen_all
+val rel_ex_lemma = 
+fVar_Inst 
+[("P",([("n",mem_sort N),("x",mem_sort (mk_set "X"))],
+“?r.Eval(u0:U-> N * X,r) = Pair(n,x)”))]
+(AX1 |> qspecl [‘N’,‘X’]) |> uex_expand
+
 
 
 fun pick_nth_assum n ttac = fn (ct,asl, w) => ttac (assume (List.nth(rev asl,Int.-(n,1)))) (ct,asl, w)
