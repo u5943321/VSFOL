@@ -112,4 +112,8 @@ e0
 (form_goal
  “!X.(P(Empty(X)) & !xs0:mem(Pow(X)). P(xs0) ==> !x0. P(Ins(x0,xs0))) ==> 
   !A:mem(Pow(X)). Fin(A) ==> P(A)”));
+
+
+(*union is finite <=> A and B are finite*)
+
 end

@@ -4,6 +4,7 @@ in th
 end
 
 
+
 fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f = 
     case view_form f of
         vfVar(P0,args0) =>
@@ -103,6 +104,29 @@ val _ = new_pred "Holds" [("R",rel_sort (mk_set "A") (mk_set "B")),
                          ("a",mem_sort (mk_set "A")),
                          ("b",mem_sort (mk_set "B"))]
 
+
+
+
+
+
+fun eq_sym a = 
+    if mem a (!EqSorts) then 
+        let val ns0 = srt2ns a
+            val v1 = mk_var ns0
+            val v2 = pvariantt (HOLset.add(essps,ns0)) v1
+            val v1v2 = mk_eq v1 v2
+            val v2v1 = mk_eq v2 v1
+            val l2r = assume v1v2 |> sym|> disch_all
+            val r2l = assume v2v1 |> sym|> disch_all
+        in dimpI l2r r2l
+        end
+    else raise ERR ("eq_sym.input sort: " ^ a ^ " does not have equality",
+                    [],[],[])
+
+val flip_tac = 
+(fconv_tac (once_depth_fconv no_conv (rewr_fconv (eq_sym "mem"))));
+
+
 val AX0 = new_ax “?A a:mem(A).T”
 
 fun dest_mem_sort s = 
@@ -146,6 +170,27 @@ val _ = new_pred "isSurj" [("R",rel_sort (mk_set "A") (mk_set "B"))]
 val _ = new_pred "isBij" [("R",rel_sort (mk_set "A") (mk_set "B"))]
 
 val Fun_def = new_ax “!A B R:rel(A,B). isFun(R) <=> !x:mem(A). ?!y:mem(B). Holds(R,x,y)”
+
+
+val Fun_expand = proved_th $
+e0
+(rpt strip_tac >> rw[Fun_def] >>
+ rw[uex_def “?!y:mem(B).Holds(R,x,y)”] >> 
+ dimp_tac >> strip_tac (* 2 *)
+ >-- (rpt strip_tac (* 2 *)
+     >-- (first_x_assum (qspecl_then [‘a’] assume_tac) >> 
+          pop_assum strip_assume_tac >> qexists_tac ‘y’ >> arw[]) 
+     >-- (first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+          first_assum rev_drule >>
+          first_assum (qspecl_then [‘b2’] assume_tac) >>
+          first_assum drule >> arw[])) >>
+ rpt strip_tac >> last_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+ qexists_tac ‘b’ >> arw[] >> rpt strip_tac >> first_x_assum irule >>
+ qexists_tac ‘x’ >> arw[])
+(form_goal
+“!A B R:A->B. isFun(R) <=>
+ (!a.?b.Holds(R,a,b)) & 
+ (!a b1 b2. Holds(R,a,b1) & Holds(R,a,b2) ==> b1 = b2)”)
 
 
 val _ = new_fun "Eval" (mem_sort (mk_set "B"),[("R",rel_sort (mk_set "A") (mk_set "B")),
@@ -563,21 +608,6 @@ flip = in this
 
 *)
 
-fun eq_sym a = 
-    if mem a (!EqSorts) then 
-        let val ns0 = srt2ns a
-            val v1 = mk_var ns0
-            val v2 = pvariantt (HOLset.add(essps,ns0)) v1
-            val v1v2 = mk_eq v1 v2
-            val v2v1 = mk_eq v2 v1
-            val l2r = assume v1v2 |> sym|> disch_all
-            val r2l = assume v2v1 |> sym|> disch_all
-        in dimpI l2r r2l
-        end
-    else raise ERR ("eq_sym.input sort: " ^ a ^ " does not have equality",
-                    [],[],[])
-
-
 local
 val lemma = fVar_Inst [("P",([("a",mem_sort (mk_set "T1")),("b",mem_sort (mk_set "T2"))],“Eval(p1:T1->A,a) = Eval(p2:T2->A,b) & Eval(q1:T1->B,a) = Eval(q2:T2->B,b)”))] (AX1 |> qspecl [‘T1’,‘T2’])
 val lemma' = dimp_mp_l2r lemma (uex_def $ concl lemma) 
@@ -712,26 +742,6 @@ e0
  “!A B R:A->B.isBij(R) <=> 
   !a.?!b.Holds(R,a,b) & !b.?!a.Holds(R,a,b)”)
 *)
-
-val Fun_expand = proved_th $
-e0
-(rpt strip_tac >> rw[Fun_def] >>
- rw[uex_def “?!y:mem(B).Holds(R,x,y)”] >> 
- dimp_tac >> strip_tac (* 2 *)
- >-- (rpt strip_tac (* 2 *)
-     >-- (first_x_assum (qspecl_then [‘a’] assume_tac) >> 
-          pop_assum strip_assume_tac >> qexists_tac ‘y’ >> arw[]) 
-     >-- (first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
-          first_assum rev_drule >>
-          first_assum (qspecl_then [‘b2’] assume_tac) >>
-          first_assum drule >> arw[])) >>
- rpt strip_tac >> last_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
- qexists_tac ‘b’ >> arw[] >> rpt strip_tac >> first_x_assum irule >>
- qexists_tac ‘x’ >> arw[])
-(form_goal
-“!A B R:A->B. isFun(R) <=>
- (!a.?b.Holds(R,a,b)) & 
- (!a b1 b2. Holds(R,a,b1) & Holds(R,a,b2) ==> b1 = b2)”)
 
 val Inj_R_expand = proved_th $
 e0
@@ -1097,6 +1107,16 @@ val pi12_of_Pa = Pa_def |> spec_all |> undisch |> conjE1 |> conjE2
                         |> disch_all 
                         |> qgen ‘g’ |> qgen ‘B’ |> gen_all
                         |> store_as "pi12_of_Pa";
+
+
+val pi1_of_Pa = pi12_of_Pa |> spec_all |> undisch |> conjE1
+                           |> disch_all |> gen_all
+                           |> store_as "pi1_of_Pa";
+
+
+val pi2_of_Pa = pi12_of_Pa |> spec_all |> undisch |> conjE2
+                           |> disch_all |> gen_all
+                           |> store_as "pi2_of_Pa";
 
 val is_Pa = Pa_def |> spec_all |> undisch |> conjE2
                    |> disch_all 
@@ -2447,9 +2467,6 @@ e0
 val O_def = N_has_O0 |> ex2fsym0 "O" [] |> store_as "O_def";
 
 
-val flip_tac = 
-(fconv_tac (once_depth_fconv no_conv (rewr_fconv (eq_sym "mem"))));
-
 
 
 val SUC_Inj = prove_store("SUC_Mono",
@@ -2569,13 +2586,19 @@ rewr_fconv th “isSurj(b)”
 trying to debug the conv.
 *)
 
+
+(*(?a.P(a)) ==> Q(c)
+edit the pattern matcher so it treats the free fVar in the goal differently.
+
+*)
+
 local
 val l0 = 
 (IN_def_P_expand |> qspecl [‘N’]) 
 in
 val N_ind_P = prove_store("N_ind_P",
 e0
-(strip_assume_tac l0 >> pop_assum (K all_tac) >> strip_tac >>
+(strip_assume_tac l0 >> pop_assum (K all_tac) >> strip_tac >> 
  qsuff_tac ‘!n. IN(n,s)’ 
  >-- (strip_tac >> strip_tac >>
       first_x_assum (qspecl_then [‘n’] assume_tac) >>
@@ -2594,6 +2617,9 @@ e0
 (form_goal “P(O) & (!n. P(n) ==> P(Eval(SUC,n))) ==>
  !n:mem(N). P(n)”));
 end
+
+
+(*instead of SUC(n), write SUC%(n).*)
 
 local 
 val O_xor_SUC_l = 
