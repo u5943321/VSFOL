@@ -1,6 +1,4 @@
-val o_assoc = Thm_2_7_assoc
 
-val o_Fun = Thm_2_7_o_Fun
 
 local
 val lemma = 
@@ -362,18 +360,6 @@ e0
 
 
 
-val Eval_o_l = prove_store("Eval_o_l",
-e0
-(rpt strip_tac >>
- qsuff_tac
- ‘Eval(g o f, a) = Eval(g, Eval(f, a))’
- >-- (strip_tac >> arw[])
-  >> irule $ GSYM o_Eval >> arw[])
-(form_goal
- “!A B f:A->B.isFun(f) ==> !C g:B->C.isFun(g) ==>
-  !a c. Eval(g o f,a) = c <=>
- Eval(g,Eval(f,a)) = c”));
-
 val Eval_o_El = prove_store("Eval_o_El",
 e0
 (rpt strip_tac >> flip_tac >> irule $ iffRL Eval_o_l >>
@@ -474,19 +460,22 @@ e0
 Pa(a1 o x,a2 o x) ”));
 
 
-fun sspecl tl th = 
-    let val (b,vs) = strip_forall $ concl th
-        val ars = List.filter (fn (n,s) => not (on_ground o fst o dest_sort o snd $ (n,s))) vs
-        val env = match_tl essps (List.map mk_var ars) tl emptyvd
-        val tl' = List.map (inst_term env) (List.map mk_var vs)
-    in specl tl' th
-    end
+val Pa_distr' = Pa_distr |> strip_all_and_imp |> conj_all_assum
+                         |> disch_all
+                         |> gen_all
+                         |> store_as "Pa_distr'"; 
 
 
-fun sspecl_then tl (ttac: thm_tactic): thm_tactic = 
-    fn th => ttac (aspecl tl th)
 
-val qsspecl_then = qterml_tcl aspecl_then
+
+val pi1_Fun = pi12_Fun |> spec_all |> conjE1 |> gen_all
+                       |> store_as "pi1_Fun";
+
+
+
+val pi2_Fun = pi12_Fun |> spec_all |> conjE2 |> gen_all
+                       |> store_as "pi2_Fun";
+
 
 val Pa_eq_eq = prove_store("Pa_eq_eq",
 e0
@@ -604,51 +593,132 @@ e0
 (form_goal
  “!A a:mem(A).Dot(El(a)) = a”));
 
-val Thm1_case_1 = prove_store("Thm1_case_1",
-e0
-(rpt strip_tac >> uex_tac >> 
- abbrev_tac “Nind(Pa(El(O),g:1->B),Pa(SUC o pi1(N,B),h:N * B->B)) = f'” >>
- abbrev_tac “pi2(N,B) o f':N->N * B = f” >>
- qby_tac ‘p1(N,B) o f' = id(N)’ >--
- (irule comm_with_SUC_id >> 
-  qpick_x_assum ‘Nind(Pa(O, g), Pa(SUC o p1(N, B), h)) = f'’
-  (assume_tac o GSYM) >> arw[] >>
-  rw[o_assoc,Nind_def,p1_of_Pa] >> 
-  rw[GSYM o_assoc,p1_of_Pa]) >>
- qby_tac ‘f' = Pa(id(N),f)’ >--
- (once_rw[to_P_component] >> rw[p12_of_Pa] >> arw[]) >>
- qexists_tac ‘f’ >>
- qby_tac ‘f' o O = Pa(O,g) & 
-  f' o SUC = Pa(SUC o p1(N, B), h) o f'’ 
- >-- (qpick_x_assum 
-     ‘Nind(Pa(O, g), Pa(SUC o p1(N, B), h)) = f'’
-     (assume_tac o GSYM) >> once_arw[] >>
-     rw[Nind_def]) >>
- qby_tac ‘f o O = g & f o SUC = h o Pa(id(N), f)’
- >-- (qpick_x_assum ‘p2(N, B) o f' = f’ (assume_tac o GSYM)>>
-      once_arw[] >> rw[o_assoc] >> once_arw[] >>
-      rw[GSYM o_assoc,p2_of_Pa] >>
-      pop_assum (K all_tac) >>
-      pop_assum (K all_tac) >> arw[]) >>
- once_arw[] >> rw[] >>
- rpt strip_tac >> 
- qsuff_tac ‘Pa(id(N), f'') = Pa(id(N), f)’ 
- >-- rw[Pa_eq_eq] >>
- qsuff_tac ‘Pa(id(N), f'') = f'’ >-- arw[] >>
- qsuff_tac ‘Pa(id(N), f'') = 
-  Nind(Pa(O, g), Pa(SUC o p1(N, B), h))’ >-- arw[] >>
- irule is_Nind >> 
- rw[Pa_distr,p1_of_Pa,o_assoc,idL,idR] >> once_arw[] >>
- rw[])
-(form_goal
- “!B g:1->B h:N * B -> B. ?!f:N->B. f o El(O) = g & f o SUC = h o Pa(id(N),f)”));
 
+val El_of_Dot = prove_store("El_of_Dot",
+e0
+(rpt strip_tac >> irule $ iffRL FUN_EXT >> rw[dot_def] >> rw[El_def] >>
+ arw[] >> drule Dot_def >> 
+ first_x_assum (qspecl_then [‘dot’] strip_assume_tac) >>
+ strip_tac >> flip_tac >> first_x_assum irule >>
+ qexists_tac ‘dot’ >> drule Holds_Eval >> arw[])
+(form_goal
+ “!X f:1->X. isFun(f) ==> El(Dot(f)) = f”));
+
+
+
+val to_P_component = prove_store("to_Pr_component",
+e0
+(rpt strip_tac >> irule is_Pa >> arw[] >> strip_tac >> irule o_Fun >>
+ arw[] >> rw[pi12_Fun])
+(form_goal
+ “!A B X f:X->A * B. isFun(f) ==> f = Pa(pi1(A,B) o f,pi2(A,B) o f)”));
 
 val is_Nind = Nind_El |> spec_all |> undisch |>spec_all |> conjE2
                       |> conjE2 |> conjE2
                       |> disch_all |> gen_all
                       |> store_as "is_Nind";
 
+
+
+
+val Thm1_case_1 = prove_store("Thm1_case_1",
+e0
+(rpt strip_tac >> uex_tac >> 
+ abbrev_tac “Nind(Dot(Pa(El(O),g:1->B)),Pa(SUC o pi1(N,B),h:N * B->B)) = f'” >>
+ abbrev_tac “pi2(N,B) o f':N->N * B = f” >>
+ qspecl_then [‘N’,‘O’] assume_tac El_Fun >>
+ qsspecl_then [‘El(O)’,‘g’] assume_tac Pa_Fun >> rfs[] >>
+ drule Dot_def >>
+ first_x_assum (qspecl_then [‘dot’] strip_assume_tac) >>
+ qspecl_then [‘N’,‘B’] strip_assume_tac pi12_Fun >>
+ assume_tac SUC_Fun >>
+ qsspecl_then [‘pi1(N,B)’,‘SUC’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘SUC o pi1(N,B)’,‘h’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘Pa(SUC o pi1(N,B),h)’] assume_tac Nind_El >>
+ rfs[] >>
+ first_x_assum (qspecl_then [‘Dot(Pa(El(O),g))’] strip_assume_tac) >>
+ qby_tac ‘isFun(f')’ 
+ >-- (qpick_x_assum ‘Nind(Dot(Pa(El(O), g)), Pa(SUC o pi1(N, B), h)) = f'’
+      (assume_tac o GSYM)  >> arw[]) >> 
+ qsspecl_then [‘f'’,‘pi1(N,B)’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘f'’,‘pi2(N,B)’] assume_tac o_Fun >> rfs[] >> 
+ qby_tac ‘pi1(N,B) o f' = id(N)’ >--
+ (irule comm_with_SUC_id >> arw[o_assoc] >>  
+  qsspecl_then [‘Pa(El(O),g)’] assume_tac El_of_Dot >> rfs[] >>
+  rw[GSYM o_assoc] >> 
+  qsspecl_then [‘SUC o pi1(N,B)’,‘h’] assume_tac pi1_of_Pa >> rfs[] >>
+  irule pi1_of_Pa >> arw[]) >>
+  qby_tac ‘f' = Pa(id(N),f)’ >-- 
+ (qsspecl_then [‘f'’] assume_tac to_P_component >>
+  first_x_assum drule >> once_arw[] >> pop_assum (K all_tac) >> arw[]) >>
+ qexists_tac ‘f’ >>
+ (*qby_tac ‘f' o O = Pa(O,g) & 
+  f' o SUC = Pa(SUC o pi1(N, B), h) o f'’ 
+ >-- (qpick_x_assum 
+     ‘Nind(Pa(O, g), Pa(SUC o p1(N, B), h)) = f'’
+     (assume_tac o GSYM) >> once_arw[] >>
+     rw[Nind_def]) >> *)
+ qby_tac ‘f o El(O) = g & f o SUC = h o Pa(id(N), f)’
+ >-- (qpick_x_assum ‘pi2(N, B) o f' = f’ (assume_tac o GSYM)>>
+      once_arw[] >> pop_assum (K all_tac) >> rw[o_assoc] >> once_arw[] >>
+      rw[GSYM o_assoc] >> 
+      qsspecl_then [‘Pa(El(O),g)’] assume_tac El_of_Dot >> 
+      first_x_assum drule >> arw[] >> 
+      qsspecl_then [‘El(O)’,‘g’] assume_tac pi2_of_Pa >> rfs[] >>
+      qsspecl_then [‘SUC o pi1(N,B)’,‘h’] assume_tac pi2_of_Pa >> rfs[] >>
+      qsspecl_then [‘id(N)’,‘f’] assume_tac pi2_of_Pa >> rfs[] >>
+      qspecl_then [‘N’] assume_tac id_Fun >> fs[]) >>
+ once_arw[] >> rw[] >>  
+ rpt strip_tac >>  
+ qsuff_tac ‘Pa(id(N), f'') = Pa(id(N), f)’ 
+ >-- (strip_tac >> 
+      qsspecl_then [‘id(N)’,‘id(N)’,‘f''’,‘f’] assume_tac Pa_eq_eq' >>
+      qspecl_then [‘N’] assume_tac id_Fun >>
+      fs[] >> rfs[]) >>
+ qsuff_tac ‘Pa(id(N), f'') = f'’ >-- arw[] >>
+ qsuff_tac ‘Pa(id(N), f'') = 
+  Nind(Dot(Pa(El(O), g)), Pa(SUC o pi1(N, B), h))’ >-- arw[] >>
+ irule is_Nind >>  
+ qsspecl_then [‘id(N)’,‘f''’] assume_tac Pa_Fun >> 
+ qspecl_then [‘N’] assume_tac id_Fun >> rfs[] >> fs[] >> 
+ qsspecl_then [‘Pa(El(O),g)’] assume_tac El_of_Dot >> rfs[] >>
+ qsspecl_then [‘id(N)’,‘f''’,‘SUC’] assume_tac Pa_distr' >> rfs[] >>
+ rw[idL] >> 
+ qsspecl_then [‘SUC o pi1(N,B)’,‘h’,‘Pa(id(N),f'')’] assume_tac
+ Pa_distr' >> rfs[] >> rw[o_assoc] >>
+ qsspecl_then [‘id(N)’,‘f''’] assume_tac pi1_of_Pa >> rfs[] >>
+ rw[idR] >>
+ qsspecl_then [‘id(N)’,‘f''’,‘El(O)’] assume_tac Pa_distr' >>
+ rfs[] >> rw[idL])
+(form_goal
+ “!B g:1->B h:N * B -> B. isFun(g) & isFun(h) ==>  ?!f:N->B. isFun(f) & f o El(O) = g & f o SUC = h o Pa(id(N),f)”));
+
+
+
+
+
+val Thm1_comm_eq_left = prove_store(
+"Thm1_comm_eq_left",
+e0
+(rpt strip_tac >> 
+ qby_tac ‘Pa(p1(A,1), Tp(f) o O o p2(A,1)) = 
+ Pa(p1(A,N),Tp(f) o p2(A,N)) o Pa(p1(A,1),O o p2(A,1))’
+ >-- rw[Pa_distr,o_assoc,p12_of_Pa] >>
+ dimp_tac >> strip_tac (* 2 *) >--
+ (qsuff_tac ‘f o Pa(p1(A, 1), O o p2(A, 1)) = 
+                 Ev(A,B) o Pa(p1(A,1),(Tp(f) o O) o p2(A,1)) &
+             g o p1(A, 1) = 
+                 Ev(A,B) o Pa(p1(A,1),Tp1(g) o p2(A,1))’
+ >-- (strip_tac >> fs[]) >>
+ strip_tac (* 2 *)
+ >-- (rw[o_assoc] >> arw[] >>
+      rw[GSYM o_assoc,Ev_of_Tp]) >>
+ rw[GSYM Tp1_def,Ev_of_Tp]) >>
+ rw[GSYM Tp1_def] >> irule is_Tp >> 
+ rw[o_assoc] >> arw[GSYM o_assoc,Ev_of_Tp])
+(form_goal
+ “!A B f: A * N ->B g:A->B. 
+  Tp(f) o O = Tp1(g) <=> f o Pa(p1(A,1),O o p2(A,1)) = g o p1(A,1)”));
 
 
 
@@ -669,22 +739,6 @@ e0
 
 
 
-
-val Pa_distr' = Pa_distr |> strip_all_and_imp |> conj_all_assum
-                         |> disch_all
-                         |> gen_all
-                         |> store_as "Pa_distr'"; 
-
-
-
-
-val pi1_Fun = pi12_Fun |> spec_all |> conjE1 |> gen_all
-                       |> store_as "pi1_Fun";
-
-
-
-val pi2_Fun = pi12_Fun |> spec_all |> conjE2 |> gen_all
-                       |> store_as "pi2_Fun";
 
 
 
