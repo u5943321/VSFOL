@@ -801,32 +801,259 @@ e0
  qsspecl_then [‘f’] assume_tac Tp_Fun >> rfs[] >>
  qspecl_then [‘A’,‘N’] assume_tac p12_Fun >> rfs[] >>
  qsspecl_then [‘p2(A,N)’,‘Tp(f)’] assume_tac o_Fun >> rfs[] >> 
+ qsspecl_then [‘p1(A,1)’,‘g’] assume_tac o_Fun >> rfs[]  >>
  qby_tac ‘Pa(p1(A,1), Tp(f) o El(O) o p2(A,1)) = 
  Pa(p1(A,N),Tp(f) o p2(A,N)) o Pa(p1(A,1),El(O) o p2(A,1))’
  >-- (irule Pa_o_split  >> arw[]) >>
  dimp_tac >> strip_tac (* 2 *)
- >-- qsuff_tac ‘f o Pa(p1(A, 1), El(O) o p2(A, 1)) = 
-                 Ev(A,B) o Pa(p1(A,1),(Tp(f) o O) o p2(A,1)) &
+ >-- (qsuff_tac ‘f o Pa(p1(A, 1), El(O) o p2(A, 1)) = 
+                 Ev(A,B) o Pa(p1(A,1),(Tp(f) o El(O)) o p2(A,1)) &
              g o p1(A, 1) = 
                  Ev(A,B) o Pa(p1(A,1),Tp1(g) o p2(A,1))’
- >-- (strip_tac >> fs[]) >>
-
- rw[Pa_distr,o_assoc,p12_of_Pa] >>
- dimp_tac >> strip_tac (* 2 *) >--
- (qsuff_tac ‘f o Pa(p1(A, 1), O o p2(A, 1)) = 
-                 Ev(A,B) o Pa(p1(A,1),(Tp(f) o O) o p2(A,1)) &
-             g o p1(A, 1) = 
-                 Ev(A,B) o Pa(p1(A,1),Tp1(g) o p2(A,1))’
- >-- (strip_tac >> fs[]) >>
- strip_tac (* 2 *)
- >-- (rw[o_assoc] >> arw[] >>
-      rw[GSYM o_assoc,Ev_of_Tp]) >>
- rw[GSYM Tp1_def,Ev_of_Tp]) >>
- rw[GSYM Tp1_def] >> irule is_Tp >> 
- rw[o_assoc] >> arw[GSYM o_assoc,Ev_of_Tp])
+     >-- (strip_tac >> fs[]) >> strip_tac (* 2 *)
+     >-- (arw[o_assoc] >> 
+         qsspecl_then [‘f’] assume_tac Ev_of_Tp >> rfs[GSYM o_assoc]) >>
+     rw[GSYM Tp1_def] >>
+     qsspecl_then [‘g o p1(A,1)’] assume_tac Ev_of_Tp >> rfs[]) >>
+ rw[GSYM Tp1_def] >> irule is_Tp >>
+ arw[o_assoc] >> rw[GSYM o_assoc] >>
+ qsspecl_then [‘f’] assume_tac Ev_of_Tp >> rfs[] >>
+ irule o_Fun >> arw[])
 (form_goal
  “!A B f: A * N ->B g:A->B. isFun(f) & isFun(g) ==>
   (Tp(f) o El(O) = Tp1(g) <=> f o Pa(p1(A,1),El(O) o p2(A,1)) = g o p1(A,1))”));
+
+
+
+val Pa_p1_p2 = prove_store("Pa_p1_p2",
+e0
+(rpt strip_tac >>
+ fconv_tac (rewr_fconv (eq_sym "rel")) >>
+ irule is_Pa >> rw[idR,p12_Fun,id_Fun])
+(form_goal
+ “!A B. Pa(p1(A,B),p2(A,B)) = id(A * B)”));
+
+
+
+
+val Thm1_comm_eq_right = prove_store("Thm1_comm_eq_right",
+e0
+(rpt strip_tac >>
+ qspecl_then [‘A’,‘N * Exp(A,B)’] assume_tac p12_Fun >>
+ qspecl_then [‘A * N’] assume_tac id_Fun >>
+ assume_tac SUC_Fun >>
+ qspecl_then [‘A’,‘N’] assume_tac p12_Fun >>
+ qspecl_then [‘N’,‘Exp(A,B)’] assume_tac p12_Fun >>
+ qspecl_then [‘A’,‘B’] assume_tac Ev_Fun >>
+ qsspecl_then [‘f’] assume_tac Tp_Fun >> rfs[] >>
+ qsspecl_then [‘p2(A,N)’,‘SUC’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘p1(A,N)’,‘SUC o p2(A,N)’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘id(A * N)’,‘f’] assume_tac Pa_Fun >> rfs[] >>
+ qspecl_then [‘N’] assume_tac id_Fun >> 
+ qsspecl_then [‘id(N)’,‘Tp(f)’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘Pa(id(A * N),f)’,‘h’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘Pa(p1(A, N), SUC o p2(A, N))’,‘f’] assume_tac o_Fun >>
+ rfs[] >> 
+ qsspecl_then [‘SUC’,‘Tp(f)’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘p2(A, N * Exp(A, B))’,‘p2(N, Exp(A, B))’] 
+ assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘p1(A, N * Exp(A, B))’,‘p2(N, Exp(A, B)) o
+                 p2(A, N * Exp(A, B))’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘Pa(p1(A, N * Exp(A, B)), p2(N, Exp(A, B)) o
+                 p2(A, N * Exp(A, B)))’,‘Ev(A,B)’] assume_tac o_Fun >>
+ rfs[] >> 
+ qsspecl_then [‘p2(A, N * Exp(A, B))’,‘p1(N, Exp(A, B))’]
+ assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘p1(A, N * Exp(A, B))’,‘p1(N, Exp(A, B)) o p2(A, N * Exp(A, B))’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘Pa(p1(A, N * Exp(A, B)), p1(N, Exp(A, B)) o p2(A, N * Exp(A, B)))’,‘Ev(A, B) o
+                Pa(p1(A, N * Exp(A, B)), p2(N, Exp(A, B)) o
+                 p2(A, N * Exp(A, B)))’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘l’,‘h’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘h o l’] assume_tac Tp_Fun >> rfs[] >>
+ qsspecl_then [‘Pa(id(N), Tp(f))’,‘Tp(h o l)’] assume_tac o_Fun >> rfs[] >>
+ qsuff_tac
+ ‘Tp(h o l) o Pa(id(N),Tp(f)) = Tp(h o Pa(id(A * N),f)) & 
+  Tp(f o Pa(p1(A,N), SUC o p2(A,N))) = Tp(f) o SUC’
+ >-- (strip_tac >> dimp_tac >> strip_tac (* 2 *)
+      >-- arw[] >>
+      irule $ iffLR Tp_eq >> arw[] >>
+      qpick_x_assum
+      ‘Tp((h o l)) o Pa(id(N), Tp(f)) =
+       Tp(h o Pa(id(A * N), f))’
+      (assume_tac o GSYM) >> arw[]) >>
+ strip_tac (* 2 *) >--
+ (irule is_Tp >> 
+  qby_tac
+  ‘Pa(p1(A, N), (Tp((h o l)) o Pa(id(N), Tp(f))) o p2(A, N))=
+   Pa(p1(A,N * Exp(A,B)), Tp(h o l) o p2(A,N * Exp(A,B))) o 
+   Pa(p1(A,N),Pa(id(N),Tp(f)) o p2(A,N))’ >-- 
+  (rw[o_assoc] >> irule Pa_o_split >> arw[]) >>
+  once_arw[] >> rw[GSYM o_assoc] >>
+  qsspecl_then [‘h o l’] assume_tac Ev_of_Tp >> rfs[] >>
+  rw[o_assoc] >> 
+  qsspecl_then [‘p2(A,N)’,‘Pa(id(N), Tp(f))’] assume_tac o_Fun >> rfs[] >>
+  qsspecl_then [‘p1(A,N)’,‘Pa(id(N), Tp(f)) o p2(A, N)’] 
+  assume_tac Pa_Fun >> rfs[] >>
+  qsspecl_then [‘Pa(p1(A, N), Pa(id(N), Tp(f)) o p2(A, N))’,‘l’] 
+  assume_tac o_Fun >> rfs[] >>
+  qsuff_tac
+  ‘l o Pa(p1(A, N), Pa(id(N), Tp(f)) o p2(A, N)) = 
+   Pa(id(A * N), f)’ >--
+  (strip_tac >> arw[]) >>
+  irule to_P_eq >> arw[] >> 
+  qsspecl_then [‘id(A * N)’,‘f’] assume_tac p12_of_Pa >> rfs[] >>
+  qpick_x_assum
+  ‘Pa(Pa(p1(A, N * Exp(A, B)), p1(N, Exp(A, B)) o p2(A, N * Exp(A, B))),
+                Ev(A, B) o
+                Pa(p1(A, N * Exp(A, B)), p2(N, Exp(A, B)) o
+                 p2(A, N * Exp(A, B)))) = l’
+  (assume_tac o GSYM) >> arw[] >>
+  rw[GSYM o_assoc] >>
+  qsspecl_then [‘Pa(p1(A, N * Exp(A, B)), p1(N, Exp(A, B)) o
+                 p2(A, N * Exp(A, B)))’,‘Ev(A, B) o
+                Pa(p1(A, N * Exp(A, B)), p2(N, Exp(A, B)) o
+                 p2(A, N * Exp(A, B)))’] assume_tac p12_of_Pa >>
+  rfs[] >>
+  qsspecl_then [‘p1(A, N * Exp(A, B))’,‘p1(N, Exp(A, B)) o
+                p2(A, N * Exp(A, B))’,‘Pa(p1(A, N), Pa(id(N), Tp(f)) o p2(A, N))’] assume_tac Pa_distr' >> rfs[] >>
+  qsspecl_then [‘p1(A, N)’,‘Pa(id(N), Tp(f)) o p2(A, N)’]
+  assume_tac p12_of_Pa >> rfs[] >>
+  fs[o_assoc] >>
+  rw[GSYM o_assoc] >>
+  qsspecl_then [‘id(N)’,‘Tp(f)’] assume_tac p12_of_Pa >> rfs[] >>
+  rw[idL,Pa_p1_p2] >>
+  fs[o_assoc] >>
+  qsspecl_then [‘p1(A, N * Exp(A, B))’,‘p2(N, Exp(A, B)) o
+                p2(A, N * Exp(A, B))’,‘Pa(p1(A, N), Pa(id(N), Tp(f)) o p2(A, N))’] assume_tac Pa_distr' >>
+  rfs[] >>fs[o_assoc] >> fs[GSYM o_assoc] >> 
+  qsspecl_then [‘f’] assume_tac Ev_of_Tp >> rfs[]) >>
+ (*flip tac does not work here*) 
+ fconv_tac (rewr_fconv (eq_sym "rel"))  >> irule is_Tp >> arw[] >> 
+ qby_tac
+ ‘Pa(p1(A, N), (Tp(f) o SUC) o p2(A, N)) = 
+  Pa(p1(A, N), Tp(f) o p2(A,N)) o Pa(p1(A,N),SUC o p2(A,N))’
+ >-- (rw[o_assoc] >> irule Pa_o_split >> arw[]) >>
+ arw[GSYM o_assoc] >> 
+ qsspecl_then [‘f’] assume_tac Ev_of_Tp >> rfs[]
+ )
+(form_goal
+ “!A B f:A * N ->B h: (A * N) * B ->B. isFun(f) & isFun(h) ==> !l . 
+Pa(
+ Pa(p1(A,N * Exp(A,B)), p1(N,Exp(A,B)) o p2(A,N * Exp(A,B))),
+ Ev(A,B) o 
+ Pa(p1(A,N * Exp(A,B)), p2(N,Exp(A,B)) o p2(A,N * Exp(A,B)))) = l
+ ==>
+ (h o Pa(id(A * N),f) = f o Pa(p1(A,N), SUC o p2(A,N)) <=>
+ Tp(h o l) o Pa(id(N),Tp(f)) = Tp(f) o SUC)”));
+
+
+val Thm1_comm_eq_condition = prove_store(
+"Thm1_comm_eq_condition",
+e0
+(rpt strip_tac >> 
+ qsspecl_then [‘f’,‘h’] assume_tac Thm1_comm_eq_right >> rfs[] >>
+ first_x_assum drule >> 
+ qsspecl_then [‘f’,‘g’] (assume_tac o GSYM) Thm1_comm_eq_left >> rfs[])
+(form_goal
+ “!A B f: A * N ->B g:A->B h: (A * N) * B -> B. isFun(f) & isFun(h) & isFun(g) ==>
+ !l.
+ Pa(
+ Pa(p1(A,N * Exp(A,B)), p1(N,Exp(A,B)) o p2(A,N * Exp(A,B))),
+ Ev(A,B) o 
+ Pa(p1(A,N * Exp(A,B)), p2(N,Exp(A,B)) o p2(A,N * Exp(A,B)))) = l ==>
+ (f o Pa(p1(A,1),El(O) o p2(A,1)) = g o p1(A,1) & 
+  h o Pa(id(A * N),f) = f o Pa(p1(A,N), SUC o p2(A,N)) <=>
+  Tp(f) o El(O) = Tp1(g) & Tp(h o l) o Pa(id(N),Tp(f)) = Tp(f) o SUC)
+  ”));
+
+
+
+val Thm1 = prove_store("Thm1",
+e0
+(rpt strip_tac >>
+ abbrev_tac “Tp(g:A->B o p1(A,1)) = g'” >>
+ abbrev_tac “Pa(
+ Pa(p1(A,N * Exp(A,B)), p1(N,Exp(A,B)) o p2(A,N * Exp(A,B))),
+ Ev(A,B) o 
+ Pa(p1(A,N * Exp(A,B)), p2(N,Exp(A,B)) o p2(A,N * Exp(A,B)))) = l” >>
+ abbrev_tac “Tp(h:(A * N) * B->B o l:A * N * Exp(A,B) -> (A * N) * B) = h'” >>
+ qspecl_then [‘Exp(A,B)’,‘g'’,‘h'’] assume_tac Thm1_case_1 >> 
+ qspecl_then [‘A’,‘1’] assume_tac p12_Fun >>
+ qspecl_then [‘A’,‘N * Exp(A,B)’] assume_tac p12_Fun >>
+ qspecl_then [‘A * N’] assume_tac id_Fun >>
+ assume_tac SUC_Fun >>
+ qspecl_then [‘A’,‘N’] assume_tac p12_Fun >>
+ qspecl_then [‘N’,‘Exp(A,B)’] assume_tac p12_Fun >>
+ qspecl_then [‘A’,‘B’] assume_tac Ev_Fun >>
+ qsspecl_then [‘p2(A,N)’,‘SUC’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘p1(A,N)’,‘SUC o p2(A,N)’] assume_tac Pa_Fun >> rfs[] >>
+ qspecl_then [‘N’] assume_tac id_Fun >> 
+ qsspecl_then [‘p2(A, N * Exp(A, B))’,‘p2(N, Exp(A, B))’] 
+ assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘p1(A, N * Exp(A, B))’,‘p2(N, Exp(A, B)) o
+                 p2(A, N * Exp(A, B))’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘Pa(p1(A, N * Exp(A, B)), p2(N, Exp(A, B)) o
+                 p2(A, N * Exp(A, B)))’,‘Ev(A,B)’] assume_tac o_Fun >>
+ rfs[] >> 
+ qsspecl_then [‘p2(A, N * Exp(A, B))’,‘p1(N, Exp(A, B))’]
+ assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘p1(A, N * Exp(A, B))’,‘p1(N, Exp(A, B)) o p2(A, N * Exp(A, B))’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘Pa(p1(A, N * Exp(A, B)), p1(N, Exp(A, B)) o p2(A, N * Exp(A, B)))’,‘Ev(A, B) o
+                Pa(p1(A, N * Exp(A, B)), p2(N, Exp(A, B)) o
+                 p2(A, N * Exp(A, B)))’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘l’,‘h’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘h o l’] assume_tac Tp_Fun >> rfs[] >> 
+ qsspecl_then [‘p1(A,1)’,‘g’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘g o p1(A,1)’] assume_tac Tp_Fun >> rfs[] >>
+ fs[] >>
+ qpick_x_assum
+ ‘?!f:N-> Exp(A,B).
+   isFun(f) & f o El(O) = g' & f o SUC = h' o Pa(id(N), f)’
+ (assume_tac o uex_expand) >>
+ pop_assum (x_choose_then "fb" strip_assume_tac) >>
+ qabbrev_tac ‘Ev(A,B) o Pa(p1(A,N),fb o p2(A,N)) = f’ >>
+ qsspecl_then [‘p2(A,N)’,‘fb’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘p1(A,N)’,‘fb o p2(A,N)’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘Pa(p1(A, N), fb o p2(A, N))’,‘Ev(A, B)’] 
+ assume_tac o_Fun >> rfs[] >> 
+ qsspecl_then [‘f’] assume_tac Tp_Fun >> rfs[] >>
+ qsspecl_then [‘id(N)’,‘Tp(f)’] assume_tac Pa_Fun >> rfs[] >>
+ qsspecl_then [‘h o l’] assume_tac Tp_Fun >> rfs[] >>
+ qby_tac ‘Tp(f) = fb’ >--
+ (fconv_tac (rewr_fconv (eq_sym "rel")) >> irule is_Tp >> arw[]) >>
+ qexists_tac ‘f’ >> strip_tac >>
+ assume_tac Thm1_comm_eq_condition >>
+ qsuff_tac
+ ‘(isFun(f0) & 
+  Tp(f0) o El(O) = Tp1(g) &
+                   Tp(h o l) o Pa(id(N), Tp(f0)) = Tp(f0) o SUC) <=>
+  f0 = f’ 
+ >-- (strip_tac >> dimp_tac >> disch_tac >--
+     (first_x_assum (qsspecl_then [‘f0’,‘g’,‘h’] assume_tac) >>
+     qby_tac ‘isFun(f0) & isFun(h) & isFun(g)’ >-- arw[] >>
+     first_x_assum drule >> first_x_assum drule >>
+     rfs[] >> first_x_assum (irule o iffLR) >> arw[]) >>
+     arw[] >> 
+     first_x_assum (qsspecl_then [‘f’,‘g’,‘h’] assume_tac) >>
+     qby_tac ‘isFun(f) & isFun(h) & isFun(g)’ >-- fs[] >>
+     first_x_assum drule >> first_x_assum drule >> arw[] >>
+     arw[GSYM Tp1_def]) >>  
+ qby_tac
+ ‘Tp(f) o El(O) = Tp1(g) & 
+  Tp((h o l)) o Pa(id(N), Tp(f)) = Tp(f) o SUC’
+ >-- arw[GSYM Tp1_def] >>
+ arw[] >> dimp_tac >> strip_tac
+ >-- (irule $ iffLR Tp_eq >> arw[] >>
+     first_x_assum irule >> pop_assum (assume_tac o GSYM) >> arw[] >>
+     qpick_x_assum ‘Tp(f0) o El(O) = Tp1(g)’ (assume_tac o GSYM) >>
+     arw[] >> fs[GSYM Tp1_def] >>
+     irule Tp_Fun >> arw[]) >>
+ arw[] >> fs[GSYM Tp1_def])
+(form_goal
+ “!A B g:A->B h:(A * N) * B ->B. isFun(g) & isFun(h) ==> 
+ ?f:A * N ->B. !f0.(isFun(f0) &
+   f0 o Pa(p1(A,1),El(O) o p2(A,1)) = g o p1(A,1) & 
+  h o Pa(id(A * N),f0) = f0 o Pa(p1(A,N), SUC o p2(A,N))) <=> f0 = f”));
 
 
 
