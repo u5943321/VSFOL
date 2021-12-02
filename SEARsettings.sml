@@ -422,6 +422,7 @@ val To1_def = Thm_2_3_5_expand |> spec_all |> eqT_intro |> iffRL |> ex2fsym "To1
                         |> C mp (trueI []) |> gen_all
 
 
+
 val Thm_2_4_R_ver = proved_th $
 e0
 (rpt strip_tac >> qspecl_then [‘1’,‘A’,‘R’] strip_assume_tac AX2 >>
@@ -1976,6 +1977,18 @@ e0
 (form_goal
  “!A B r:mem(A * B). r = Pair(Eval(p1(A,B),r),Eval(p2(A,B),r))”));
 
+val Pair_eq_eq = prove_store("Pair_eq_eq",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ qby_tac ‘Eval(p1(A,B),Pair(a1, b1)) = Eval(p1(A,B),Pair(a2, b2))’
+ >-- arw[] >>
+ fs[Pair_def] >>
+ qby_tac ‘Eval(p2(A,B),Pair(a1, b1)) = Eval(p2(A,B),Pair(a2, b2))’
+ >-- arw[] >>
+ fs[Pair_def])
+(form_goal
+ “!A a1:mem(A) a2 B b1:mem(B) b2.Pair(a1,b1) = Pair(a2,b2) <=> (a1 = a2 & b1 = b2)”));
+
 (*
 val Pow_R = proved_th $
 e0
@@ -2241,6 +2254,9 @@ e0
 (form_goal
  “!A C f:A->C B D g:B->D. isFun(f) & isFun(g) ==>
   !ab:mem(A * B).Eval(Pa(f o p1(A,B),g o p2(A,B)),ab) = Pair(Eval(f o p1(A,B),ab),Eval(g o p2(A,B),ab))”));
+
+
+
 
 val o_Eval' = o_Eval |> strip_all_and_imp |> gen_all
                      |> disch_all |> gen_all
