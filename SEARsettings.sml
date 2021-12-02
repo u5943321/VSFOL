@@ -237,7 +237,7 @@ val _ = new_fun "π1" (rel_sort (mk_set "TR") (mk_set "A"),[("R",rel_sort (mk_se
 val _ = new_fun "π2" (rel_sort (mk_set "TR") (mk_set "B"),[("R",rel_sort (mk_set "A") (mk_set "B")),("TR",set_sort)])
 *)
 
-(*how to let the ex2fsym function skip the TR and assign function symbols pi1 pi2?*)
+(*how to let the ex2fsym function skip the TR and assign function symbols p1 p2?*)
 
 val AX2 = new_ax “!A B R:A->B.?TR p:TR->A q:TR->B. isFun(p) & isFun(q) & (!x y. Holds(R,x,y) <=> ?r. Eval(p,r) = x & Eval(q,r) = y) & !r s. Eval(p,r) = Eval(p,s) & Eval(q,r) = Eval(q,s) ==> r = s”
 
@@ -915,9 +915,9 @@ e0
  qspecl_then [‘A’,‘B’,‘T0’] strip_assume_tac AX2 >> 
  qexistsl_tac [‘TR’,‘p’,‘q’] >> fs[] >> rpt strip_tac >> rw[])
 (form_goal
- “!A B. ?AxB pi1:AxB ->A pi2:AxB ->B.isFun(pi1) & isFun(pi2) &
-  (!x:mem(A) y:mem(B). ?r:mem(AxB).Eval(pi1,r) = x & Eval(pi2,r) = y) &
-   !r s. Eval(pi1,r) = Eval(pi1,s) & Eval(pi2,r) = Eval(pi2,s) ==> r = s
+ “!A B. ?AxB p1:AxB ->A p2:AxB ->B.isFun(p1) & isFun(p2) &
+  (!x:mem(A) y:mem(B). ?r:mem(AxB).Eval(p1,r) = x & Eval(p2,r) = y) &
+   !r s. Eval(p1,r) = Eval(p1,s) & Eval(p2,r) = Eval(p2,s) ==> r = s
   ”)
 
 
@@ -926,15 +926,15 @@ val Cross_def =
              |> iffRL |> ex2fsym "*" ["A","B"] 
              |> C mp (trueI []) |> gen_all
 
-val pi1_def = 
+val p1_def = 
    Cross_def |> spec_all |> eqT_intro 
-             |> iffRL |> ex2fsym "pi1" ["A","B"] 
+             |> iffRL |> ex2fsym "p1" ["A","B"] 
              |> C mp (trueI []) |> gen_all
 
-val pi2_def = 
-   pi1_def |> spec_all |> eqT_intro 
-             |> iffRL |> ex2fsym "pi2" ["A","B"] 
-             |> C mp (trueI []) |> gen_all |> store_as "pi2_def";
+val p2_def = 
+   p1_def |> spec_all |> eqT_intro 
+             |> iffRL |> ex2fsym "p2" ["A","B"] 
+             |> C mp (trueI []) |> gen_all |> store_as "p2_def";
 
 val _ = new_fun "Top" (rel_sort (mk_set "A") (mk_set "B"),
                        [("A",set_sort),("B",set_sort)])
@@ -969,13 +969,13 @@ e0
 
 fun Cross A B = mk_fun "*" [A,B]
 
-val pi12_Fun = proved_th $
+val p12_Fun = proved_th $
 e0
 (strip_tac >> strip_tac >>
- qspecl_then [‘A’,‘B’] strip_assume_tac pi2_def >>
+ qspecl_then [‘A’,‘B’] strip_assume_tac p2_def >>
  arw[])
 (form_goal
-“!A B. isFun(pi1(A,B)) & isFun(pi2(A,B))”)
+“!A B. isFun(p1(A,B)) & isFun(p2(A,B))”)
 
 
 val Thm_2_7_o_Fun = proved_th $
@@ -1016,26 +1016,26 @@ e0
 val Thm_2_8_SetPr = proved_th $
 e0
 (rpt strip_tac >> rw[SetPr_def] >> rpt strip_tac >>
- rw[uex_def “?!fg:X-> A * B.isFun(fg) & pi1(A,B) o fg = f & pi2(A,B) o fg = g”] >>
+ rw[uex_def “?!fg:X-> A * B.isFun(fg) & p1(A,B) o fg = f & p2(A,B) o fg = g”] >>
  strip_assume_tac $
  uex_expand $ 
  fVar_Inst 
  [("P",([("x",mem_sort (mk_set "X")),
         ("ab",mem_sort (Cross (mk_set"A") (mk_set "B")))],
-  “Eval(pi1(A,B),ab) = Eval(f:X->A,x) & 
-   Eval(pi2(A,B),ab) = Eval(g:X->B,x)”))] (AX1 |> qspecl [‘X’,‘A * B’]) >>
+  “Eval(p1(A,B),ab) = Eval(f:X->A,x) & 
+   Eval(p2(A,B),ab) = Eval(g:X->B,x)”))] (AX1 |> qspecl [‘X’,‘A * B’]) >>
  qexists_tac ‘R’ >> 
- qspecl_then [‘A’,‘B’] strip_assume_tac pi2_def >>
+ qspecl_then [‘A’,‘B’] strip_assume_tac p2_def >>
  qby_tac ‘isFun(R)’ >--
  (arw[Fun_expand] >> 
   rpt strip_tac (* 2 *) >-- 
   (first_x_assum (qspecl_then [‘Eval(f,a)’,‘Eval(g,a)’] assume_tac) >>
    arw[]) >>
   first_x_assum irule >> arw[]) >> arw[] >>
- qby_tac ‘pi1(A, B) o R = f & pi2(A, B) o R = g’ >--
+ qby_tac ‘p1(A, B) o R = f & p2(A, B) o R = g’ >--
  (arw[R_EXT,GSYM o_def] >> rpt strip_tac (* 2 *) 
   >-- (assume_tac Eval_def >> 
-       first_assum (qspecl_then [‘A * B’,‘A’,‘pi1(A,B)’] assume_tac) >>
+       first_assum (qspecl_then [‘A * B’,‘A’,‘p1(A,B)’] assume_tac) >>
        first_x_assum drule >>
        first_x_assum (qspecl_then [‘X’,‘A’,‘f’] assume_tac) >>
        first_x_assum drule >> arw[] >>
@@ -1044,7 +1044,7 @@ e0
         (qspecl_then [‘Eval(f,a)’,‘Eval(g,a)’] strip_assume_tac) >>
        qexists_tac ‘r’ >> arw[]) >>
  assume_tac Eval_def >> 
- first_assum (qspecl_then [‘A * B’,‘B’,‘pi2(A,B)’] assume_tac) >>
+ first_assum (qspecl_then [‘A * B’,‘B’,‘p2(A,B)’] assume_tac) >>
  first_x_assum drule >>
  first_x_assum (qspecl_then [‘X’,‘B’,‘g’] assume_tac) >>
  first_x_assum drule >> arw[] >>
@@ -1058,19 +1058,19 @@ e0
  drule Eval_def >> arw[] >> pop_assum (K all_tac) >>
  rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
  >-- (once_arw[] >>
-     qby_tac ‘Eval(pi1(A, B), Eval(fg', a)) = Eval(pi1(A,B) o fg',a) & 
-              Eval(pi2(A, B), Eval(fg', a)) = Eval(pi2(A,B) o fg',a)’
+     qby_tac ‘Eval(p1(A, B), Eval(fg', a)) = Eval(p1(A,B) o fg',a) & 
+              Eval(p2(A, B), Eval(fg', a)) = Eval(p2(A,B) o fg',a)’
      >-- (strip_tac >> irule o_Eval >> arw[]) >>
      arw[]) >>
  first_x_assum irule >> arw[] >> strip_tac >> 
  fconv_tac (rewr_fconv (eq_sym "mem")) (* 2 *)
- >-- (qpick_x_assum ‘pi2(A, B) o fg' = g’ (assume_tac o GSYM) >>
+ >-- (qpick_x_assum ‘p2(A, B) o fg' = g’ (assume_tac o GSYM) >>
       once_arw[] >> irule o_Eval >> arw[]) >>
- qpick_x_assum ‘pi1(A, B) o fg' = f’ (assume_tac o GSYM) >>
+ qpick_x_assum ‘p1(A, B) o fg' = f’ (assume_tac o GSYM) >>
  once_arw[] >> irule o_Eval >> arw[]
  )
 (form_goal
-“!A B. SetPr(pi1(A,B),pi2(A,B))”)
+“!A B. SetPr(p1(A,B),p2(A,B))”)
 
 
 val Pa_ex =
@@ -1090,14 +1090,14 @@ e0
 cheat
 (form_goal
 “isFun(f) & isFun(g) & isFun(h) ==>
-      pi1(A, B) o SPa(f, g) = f & pi2(A, B) o SPa(f, g) = g”)
+      p1(A, B) o SPa(f, g) = f & p2(A, B) o SPa(f, g) = g”)
 
 val th0' = proved_th $
 e0
 cheat
 (form_goal
 “!h.isFun(f) & isFun(g) & isFun(h) ==>
-      pi1(A, B) o SPa(f, g) = f & pi2(A, B) o SPa(f, g) = g”)
+      p1(A, B) o SPa(f, g) = f & p2(A, B) o SPa(f, g) = g”)
 
 redepth_fconv no_fconv COND_EXISTS_FCONV (concl $ gen_all th0)
  basic_fconv no_fconv COND_EXISTS_FCONV (concl th0)
@@ -1119,25 +1119,25 @@ val Pa_Fun = Pa_def |> spec_all |> undisch |> conjE1
                     |> qgen ‘g’ |> qgen ‘B’ |> gen_all
                     |> store_as "Pa_Fun";
 
-val pi12_of_Pa = Pa_def |> spec_all |> undisch |> conjE1 |> conjE2
+val p12_of_Pa = Pa_def |> spec_all |> undisch |> conjE1 |> conjE2
                         |> disch_all 
                         |> qgen ‘g’ |> qgen ‘B’ |> gen_all
-                        |> store_as "pi12_of_Pa";
+                        |> store_as "p12_of_Pa";
 
 
-val pi1_of_Pa = pi12_of_Pa |> spec_all |> undisch |> conjE1
+val p1_of_Pa = p12_of_Pa |> spec_all |> undisch |> conjE1
                            |> disch_all |> gen_all
-                           |> store_as "pi1_of_Pa";
+                           |> store_as "p1_of_Pa";
 
 
-val pi2_of_Pa = pi12_of_Pa |> spec_all |> undisch |> conjE2
+val p2_of_Pa = p12_of_Pa |> spec_all |> undisch |> conjE2
                            |> disch_all |> gen_all
-                           |> store_as "pi2_of_Pa";
+                           |> store_as "p2_of_Pa";
 
 val is_Pa = Pa_def |> spec_all |> undisch |> conjE2
                    |> disch_all 
                    |> qgen ‘g’ |> qgen ‘B’ |> gen_all
-                   |> store_as "pi12_of_Pa";
+                   |> store_as "p12_of_Pa";
 
  
 
@@ -1146,11 +1146,11 @@ e0
 (cheat)
 (form_goal
 “!A B. ?i1:A->A * B i2:B->A * B.
- !a b ab. Holds(i1,a,ab) <=> a = Eval(pi1(A,B),ab) & 
-          Holds(i2,b,ab) <=> b = Eval(pi2(A,B),ab)”)
+ !a b ab. Holds(i1,a,ab) <=> a = Eval(p1(A,B),ab) & 
+          Holds(i2,b,ab) <=> b = Eval(p2(A,B),ab)”)
 
 val tau1_def = 
-fVar_Inst [("P",([("a",mem_sort (mk_set "A")),("ab",mem_sort (Cross (mk_set "A") (mk_set "B")))],“a = Eval(pi1(A,B),ab)”))]
+fVar_Inst [("P",([("a",mem_sort (mk_set "A")),("ab",mem_sort (Cross (mk_set "A") (mk_set "B")))],“a = Eval(p1(A,B),ab)”))]
 (AX1 |> qspecl [‘A’,‘A * B’]) |> uex_expand
 |> spec_all |> eqT_intro 
 |> iffRL |> ex2fsym "tau1" ["A","B"] 
@@ -1163,7 +1163,7 @@ fVar_Inst [("P",([("a",mem_sort (mk_set "A")),("ab",mem_sort (Cross (mk_set "A")
 *)
 
 val tau2_def = 
-fVar_Inst [("P",([("b",mem_sort (mk_set "B")),("ab",mem_sort (Cross (mk_set "A") (mk_set "B")))],“b = Eval(pi2(A,B),ab)”))]
+fVar_Inst [("P",([("b",mem_sort (mk_set "B")),("ab",mem_sort (Cross (mk_set "A") (mk_set "B")))],“b = Eval(p2(A,B),ab)”))]
 (AX1 |> qspecl [‘B’,‘A * B’]) |> uex_expand
 |> spec_all |> eqT_intro 
 |> iffRL |> ex2fsym "tau2" ["A","B"] 
@@ -1174,7 +1174,7 @@ local
 val lemma =
 fVar_Inst [("P",([("ab",mem_sort (Cross (mk_set "A") (mk_set "B"))),
 ("x",mem_sort (mk_set "X"))],
- “Holds(f:A->X,Eval(pi1(A,B),ab),x) & ~(Holds(g:B->X,Eval(pi2(A,B),ab),x))| Holds(g:B->X,Eval(pi2(A,B),ab),x) & ~Holds(f:A->X,Eval(pi1(A,B),ab),x)”))]
+ “Holds(f:A->X,Eval(p1(A,B),ab),x) & ~(Holds(g:B->X,Eval(p2(A,B),ab),x))| Holds(g:B->X,Eval(p2(A,B),ab),x) & ~Holds(f:A->X,Eval(p1(A,B),ab),x)”))]
 (AX1 |> qspecl [‘A * B’,‘X’]) |> uex_expand
 in
 val Thm_2_8_RelcP = proved_th $
@@ -1187,7 +1187,7 @@ e0
   rpt strip_tac >> dimp_tac >> strip_tac >> rev_full_simp_tac[]    )
  )
 (form_goal
-“!A B. RelcP(op(pi1(A,B)),op(pi2(A,B)))”)
+“!A B. RelcP(op(p1(A,B)),op(p2(A,B)))”)
 end
 *)
 
@@ -1959,7 +1959,7 @@ Theorem 2.13. For any two sets A and B, there exists a set BA and a function ev:
 Proof. We take BA to be a tabulation of the subset of P(A×B) containing only the functions. More precisely, define F⊆P(A×B) such that s∈F iff for every x∈A, there exists a unique y∈B such that ϵ((x,y),s), and let BA=|F|.  ▮
 *)
 
-val Pair_ex = pi2_def |> spec_all |> conjE2 |> conjE2 
+val Pair_ex = p2_def |> spec_all |> conjE2 |> conjE2 
                       |> conjE1 |> spec_all
 
 val Pair_def = 
@@ -1967,14 +1967,14 @@ val Pair_def =
             |> iffRL |> ex2fsym "Pair" ["x","y"] 
             |> C mp (trueI []) |> gen_all |> store_as "Pair_def";
 
-val Pair_Eval_eq = pi2_def |> spec_all |> conjE2 |> conjE2 |> conjE2 |> gen_all |> gen_all |> store_as "Pair_Eval_Eq";
+val Pair_Eval_eq = p2_def |> spec_all |> conjE2 |> conjE2 |> conjE2 |> gen_all |> gen_all |> store_as "Pair_Eval_Eq";
 
 val Pair_component = prove_store("Pair_cases",
 e0
 (rpt strip_tac >> irule Pair_Eval_eq >>
  rw[Pair_def])
 (form_goal
- “!A B r:mem(A * B). r = Pair(Eval(pi1(A,B),r),Eval(pi2(A,B),r))”));
+ “!A B r:mem(A * B). r = Pair(Eval(p1(A,B),r),Eval(p2(A,B),r))”));
 
 (*
 val Pow_R = proved_th $
@@ -1985,13 +1985,13 @@ e0
   !x:mem(A * B).”)
 *)
 
-val Pair_pi12 = proved_th $
+val Pair_p12 = proved_th $
 e0
 (rpt strip_tac >>
- qspecl_then [‘A’,‘B’] strip_assume_tac pi2_def >>
+ qspecl_then [‘A’,‘B’] strip_assume_tac p2_def >>
  first_x_assum irule >> rw[Pair_def])
 (form_goal
- “!A B ab:mem(A * B). Pair(Eval(pi1(A,B),ab),Eval(pi2(A,B),ab)) = ab”)
+ “!A B ab:mem(A * B). Pair(Eval(p1(A,B),ab),Eval(p2(A,B),ab)) = ab”)
 
 (*
 fVar_Inst 
@@ -2012,12 +2012,12 @@ val lemma1 =
 fVar_Inst 
 [("P",([("fa",mem_sort (Cross (mk_set "A2B") (mk_set "A"))),
         ("b",mem_sort (mk_set "B"))],
-“Holds(In(A * B),Pair(Eval(pi2(A2B,A),fa),b),Eval(i,Eval(pi1(A2B,A),fa)))”))]
+“Holds(In(A * B),Pair(Eval(p2(A2B,A),fa),b),Eval(i,Eval(p1(A2B,A),fa)))”))]
 (AX1 |> qspecl [‘A2B * A’,‘B’]) |> uex_expand
 val lemma2 = 
 fVar_Inst 
 [("P",([("ab",mem_sort (Cross (mk_set "A") (mk_set "B")))],
-“Holds(f:A->B,Eval(pi1(A,B),ab),Eval(pi2(A,B),ab))”))]
+“Holds(f:A->B,Eval(p1(A,B),ab),Eval(p2(A,B),ab))”))]
 (In_def_P |> qspecl [‘A * B’]) |> uex_expand
 in
 val Thm_2_13 = proved_th $
@@ -2029,23 +2029,23 @@ e0
  qby_tac ‘isFun(ev)’ >--
  (rw[Fun_expand] >> arw[] >> rpt strip_tac (* 2 *) >--
   (first_x_assum 
-    (qspecl_then [‘Eval(i, Eval(pi1(A2B, A), a))’] assume_tac) >>
-   qby_tac ‘?b:mem(A2B).Eval(i,Eval(pi1(A2B,A),a)) = Eval(i,b)’ >--
-    (qexists_tac ‘Eval(pi1(A2B, A), a)’ >> rw[]) >>
+    (qspecl_then [‘Eval(i, Eval(p1(A2B, A), a))’] assume_tac) >>
+   qby_tac ‘?b:mem(A2B).Eval(i,Eval(p1(A2B,A),a)) = Eval(i,b)’ >--
+    (qexists_tac ‘Eval(p1(A2B, A), a)’ >> rw[]) >>
    fs[] >> pop_assum (assume_tac o GSYM) >> arw[] >>
    pop_assum (K all_tac) >> 
    first_x_assum 
-    (qspecl_then [‘Eval(pi2(A2B, A), a)’]  
+    (qspecl_then [‘Eval(p2(A2B, A), a)’]  
      (strip_assume_tac o uex_expand)) >>
    qexists_tac ‘y’ >> arw[]) >>
   first_x_assum 
-    (qspecl_then [‘Eval(i, Eval(pi1(A2B, A), a))’] assume_tac) >>
-   qby_tac ‘?b:mem(A2B).Eval(i,Eval(pi1(A2B,A),a)) = Eval(i,b)’ >--
-    (qexists_tac ‘Eval(pi1(A2B, A), a)’ >> rw[]) >>
+    (qspecl_then [‘Eval(i, Eval(p1(A2B, A), a))’] assume_tac) >>
+   qby_tac ‘?b:mem(A2B).Eval(i,Eval(p1(A2B,A),a)) = Eval(i,b)’ >--
+    (qexists_tac ‘Eval(p1(A2B, A), a)’ >> rw[]) >>
    fs[] >> pop_assum (assume_tac o GSYM) >> arw[] >>
    pop_assum (K all_tac) >> 
    first_x_assum 
-    (qspecl_then [‘Eval(pi2(A2B, A), a)’]  
+    (qspecl_then [‘Eval(p2(A2B, A), a)’]  
      (strip_assume_tac o uex_expand)) >>
   qsuff_tac ‘b1 = y & b2 = y’ >-- (strip_tac >> arw[]) >>
   strip_tac (* 2 *) >> first_x_assum irule >> arw[]) >> arw[] >>
@@ -2085,29 +2085,29 @@ e0
   pop_assum (K all_tac) >>
   qpick_x_assum ‘isFun(f)’ assume_tac >> drule Eval_def >> fs[] >>
   dimp_tac >> strip_tac (* 2 *) >--
-  (*a:A * B \in i(sf') <=> pi2(a) = Eval(f,pi1(a))
-    if a in i(sf'), then want pi2(a) = Eval(f,pi1(a))
-    from assumtpion 10, (pi1(a),f(pi1(a))) \in i(sf)
-known that a = (pi1(a),pi2(a)), sufficitnet to show f(pi1(a)) = pi2(a), but by assumption 11, !a?!b. (a,b)\in i(sf')
+  (*a:A * B \in i(sf') <=> p2(a) = Eval(f,p1(a))
+    if a in i(sf'), then want p2(a) = Eval(f,p1(a))
+    from assumtpion 10, (p1(a),f(p1(a))) \in i(sf)
+known that a = (p1(a),p2(a)), sufficitnet to show f(p1(a)) = p2(a), but by assumption 11, !a?!b. (a,b)\in i(sf')
 *)
   (qpick_x_assum ‘!x:mem(A).?!y:mem(B).Holds(In(A * B),Pair(x,y),Eval(i,sf'))’ assume_tac >> 
-   first_x_assum (qspecl_then [‘Eval(pi1(A,B),a)’] $
+   first_x_assum (qspecl_then [‘Eval(p1(A,B),a)’] $
      strip_assume_tac o uex_expand) >>
-   qsuff_tac ‘Eval(pi2(A, B), a) = y & 
-              Eval(f, Eval(pi1(A, B), a)) = y’ >--
+   qsuff_tac ‘Eval(p2(A, B), a) = y & 
+              Eval(f, Eval(p1(A, B), a)) = y’ >--
    (strip_tac >> arw[]) >>
    strip_tac >> first_x_assum irule  (* 2 *)
-   >-- arw[Pair_pi12] >>
+   >-- arw[Pair_p12] >>
    (*qpick_x_assum ‘!a.Holds(In(A* B),Pair(a,Eval(f,a)),Eval(i,sf'))’
      assume_tac
      Exception- UNIFY ("terms cannot be unified", [])
     do not know why... *)
    pick_x_assum  “!a.Holds(In(A* B),Pair(a,Eval(f,a)),Eval(i:A2B->Pow(A * B),sf':mem(A2B)))” assume_tac >>
-   first_x_assum (qspecl_then [‘Eval(pi1(A,B),a)’] assume_tac) >>
+   first_x_assum (qspecl_then [‘Eval(p1(A,B),a)’] assume_tac) >>
    arw[]) >> 
-  once_rw[GSYM Pair_pi12] >> once_arw[] >>
+  once_rw[GSYM Pair_p12] >> once_arw[] >>
   pick_x_assum  “!a.Holds(In(A* B),Pair(a,Eval(f,a)),Eval(i:A2B->Pow(A * B),sf':mem(A2B)))” assume_tac >>
-   first_x_assum (qspecl_then [‘Eval(pi1(A,B),a)’] assume_tac) >>
+   first_x_assum (qspecl_then [‘Eval(p1(A,B),a)’] assume_tac) >>
    arw[])
 (form_goal
 “!A B.?A2B ev:A2B * A ->B. isFun(ev) & 
@@ -2117,7 +2117,7 @@ end
 local
 val l = 
     fVar_Inst [("P",([("af",mem_sort $ Cross (mk_set "A") (mk_set "A2B")),("b",mem_sort (mk_set "B"))],
-“Eval(ev:A2B * A ->B,Pair(Eval(pi2(A,A2B),af),Eval(pi1(A,A2B),af))) = b”))] 
+“Eval(ev:A2B * A ->B,Pair(Eval(p2(A,A2B),af),Eval(p1(A,A2B),af))) = b”))] 
 (AX1|> qspecl [‘A * A2B’,‘B’])
 |> uex_expand
 in
@@ -2131,7 +2131,7 @@ e0
  qby_tac ‘isFun(R)’ >--
  (arw[Fun_expand] >> rpt strip_tac (* 2 *)
  >-- (drule $ iffLR Fun_expand >> pop_assum strip_assume_tac >> 
-     last_x_assum (qspecl_then [‘Pair(Eval(pi2(A, A2B), a), Eval(pi1(A, A2B), a))’] strip_assume_tac) >>
+     last_x_assum (qspecl_then [‘Pair(Eval(p2(A, A2B), a), Eval(p1(A, A2B), a))’] strip_assume_tac) >>
      qexists_tac ‘b’ >> drule Eval_def >> fs[]) >>
  pop_assum (assume_tac o GSYM) >> arw[]) >>
  arw[] >> rpt strip_tac >> last_x_assum drule >> 
@@ -2203,7 +2203,7 @@ val Ap1_def = Ap1_ex |> strip_all_and_imp |> uex_expand
                      |> store_as "Ap1_def";
 
 val Cross_eq = 
-pi2_def |> spec_all |> conjE2 |> conjE2 |> conjE2 |> gen_all
+p2_def |> spec_all |> conjE2 |> conjE2 |> conjE2 |> gen_all
 |> store_as "Cross_eq";
 
 
@@ -2229,38 +2229,38 @@ e0
 val Eval_Pa = prove_store("Eval_Pa",
 e0
 (rpt strip_tac >> 
- qspecl_then [‘A’,‘B’] strip_assume_tac pi12_Fun >>
- qsspecl_then [‘pi1(A,B)’,‘f’] assume_tac o_Fun >> rfs[] >>
- qsspecl_then [‘pi2(A,B)’,‘g’] assume_tac o_Fun >> rfs[] >>
- qsspecl_then [‘f o pi1(A,B)’,‘g o pi2(A,B)’] assume_tac Pa_Fun >> rfs[] >>
+ qspecl_then [‘A’,‘B’] strip_assume_tac p12_Fun >>
+ qsspecl_then [‘p1(A,B)’,‘f’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘p2(A,B)’,‘g’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘f o p1(A,B)’,‘g o p2(A,B)’] assume_tac Pa_Fun >> rfs[] >>
  irule Cross_eq >> strip_tac >>
  irule $ iffLR Eval_o_l >> rw[Pair_def] >>
- qsspecl_then [‘f o pi1(A,B)’,‘g o pi2(A,B)’] strip_assume_tac pi12_of_Pa>>
- rfs[] >> rw[pi12_Fun]
+ qsspecl_then [‘f o p1(A,B)’,‘g o p2(A,B)’] strip_assume_tac p12_of_Pa>>
+ rfs[] >> rw[p12_Fun]
  )
 (form_goal
  “!A C f:A->C B D g:B->D. isFun(f) & isFun(g) ==>
-  !ab:mem(A * B).Eval(Pa(f o pi1(A,B),g o pi2(A,B)),ab) = Pair(Eval(f o pi1(A,B),ab),Eval(g o pi2(A,B),ab))”));
+  !ab:mem(A * B).Eval(Pa(f o p1(A,B),g o p2(A,B)),ab) = Pair(Eval(f o p1(A,B),ab),Eval(g o p2(A,B),ab))”));
 
 val o_Eval' = o_Eval |> strip_all_and_imp |> gen_all
                      |> disch_all |> gen_all
                      |>store_as "o_Eval'"
 
 
-val Eval_o_pi2 = prove_store("Eval_o_pi12",
+val Eval_o_p2 = prove_store("Eval_o_p12",
 e0
 (rpt strip_tac >> irule $ iffRL Eval_o_l >> 
- arw[pi12_Fun,Pair_def])
+ arw[p12_Fun,Pair_def])
 (form_goal
- “!B C f:B->C. isFun(f) ==> !A a b.Eval(f o pi2(A,B),Pair(a,b)) = Eval(f,b)”));
+ “!B C f:B->C. isFun(f) ==> !A a b.Eval(f o p2(A,B),Pair(a,b)) = Eval(f,b)”));
 
 
-val Eval_o_pi1 = prove_store("Eval_o_pi12",
+val Eval_o_p1 = prove_store("Eval_o_p12",
 e0
 (rpt strip_tac >> irule $ iffRL Eval_o_l >> 
- arw[pi12_Fun,Pair_def])
+ arw[p12_Fun,Pair_def])
 (form_goal
- “!A C f:A->C. isFun(f) ==> !B a b.Eval(f o pi1(A,B),Pair(a,b)) = Eval(f,a)”));
+ “!A C f:A->C. isFun(f) ==> !B a b.Eval(f o p1(A,B),Pair(a,b)) = Eval(f,a)”));
 
 
 val is_Tpm = Tpm_def |> strip_all_and_imp |> conjE2 
@@ -2285,21 +2285,21 @@ e0
  qby_tac
  ‘!a. Eval(R,a) = Tpm(Ap1(f,a))’
  >-- (strip_tac >> drule $ GSYM Eval_def >> flip_tac >> arw[]) >> 
- qspecl_then [‘A’,‘X’] strip_assume_tac pi12_Fun >>
- qsspecl_then [‘pi2(A,X)’,‘R’] assume_tac o_Fun >> rfs[] >>
- qsspecl_then [‘pi1(A,X)’,‘R o pi2(A,X)’] assume_tac Pa_Fun >> rfs[] >>
+ qspecl_then [‘A’,‘X’] strip_assume_tac p12_Fun >>
+ qsspecl_then [‘p2(A,X)’,‘R’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘p1(A,X)’,‘R o p2(A,X)’] assume_tac Pa_Fun >> rfs[] >>
  qspecl_then [‘A’,‘B’] assume_tac Ev_Fun >>
- qsspecl_then [‘Pa(pi1(A,X),R o pi2(A,X))’,‘Ev(A,B)’] assume_tac o_Fun >>
+ qsspecl_then [‘Pa(p1(A,X),R o p2(A,X))’,‘Ev(A,B)’] assume_tac o_Fun >>
  rfs[] >> rpt strip_tac (* 2 *)
  >-- (irule $ iffRL FUN_EXT >> arw[] >> strip_tac >>
      qby_tac ‘!ax:mem(A*X). ?a0 x0. ax = Pair(a0,x0)’
      >-- (strip_tac >> 
          qsspecl_then [‘ax’] assume_tac Pair_component >>
-         qexistsl_tac [‘Eval(pi1(A, X), ax)’,‘Eval(pi2(A, X), ax)’] >>
+         qexistsl_tac [‘Eval(p1(A, X), ax)’,‘Eval(p2(A, X), ax)’] >>
          first_x_assum accept_tac) >>
      qsuff_tac 
      ‘!a0 x0. 
-      Eval(Ev(A, B) o Pa(pi1(A, X), R o pi2(A, X)), Pair(a0,x0)) = 
+      Eval(Ev(A, B) o Pa(p1(A, X), R o p2(A, X)), Pair(a0,x0)) = 
       Eval(f, Pair(a0,x0))’
      >-- (strip_tac >> 
          first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
@@ -2309,7 +2309,7 @@ e0
      qsspecl_then [‘id(A)’,‘R’] assume_tac Eval_Pa >> 
      qspecl_then [‘A’] assume_tac id_Fun >> fs[] >> rfs[idL] >>
      rw[Pair_def] >>
-     qsspecl_then [‘pi2(A,X)’,‘R’] assume_tac $ GSYM o_Eval' >> rfs[] >>
+     qsspecl_then [‘p2(A,X)’,‘R’] assume_tac $ GSYM o_Eval' >> rfs[] >>
      rw[Pair_def] >>
      rev_drule Ap1_def >>
      first_x_assum (qspecl_then [‘x0’] strip_assume_tac) >>
@@ -2325,19 +2325,19 @@ e0
      rev_drule Ap1_def >> arw[] >> strip_tac >>
      qsuff_tac
      ‘Eval(Ev(A, B), Pair(a', Eval(h', a))) = 
-      Eval(Ev(A, B) o Pa(pi1(A, X), h' o pi2(A, X)),Pair(a',a))’
+      Eval(Ev(A, B) o Pa(p1(A, X), h' o p2(A, X)),Pair(a',a))’
      >-- (strip_tac >> arw[]) >>
      flip_tac >> irule $iffRL Eval_o_l >>
      qspecl_then [‘A’,‘B’] assume_tac Ev_Fun >> arw[] >>
-     qsspecl_then [‘pi2(A,X)’,‘h'’] assume_tac o_Fun >> rfs[] >>
-     qsspecl_then [‘pi1(A,X)’,‘h' o pi2(A,X)’] assume_tac Pa_Fun >> rfs[]>>
+     qsspecl_then [‘p2(A,X)’,‘h'’] assume_tac o_Fun >> rfs[] >>
+     qsspecl_then [‘p1(A,X)’,‘h' o p2(A,X)’] assume_tac Pa_Fun >> rfs[]>>
      qspecl_then [‘A’] assume_tac id_Fun >>     
      qsspecl_then [‘id(A)’,‘h'’] assume_tac Eval_Pa >> rfs[idL] >>
      rw[Pair_def] >> 
-     qsspecl_then [‘h'’] assume_tac Eval_o_pi2 >> rfs[])
+     qsspecl_then [‘h'’] assume_tac Eval_o_p2 >> rfs[])
 (form_goal
  “!A X B f:A * X ->B.isFun(f) ==> ?!h: X -> Exp(A,B).isFun(h) &
-  Ev(A,B) o Pa(pi1(A,X),h o pi2(A,X)) = f”));
+  Ev(A,B) o Pa(p1(A,X),h o p2(A,X)) = f”));
 end
 
 
