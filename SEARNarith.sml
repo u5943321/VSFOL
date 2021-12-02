@@ -1382,6 +1382,125 @@ e0
 (form_goal
  “!m n. Sub(m,Suc(n)) = Pre(Sub(m,n))”));
 
+val Pre_O_cases = prove_store("Pre_O_case",
+e0
+(strip_tac >> cases_on “n = O” >> arw[Pre_O] >>
+ fs[O_xor_Suc] >> dimp_tac >> strip_tac (* 2 *)
+ >> fs[Pre_Suc] >> fs[Suc_eq_eq])
+(form_goal
+ “!n. Pre(n) = O <=> (n = O | n = Suc(O))”));
+
+val Pre_eq_O = Pre_O_cases
+
+val _ = new_pred "Le" [("m",mem_sort N),("n",mem_sort N)]
+
+
+val Le_def = store_ax("Le_def",“!m n.Le(m,n) <=> Sub(m,n) = O”);
+
+val _ = new_pred "Lt" [("m",mem_sort N),("n",mem_sort N)]
+
+val Lt_def = store_ax("Lt_def",“!m n.Lt(m,n) <=> (Le(m,n) & ~(m = n))”);
+
+val SUB_EQ_00 = Le_def
+
+val Le_O = prove_store("Le_O",
+e0
+(rw[Le_def,Sub_O])
+(form_goal
+ “!n. Le(n,O) ==> n = O”));
+
+
+val Lt_Le = prove_store("Lt_Le",
+e0
+(once_rw[Lt_def] >> rpt strip_tac >> arw[])
+(form_goal
+ “!m n. Lt(m,n) ==> Le(m,n)”));
+
+val Lt_NE = prove_store("Lt_NEQ",
+e0
+(rw[Lt_def] >> rpt strip_tac >> arw[])
+(form_goal
+ “!m n. Lt(m,n) ==> ~(m = n)”));
+
+val Le_NE_Lt = prove_store("Le_NE_Lt",
+e0
+(rw[Lt_def])
+(form_goal
+ “!m n. Le(m,n) & ~(m = n) ==> Lt(m,n)”));
+
+val Lt_Le_NE = Lt_def
+
+val NOT_Lt_O = prove_store("NOT_Lt_O",
+e0
+(rw[Lt_def] >> rpt strip_tac  >> ccontra_tac  >> fs[] >> drule Le_O >> fs[])
+(form_goal
+ “!n.~(Lt(n,O))”));
+
+
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("n",mem_sort N)],
+ “Sub(Suc(m),Suc(n)) = Sub(m,n)”))] 
+ N_ind_P 
+in
+val Sub_mono_eq = prove_store("Sub_mono_eq",
+e0
+(strip_tac >> irule l >> rw[Sub_O,Sub_Suc,Suc_def] >> 
+ rpt strip_tac (* 2 *)
+ >-- (pop_assum (assume_tac o GSYM) >> arw[]) >>
+ rw[Pre_Suc])
+(form_goal
+ “!m n. Sub(Suc(m),Suc(n)) = Sub(m,n)”));
+end
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("c",mem_sort N)],
+ “!a.Sub(Add(a,c),c) = a”))] 
+ N_ind_P 
+in
+val Add_Sub = prove_store("Add_Sub",
+e0
+(rpt strip_tac >> match_mp_tac l >> rw[Suc_def,Add_Suc,Sub_mono_eq] >> 
+ rw[Add_O,Sub_O])
+(form_goal
+ “!c a. Sub(Add(a,c),c) = a”));
+end
+
+
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("n",mem_sort N)],
+ “Add(O,n) = n”))] 
+ N_ind_P 
+in
+val Add_O = prove_store("Add_Sub",
+e0
+(rpt strip_tac >> match_mp_tac l >> rw[Suc_def,Add_Suc,Add_O] >> 
+ rpt strip_tac >> arw[])
+(form_goal
+ “!n. Add(O,n) = n”));
+end
+
+val Sub_EQ_O = prove_store("Sub_EQ_O",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘n’,‘O’] assume_tac Add_Sub >> fs[Add_O])
+(form_goal
+ “!n.Sub(n,n) = O”));
+
+val Le_refl = prove_store("Le_refl",
+e0
+(rw[Le_def,Sub_EQ_O])
+(form_goal
+ “!n. Le(n,n)”));
+
+val Le_O_O = Le_O;
 
 
 val o_eq_l = prove_store("o_eq_l",
@@ -1391,6 +1510,54 @@ e0
  “!B C g1:B->C g2:B->C. g1 = g2 ==>
   !A f:A->B. g1 o f = g2 o f”));
 
+val Le_cases = prove_store("Le_cases",
+e0
+(rw[Lt_def] >> rpt strip_tac >> arw[] >> 
+ cases_on “m:mem(N) = n” >> arw[])
+(form_goal
+ “!m n. Le(m,n) ==> (Lt(m,n) | m = n)”));
+
+val Le_Sub = Le_def
+
+(*“!p n m.((p <= n) /\ (p <= m)) ==> (((n - p) = (m - p)) = (n = m))”*)
+
+val Suc_NONZERO = SUC_NONZERO |> rewr_rule[Suc_def]
+                              |> store_as "Suc_NONZERO";
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("a",mem_sort N)],
+ “!b c.Le(a,b) & Le(a,c) ==>(Sub(b,a) = Sub(c,a) <=> b = c)”))] 
+N_ind_P
+val l' = 
+ fVar_Inst 
+[("P",([("b",mem_sort N)],
+ “!c.Le(Suc(a), b) & Le(Suc(a), c) ==>
+               (Sub(b, Suc(a)) = Sub(c, Suc(a)) <=> b = c)”))] 
+N_ind_P |> gen_all |> specl [rastt "n:mem(N)"]
+val l'' = 
+ fVar_Inst 
+[("P",([("c",mem_sort N)],
+ “Le(Suc(n0), Eval(SUC, n1)) & Le(Suc(n0), c) ==>
+               (Sub(Eval(SUC, n1), Suc(n0)) = Sub(c, Suc(n0)) <=>
+                 Eval(SUC, n1) = c)”))] 
+N_ind_P |> gen_all |> specl [rastt "n:mem(N)",rastt "n':mem(N)"]
+in
+val cancel_Sub = prove_store("cancel_Sub",
+e0
+(match_mp_tac l >> rw[Sub_O] >> rw[Suc_def] >> 
+ strip_tac >> strip_tac >> 
+ match_mp_tac l' >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> fs[Le_Sub,Sub_O,Suc_NONZERO]) >>
+ strip_tac>> strip_tac >> 
+ match_mp_tac l'' >> rw[Suc_def] >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> fs[Le_def,Sub_O,Suc_NONZERO]) >>
+ rw[Sub_mono_eq,Le_def] >> rpt strip_tac >> rw[Suc_eq_eq] >>
+ first_x_assum irule >> arw[Le_def])
+(form_goal
+ “!a b c.Le(a,b) & Le(a,c) ==>(Sub(b,a) = Sub(c,a) <=> b = c)”));
+end
 
 
 
