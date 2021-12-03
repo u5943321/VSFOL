@@ -1253,6 +1253,31 @@ e0
 (form_goal
  “!n. Add(n,O) = n”));
 
+
+
+(* (∀n. 0 + n = n) ∧ ∀m n. SUC m + n = SUC (m + n)*)
+val Add_O = prove_store("Add_O",
+e0
+(strip_tac >> fs[GSYM Add_def] >>
+ assume_tac ADD_El >>
+ qsuff_tac ‘Eval(ADD o Pa(id(N), El(O) o To1(N)),n) = Eval(ADD, Pair(n, O)) & Eval(id(N),n) = n’
+ >-- (strip_tac >>rfs[]) >>
+ rw[Eval_id] >> irule $iffRL Eval_o_l >> rw[ADD_Fun] >>
+ qspecl_then [‘N’] assume_tac id_Fun >>
+ qspecl_then [‘N’] assume_tac To1_Fun >>
+ qsspecl_then [‘To1(N)’,‘El(O)’] assume_tac o_Fun >> rfs[] >>
+ qsspecl_then [‘O’] assume_tac El_Fun >> fs[] >>
+ qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac Pa_Fun >> rfs[] >>
+ irule Eval_input_eq >> 
+ (*irule with eval_pa does not work, some sort of irule at?*)
+ qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac Eval_Pa_Pair >>
+ rfs[] >> fs[Eval_id] >>
+ rw[Pair_eq_eq] >> irule $ iffRL Eval_o_l >> arw[] >> rw[dot_def] >>
+ rw[Eval_El])
+(form_goal
+ “!n. Add(n,O) = n”));
+
+
 val Add_Suc = prove_store("Add_Suc",
 e0
 (rpt strip_tac >> assume_tac ADD_El >> fs[] >> last_x_assum (K all_tac) >>
@@ -1479,7 +1504,7 @@ val l =
  “Add(O,n) = n”))] 
  N_ind_P 
 in
-val Add_O = prove_store("Add_Sub",
+val Add_O2 = prove_store("Add_O2",
 e0
 (rpt strip_tac >> match_mp_tac l >> rw[Suc_def,Add_Suc,Add_O] >> 
  rpt strip_tac >> arw[])
@@ -1490,7 +1515,7 @@ end
 val Sub_EQ_O = prove_store("Sub_EQ_O",
 e0
 (rpt strip_tac >>
- qsspecl_then [‘n’,‘O’] assume_tac Add_Sub >> fs[Add_O])
+ qsspecl_then [‘n’,‘O’] assume_tac Add_Sub >> fs[Add_O2])
 (form_goal
  “!n.Sub(n,n) = O”));
 
@@ -1559,29 +1584,303 @@ e0
  “!a b c.Le(a,b) & Le(a,c) ==>(Sub(b,a) = Sub(c,a) <=> b = c)”));
 end
 
-
-
-val PRE_O_cases = prove_store("PRED_O_cases",
+local
+val l = 
+ fVar_Inst 
+[("P",([("a",mem_sort N)],
+ “Sub(O,a) = O”))] 
+N_ind_P
+in
+val Sub_of_O = prove_store("Sub_of_O",
 e0
-(assume_tac PRE_def >> strip_tac >>
- cases_on “n = O” >-- arw[] >>
- arw[] >> assume_tac O_xor_SUC >>
- first_x_assum (qspecl_then [‘n’] assume_tac) >>
- rfs[] >> arw[GSYM o_assoc,idL] >>
- assume_tac INV_SUC_EQ >> arw[])
+(match_mp_tac l >> rw[Sub_O,Sub_Suc,Suc_def] >> rpt strip_tac>>
+ arw[Pre_O])
 (form_goal
-“!n:1->N. PRE o n = O <=> (n = O | n = SUC o O)”));
+ “!n.Sub(O,n) = O”));
+end
+
+val O_LESS_EQ = prove_store("O_LESS_EQ",
+e0
+(rw[Le_def,Sub_of_O])
+(form_goal
+ “!x. Le(O,x)”));
+
+val LESS_EQ_MONO = prove_store("LESS_EQ_MONO",
+e0
+(rw[Le_def,Sub_mono_eq])
+(form_goal
+ “!m n. Le(Suc(m),Suc(n)) <=> Le(m,n)”));
+
+
+val LESS_O = prove_store("LESS_O",
+e0
+(rw[Lt_def,GSYM Suc_NONZERO,O_LESS_EQ])
+(form_goal
+ “!n. Lt(O,Suc(n))”));
+
+val LESS_MONO_EQ = prove_store("LESS_MONO_EQ",
+e0
+(rw[Lt_def,LESS_EQ_MONO,Suc_eq_eq])
+(form_goal
+ “!m n. Lt(Suc(m),Suc(n)) <=> Lt(m,n)”));
+
+
+val LE_O_iff = prove_store("LE_O_iff",
+e0
+(strip_tac >> dimp_tac >> strip_tac  
+ >-- (drule Le_O>> arw[]) >>
+ arw[Le_def,Sub_O])
+(form_goal
+ “!n. Le(n,O) <=> n = O”));
+
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("a",mem_sort N)],
+ “!b. Lt(a,b) | Le(b,a)”))] 
+N_ind_P
+val l' = 
+ fVar_Inst 
+[("P",([("b",mem_sort N)],
+ “Lt(Suc(a),b) | Le(b,Suc(a))”))] 
+N_ind_P |> gen_all |> specl [rastt "n:mem(N)"]
+in
+val LESS_cases = prove_store("LESS_cases",
+e0
+(rpt strip_tac >> irule l >> rw[Suc_def,O_LESS_EQ] >> strip_tac 
+ >-- (strip_tac >> strip_tac >> match_mp_tac l' >>
+     rw[O_LESS_EQ] >> rw[Suc_def,LESS_MONO_EQ,LESS_EQ_MONO] >> arw[]) >>
+ rw[LE_O_iff] >> rw[Lt_def,O_LESS_EQ] >> strip_tac >>
+ cases_on “O = b'” >> arw[])
+(form_goal
+ “!a b. Lt(a,b) | Le(b,a)”));
+end
+
+val LESS_EQ_cases = prove_store("LESS_EQ_cases",
+e0
+(assume_tac LESS_cases >> fs[Lt_def] >>
+ rpt strip_tac >>
+ first_x_assum (qspecl_then [‘m’,‘n’] strip_assume_tac) >> arw[])
+(form_goal
+ “!m n. Le(m,n) | Le(n,m)”));
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("b",mem_sort N)],
+ “!a. Add(Suc(a),b) = Suc(Add(a,b))”))] 
+N_ind_P
+in
+val Add_Suc1 = prove_store("Add_Suc1",
+e0
+(rpt strip_tac >> irule l >> strip_tac >> rw[Add_O] >>
+ rpt strip_tac >> rw[Suc_def] >> rw[Add_Suc] >> arw[])
+(form_goal
+ “!b a. Add(Suc(a),b) = Suc(Add(a,b))”));
+end
+
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("b",mem_sort N)],
+ “!a. Add(a,b) = Add(b,a)”))] 
+N_ind_P
+in
+val Add_sym = prove_store("Add_sym",
+e0
+(rpt strip_tac >> irule l >> rw[Add_O,Add_O2] >> rpt strip_tac >>
+ rw[Suc_def] >> rw[Add_Suc] >> arw[] >> rw[Add_Suc1] )
+(form_goal
+ “!b a. Add(a,b) = Add(b,a)”));
+end
+
+val Suc_Sub = prove_store("Suc_Sub",
+e0
+(strip_tac >> qspecl_then [‘n’,‘Suc(O)’] assume_tac Add_Sub >> 
+ fs[Add_Suc1,Add_O,Add_O2])
+(form_goal “!n.Sub(Suc(n),n) = Suc(O)”));
+
+
+
+
+val Sub_DIFF_1 = prove_store("Sub_DIFF_1",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (irule $ iffLR cancel_Sub >> qexists_tac ‘b’ >>
+      assume_tac Suc_Sub >> once_arw[] >> rw[] >>
+      qsuff_tac ‘~(Le(a,b)) & ~ (Le(Suc(b),b))’ 
+      >-- (strip_tac >> assume_tac LESS_EQ_cases >> 
+          first_assum (qspecl_then [‘a’,‘b’] assume_tac) >> fs[] >>
+          first_assum (qspecl_then [‘Suc(b)’,‘b’] assume_tac) >> fs[]) >>
+      rw[Le_def] >> arw[Suc_Sub] >> rw[Suc_NONZERO]) >>
+ arw[] >> rw[Suc_Sub])
+(form_goal
+ “!a b.Sub(a,b) = Suc(O) <=> a = Suc(b)”));
+
+
+val Pre_O_cases = prove_store("Pre_O_cases",
+e0
+(rw[GSYM Pre_def]  >> assume_tac PRE_def >> strip_tac >>
+ cases_on “n = O” >-- (arw[] >>
+ qsuff_tac ‘ Eval(PRE,O) = Eval(PRE o El(O),dot) &  Eval(El(O),dot) = O’
+  >-- (rpt strip_tac >> arw[]) >> rw[El_def] >>
+  flip_tac >> irule $ iffRL Eval_o_l >> rw[PRE_Fun,El_Fun,El_def]) >>
+ arw[] >> dimp_tac >> strip_tac (* 2 *)
+ >-- (fs[O_xor_SUC] >> 
+     qpick_x_assum ‘Eval(SUC, pn) = n’ (assume_tac o GSYM) >>
+     fs[] >>
+     rw[GSYM Suc_def] >> rw[SUC_eq_eq] >>
+     qsuff_tac ‘Eval(PRE, Eval(SUC, pn)) = pn’ >--
+     (strip_tac >> arw[] >>
+     qpick_x_assum ‘Eval(PRE, Eval(SUC, pn)) = O’ (assume_tac o GSYM) >>
+     arw[]) >> irule $ iffLR Eval_o_l >> arw[Eval_id,SUC_Fun,PRE_Fun]) >>
+ arw[] >>
+ rw[GSYM Suc_def] >> irule $ iffLR Eval_o_l >> 
+ arw[Eval_id,SUC_Fun,PRE_Fun])
+(form_goal
+“!n. Pre(n) = O <=> (n = O | n = Suc(O))”));
+
+val Sub_Suc_O_cases = prove_store("Sub_Suc_O_cases",
+e0
+(rpt strip_tac >> fs[Sub_Suc,Pre_O_cases,Sub_DIFF_1])
+(form_goal
+ “!a b. Sub(a,Suc(b)) = O ==> a = Suc(b) | Sub(a,b) = O”));
+
+val Le_cases_iff = prove_store("LE_cases_iff",
+e0
+(rw[Lt_def] >> rpt strip_tac >> dimp_tac >> strip_tac >> arw[Le_refl] >>
+ cases_on “a = b:mem(N)” >> arw[])
+(form_goal
+ “!a b. Le(a,b) <=> Lt(a,b) | a = b”));
+
+val Sub_EQ_O1 = GSYM Le_def
+
+val Lt_Suc_Le = prove_store("Lt_Suc_Le",
+e0
+(rw[Le_cases_iff] >> rw[Lt_def,Le_def,Sub_Suc,Pre_O_cases,Sub_DIFF_1] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] (* 4 *)
+ >-- (cases_on “a = b:mem(N)” >> arw[]) 
+ >-- (ccontra_tac >> fs[Suc_Sub] >> fs[Suc_NONZERO]) 
+ >-- (disj1_tac >> rw[GSYM Le_def,Le_refl]) >>
+ qspecl_then [‘Suc(b)’,‘b’] assume_tac Sub_DIFF_1 >> fs[] >>
+ ccontra_tac >> pop_assum (assume_tac o GSYM) >> fs[] >>
+ fs[Sub_EQ_O] >> qpick_x_assum ‘O = Suc(O)’ (assume_tac o GSYM) >>
+ fs[Suc_NONZERO])
+(form_goal
+ “!a b. Lt(a,Suc(b)) <=> Le(a,b)”));
+
+
+
+
+fun thml_eq_pairs (th:thm,(ll,rl,asml)) = 
+    if is_eq (concl th) then  
+        let 
+            val (l,r) = dest_eq (concl th)
+            val asm = ant th
+        in 
+            (l::ll,r::rl,asml_U [asm,asml])
+        end
+    else 
+        raise ERR ("thml_eq_pairs.input thm is not an equality: ",
+                   [],[],[concl th])
+
+
+fun EQ_fVar P thml = 
+        let 
+            val sl = List.map (fst o dest_eq o concl) thml
+            val (ll,rl,asml) = List.foldr thml_eq_pairs ([],[],[]) thml
+        in 
+            mk_thm (contl_U (List.map cont thml),asml,
+                 mk_dimp (mk_fvar P ll) (mk_fvar P rl))
+        end
+
+val NOT_Lt_O = prove_store("NOT_Lt_O",
+e0
+(rw[Lt_def] >> rpt strip_tac >> ccontra_tac >>
+ pop_assum (strip_assume_tac) >> drule Le_O >> fs[])
+(form_goal
+ “!n. ~(Lt(n,O))”));
 
 
 
 
 
+local
+val l = 
+ fVar_Inst 
+[("P",([("a",mem_sort N)],
+ “!a0. Le(a0,a) ==> P(a0)”))] 
+N_ind_P
+in
+val strong_ind = prove_store("strong_ind",
+e0
+(rpt strip_tac >>
+ suffices_tac
+ “!a:mem(N). (!a0:mem(N). Le(a0,a) ==> P(a0))”
+ >-- (strip_tac >> 
+      pop_assum (qspecl_then [‘a:mem(N)’,‘a’] assume_tac) >>
+      first_assum irule >> rw[Le_refl]) >>
+ match_mp_tac l >> rw[Suc_def] >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> drule Le_O >>  
+      assume_tac $ EQ_fVar "P" [assume “a0' = O”] >>
+      first_assum $ irule o iffRL >>
+      first_assum irule >> rpt strip_tac >>
+      pop_assum mp_tac >> rw[NOT_Lt_O]) >>
+ rpt strip_tac >> drule Le_cases >> pop_assum mp_tac >>
+ rw[Lt_Suc_Le] >> strip_tac
+ >-- (first_assum irule >> first_assum accept_tac) >>
+ assume_tac $ EQ_fVar "P" [assume “a0' = Suc(n)”] >>
+ first_assum $ irule o iffRL >>
+ last_x_assum irule  >> rw[Lt_Suc_Le] >> first_x_assum accept_tac)
+(form_goal
+ “(!a:mem(N).(!a0. Lt(a0,a) ==> P(a0)) ==> P(a)) ==> !a:mem(N). P(a)”));
+end
 
 
-
-
-
-
+local
+val l = 
+ fVar_Inst 
+[("P",([("n",mem_sort N)],
+ “!n0.Le(n0,n) ==> ~(P(n0:mem(N)))”))] 
+N_ind_P
+in
+val WOP = prove_store("WOP",
+e0
+(rpt strip_tac >> ccontra_tac >>
+ qby_tac ‘!l:mem(N). P(l) ==> ?n:mem(N). P(n) & ~(Le(l,n))’
+ >-- cheat >>
+ qsuff_tac ‘!n:mem(N). ~(P(n))’ >-- (rpt strip_tac >>
+ first_x_assum (qspecl_then [‘a’] assume_tac) >> 
+ first_x_assum opposite_tac) >>
+ qsuff_tac ‘!n:mem(N) n0:mem(N). Le(n0,n) ==> ~P(n0)’
+ >-- (strip_tac >> rpt strip_tac >> first_x_assum irule >>
+     qexists_tac ‘n’ >> rw[Le_refl]) >>
+ match_mp_tac l >> rpt strip_tac (* 2 *) >--
+ (drule Le_O >>
+ assume_tac $ EQ_fVar "P" [assume “n0' = O”] >>
+ ccontra_tac >> 
+ first_x_assum $ drule o iffLR >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >> pop_assum mp_tac >> 
+ rw[Le_def,Sub_of_O]) >>
+ pop_assum mp_tac >> rw[Suc_def] >> strip_tac >>
+ drule Le_cases >> pop_assum mp_tac >> rw[Lt_Suc_Le] >> strip_tac (* 2 *)
+ >-- (first_x_assum drule >> first_x_assum accept_tac) >>
+ ccontra_tac >>
+ assume_tac $ EQ_fVar "P" [assume “n0' = Suc(n')”] >>
+ first_x_assum $ drule o iffLR >> 
+ last_x_assum drule >> pop_assum strip_assume_tac >>
+ qspecl_then [‘n’,‘Suc(n')’] assume_tac LESS_cases >>
+ cases_on “Lt(n,Suc(n'))” >--
+ (pop_assum mp_tac >> rw[Lt_Suc_Le] >> ccontra_tac >> first_x_assum drule>>
+ first_x_assum opposite_tac) >>
+ pop_assum mp_tac >> pop_assum strip_assume_tac >> strip_tac 
+ )
+(form_goal
+ “!a. P(a:mem(N)) ==> ?a0. P(a0) & !a1.P(a1) ==> Le(a0,a1)”));
+end
 
 (*
 define the set of lists
