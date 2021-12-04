@@ -1882,6 +1882,10 @@ e0
  “!a. P(a:mem(N)) ==> ?a0. P(a0) & !a1.P(a1) ==> Le(a0,a1)”));
 end
 
+
+
+
+
 (*
 define the set of lists
 Eval(f:A(set of A->B functions)->B(set of A list -> B list function),a)

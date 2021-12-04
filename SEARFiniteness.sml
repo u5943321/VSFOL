@@ -112,6 +112,241 @@ e0
 (form_goal
  “!X.(P(Empty(X)) & !xs0:mem(Pow(X)). P(xs0) ==> !x0. P(Ins(x0,xs0))) ==> 
   !A:mem(Pow(X)). Fin(A) ==> P(A)”));
+end
+
+(*hascard(0,Empty(X)) &
+ !n xs. hascard(n,xs) ==> !x. x\notin xs ==> hascard(Suc(n),Ins(x,xs))*)
+
+val BIGINTER_ex = prove_store("BIGINTER_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Eval(BI(A),sss)’ >> rw[])
+(form_goal
+ “!A sss:mem(Pow(Pow(A))). ?isss.Eval(BI(A),sss) = isss”))
+
+
+val BIGINTER_def = BIGINTER_ex |> spec_all |> ex2fsym0 "BIGINTER" ["sss"]
+                               |> store_as "BIGINTER_def";
+
+val IN_BIGINTER = BI_def |> rewr_rule[BIGINTER_def] |> spec_all |> conjE2 |> gen_all
+                         |> store_as "IN_BIGINTER";
+
+
+
+local
+val lemma = 
+ fVar_Inst 
+[("P",([("A",mem_sort$ Pow $ Cross N $Pow (mk_set "X"))],
+“IN(Pair(O,Empty(X)),A) &
+ (!n xs.IN(Pair(n,xs),A) ==> 
+  !x0. (~(IN(x0,xs))) ==>IN(Pair(Suc(n),Ins(x0,xs)),A))”))] 
+(IN_def_P_expand |> qspecl [‘Pow(N * Pow(X))’]) 
+(*set of subsets contains hascard sets*)
+val As_def = lemma |> ex2fsym0 "As" ["X"] |> conjE1 
+                   |> gen_all |> GSYM
+val U_ex_lemma = fVar_Inst 
+[("P",([("nxs",mem_sort $ Cross N $Pow (mk_set "X"))],
+“IN(nxs,BIGINTER(As(X)))”))]
+(Thm_2_4 |> qspecl [‘N * Pow(X)’]) 
+|> conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all IN_BIGINTER)
+|> conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all As_def)
+val U_i_def = U_ex_lemma |> ex2fsym0 "U" ["X"] |>ex2fsym0 "i" ["X"]
+val IN_U = U_i_def |> conjE2 |> gen_all |> 
+conv_rule $ basic_once_fconv no_conv (rewr_fconv (eq_sym "mem"))
+|> GSYM
+val rel_ex_lemma = 
+fVar_Inst 
+[("P",([("n",mem_sort N),("xs",mem_sort $Pow (mk_set "X"))],
+“?r.Eval(i(X):U(X)-> N * Pow(X),r) = Pair(n,xs)”))]
+(AX1 |> qspecl [‘N’,‘Pow(X)’]) |> uex_expand |> ex2fsym0 "hasCard" ["X"]
+|> conjE1
+|> conv_rule $ basic_once_fconv no_conv (rewr_fconv (spec_all IN_U))
+
+
+
+
+
+
+
+
+
+val lemma = 
+ fVar_Inst 
+[("P",([("A",mem_sort$ Pow $ Cross (Pow (mk_set "X")) N)],
+“IN(Pair(Empty(X),O),A) &
+ (!xs n.IN(Pair(xs,n),A) ==> 
+  !x0. (~(IN(x0,xs))) ==>IN(Pair(Ins(x0,xs),Suc(n)),A))”))] 
+(IN_def_P_expand |> qspecl [‘Pow(Pow(X) * N)’]) 
+(*set of subsets contains hascard sets*)
+val As_def = lemma |> ex2fsym0 "As" ["X"] |> conjE1 
+                   |> gen_all |> GSYM
+val U_ex_lemma = fVar_Inst 
+[("P",([("nxs",mem_sort $ Cross (Pow (mk_set "X")) N)],
+“IN(nxs,BIGINTER(As(X)))”))]
+(Thm_2_4 |> qspecl [‘Pow(X) * N’]) 
+|> conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all IN_BIGINTER)
+|> conv_rule $ once_depth_fconv no_conv 
+$ rewr_fconv (spec_all As_def)
+val U_i_def = U_ex_lemma |> ex2fsym0 "U" ["X"] |>ex2fsym0 "i" ["X"]
+val IN_U = U_i_def |> conjE2 |> gen_all |> 
+conv_rule $ basic_once_fconv no_conv (rewr_fconv (eq_sym "mem"))
+|> GSYM
+val Card_lemma = 
+fVar_Inst 
+[("P",([("xs",mem_sort $Pow (mk_set "X")),("n",mem_sort N)],
+“?r.Eval(i(X):U(X)-> Pow(X) * N,r) = Pair(xs,n)”))]
+(AX1 |> qspecl [‘Pow(X)’,‘N’]) |> uex_expand |> ex2fsym0 "Card" ["X"]
+|> conjE1
+|> conv_rule $ basic_once_fconv no_conv (rewr_fconv (spec_all IN_U))
+val _ = new_pred "hasCard" [("xs",mem_sort $Pow (mk_set "X")),("n",mem_sort N)]
+val hasCard_def = store_ax("hasCard_def",
+“!X xs:mem(Pow(X)) n.hasCard(xs,n) <=> Holds(Card(X),xs,n)”)
+
+val Card_def' = Card_lemma |> rewr_rule[GSYM hasCard_def]
+
+
+val Fin_ind_card = 
+fVar_Inst 
+[("P",([("xs",mem_sort $ Pow (mk_set "X"))],
+“?!n.hasCard(xs:mem(Pow(X)),n)”))]
+(Fin_ind_P |> qspecl [‘X’])
+
+val hasCard_Empty = prove_store("hasCard_property",
+e0
+(rw[Card_def'] >> rpt strip_tac)
+(form_goal
+ “!X.hasCard(Empty(X),O)”));
+
+val hasCard_Ins = prove_store("hasCard_Ins",
+e0
+(rw[Card_def'] >> rpt strip_tac >>
+ first_assum irule >> arw[] >> first_assum irule >>arw[]
+ )
+(form_goal
+ “!X xs:mem(Pow(X)) n.hasCard(xs,n) ==>
+  !x0. (~(IN(x0,xs))) ==> hasCard(Ins(x0,xs),Suc(n))”));
+
+
+
+val Fst_ex = prove_store("Fst_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Eval(p1(A,B),x)’ >> rw[])
+(form_goal
+ “!A B x:mem(A * B).?fstx. Eval(p1(A,B),x) = fstx”));
+
+ 
+val Snd_ex = prove_store("Snd_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Eval(p2(A,B),x)’ >> rw[])
+(form_goal
+ “!A B x:mem(A * B).?sndx. Eval(p2(A,B),x) = sndx”));
+
+val Fst_def = Fst_ex |> spec_all |> ex2fsym0 "Fst" ["x"]
+val Snd_def = Snd_ex |> spec_all |> ex2fsym0 "Snd" ["x"]
+
+val Pair_def' = Pair_def |> rewr_rule[Fst_def,Snd_def]
+
+
+val Ins_NONEMPTY = prove_store("Ins_NONEMPTY",
+e0
+(rpt strip_tac >> ccontra_tac >>
+ qby_tac
+ ‘!x. IN(x,Ins(x0,xs)) <=> IN(x,Empty(X))’ >-- arw[] >>
+ fs[Empty_property,GSYM Ins_property] >>
+ first_x_assum (qspecl_then [‘x0’] assume_tac) >> fs[])
+(form_goal
+ “!X x0 xs:mem(Pow(X)).~(Ins(x0,xs) = Empty(X))”));
+
+local
+val l = 
+fVar_Inst 
+[("P",([("xsns",mem_sort $ Cross (Pow $ mk_set "X") N)],
+“hasCard(Fst(xsns),Snd(xsns)) & 
+ ~(Fst(xsns) = Empty(X) & Snd(xsns) = n)”))] 
+(IN_def_P_expand |> qspecl [‘(Pow(X) * N)’])
+in 
+val Card_Empty_unique = prove_store("Card_Empty_unique",
+e0
+(rpt strip_tac >> ccontra_tac >>
+ qsuff_tac
+ ‘?ss. IN(Pair(Empty(X),O),ss) &
+  (!xs n. IN(Pair(xs,n),ss) ==>
+   !x0. (~IN(x0,xs)) ==> IN(Pair(Ins(x0,xs),Suc(n)),ss)) &
+  ~(IN(Pair(Empty(X),n),ss))’
+ >-- (fs[Card_def'] >>
+     ccontra_tac >> pop_assum strip_assume_tac >>
+     qsuff_tac ‘IN(Pair(Empty(X), n), ss)’ >-- arw[] >>
+     first_assum irule >> arw[]) >>
+ strip_assume_tac l >> pop_assum (K all_tac) >>
+ pop_assum (assume_tac o GSYM) >> qexists_tac ‘s’ >>
+ once_arw[] >>
+ rw[Pair_def'] >> rw[hasCard_Empty] >> strip_tac 
+ >-- (flip_tac >> first_assum accept_tac) >>
+ strip_tac >> strip_tac >>  (*do not know why does not work if not strip,
+ maybe know, how to fix?
+*)
+ arw[] >>
+ rw[Pair_def'] >> rpt strip_tac >--
+ (irule hasCard_Ins >> arw[]) >> 
+ qsuff_tac
+ ‘~(Ins(x0,xs) = Empty(X))’ >-- (strip_tac >> arw[]) >>
+ rw[Ins_NONEMPTY]
+ )
+(form_goal
+ “!X n.hasCard(Empty(X),n) ==> n = O”));
+end
+
+
+val hasCard_ind = prove_store("hasCard_ind",
+e0
+(once_rw[Card_def'] >> rpt strip_tac >>
+ first_assum irule >> arw[])
+(form_goal
+“!X ss. IN(Pair(Empty(X),O),ss) & 
+      (!xs n. IN(Pair(xs,n),ss) ==>
+       !x0. (~IN(x0,xs)) ==> IN(Pair(Ins(x0,xs),Suc(n)),ss)) ==>
+      !xs n.hasCard(xs,n) ==> IN(Pair(xs,n),ss) ”));
+
+ Card_def' |> spec_all |> iffRL
+
+val hasCard_Ins_pre = prove_store("hasCard_Ins_pre",
+e0
+(rw[Card_def'] >>
+ rpt strip_tac (* 2 *)
+ >-- (first_assum irule >> arw[]) >>
+ 
+
+
+ >-- first_assum accept_tac >> 
+ first_assum irule
+ )
+(form_goal
+ “!X xs:mem(Pow(X)) n. hasCard(xs,n) ==> hasCard(xs,n) & 
+  (!x0 xs0 n0. (~IN(x0,xs0)) & xs = Ins(x0,xs0) & n = Suc(n0) ==> hasCard(xs0,n0))”));
+
+val Fin_Card = prove_store("Card_Fun",
+e0
+(rw[Fun_expand,Card_lemma] >> strip_tac >> match_mp_tac Fin_ind_card >>
+ strip_tac >-- cheat >>
+ rpt strip_tac >> )
+(form_goal
+ “!X xs:mem(Pow(X)).Fin(xs) ==> ?!n.hasCard(xs,n)”));
+
+
+val rel_ex_lemma = 
+fVar_Inst 
+[("P",([("n",mem_sort N),("xs",mem_sort $Pow (mk_set "X"))],
+“?r.Eval(u0:U-> N * Pow(X),r) = Pair(n,xs)”))]
+(AX1 |> qspecl [‘N’,‘Pow(X)’]) |> uex_expand
+val hasCard_ex = prove_store("hasCard_ex",
+e0
+()
+(form_goal
+ “!X. ?hc. IN(Pair(O,Empty(X)),hc) & 
+ !x0. ”));
+
 
 
 (*union is finite <=> A and B are finite*)
