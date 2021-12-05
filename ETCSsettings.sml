@@ -2901,3 +2901,54 @@ e0
  areiso(R,E)”));
 
 
+
+
+
+
+
+
+val Thm6_first_sentence' = prove_store(
+"Thm6_first_sentence",
+ e0
+(rpt strip_tac >> irule prop_2_coro_subo>>
+(* qexistsl_tac [‘A * A’,‘Pa(f0,f1)’,‘e’] >> *)
+ drule Eqa_Mono >> arw[] >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac 
+      ‘Eqa(ce o p1(A,A),ce o p2(A,A),e,Pa(f0, f1) o x)’ >>
+      irule Eqa_eqn >> 
+      qby_tac
+      ‘(ce o p1(A, A)) o Pa(f0, f1) o x = 
+       ce o (p1(A, A) o Pa(f0, f1)) o x &
+       (ce o p2(A, A)) o Pa(f0, f1) o x =
+       ce o (p2(A, A) o Pa(f0, f1)) o x’
+      >-- rw[o_assoc] >> arw[p12_of_Pa] >> 
+      drule coEq_equality >> arw[GSYM o_assoc]) >>
+ first_x_assum 
+ (qspecl_then [‘p1(A,A) o e o y’,‘p2(A,A) o e o y’]
+  assume_tac) >>
+ drule Eq_equality >>
+ fs[GSYM o_assoc] >> qexists_tac ‘r’ >> 
+ irule to_P_eq >> arw[GSYM o_assoc,p12_of_Pa])
+(form_goal
+“!R A f0:R->A f1. Refl(f0,f1) & Sym(f0,f1) & Trans(f0,f1) ==> Mono(Pa(f0,f1)) ==> 
+!cE ce:A->cE.iscoEq(f0,f1,ce) ==>
+(!a0:1->A a1:1->A. ce o a0 = ce o a1 ==> ?r:1->R. f0 o r = a0 & f1 o r = a1) ==> !E e:E->A * A. isEq(ce o p1(A,A),ce o p2(A,A),e) ==> 
+ ?h1 h2. e o h1 = Pa(f0,f1) & Pa(f0,f1) o h2 = e & h1 o h2 = id(E) & h2 o h1 = id(R)”));
+
+
+
+val Thm6' = prove_store("Thm6",
+e0
+(rpt strip_tac >> irule Thm6_first_sentence' >> arw[] >>
+ qexistsl_tac [‘cE’,‘ce’] >>
+ arw[] >> rpt strip_tac >> irule equiv_to_same_element >>
+ arw[] >> irule Thm6_page29_means_just_that >>
+ irule Thm6_page29_picture >> arw[] >>
+ qexistsl_tac [‘cE’,‘ce’] >> arw[])
+(form_goal
+“!R A f0:R->A f1:R->A. Mono(Pa(f0,f1)) ==>
+ Refl(f0,f1) & Sym(f0,f1) & Trans(f0,f1) ==> 
+ !cE ce:A->cE. iscoEq(f0,f1,ce) ==>
+ !E e:E->A * A. isEq(ce o p1(A,A),ce o p2(A,A),e) ==>
+ ?h1 h2. e o h1 = Pa(f0,f1) & Pa(f0,f1) o h2 = e & h1 o h2 = id(E) & h2 o h1 = id(R)”));
+

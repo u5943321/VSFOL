@@ -1608,7 +1608,7 @@ e0
  assume_tac CLT_iff_LE_NE >> arw[] >>
  pop_assum (K all_tac) >> assume_tac LE_Mono >>
  drule Char_def >> fs[TRUE_def] >>
- assume_tac LE_cases_iff >> 
+ (*assume_tac LE_cases_iff >> *)
  first_x_assum 
   (qspecl_then [‘Pa(n0,SUC o n)’] assume_tac) >>
  by_tac 
@@ -2005,7 +2005,7 @@ e0
 “!X pred:X->1+1.?A ss:A ->X.
  (!x:1->X. pred o x = TRUE <=> ?x0:1->A. x = ss o x0)”));
 
-val ZRel_subset_ex = 
+val ZR_subset_ex = 
     pred_subset_ex |> allE $ rastt "(N * N) * (N * N)"
                    |> allE $ rastt $ q2str
 ‘Eq(N) o Pa(ADD o 
@@ -2015,28 +2015,143 @@ val ZRel_subset_ex =
      Pa(p2(N,N) o p1(N * N,N * N), 
         p1(N,N) o p2(N * N,N * N)))’
 
-val ZRel_subset_def = ex2fsym "ZRel" [] (iffRL $ eqT_intro $ spec_all ZRel_subset_ex)
+val ZR_subset_def = ex2fsym "ZR" [] (iffRL $ eqT_intro $ spec_all ZR_subset_ex)
                         |> C mp (trueI []) |> gen_all
 
-val ZRel_inc_def = 
-ex2fsym "ZRinc" [] (iffRL $ eqT_intro $ spec_all ZRel_subset_def)
+val ZRI_def = 
+ex2fsym "ZRI" [] (iffRL $ eqT_intro $ spec_all ZR_subset_def)
                         |> C mp (trueI []) |> gen_all
 
-val intZ_ex = 
-    iscoEq_ex |> allE $ rastt "ZRel" 
+val Z_ex = 
+    iscoEq_ex |> allE $ rastt "ZR" 
             |> allE $ rastt "N * N"
-            |> allE $ rastt "p1(N * N, N * N) o ZRinc"
-            |> allE $ rastt "p2(N * N, N * N) o ZRinc"
+            |> allE $ rastt "p1(N * N, N * N) o ZRI"
+            |> allE $ rastt "p2(N * N, N * N) o ZRI"
 
-val intZ_def = ex2fsym "intZ" [] (iffRL $ eqT_intro $ spec_all intZ_ex)
+val Z_def = ex2fsym "Z" [] (iffRL $ eqT_intro $ spec_all Z_ex)
                         |> C mp (trueI []) |> gen_all
 
-val toZ_def = ex2fsym "toZ" [] (iffRL $ eqT_intro $ spec_all intZ_def)
+val toZ_def = ex2fsym "toZ" [] (iffRL $ eqT_intro $ spec_all Z_def)
                         |> C mp (trueI []) |> gen_all
 
-val _ = new_fun "Pow" (ob_sort,[("A",ob_sort)])
+(*val _ = new_fun "Pow" (ob_sort,[("A",ob_sort)])*)
+
+val ADDj_ex = prove_store("ADDj_ex",
+e0
+(qexists_tac
+ ‘Pa(ADD o Pa(p1(N,N) o p1(N * N,N * N),
+             p1(N,N) o p2(N * N,N * N)) , 
+    ADD o Pa(p2(N,N) o p1(N * N,N * N),
+             p2(N,N) o p2(N * N,N * N)))’ >> rw[])
+(form_goal
+ “?addj. 
+ Pa(ADD o Pa(p1(N,N) o p1(N * N,N * N),
+             p1(N,N) o p2(N * N,N * N)) , 
+    ADD o Pa(p2(N,N) o p1(N * N,N * N),
+             p2(N,N) o p2(N * N,N * N)))= addj”));
 
 
+val ADDj_def = ex2fsym0 "ADDj" [] ADDj_ex;
+
+
+val toZ_Epi = prove_store("toZ_Epi",
+e0
+(assume_tac toZ_def >>
+ drule coEqa_Epi >> first_x_assum accept_tac)
+(form_goal
+ “Epi(toZ)”));
+
+
+val REP_ex = prove_store("REP_ex",
+e0
+(assume_tac toZ_Epi >> drule Epi_has_section >>
+ first_x_assum accept_tac)
+(form_goal 
+ “?rep. toZ o rep = id(Z)”));
+
+val REP_def = REP_ex|> ex2fsym0 "REP" []
+                    |> store_as "REP_def";
+
+val ADDz_ex = prove_store("ADDz_ex",
+e0
+(qexists_tac ‘toZ o ADDj o Pa(Esec(toZ) o p1(Z,Z),Esec(toZ) o p2(Z,Z))’ >>
+ rw[])
+(form_goal
+ “?addz. toZ o ADDj o Pa(Esec(toZ) o p1(Z,Z),Esec(toZ) o p2(Z,Z)) = addz”));
+
+
+
+val ADDz_def = ADDz_ex |> ex2fsym0 "ADDz" []
+                       |> store_as "ADDz_def";
+
+
+val Swap_ex = proved_th $
+e0
+(rpt strip_tac >> qexists_tac ‘Pa(p2(A,B),p1(A,B))’ >> rw[])
+(form_goal
+ “!A B. ?swap:A * B ->B * A. Pa(p2(A,B),p1(A,B)) = swap”)
+
+val Swap_def = 
+    Swap_ex |> spec_all |> eqT_intro
+               |> iffRL |> ex2fsym "Swap" ["A","B"] 
+               |> C mp (trueI []) |> gen_all
+               |> store_as "Swap_def";
+
+
+val Swap_property = proved_th $
+e0
+(rw[GSYM Swap_def,p12_of_Pa])
+(form_goal
+ “!A B. p1(B,A) o Swap(A,B) = p2(A,B) & p2(B,A) o Swap(A,B) = p1(A,B)”)
+
+
+val Swap_Swap_id = prove_store("Swap_Swap_id",
+e0
+(rpt strip_tac >> irule to_P_eq >> rw[GSYM Swap_def,idR] >>
+ rw[Pa_distr,p12_of_Pa])
+(form_goal
+ “!A B. Swap(B,A) o Swap(A,B) = id(A * B)”));
+
+
+val ADDj_SYM = prove_store("ADDj_SYM",
+e0
+(rw[GSYM Swap_def] >>
+ irule FUN_EXT >> rpt strip_tac >>
+ qby_tac
+ ‘?a0 b0 c0 d0.a = Pa(Pa(a0,b0),Pa(c0,d0))’
+ >-- cheat >>
+ pop_assum strip_assume_tac >> arw[] >>
+ rw[GSYM ADDj_def] >> rw[Pa_distr,o_assoc,p12_of_Pa] >> 
+ qspecl_then [‘c0’,‘a0’] assume_tac ADD_SYM >>
+ qspecl_then [‘d0’,‘b0’] assume_tac ADD_SYM >> 
+ arw[]
+ )
+(form_goal
+ “ADDj o Swap(N * N,N * N) = ADDj”));
+
+
+val ADDz_SYM = prove_store("ADDz_SYM",
+e0
+(rpt strip_tac >>
+ rw[GSYM ADDz_def,o_assoc,Pa_distr,p12_of_Pa] >> 
+ qsuff_tac
+ ‘ADDj o Pa(Esec(toZ) o z1, Esec(toZ) o z2) = 
+  ADDj o Pa(Esec(toZ) o z2, Esec(toZ) o z1)’ 
+ >-- (strip_tac >> arw[]) >>
+ qby_tac
+ ‘ADDj o Pa(Esec(toZ) o z1, Esec(toZ) o z2) = 
+  ADDj o Swap(N * N,N * N) o Pa(Esec(toZ) o z2, Esec(toZ) o z1)’
+ >-- (rw[GSYM Swap_def,Pa_distr,p12_of_Pa,o_assoc]) >>
+ arw[] >> rw[GSYM o_assoc,ADDj_SYM])
+(form_goal
+ “!z1:1->Z z2:1->Z. ADDz o Pa(z1,z2) = ADDz o Pa(z2,z1)”));
+
+
+val ADDz_assoc = prove_store("ADDz_assoc",
+e0
+()
+(form_goal
+ “!z1 z2 z3. ”));
 (*
 rastt "Ev(X,2) o (f :1-> X * Pow(X))"
 
