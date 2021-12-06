@@ -2953,6 +2953,45 @@ e0
  ?h1 h2. e o h1 = Pa(f0,f1) & Pa(f0,f1) o h2 = e & h1 o h2 = id(E) & h2 o h1 = id(R)”));
 
 
+val iso_isEq_isEq = prove_store("iso_isEq_isEq",
+e0
+(rpt strip_tac >> rw[isEq_def] >> 
+ drule $ iffLR isEq_def >> 
+ qby_tac
+ ‘f o e o h1 = g o e o h1’ >-- arw[GSYM o_assoc] >>
+ rfs[] >> rpt strip_tac >> first_x_assum drule >>
+ pop_assum (assume_tac o uex_expand) >>
+ pop_assum strip_assume_tac >> uex_tac >>
+ qexists_tac ‘h2 o a0’ >>
+ arw[GSYM o_assoc] >> rpt strip_tac >>
+ qby_tac 
+ ‘a = e o h1 o a0'’
+ >-- arw[GSYM o_assoc] >>
+ first_x_assum drule >> arw[] >>
+ pop_assum (assume_tac o GSYM) >> arw[GSYM o_assoc,idL])
+(form_goal
+ “!A B f:A->B g:A->B E e:E->A. isEq(f,g,e) ==>
+  !E' e':E'->A h1:E' ->E h2:E ->E'. e o h1 = e' & 
+ e' o h2 = e & h1 o h2 = id(E) & h2 o h1 = id(E') ==>
+ isEq(f,g,e')”));
+
+val Thm6_isEq = prove_store("Thm6_isEq",
+e0
+(rpt strip_tac >> drule Thm6' >>
+ rfs[] >> first_x_assum drule >>
+ qsspecl_then [‘ce o p1(A, A)’,‘ce o p2(A, A)’] 
+ strip_assume_tac isEq_ex >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ drule iso_isEq_isEq >> first_x_assum irule >>
+ qexistsl_tac [‘h1’,‘h2’] >> arw[])
+(form_goal
+ “!R A f0:R->A f1:R->A. Mono(Pa(f0,f1)) ==>
+ Refl(f0,f1) & Sym(f0,f1) & Trans(f0,f1) ==> 
+ !cE ce:A->cE. iscoEq(f0,f1,ce) ==>
+ isEq(ce o p1(A,A),ce o p2(A,A),Pa(f0,f1))”));
+
+
 
 val Pb_fac_iff = prove_store("Pb_fac_iff",
 e0

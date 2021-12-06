@@ -2431,6 +2431,17 @@ e0
 (form_goal
  “Trans(p1(N * N, N * N) o ZRI,p2(N * N, N * N) o ZRI)”));
 
+val Thm6_ZR = prove_store("Thm6_ZR",
+e0
+(assume_tac Thm6_isEq >> 
+ qby_tac ‘ZRI =  Pa(p1(N * N, N * N) o ZRI, p2(N * N, N * N) o ZRI)’
+ >-- rw[GSYM to_P_component] >> once_arw[] >>
+ first_x_assum irule >> rw[GSYM to_P_component] >> 
+ rw[ZRI_Mono,ZR_Trans,ZR_Sym,ZR_Refl,toZ_def])
+(form_goal
+ “isEq(toZ o p1(N * N, N * N),toZ o p2(N * N,N * N),ZRI)”));
+
+
 val ADDz_assoc = prove_store("ADDz_assoc",
 e0
 ()
