@@ -457,15 +457,7 @@ e0
   !x. IN(x,xs) ==> hasCard(Del(xs,x),Pre(n))”));
 end
 
-Theorem foo1:
-∀s n. R s n ⇒ ∀x. x∈ s ⇒ R (s DELETE x) (n -1)
-Proof
-Induct_on ‘R’ >> simp[] >> rpt strip_tac
->- (rw[] >>
-   ‘{x} ∪ s DELETE x = s’ by cheat >>
-   fs[] ) >>
-first_x_assum drule >> cheat
-QED
+
 
 
 
@@ -483,12 +475,14 @@ e0
      >-- (irule Ins_absorb >> arw[]) >> arw[]) >>    
  qexists_tac ‘Suc(n)’ >> drule hasCard_Ins >> first_x_assum drule >> arw[] >>
  rpt strip_tac >> 
- 
- 
-
- )
-cheat >>
- rpt strip_tac >> cheat)
+ drule hasCard_Del >>
+ fs[] >>
+ qby_tac ‘IN(x0, Ins(x0, xs0))’ >-- fs[GSYM Ins_property] >>
+ first_x_assum drule >> drule Del_Ins >> fs[] >> first_x_assum drule >>
+ qpick_x_assum ‘hasCard(Ins(x0, xs0), n')’ (assume_tac o GSYM) >>
+ drule hasCard_Ins_Suc >> fs[] >>
+ first_x_assum (qspecl_then [‘x0’,‘xs0’] assume_tac) >> fs[] >>
+ fs[] >> fs[Pre_Suc])
 (form_goal
  “!X xs:mem(Pow(X)).Fin(xs) ==> ?!n.hasCard(xs,n)”));
 
