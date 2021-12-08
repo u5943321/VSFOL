@@ -1,4 +1,30 @@
 
+(*
+
+!xs n. Card xs n ==> !x\in xs ==> Card (xs DELETE x)  (n - 1)
+
+!x. x\notin xs ==> Card( x INSERT xs) (n + 1)
+
+
+Card: Pow(X) -> N
+
+can have a Card: Pow(X) -> N that map every infinite set to 0
+
+
+define a choice function that 
+
+
+
+CHOICE: Pow(A)->A.
+
+
+
+“@a.”
+
+Card: Fin(X) -> N
+
+*)
+
 
 val Ins_ex = 
 fVar_Inst 
@@ -131,7 +157,7 @@ val IN_BIGINTER = BI_def |> rewr_rule[BIGINTER_def] |> spec_all |> conjE2 |> gen
                          |> store_as "IN_BIGINTER";
 
 
-
+(*
 local
 val lemma = 
  fVar_Inst 
@@ -162,7 +188,7 @@ fVar_Inst
 (AX1 |> qspecl [‘N’,‘Pow(X)’]) |> uex_expand |> ex2fsym0 "hasCard" ["X"]
 |> conjE1
 |> conv_rule $ basic_once_fconv no_conv (rewr_fconv (spec_all IN_U))
-
+*)
 
 
 
@@ -309,6 +335,24 @@ e0
        !x0. (~IN(x0,xs)) ==> IN(Pair(Ins(x0,xs),Suc(n)),ss)) ==>
       !xs n.hasCard(xs,n) ==> IN(Pair(xs,n),ss) ”));
 
+
+
+
+
+val Fin_Card = prove_store("Card_Fun",
+e0
+(rw[Fun_expand,Card_lemma] >> strip_tac >> match_mp_tac Fin_ind_card >>
+ strip_tac >-- cheat >>
+ rpt strip_tac >> cheat)
+(form_goal
+ “!X xs:mem(Pow(X)).Fin(xs) ==> ?!n.hasCard(xs,n)”));
+
+val Card_def = Fin_Card |> spec_all |> undisch |> uex_expand
+                        |> ex2fsym0 "Card" ["xs"]
+                        |> disch_all |> gen_all
+
+(*
+
  Card_def' |> spec_all |> iffRL
 
 val hasCard_Ins_pre = prove_store("hasCard_Ins_pre",
@@ -352,3 +396,4 @@ e0
 (*union is finite <=> A and B are finite*)
 
 end
+*)

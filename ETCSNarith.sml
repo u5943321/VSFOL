@@ -1,18 +1,3 @@
-fun sspecl tl th = 
-    let val (b,vs) = strip_forall $ concl th
-        val ars = List.filter (fn (n,s) => not (on_ground o fst o dest_sort o snd $ (n,s))) vs
-        val env = match_tl essps (List.map mk_var ars) tl emptyvd
-        val tl' = List.map (inst_term env) (List.map mk_var vs)
-    in specl tl' th
-    end
-
-
-fun sspecl_then tl (ttac: thm_tactic): thm_tactic = 
-    fn th => ttac (sspecl tl th)
-
-val qsspecl_then = qterml_tcl sspecl_then
-
-
 
 val INV_SUC_EQ = prove_store("INV_SUC_EQ",
 e0
@@ -2110,7 +2095,7 @@ e0
  qexistsl_tac [‘p1(A,B) o ab’,‘p2(A,B) o ab’] >>
  rw[GSYM to_P_component])
 (form_goal
- “!A B ab:1->A * B.
+ “!X A B ab:X->A * B.
   ?a b. ab = Pa(a,b)”));
 
 
@@ -2442,11 +2427,307 @@ e0
  “isEq(toZ o p1(N * N, N * N),toZ o p2(N * N,N * N),ZRI)”));
 
 
+val Addz_ex = prove_store("Addz_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘ADDz o Pa(z1,z2)’ >> rw[])
+(form_goal
+ “!X z1:X->Z z2. ?z12. ADDz o Pa(z1,z2) = z12”));
+
+val Addz_def = Addz_ex |> spec_all |> ex2fsym0 "Addz" ["z1","z2"]
+                       |> gen_all |> store_as "Addz_def";
+
+val asz_ex = prove_store("asz_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘toZ o pair’ >> rw[])
+(form_goal “!X pair:X-> N * N. ?z. toZ o pair= z”));
+
+val asz_def = asz_ex |> spec_all |> ex2fsym0 "asz" ["pair"]
+                     |> gen_all |> store_as "asz_def";
+
+
+val Addj_ex = prove_store("Addj_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘ADDj o Pa(ab,cd)’ >> rw[])
+(form_goal “!X ab:X->N * N cd. ?acbd.ADDj o Pa(ab,cd) = acbd”));
+
+val Addj_def = Addj_ex |> spec_all |> ex2fsym0 "Addj" ["ab","cd"]
+                       |> gen_all |> store_as "Addj_def";
+
+val _ = new_pred "ZR" [("ab",ar_sort (mk_ob "X") (Po N N)),
+                       ("cd",ar_sort (mk_ob "X") (Po N N))]
+
+val ZR_def0 = store_ax("ZR_def0",
+“!X ab:X->N * N cd. ZR(ab,cd) <=> ?x0:X-> ZR.Pa(ab,cd) = ZRI o x0”);
+
+
+val Add_ex = prove_store("Add_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘ADD o Pa(a,b)’ >> rw[])
+(form_goal
+ “!a:X->N b. ?ab. ADD o Pa(a,b) = ab”));
+
+val Add_def = Add_ex |> spec_all |> ex2fsym0 "Add" ["a","b"]
+                     |> gen_all
+                     |> store_as "Add_def";
+
+val Fst_ex = prove_store("Fst_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(A,B) o ab’ >> rw[])
+(form_goal “!X A B ab:X->A * B. ?fst.p1(A,B) o ab = fst”));
+
+
+val Snd_ex = prove_store("Snd_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p2(A,B) o ab’ >> rw[])
+(form_goal “!X A B ab:X->A * B. ?snd.p2(A,B) o ab = snd”));
+
+val Fst_def = Fst_ex |> spec_all |> ex2fsym0 "Fst" ["ab"]
+                     |> gen_all
+                     |> store_as "Fst_def";
+
+
+
+val Snd_def = Snd_ex |> spec_all |> ex2fsym0 "Snd" ["ab"]
+                     |> gen_all
+                     |> store_as "Snd_def";
+
+val Fst_Snd_Pa = p12_of_Pa |> rewr_rule[Fst_def,Snd_def]
+                           |> store_as "Fst_Snd_Pa";
+
+val Fst_Pa = p1_of_Pa |> rewr_rule[Fst_def] |> store_as "Fst_Pa";
+
+val Snd_Pa = p2_of_Pa |> rewr_rule[Snd_def] |> store_as "Snd_Pa";
+
+val ZR_def = prove_store("ZR_def",
+e0
+(rpt strip_tac >> 
+ rw[ZR_def0,GSYM ZRI_def,GSYM Eq_property,p12_of_Pa,Pa_distr,o_assoc] >>
+ qsspecl_then [‘ab’] strip_assume_tac has_components >>
+ qsspecl_then [‘cd’] strip_assume_tac has_components >> arw[p12_of_Pa,Fst_Snd_Pa] >> dimp_tac >> strip_tac >> fs[GSYM Add_def])
+(form_goal
+ “!X ab:X->N * N cd. ZR(ab,cd) <=> 
+  Add(Fst(ab),Snd(cd)) = Add(Snd(ab),Fst(cd))”));
+
+
+val rep_ex = prove_store("rep_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘REP o z’ >> rw[] )
+(form_goal “!X z:X->Z.?r. REP o z = r”));
+
+val rep_def= rep_ex |> spec_all |> ex2fsym0 "rep" ["z"] 
+                    |> gen_all |> store_as "rep_def";
+
+val rep_asz = prove_store("rep_asz",
+e0
+(rpt strip_tac >> rw[GSYM rep_def,GSYM asz_def,REP_def,GSYM o_assoc,idL])
+(form_goal “!X z:X->Z. asz(rep(z)) = z”)); 
+
+(*asz_def rep_def toZ_def REP_def*)
+
+val lflip_tac =
+fconv_tac 
+ (land_fconv no_conv 
+ $ basic_once_fconv no_conv (rewr_fconv (eq_sym "ar")))
+
+val rflip_tac =
+fconv_tac 
+ (rand_fconv no_conv 
+ $ basic_once_fconv no_conv (rewr_fconv (eq_sym "ar")))
+
+
+
+val samez_cond = prove_store("samez_cond",
+e0
+(rw[ZR_def,GSYM asz_def] >> 
+ assume_tac Thm6_ZR >> drule via_Eq_iff >> 
+ rpt strip_tac >>
+ (*qsspecl_then [‘ab’] strip_assume_tac has_components >>
+ qsspecl_then [‘cd’] strip_assume_tac has_components >> fs[] >> *)
+ first_x_assum (qsspecl_then [‘Pa(ab,cd)’] assume_tac) >> fs[o_assoc,p12_of_Pa] >>
+ pop_assum (assume_tac o GSYM) >> arw[] >> lflip_tac >> 
+ rw[GSYM ZR_def] >> rw[ZR_def0])
+(form_goal “!X ab:X-> N * N cd. asz(ab) = asz(cd) <=> ZR(ab,cd)”));
+
+val ZR_samez = GSYM samez_cond;
+
+val rep_asz_ZR = prove_store("rep_asz_ZR",
+e0
+(rw[GSYM samez_cond,rep_asz])
+(form_goal “!X ab:X->N * N.ZR(ab,rep(asz(ab)))”));
+
+val rep_ZR_eq = prove_store("rep_ZR_eq",
+e0
+(rw[ZR_samez,rep_asz])
+(form_goal
+ “!X z1:X->Z z2. ZR(rep(z1),rep(z2)) <=> z1 = z2”));
+
+val z_eq_cond = prove_store("z_eq_cond",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (qexistsl_tac [‘rep(z1)’,‘rep(z2)’] >> arw[rep_asz,rep_ZR_eq]) >>
+ fs[ZR_samez])
+(form_goal “!X z1:X->Z z2. z1 = z2 <=> ?ab cd. asz(ab) = z1 & asz(cd) = z2 & ZR(ab,cd) ”));
+
+val Add_sym = ADD_SYM |> rewr_rule[Add_def] |> store_as "Add_sym";
+
+val ZR_refl = prove_store("ZR_refl",
+e0
+(rw[ZR_def] >> rpt strip_tac >>
+ qsspecl_then [‘Fst(ab)’,‘Snd(ab)’] assume_tac Add_sym >> arw[])
+(form_goal “!ab:1->N * N.ZR(ab,ab)”));
+
+
+val ZR_sym = prove_store("ZR_sym",
+e0
+(rw[ZR_def] >> rpt strip_tac >> lflip_tac >>
+ qsspecl_then [‘Fst(ab)’,‘Snd(cd)’] assume_tac Add_sym >> arw[] >> 
+ qsspecl_then [‘Fst(cd)’,‘Snd(ab)’] assume_tac Add_sym >> arw[])
+(form_goal “!ab:1->N * N cd.ZR(ab,cd) <=> ZR(cd,ab)”));
+
+
+val ZR_trans = prove_store("ZR_sym",
+e0
+(assume_tac ZR_Trans >> 
+ assume_tac ZRI_Mono >>
+ pop_assum mp_tac >> once_rw[to_P_component] >> strip_tac >> 
+ drule Trans_alt' >> fs[GSYM to_P_component] >> pop_assum (K all_tac) >>
+ rw[ZR_def0] >> rpt strip_tac >> dflip_tac >> first_x_assum irule >>
+ qexistsl_tac [‘cd’,‘x0’,‘x0'’] >> arw[])
+(form_goal “!ab:1->N * N  cd ef.ZR(ab,cd) & ZR(cd,ef) ==> ZR(ab,ef)”));
+
+val ZR_cond = prove_store("ZR_cond",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac 
+ >-- (qexistsl_tac [‘ab’,‘cd’] >> arw[ZR_refl]) >>
+ qby_tac ‘ZR(ab,cd1)’ 
+ >-- (irule ZR_trans >> qexists_tac ‘ab1’ >> arw[]) >>
+ qby_tac ‘ZR(cd1,cd)’
+ >-- (irule $ iffLR ZR_sym >> arw[]) >>
+ irule ZR_trans >>
+ qexists_tac ‘cd1’ >> arw[])
+(form_goal “!ab:1->N * N cd.ZR(ab,cd) <=> ?ab1 cd1. ZR(ab,ab1) & ZR(cd,cd1) & ZR(ab1,cd1)”));
+
+
+val rep_rel_all = prove_store("rep_rel_all",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac 
+ >-- (pop_assum (assume_tac o GSYM) >> arw[] >>
+      irule $ iffLR ZR_sym >> rw[rep_asz_ZR]) >>
+ fs[ZR_samez,rep_asz])
+(form_goal
+ “!z:1->Z rz.asz(rz) = z <=> ZR(rep(z),rz)”));
+
+val Pa_Fst_Snd = to_P_component |> rewr_rule[Fst_def,Snd_def] |> GSYM
+                                |> store_as "Pa_Fst_Snd";
+
+val z_has_rep = prove_store("z_has_rep",
+e0
+(strip_tac >> rw[GSYM asz_def] >> rpt strip_tac >>
+ qexistsl_tac [‘Fst(rep(z))’,‘Snd(rep(z))’] >>
+ rw[Pa_Fst_Snd] >> rw[asz_def,rep_asz])
+(form_goal
+ “!X z:X->Z. ?a b. z = asz(Pa(a,b))”));
+
+
+val Add_assoc = ADD_assoc |> rewr_rule[Add_def] |> store_as "Add_assoc";
+
+val Addj_property =  prove_store("Addj_property",
+e0
+(rw[GSYM Addj_def,GSYM ADDj_def,p12_of_Pa,Pa_distr,o_assoc,GSYM Add_def])
+(form_goal
+ “!a:1->N b c d. Addj(Pa(a,b),Pa(c,d)) = Pa(Add(a,c),Add(b,d))”));
+
+
+val J1_i = prove_store("J1_i",
+e0
+(rw[ZR_def,Addj_property] >> rpt strip_tac >> 
+ rw[Fst_Snd_Pa] >>
+ qsspecl_then [‘Add(Add(a, c), e)’,‘Add(b, Add(d, f))’] assume_tac Add_sym >>
+ arw[] >> rw[GSYM Add_assoc])
+(form_goal “!a b c d e f:1->N. 
+ ZR(Addj(Addj(Pa(a,b),Pa(c,d)),Pa(e,f)),
+    Addj(Pa(a,b),Addj(Pa(c,d),Pa(e,f))))”));
+
+
+val ZR_def' = prove_store("ZR_def'",
+e0
+(rw[ZR_def] >> rpt strip_tac >> 
+ qsspecl_then [‘Snd(ab)’,‘Fst(cd)’] assume_tac Add_sym >>
+ arw[])
+(form_goal
+ “!ab:1 ->N * N cd.
+        ZR(ab, cd) <=> Add(Fst(ab), Snd(cd)) = Add(Fst(cd), Snd(ab))”));
+
+val Add_sym' = GSYM Add_sym
+
+val J2_i = prove_store("J2_i",
+e0
+(rw[Addj_property,ZR_def',Fst_Snd_Pa] >>
+ rpt strip_tac >>
+ rw[GSYM Add_assoc] >>
+ qspecl_then [‘d'’,‘b'’] assume_tac Add_sym' >> arw[] >>
+ qspecl_then [‘c’,‘d'’,‘b'’] assume_tac Add_assoc >>
+ arw[] >>
+ rw[GSYM Add_assoc] >>
+ qspecl_then [‘Add(c',Add(d,b'))’,‘a’] assume_tac Add_sym' >> 
+ arw[] >>
+ rw[GSYM Add_assoc] >>
+ qspecl_then [‘a’,‘b'’] assume_tac Add_sym' >>
+ arw[] >>
+ qsspecl_then [‘Add(c', Add(b, d))’,‘a'’]
+ assume_tac Add_sym' >> arw[] >>
+ rw[GSYM Add_assoc] >> 
+ qsuff_tac
+ ‘Add(d, Add(a', b)) = Add(b, Add(d, a'))’
+ >-- (strip_tac >> arw[]) >>
+ qspecl_then [‘Add(a',b)’,‘d’] assume_tac Add_sym' >>
+ arw[] >> 
+ qspecl_then [‘a'’,‘d’] assume_tac Add_sym' >> arw[] >>
+ rw[Add_assoc] >>
+ qspecl_then [‘a'’,‘b’] assume_tac Add_sym' >> arw[])
+(form_goal
+ “!a:1->N b a' b' c d c' d'. ZR(Pa(a,b),Pa(a',b')) & ZR(Pa(c,d),Pa(c',d')) ==>
+ ZR(Addj(Pa(a,b),Pa(c,d)),Addj(Pa(a',b'),Pa(c',d')))”));
+
+
+val J2_i_z = prove_store("J2_i_z",
+e0
+(rpt strip_tac >> assume_tac J2_i >>
+ rw[GSYM Addz_def,GSYM ADDz_def,o_assoc,Pa_distr] >> rw[asz_def,p12_of_Pa] >>
+ rw[samez_cond] >> arw[] >>
+ rw[rep_def,Addj_def]  >> 
+ qsspecl_then [‘rep(asz(Pa(a,b)))’] strip_assume_tac has_components >>
+ qsspecl_then [‘rep(asz(Pa(c,d)))’] strip_assume_tac has_components >>
+ arw[] >> first_x_assum irule >> pop_assum_list (map_every (assume_tac o GSYM)) >>
+ arw[] >> rw[GSYM rep_rel_all] >> arw[])
+(form_goal
+ “!z1:1->Z z2 a b c d. z1 = asz(Pa(a,b)) & z2 = asz(Pa(c,d)) ==>
+ Addz(z1,z2) = asz(Addj(Pa(a,b),Pa(c,d)))”));
+
+
+val Addz_eqn' = prove_store("Addz_eqn'",
+e0
+(rpt strip_tac >>
+ assume_tac J2_i_z >>
+ first_x_assum irule >> rw[])
+(form_goal
+ “!a:1->N b c d.
+  Addz(asz(Pa(a,b)),asz(Pa(c,d))) = 
+  asz(Addj(Pa(a,b),Pa(c,d)))”));
+
 val ADDz_assoc = prove_store("ADDz_assoc",
 e0
-()
+(rpt strip_tac >> 
+ qsspecl_then [‘z1’] strip_assume_tac z_has_rep >>
+ qsspecl_then [‘z2’] strip_assume_tac z_has_rep >>
+ qsspecl_then [‘z3’] strip_assume_tac z_has_rep >>
+ arw[] >> 
+ rw[Addz_eqn'] >> rw[Addj_property] >>
+ rw[Addz_eqn'] >> rw[GSYM Addj_property] >>
+ assume_tac J1_i >> fs[ZR_samez])
 (form_goal
- “!z1 z2 z3. ADDz o Pa(p1(N * N, N * N) o ZRI,p2(N * N, N * N) o ZRI)”));
+ “!z1:1->Z z2 z3. Addz(Addz(z1,z2),z3) = Addz(z1,Addz(z2,z3))”));
+
 (*
 rastt "Ev(X,2) o (f :1-> X * Pow(X))"
 

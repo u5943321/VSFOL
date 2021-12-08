@@ -2910,7 +2910,7 @@ e0
 (form_goal
  “!n1 n2. Eval(SUC,n1) = Eval(SUC,n2) <=> n1 = n2”));
 
-
+(*
 fun pick_nth_assum n ttac = fn (ct,asl, w) => ttac (assume (List.nth(rev asl,Int.-(n,1)))) (ct,asl, w)
 
 fun undisch_then f (ttac:thm_tactic): tactic = fn (ct,asl, w) =>
@@ -2929,7 +2929,7 @@ Proposition: Given a set 𝑋, a 𝑓:𝑋→𝑋, and 𝑎∈𝑋
 (1) 𝑢(1)=𝑎
 
 (2) ∀𝑛∈ℕ  (  𝑢(𝑠(𝑛))=𝑓(𝑢(𝑛))  )
-
+*)
 
 
 (*Axiom 5 (Collection): For any set A and any property P which can obtain of an element of A and a set, there exists a set B, function p:B→A, and a B-indexed family of sets M:B↬Y such that (1) P(p(b),Mb) holds for any b∈B, and (2) for any a∈A, if there exists a set X with P(a,X), then a∈im(p).

@@ -1883,6 +1883,18 @@ e0
 end
 
 
+(*TODO: have SEAR master and ETCS master
+like 
+
+
+use "master.ML";
+use "SEARsettings.sml";
+...
+
+
+
+*)
+
 
 
 

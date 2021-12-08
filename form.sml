@@ -8,6 +8,20 @@ Pred of string * term list
 | Quant of string * string * sort * form
 | fVar of string * term list;   
 
+
+
+(*
+
+datatype form =
+Pred of string * bool * term list
+| Conn of string * form list
+| Quant of string * string * sort * form
+
+eq_psym then ignore the bool   
+
+
+
+*)
 exception ERR of string * sort list * term list * form list
 
 fun simple_fail s = ERR (s,[],[],[]) 
@@ -17,7 +31,7 @@ fun wrap_err s exn =
               | TER (s0,sl,tl) => ERR (s^s0,sl,tl,[])
               | _ => raise simple_fail s 
 
-
+(*edit same code of pred and fvar*)
 fun subst_bound t = 
     let fun subst i (Pred(a,ts)) = Pred(a, List.map (replacet (mk_bound i, t)) ts) 
           | subst i (Conn(b,As)) = Conn(b, List.map (subst i) As) 
