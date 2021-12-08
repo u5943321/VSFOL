@@ -2728,6 +2728,149 @@ e0
 (form_goal
  “!z1:1->Z z2 z3. Addz(Addz(z1,z2),z3) = Addz(z1,Addz(z2,z3))”));
 
+
+
+
+val zj_ex = prove_store("zj_ex",
+e0
+(qexists_tac ‘Pa(O,O)’ >> rw[])
+(form_goal
+ “?zj.Pa(O,O) = zj”));
+
+val zj_def = zj_ex |> ex2fsym0 "0j" []
+                   |> store_as "zj_def";
+
+val Swap_Pa = prove_store("Swap_Pa",
+e0
+(rpt strip_tac >> rw[GSYM Swap_def] >> rw[Pa_distr,Pa_eq_eq,p12_of_Pa])
+(form_goal “!X A f:X->A B g:X->B. Swap(A,B) o Pa(f,g) = Pa(g,f)”));
+
+
+
+val NEGj_ex = prove_store("NEGj_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Swap(N,N)’ >> rw[])
+(form_goal “?NEGj.Swap(N,N) =NEGj ”));
+
+val NEGj_def = NEGj_ex |> spec_all |> ex2fsym0 "NEGj" []
+                       |> gen_all |> store_as "NEGj_def";
+
+
+
+val NEGj_property = prove_store("NEGj_property",
+e0
+(rpt strip_tac >> rw[GSYM NEGj_def,Swap_Pa])
+(form_goal “!X a:X->N b. NEGj o Pa(a,b) = Pa(b,a)”));
+
+
+val Negj_ex = prove_store("Negj_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘NEGj o ab’ >> rw[])
+(form_goal “!X ab:X->N * N. ?nab. NEGj o ab = nab”));
+
+val Negj_def = Negj_ex |> spec_all |> ex2fsym0 "Negj" ["ab"] 
+                       |> gen_all |> store_as "Negj_def";
+
+val Negj_property = NEGj_property |> rewr_rule[Negj_def]
+
+
+val Add_El = ADD_el |> rewr_rule [Add_def] |> store_as "Add_El";
+
+val Add_O_n = ADD_O_n |> rewr_rule[Add_def] |> store_as "Add_O_n";
+
+
+val J1_ii = prove_store("J1_ii",
+e0
+(rw[GSYM zj_def,Addj_property,ZR_def,Fst_Snd_Pa,Add_O_n,Add_El] >> rpt strip_tac >>
+ qsspecl_then [‘a’,‘b’] accept_tac Add_sym)
+(form_goal
+ “!a b.ZR(Addj(Pa(a,b),0j),Pa(a,b))”));
+
+
+val zz_ex = prove_store("zz_ex",
+e0
+(qexists_tac ‘asz(0j)’ >> rw[])
+(form_goal
+ “?z. asz(0j) = z”));
+
+val zz_def = zz_ex |> ex2fsym0 "0z" []
+                   |> store_as "zz_def";
+
+
+val Addz_zz = prove_store("Addz_zz",
+e0
+(strip_tac >> once_rw[z_eq_cond] >>
+ qsspecl_then [‘z’] strip_assume_tac z_has_rep >> 
+ arw[] >>
+ assume_tac J1_ii >>
+ fs[ZR_samez] >> 
+ rw[GSYM zz_def] >> rw[GSYM zj_def,Addz_eqn'] >>
+ rw[zj_def] >> arw[] >>
+ qexistsl_tac [‘Pa(a,b)’,‘Pa(a,b)’] >> rw[])
+(form_goal
+ “!z. Addz(z,0z) = z”));
+
+val Z2_ii = Addz_zz |> store_as "Z2_ii";
+
+val Negz_ex =  prove_store("Negz_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘asz(Negj(rep(z)))’ >> rw[])
+(form_goal “!X z:X->Z.?nz. asz(Negj(rep(z))) = nz”));
+
+val Negz_def = Negz_ex |> spec_all |> ex2fsym0 "Negz" ["z"]
+                       |> gen_all |> store_as "Negz_def";
+
+
+val J2_ii = prove_store("J2_ii",
+e0
+(rw[ZR_def,Negj_property,Fst_Snd_Pa] >>rpt strip_tac >> arw[])
+(form_goal
+ “!X a:X->N b a' b'. ZR(Pa(a,b),Pa(a',b')) ==> 
+  ZR(Negj(Pa(a,b)),Negj(Pa(a',b')))”));
+
+
+val J2_ii_z = prove_store("J2_ii_z",
+e0
+(rpt strip_tac >> assume_tac J2_ii >>
+ rw[GSYM Negz_def] >> rw[samez_cond] >> 
+ qsspecl_then [‘rep(z)’] strip_assume_tac has_components >> arw[] >>
+ first_x_assum irule >> pop_assum (assume_tac o GSYM) >> arw[] >>
+ rw[GSYM rep_rel_all])
+(form_goal
+ “!a:1->N b z. z = asz(Pa(a,b)) ==>
+  Negz(z) = asz(Negj(Pa(a,b)))”));
+
+
+val Negz_eqn = prove_store("Negz_eqn",
+e0
+(rpt strip_tac >> irule J2_ii_z >> arw[])
+(form_goal
+ “!a:1->N b. Negz(asz(Pa(a,b))) = asz(Negj(Pa(a,b)))”));
+
+
+val J1_iii = prove_store("J1_iii",
+e0
+(rw[Addj_property,GSYM zj_def,Negj_property,ZR_def,
+    Fst_Snd_Pa,Add_El,Add_O_n] >>
+ rpt strip_tac >>
+ qspecl_then [‘a’,‘b’] assume_tac Add_sym >>
+ first_x_assum accept_tac)
+(form_goal
+ “!a b. ZR(Addj(Pa(a,b),Negj(Pa(a,b))),0j)”));
+
+
+
+val Z2_iii = prove_store("Z2_iii",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘z’] strip_assume_tac z_has_rep >> 
+ arw[] >> rw[Negz_eqn,Addz_eqn',Negj_property,Addj_property] >> rw[GSYM zz_def]  >>
+ rw[GSYM ZR_samez,ZR_def,Fst_Snd_Pa,GSYM zj_def,Add_El,Add_O_n] >>
+ qspecl_then [‘a’,‘b’] accept_tac Add_sym)
+(form_goal
+ “!z. Addz(z,Negz(z)) = 0z”));
+
+
 (*
 rastt "Ev(X,2) o (f :1-> X * Pow(X))"
 
