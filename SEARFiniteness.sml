@@ -384,6 +384,32 @@ e0
  “!X x0 x:mem(X).(~(x0 = x)) ==> !xs.Del(Ins(x0, xs), x) = Ins(x0,Del(xs,x))”));
 
 
+
+
+local
+val l = 
+fVar_Inst 
+[("P",([("xsns",mem_sort $ Cross (Pow $ mk_set "X") N)],
+“hasCard(Fst(xsns),Snd(xsns)) & !x0:mem(X) xs0. Fst(xsns) = Ins(x0,xs0) ==> ?n0. Snd(xsns) = Suc(n0)”))] 
+(IN_def_P_expand |> qspecl [‘(Pow(X) * N)’])
+in
+val hasCard_Ins_Suc = prove_store("hasCard_Ins_Suc",
+e0
+(strip_tac >> strip_assume_tac l >> pop_assum (K all_tac) >>
+ qsuff_tac ‘!xs n.hasCard(xs,n) ==> IN(Pair(xs,n),s)’ 
+ >-- (pop_assum (assume_tac o GSYM) >> arw[Pair_def']) >>
+ strip_tac >> strip_tac >> match_mp_tac hasCard_ind >>
+ pop_assum (assume_tac o GSYM) >> arw[] >> rw[Pair_def'] >> 
+ rw[hasCard_Empty] >> rpt strip_tac (* 3 *)
+ >-- (qby_tac ‘IN(x0,Ins(x0,xs0))’ >-- fs[GSYM Ins_property] >>
+     qpick_x_assum ‘Empty(X) = Ins(x0, xs0)’ (assume_tac o GSYM) >>
+     fs[Empty_property]) 
+ >-- (drule hasCard_Ins >> first_assum drule >> arw[]) >>
+ qexists_tac ‘n'’ >> rw[])
+(form_goal
+ “!X xs:mem(Pow(X)) n. hasCard(xs,n) ==> hasCard(xs,n) & !x0 xs0. xs = Ins(x0,xs0) ==> ?n0. n = Suc(n0)”));
+end
+
 local
 val l = 
 fVar_Inst 
@@ -419,8 +445,13 @@ e0
  (rw[GSYM Del_property] >> arw[]) >>
  first_x_assum drule >> rw[Pre_Suc] >>
  cases_on “n' = O”
- 
- )
+ >-- (fs[] >>
+     drule Ins_absorb >>
+     qby_tac ‘hasCard(Ins(x, xs'), O)’ >-- arw[] >>
+     drule hasCard_Ins_Suc >> pop_assum strip_assume_tac >>
+     first_x_assum (qspecl_then [‘x’,‘xs'’] assume_tac) >> fs[GSYM Suc_NONZERO])>>
+ fs[O_xor_Suc] >> fs[] >>
+ fs[Pre_Suc])
 (form_goal
  “!X xs:mem(Pow(X)) n.hasCard(xs,n) ==> hasCard(xs,n) & 
   !x. IN(x,xs) ==> hasCard(Del(xs,x),Pre(n))”));
