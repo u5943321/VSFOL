@@ -794,5 +794,167 @@ once_rw [GSYM p32_def] >>
     Ev(Exp(X,1+1) * N,1+1) o Pa(Pa(Ins(e,s0),SUC o n0),P) = TRUE) ==> 
   Ev(Exp(X,1+1) * N,1+1) o Pa(Pa(xs,n),P) = TRUE”));
 
+val Pre_ex = prove_store("Pre_ex",
+e0
+(rpt strip_tac >> qexistsl_tac [‘PRE o n’] >> rw[])
+(form_goal “!X n:X->N. ?pn. PRE o n = pn”));
+
+val Pre_def = Pre_ex |> spec_all |> ex2fsym0 "Pre" ["n"]
+                     |> gen_all |> store_as "Pre_def";
+
+val IN_o = prove_store("IN_o",
+e0
+(rw[IN_def,GSYM Mem_def,GSYM Tp0_def,o_assoc,Pa_distr,True1TRUE,idL] >> once_rw[one_to_one_id] >> rw[idR])
+(form_goal
+ “!X P x:1->X. IN(x,P) <=> Tp0(P) o x = TRUE”));
+
+val Finite_ind = prove_store("Finite_ind",
+e0
+(rw[isFinite_property1] >> rpt strip_tac >>
+ first_x_assum irule >> arw[])
+(form_goal
+ “!X P. P o Empty(X)= TRUE &
+        (!xs. P o xs = TRUE ==> 
+         !x. P o Ins(x, xs) = TRUE) ==>
+   !xs. isFinite(X) o xs = TRUE ==> P o xs = TRUE”));
+
+val hasCard_property1 = hasCard_property |> rewr_rule[Mem_def,GSYM IN_def1] |> store_as "hasCard_property1";
+
+val hasCard_ind = prove_store("hasCard_ind",
+e0
+(rw[hasCard_property1] >> once_rw[Suc_def] >>
+ rpt strip_tac >> 
+ qsspecl_then [‘P’] assume_tac $ GSYM Tp0_Tp1_inv >>
+ once_arw[] >>  rw[GSYM IN_o] >> first_x_assum irule >>
+ rw[IN_o] >> pop_assum (assume_tac o GSYM) >> arw[] >>
+ rpt strip_tac >> first_x_assum irule >>
+ once_arw[] >> rw[] >> fs[GSYM IN_o])
+(form_goal
+ “!X P. P o Pa(Empty(X),O)= TRUE &
+        (!xs n. P o Pa(xs,n) = TRUE ==> 
+         !x. (~(IN(x,xs))) ==> P o Pa(Ins(x, xs),Suc(n)) = TRUE) ==>
+   !xs n. hasCard(X) o Pa(xs,n) = TRUE ==> P o Pa(xs,n) = TRUE”));
+
+val hasCard_Empty = prove_store("hasCard_Empty",
+e0
+(rw[hasCard_property1] >> rpt strip_tac >> arw[])
+(form_goal “!X.hasCard(X) o Pa(Empty(X),O) = TRUE ”));
+
+
+
+val hasCard_Ins = prove_store("hasCard_Ins",
+e0
+(rw[hasCard_property1] >> once_rw[Suc_def] >> rpt strip_tac
+ >> first_assum irule >> arw[] >> first_assum irule >>
+ arw[])
+(form_goal 
+ “!X xs n.hasCard(X) o Pa(xs,n) = TRUE ==>
+          !x. (~IN(x,xs)) ==> hasCard(X) o Pa(Ins(x,xs),Suc(n)) = TRUE”));
+
+
+val hasCard_Ins_Suc = prove_store("hasCard_Ins_Suc",
+e0
+(strip_tac >> assume_tac hasCard_ind >>
+ qby_tac ‘?P. 
+ !xs n. P o Pa(xs,n) = TRUE <=>
+  hasCard(X) o Pa(xs,n) = TRUE & !x0 xs0. xs = Ins(x0,xs0) ==> ?n0. n = Suc(n0)’ >--
+ (qby_tac ‘?P1.!xs:1->Exp(X,1+1) n:1->N. P1 o Pa(xs,n) = TRUE <=>
+  (!x0 xs0. xs = Ins(x0,xs0) ==> ?n0. n = Suc(n0))’ >--
+(qby_tac 
+ ‘?P2. !x0:1->X xs:1->Exp(X,1+1) n. P2 o Pa(x0,Pa(xs,n)) = TRUE <=>
+  !xs0. xs = Ins(x0,xs0) ==> ?n0:1->N. n = Suc(n0)’ >-- 
+ (qby_tac ‘?P3. !xs0 x0 xs:1->Exp(X,1+1) n. P3 o Pa(xs0,Pa(x0,Pa(xs,n))) = TRUE <=> xs = Ins(x0,xs0) ==> ?n0:1->N. n = Suc(n0)’ >-- 
+  (qby_tac ‘?P4. !n0:1->N xs0:1->Exp(X,1+1) x0:1->X xs:1->Exp(X,1+1) n.
+   P4 o Pa(n0,Pa(xs0,Pa(x0,Pa(xs,n)))) = TRUE <=>
+   n = Suc(n0)’ >-- cheat >> pop_assum strip_assume_tac >>
+  qexists_tac ‘IMP o Pa’)
+
+cheat >> pop_assum strip_assume_tac >>
+ qexists_tac ‘All(Exp(X,1+1)) o Tp(P3)’ >> 
+ once_rw[o_assoc] >> once_rw[All_def] >> once_arw[] >> rw[])
+ >> pop_assum strip_assume_tac >>
+ qexists_tac ‘All(X) o Tp(P2)’ >>
+ once_rw[o_assoc] >> once_rw[All_def] >>
+ once_arw[] >> rw[])>>
+  pop_assum strip_assume_tac >>
+  qexists_tac ‘CONJ o Pa(hasCard(X),P1)’ >>
+  once_rw[o_assoc] >> once_rw[Pa_distr] >>
+  once_rw[CONJ_def]>> once_arw[] >> rw[]) >>
+ pop_assum strip_assume_tac >>
+ first_x_assum (qsspecl_then [‘P’] assume_tac) >>
+ pop_assum mp_tac >> once_arw[] >>
+ strip_tac >> strip_tac >> strip_tac >>
+ first_x_assum match_mp_tac >> once_rw[hasCard_Empty] >>
+ rw[] >> once_rw[GSYM Ins_NONEMPTY]>> rw[] >>
+ rpt strip_tac >--
+ (drule hasCard_Ins >> first_x_assum drule >>
+ first_x_assum accept_tac) >>
+ qexists_tac ‘n'’ >> rw[])
+(form_goal
+ “!X xs n. hasCard(X) o Pa(xs,n) = TRUE ==> hasCard(X) o Pa(xs,n) = TRUE & !x0 xs0. xs = Ins(x0,xs0) ==> ?n0. n = Suc(n0)”));
+
+
+val Pre_Suc = prove_store("Pre_Suc",
+e0
+(fs[GSYM Pre_def,GSYM Suc_def,GSYM o_assoc,PRE_def,idL])
+(form_goal “!X n:X->N. Pre(Suc(n)) = n”));
+
+val hasCard_Del = prove_store("hasCard_Del",
+e0
+(strip_tac >> assume_tac hasCard_ind >>
+ first_x_assum (qsspecl_then 
+ [‘CONJ o Pa(hasCard(X),
+   All(X) o 
+   Tp(IMP o 
+   Pa(Mem(X) o
+      Pa(p31(X,Exp(X,1+1),N),p32(X,Exp(X,1+1),N)),
+      hasCard(X) o 
+      Pa(Delete(X) o Pa(p31(X,Exp(X,1+1),N),p32(X,Exp(X,1+1),N)),PRE o p33(X,Exp(X,1+1),N)))))’] assume_tac) >>
+ pop_assum mp_tac >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >>
+ once_rw[CONJ_def] >> once_rw[o_assoc] >> once_rw[All_def] >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >>
+ once_rw[IMP_def] >> once_rw[GSYM p31_def] >>
+ once_rw[GSYM p32_def] >> once_rw[GSYM p33_def] >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >> 
+ once_rw[o_assoc] >>  once_rw[p12_of_Pa] >>
+ once_rw[p12_of_Pa] >> once_rw[o_assoc] >>  
+ once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[o_assoc] >>  
+ once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[o_assoc] >>  
+ once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[Del_def] >> once_rw[Pre_def] >> strip_tac >>
+ once_rw[IN_def] >> once_rw[True1TRUE] >>
+ strip_tac >> strip_tac>>
+ first_x_assum match_mp_tac >> rw[hasCard_Empty] >>
+ rw[GSYM IN_def1] >> once_rw[NOTIN_Empty] >> rw[] >>
+ rpt strip_tac >--
+ (drule hasCard_Ins >> first_x_assum drule >> arw[]) >>
+ cases_on “x' = x:1->X” >--
+ (fs[] >> drule Del_Ins >> arw[] >> 
+ rw[GSYM Pre_def,GSYM Suc_def] >> 
+ rw[GSYM o_assoc,PRE_def,idL] >> arw[]) >>
+ qby_tac ‘Del(x', Ins(x, xs')) = Ins(x, Del(x', xs'))’
+ >-- (irule Del_Ins_SWAP >> dflip_tac >> arw[]) >>
+ arw[] >> 
+ qby_tac ‘IN(x',xs')’ 
+ >-- (irule IN_Ins_SND >> qexists_tac ‘x’ >> arw[]) >>
+ first_x_assum drule >>
+ drule hasCard_Ins >>
+ qby_tac ‘~(IN(x,Del(x',xs')))’ >--
+ (rw[IN_Del] >> arw[]) >>
+ first_x_assum drule >>
+ qby_tac ‘Ins(x',xs') = xs'’ 
+ >-- (irule $ iffLR Ins_absorb >> arw[]) >>
+ qby_tac ‘hasCard(X) o Pa(Ins(x',xs'),n') = TRUE’ 
+ >-- arw[] >>
+ drule hasCard_Ins_Suc >>
+ pop_assum strip_assume_tac >>
+ first_x_assum (qspecl_then [‘x'’,‘xs'’] assume_tac) >>
+ fs[] >> fs[Pre_Suc])
+(form_goal
+ “!X xs n.hasCard(X) o Pa(xs,n) = TRUE ==> hasCard(X) o Pa(xs,n) = TRUE & 
+  !x. IN(x,xs) ==> hasCard(X) o Pa(Del(x,xs),Pre(n)) = TRUE”));
 
 
