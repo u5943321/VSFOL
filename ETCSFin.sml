@@ -866,10 +866,14 @@ e0
  (qby_tac ‘?P3. !xs0 x0 xs:1->Exp(X,1+1) n. P3 o Pa(xs0,Pa(x0,Pa(xs,n))) = TRUE <=> xs = Ins(x0,xs0) ==> ?n0:1->N. n = Suc(n0)’ >-- 
   (qby_tac ‘?P4. !n0:1->N xs0:1->Exp(X,1+1) x0:1->X xs:1->Exp(X,1+1) n.
    P4 o Pa(n0,Pa(xs0,Pa(x0,Pa(xs,n)))) = TRUE <=>
-   n = Suc(n0)’ >-- cheat >> pop_assum strip_assume_tac >>
-  qexists_tac ‘IMP o Pa’)
-
+   n = Suc(n0)’ >-- 
 cheat >> pop_assum strip_assume_tac >>
+   qby_tac ‘?P5. !xs0:1->Exp(X,1+1) x0:1->X xs:1->Exp(X,1+1) n:1->N.
+   P5 o Pa(xs0,Pa(x0,Pa(xs,n))) = TRUE <=>
+   xs = Ins(x0,xs0)’ >-- cheat >> pop_assum strip_assume_tac >>
+  qexists_tac ‘IMP o Pa(P5,Ex(N) o Tp(P4))’ >>
+  rw[o_assoc,Pa_distr,IMP_def] >> rw[Ex_def] >>
+  arw[]) >> pop_assum strip_assume_tac >>
  qexists_tac ‘All(Exp(X,1+1)) o Tp(P3)’ >> 
  once_rw[o_assoc] >> once_rw[All_def] >> once_arw[] >> rw[])
  >> pop_assum strip_assume_tac >>
