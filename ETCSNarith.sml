@@ -2871,6 +2871,7 @@ e0
  “!z. Addz(z,Negz(z)) = 0z”));
 
 
+
 (*
 rastt "Ev(X,2) o (f :1-> X * Pow(X))"
 
@@ -2934,6 +2935,3 @@ Any better way to write this?
 
 
 
-
-
-end
