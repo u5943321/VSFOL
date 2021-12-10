@@ -548,6 +548,100 @@ e0
  p44(A,B,C,D) o Pa4(f,g,h,k) = k”));
 
 
+val Pa5_ex = prove_store("Pa5_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Pa(f,Pa(g,Pa(h,Pa(j,k))))’ >> rw[])
+(form_goal
+ “!A B C D E X f:X->A g:X ->B h:X->C j:X->D k:X->E. ?Pa5.
+ Pa(f,Pa(g,Pa(h,Pa(j,k)))) = Pa5
+”));
+
+val Pa5_def = Pa5_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "Pa5" ["f","g","h","j","k"]
+              |> C mp (trueI []) |> gen_all
+
+
+
+val p51_ex = prove_store("p51_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(A, B * C * D * E)’ >> rw[])
+(form_goal 
+ “!A B C D E. ?p51. p1(A,B * C * D * E) = p51”));
+
+val p51_def = p51_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p51" ["A","B","C","D","E"]
+              |> C mp (trueI []) |> gen_all
+
+val p42_ex = proved_th $
+e0
+(rpt strip_tac >> qexists_tac ‘p1(B, C * D) o p2(A,B * C * D)’ >> rw[])
+(form_goal 
+ “!A B C D. ?p42. p1(B, C * D) o p2(A,B * C * D) = p42”)
+
+
+val p42_def = p42_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p42" ["A","B","C","D"]
+              |> C mp (trueI []) |> gen_all
+
+
+val p43_ex = prove_store("p43_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(C,D) o p2(B, C * D) o p2(A,B * C * D)’ >> rw[])
+(form_goal 
+ “!A B C D. ?p43. p1(C,D) o p2(B, C * D) o p2(A,B * C * D) = p43”));
+
+
+val p43_def = p43_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p43" ["A","B","C","D"]
+              |> C mp (trueI []) |> gen_all
+
+
+val p55_ex = prove_store("p55_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p2(D,E) o p2(C, D * E) o p2(B,C * D * E) o p2(A,B * C * D * E)’ >> rw[])
+(form_goal 
+ “!A B C D E. ?p55. p2(D,E) o p2(C, D * E) o p2(B,C * D * E) o p2(A,B * C * D * E) = p55”));
+
+
+val p55_def = p55_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p55" ["A","B","C","D","E"]
+              |> C mp (trueI []) |> gen_all
+
+
+
+
+
+val p51_of_Pa5 = prove_store("p51_of_Pa5",
+e0
+(rpt strip_tac >> rw[GSYM Pa5_def,GSYM p51_def,p12_of_Pa])
+(form_goal
+“!A B C D E X f:X->A g:X->B h:X->C j:X->D k:X->E.
+ p51(A,B,C,D,E) o Pa5(f,g,h,j,k) = f”));
+
+val p42_of_Pa4 = prove_store("p42_of_Pa4",
+e0
+(rpt strip_tac >> rw[GSYM Pa4_def,GSYM p42_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C D X f:X->A g:X->B h:X->C k:X->D.
+ p42(A,B,C,D) o Pa4(f,g,h,k) = g”));
+
+
+val p43_of_Pa4 = prove_store("p43_of_Pa4",
+e0
+(rpt strip_tac >> rw[GSYM Pa4_def,GSYM p43_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C D X f:X->A g:X->B h:X->C k:X->D.
+ p43(A,B,C,D) o Pa4(f,g,h,k) = h”));
+
+
+val p55_of_Pa5 = prove_store("p55_of_Pa5",
+e0
+(rpt strip_tac >> rw[GSYM Pa5_def,GSYM p55_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C D X f:X->A g:X->B h:X->C j:X->D k:X->E.
+ p55(A,B,C,D,E) o Pa5(f,g,h,j,k) = k”));
+
+
 val Tp0_INJ = prove_store("Tp0_INJ",
 e0
 (rpt strip_tac >> dimp_tac >> strip_tac >-- 
@@ -852,6 +946,122 @@ e0
           !x. (~IN(x,xs)) ==> hasCard(X) o Pa(Ins(x,xs),Suc(n)) = TRUE”));
 
 
+val And_ex = prove_store("And_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘CONJ o Pa(p,q)’ >> rw[])
+(form_goal “!X p:X->1+1 q. ?pq. CONJ o Pa(p,q) = pq”));
+
+val And_def = And_ex |> spec_all
+                     |> ex2fsym0 "And" ["p","q"]
+                     |> gen_all
+                     |> store_as "And_def";
+
+val And_property = rewr_rule[And_def] CONJ_def
+
+
+val Or_ex = prove_store("Or_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘DISJ o Pa(p,q)’ >> rw[])
+(form_goal “!X p:X->1+1 q. ?pq. DISJ o Pa(p,q) = pq”));
+
+val Or_def = Or_ex |> spec_all
+                   |> ex2fsym0 "Or" ["p","q"]
+                   |> gen_all
+                   |> store_as "Or_def";
+
+val Or_property = rewr_rule[Or_def] DISJ_def;
+
+
+val Imp_ex = prove_store("Imp_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘IMP o Pa(p,q)’ >> rw[])
+(form_goal “!X p:X->1+1 q. ?pq. IMP o Pa(p,q) = pq”));
+
+val Imp_def = Imp_ex |> spec_all
+                   |> ex2fsym0 "Imp" ["p","q"]
+                   |> gen_all
+                   |> store_as "Imp_def";
+
+val Imp_property = rewr_rule[Imp_def] IMP_def;
+
+
+val Iff_ex = prove_store("Iff_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘IFF o Pa(p,q)’ >> rw[])
+(form_goal “!X p:X->1+1 q. ?pq. IFF o Pa(p,q) = pq”));
+
+val Iff_def = Iff_ex |> spec_all
+                   |> ex2fsym0 "Iff" ["p","q"]
+                   |> gen_all
+                   |> store_as "Iff_def";
+
+val Iff_property = rewr_rule[Iff_def] IFF_def;
+
+
+val ALL_ex = prove_store("ALL_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘All(X) o Tp(p)’ >> rw[])
+(form_goal “!X Y p:X * Y -> 1+1. ?ap.All(X) o Tp(p) = ap”));
+
+val ALL_def = ALL_ex |> spec_all |> ex2fsym0 "ALL" ["p"]
+                     |> gen_all |> store_as "ALL_def";
+
+
+val ALL_property = All_def |> rewr_rule[GSYM o_assoc,ALL_def]
+
+
+val EX_ex = prove_store("EX_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Ex(X) o Tp(p)’ >> rw[])
+(form_goal “!X Y p:X * Y -> 1+1. ?ep.Ex(X) o Tp(p) = ep”));
+
+val EX_def = EX_ex |> spec_all |> ex2fsym0 "EX" ["p"]
+                     |> gen_all |> store_as "EX_def";
+
+val EX_property = Ex_def |> rewr_rule[GSYM o_assoc,EX_def]
+
+
+val UE_ex = prove_store("UE_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘E1(X) o Tp(p)’ >> rw[])
+(form_goal “!X Y p:X * Y -> 1+1. ?uep.E1(X) o Tp(p) = uep”));
+
+val UE_def = UE_ex |> spec_all |> ex2fsym0 "UE" ["p"]
+                   |> gen_all |> store_as "UE_def";
+
+val UE_property = E1_def |> rewr_rule[GSYM o_assoc,UE_def]
+
+val EQ_ex = prove_store("EQ_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Eq(X) o Pa(f,g)’ >> rw[])
+(form_goal “!A X f:A->X g. ?fg. Eq(X) o Pa(f,g) = fg”));
+
+val EQ_def = EQ_ex |> spec_all |> ex2fsym0 "EQ" ["f","g"]
+                   |> gen_all |> store_as "EQ_def";
+
+val EQ_property_TRUE = Eq_property_TRUE 
+                           |> rewr_rule[EQ_def]
+
+val EQ_property = Eq_property
+                           |> rewr_rule[EQ_def]
+
+
+
+val Not_ex = prove_store("Not_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘NEG o p’ >> rw[])
+(form_goal “!X p:X->1+1. ?np. NEG o p = np”));
+
+val Not_def = Not_ex |> spec_all
+                     |> ex2fsym0 "Not" ["p"]
+                     |> gen_all
+                     |> store_as "Not_def";
+
+val Not_property = rewr_rule[Not_def] NEG_def;
+
+
+
+
 val hasCard_Ins_Suc = prove_store("hasCard_Ins_Suc",
 e0
 (strip_tac >> assume_tac hasCard_ind >>
@@ -867,10 +1077,24 @@ e0
   (qby_tac ‘?P4. !n0:1->N xs0:1->Exp(X,1+1) x0:1->X xs:1->Exp(X,1+1) n.
    P4 o Pa(n0,Pa(xs0,Pa(x0,Pa(xs,n)))) = TRUE <=>
    n = Suc(n0)’ >-- 
-cheat >> pop_assum strip_assume_tac >>
-   qby_tac ‘?P5. !xs0:1->Exp(X,1+1) x0:1->X xs:1->Exp(X,1+1) n:1->N.
+   (qexists_tac ‘EQ(p55(N,Exp(X,1+1),X,Exp(X,1+1), N),
+                    SUC o p51(N,Exp(X,1+1),X,Exp(X,1+1), N))’    >> rw[GSYM EQ_def] >> once_rw[o_assoc] >>
+    once_rw[Pa_distr] >> rw[Eq_property_TRUE] >> 
+    rw[Pa5_def]  >> 
+    rw[p51_of_Pa5,p55_of_Pa5,o_assoc,Suc_def]) >> 
+  pop_assum strip_assume_tac >>
+  qby_tac ‘?P5. !xs0:1->Exp(X,1+1) x0:1->X xs:1->Exp(X,1+1) n:1->N.
    P5 o Pa(xs0,Pa(x0,Pa(xs,n))) = TRUE <=>
-   xs = Ins(x0,xs0)’ >-- cheat >> pop_assum strip_assume_tac >>
+   xs = Ins(x0,xs0)’ >-- 
+  (qexists_tac 
+   ‘EQ(p43(Exp(X, 1 + 1),X,Exp(X,1 + 1), N),
+       Insert(X) o 
+       Pa(p42(Exp(X, 1 + 1),X,Exp(X,1 + 1), N),
+          p41(Exp(X, 1 + 1),X,Exp(X,1 + 1), N)))’ >>
+   rw[Pa4_def] >> rw[GSYM EQ_def,o_assoc,Pa_distr] >>
+   rw[p41_of_Pa4,p42_of_Pa4,p43_of_Pa4] >>
+   rw[Ins_def,Eq_property_TRUE]) >> 
+  pop_assum strip_assume_tac >>
   qexists_tac ‘IMP o Pa(P5,Ex(N) o Tp(P4))’ >>
   rw[o_assoc,Pa_distr,IMP_def] >> rw[Ex_def] >>
   arw[]) >> pop_assum strip_assume_tac >>
@@ -896,6 +1120,69 @@ cheat >> pop_assum strip_assume_tac >>
  qexists_tac ‘n'’ >> rw[])
 (form_goal
  “!X xs n. hasCard(X) o Pa(xs,n) = TRUE ==> hasCard(X) o Pa(xs,n) = TRUE & !x0 xs0. xs = Ins(x0,xs0) ==> ?n0. n = Suc(n0)”));
+
+
+(*
+
+val hasCard_Ins_Suc = prove_store("hasCard_Ins_Suc",
+e0
+(strip_tac >> assume_tac hasCard_ind >>
+ qby_tac ‘?P. 
+ !xs n. P o Pa(xs,n) = TRUE <=>
+  hasCard(X) o Pa(xs,n) = TRUE & !x0 xs0. xs = Ins(x0,xs0) ==> ?n0. n = Suc(n0)’ >--
+ (qby_tac ‘?P1.!xs:1->Exp(X,1+1) n:1->N. P1 o Pa(xs,n) = TRUE <=>
+  (!x0 xs0. xs = Ins(x0,xs0) ==> ?n0. n = Suc(n0))’ >--
+(qby_tac 
+ ‘?P2. !x0:1->X xs:1->Exp(X,1+1) n. P2 o Pa(x0,Pa(xs,n)) = TRUE <=>
+  !xs0. xs = Ins(x0,xs0) ==> ?n0:1->N. n = Suc(n0)’ >-- 
+ (qby_tac ‘?P3. !xs0 x0 xs:1->Exp(X,1+1) n. P3 o Pa(xs0,Pa(x0,Pa(xs,n))) = TRUE <=> xs = Ins(x0,xs0) ==> ?n0:1->N. n = Suc(n0)’ >-- 
+  (qby_tac ‘?P4. !n0:1->N xs0:1->Exp(X,1+1) x0:1->X xs:1->Exp(X,1+1) n.
+   P4 o Pa(n0,Pa(xs0,Pa(x0,Pa(xs,n)))) = TRUE <=>
+   n = Suc(n0)’ >-- 
+   (qexists_tac ‘EQ(p55(N,Exp(X,1+1),X,Exp(X,1+1), N),
+                    SUC o p51(N,Exp(X,1+1),X,Exp(X,1+1), N))’    >> rw[GSYM EQ_def] >> once_rw[o_assoc] >>
+    once_rw[Pa_distr] >> rw[Eq_property_TRUE] >> 
+    rw[Pa5_def]  >> 
+    rw[p51_of_Pa5,p55_of_Pa5,o_assoc,Suc_def]) >> 
+  pop_assum strip_assume_tac >>
+  qby_tac ‘?P5. !xs0:1->Exp(X,1+1) x0:1->X xs:1->Exp(X,1+1) n:1->N.
+   P5 o Pa(xs0,Pa(x0,Pa(xs,n))) = TRUE <=>
+   xs = Ins(x0,xs0)’ >-- 
+  (qexists_tac 
+   ‘EQ(p43(Exp(X, 1 + 1),X,Exp(X,1 + 1), N),
+       Insert(X) o 
+       Pa(p42(Exp(X, 1 + 1),X,Exp(X,1 + 1), N),
+          p41(Exp(X, 1 + 1),X,Exp(X,1 + 1), N)))’ >>
+   rw[Pa4_def] >> rw[GSYM EQ_def,o_assoc,Pa_distr] >>
+   rw[p41_of_Pa4,p42_of_Pa4,p43_of_Pa4] >>
+   rw[Ins_def,Eq_property_TRUE]) >> 
+  pop_assum strip_assume_tac >>
+  qexists_tac ‘IMP o Pa(P5,Ex(N) o Tp(P4))’ >>
+  rw[o_assoc,Pa_distr,IMP_def] >> rw[Ex_def] >>
+  arw[]) >> pop_assum strip_assume_tac >>
+ qexists_tac ‘All(Exp(X,1+1)) o Tp(P3)’ >> 
+ once_rw[o_assoc] >> once_rw[All_def] >> once_arw[] >> rw[])
+ >> pop_assum strip_assume_tac >>
+ qexists_tac ‘All(X) o Tp(P2)’ >>
+ once_rw[o_assoc] >> once_rw[All_def] >>
+ once_arw[] >> rw[])>>
+  pop_assum strip_assume_tac >>
+  qexists_tac ‘CONJ o Pa(hasCard(X),P1)’ >>
+  once_rw[o_assoc] >> once_rw[Pa_distr] >>
+  once_rw[CONJ_def]>> once_arw[] >> rw[]) >>
+ pop_assum strip_assume_tac >>
+ first_x_assum (qsspecl_then [‘P’] assume_tac) >>
+ pop_assum mp_tac >> once_arw[] >>
+ strip_tac >> strip_tac >> strip_tac >>
+ first_x_assum match_mp_tac >> once_rw[hasCard_Empty] >>
+ rw[] >> once_rw[GSYM Ins_NONEMPTY]>> rw[] >>
+ rpt strip_tac >--
+ (drule hasCard_Ins >> first_x_assum drule >>
+ first_x_assum accept_tac) >>
+ qexists_tac ‘n'’ >> rw[])
+(form_goal
+ “!X xs n. hasCard(X) o Pa(xs,n) = TRUE ==> hasCard(X) o Pa(xs,n) = TRUE & !n0. n = Suc(n0) ==> ?x0 xs0. xs = Ins(x0,xs0)”));
+*)
 
 
 val Pre_Suc = prove_store("Pre_Suc",
@@ -962,3 +1249,94 @@ e0
   !x. IN(x,xs) ==> hasCard(X) o Pa(Del(x,xs),Pre(n)) = TRUE”));
 
 
+(*
+val Card_Empty_unique0 = prove_store("Card_Empty_unique",
+e0
+(assume_tac hasCard_ind >> strip_tac >>
+ qby_tac ‘?P. !xs n.P o Pa(xs,n) = TRUE <=>
+ xs = Empty(X) ==> n = O’
+ >-- (cheat) >> pop_assum strip_assume_tac >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ strip_tac >> strip_tac >> first_x_assum match_mp_tac >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ )
+(form_goal
+ “!X xs n.hasCard(X) o Pa(xs,n) = TRUE ==>
+  xs = Empty(X) ==> n = O”));
+*)
+
+val Card_Empty_unique = prove_store("Card_Empty_unique",
+e0
+(rpt strip_tac >> ccontra_tac >> 
+ drule $ iffLR hasCard_property1 >>
+ qsuff_tac 
+ ‘?P. IN(Pa(Empty(X), O), P) &
+     (!s0 n0.
+      IN(Pa(s0, n0), P) ==>
+       !e. ~IN(e, s0) ==> 
+       IN(Pa(Ins(e, s0), SUC o n0), P)) &
+       ~(IN(Pa(Empty(X), n), P))’
+ >-- (strip_tac >> 
+     qby_tac ‘IN(Pa(Empty(X), n), P)’
+     >-- (first_x_assum irule >> arw[]) >>
+     fs[]) >>
+ rw[IN_o] >> 
+ qby_tac ‘?P. !s0 n0. P o Pa(s0,n0)= TRUE <=>
+  hasCard(X) o Pa(s0,n0) = TRUE & 
+  ~(s0 = Empty(X) & n0 = n)’ >--
+ (qexists_tac ‘And(hasCard(X),Not(And(EQ(p1(Exp(X,1+1),N) , Empty(X) o To1(Exp(X,1+1) * N)),
+ EQ(p2(Exp(X,1+1),N),n o To1(Exp(X,1+1) * N)))))’ >>
+  rw[GSYM And_def] >> rw[o_assoc,Pa_distr,CONJ_def] >>
+  rw[GSYM Not_def] >> rw[o_assoc,Pa_distr,NEG_def] >>
+  rw[Pa_distr,CONJ_def,TRUE_xor_FALSE] >>
+  rw[GSYM EQ_def] >> rw[o_assoc,Pa_distr,Eq_property_TRUE]>>
+  once_rw[one_to_one_id] >> rw[idR,p12_of_Pa]) >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘Tp1(P)’ >> rw[Tp0_Tp1_inv] >>
+ arw[] >> strip_tac (* 2 *)
+ >-- (rw[hasCard_Empty] >> dflip_tac >> arw[]) >>
+ rw[GSYM IN_o] >> rw[Ins_NONEMPTY] >>
+ rpt strip_tac >> drule hasCard_Ins >> first_x_assum drule >>
+ arw[Suc_def]
+)
+(form_goal
+ “!X n.hasCard(X) o Pa(Empty(X),n) = TRUE ==> n = O”));
+
+
+val Fin_Card = prove_store("Card_Fun",
+e0
+(assume_tac Finite_ind >> strip_tac >> 
+ qby_tac ‘?P.!xs. P o xs = TRUE <=>
+  ?!n. hasCard(X) o Pa(xs,n) = TRUE’
+ >-- (qexists_tac ‘UE(hasCard(X) o Swap(N,Exp(X,1+1)))’
+      >> rw[UE_property] >> rw[o_assoc,Swap_Pa] >>
+      rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+      >-- (uex_tac >> qexists_tac ‘x’ >> arw[]) >>
+      pop_assum (strip_assume_tac o uex_expand) >>
+      qexists_tac ‘n’ >> arw[]) >> pop_assum strip_assume_tac >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ strip_tac >> first_x_assum match_mp_tac >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ strip_tac (* 2 *)
+ >-- (uex_tac >> qexists_tac ‘O’ >> rw[hasCard_Empty] >>
+     rpt strip_tac >> drule Card_Empty_unique >> arw[]) >>
+ pop_assum (K all_tac) >> rpt strip_tac >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ uex_tac >> 
+ cases_on “IN(x:1->X,xs')” 
+ >-- (qexists_tac ‘n’ >> 
+     qby_tac ‘Ins(x,xs') = xs'’ 
+     >-- arw[GSYM Ins_absorb] >> arw[]) >>    
+ qexists_tac ‘Suc(n)’ >> drule hasCard_Ins >> 
+ first_x_assum drule >> arw[] >>
+ rpt strip_tac >> 
+ drule hasCard_Del >> fs[] >>
+ qby_tac ‘IN(x, Ins(x, xs'))’ >-- fs[IN_Ins] >>
+ first_x_assum drule >> drule Del_Ins >> fs[] >>
+ first_x_assum drule >>
+ qpick_x_assum ‘hasCard(X) o Pa(Ins(x, xs'), n') = TRUE’ assume_tac >>
+ drule hasCard_Ins_Suc >> fs[] >>
+ first_x_assum (qspecl_then [‘x’,‘xs'’] assume_tac) >> 
+ fs[] >>  fs[Pre_Suc])
+(form_goal
+ “!X xs.isFinite(X) o xs= TRUE ==> ?!n.hasCard(X) o Pa(xs,n) = TRUE”));
