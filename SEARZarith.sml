@@ -705,7 +705,69 @@ e0
 (form_goal
  “!z. Addz(z,Negz(z)) = 0z”));
 
+local 
+val l1 = 
+ fVar_Inst 
+[("P",([("a",mem_sort N)],
+ “!b c. Sub(a,Add(b,c)) = Sub(Sub(a,b),c)”))] 
+ N_ind_P 
+val l2 = 
+ fVar_Inst 
+[("P",([("b",mem_sort N)],
+ “!c. Sub(a,Add(b,c)) = Sub(Sub(a,b),c)”))] 
+ N_ind_P |> rewr_rule[Suc_def]
+val l3 = 
+ fVar_Inst 
+[("P",([("c",mem_sort N)],
+ “Sub(a,Add(b,c)) = Sub(Sub(a,b),c)”))] 
+ N_ind_P |> rewr_rule[Suc_def]
+in
+val Sub_Add = prove_store("SUB_Add",
+e0
+(strip_tac >> match_mp_tac l1 >> rw[Sub_of_O] >> strip_tac >>
+ strip_tac >> rw[Suc_def] >> strip_tac >> match_mp_tac l2 >>
+ rw[Add_O2,Sub_O] >> strip_tac >> strip_tac >>
+ match_mp_tac l3 >> rw[Sub_O,Add_O] >> rpt strip_tac >>
+ rw[Add_Suc1] >> rw[Sub_mono_eq] >> arw[])
+(form_goal “!a b c. Sub(a,Add(b,c)) = Sub(Sub(a,b),c)”));
+end
 
+val Le_O_iff = prove_store("Le_O_iff",
+e0
+(strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (drule Le_O >> arw[]) >>
+ arw[O_LESS_EQ])
+(form_goal “!a. Le(a,O) <=> a = O”));
+
+val Le_Suc = prove_store("Le_Suc",
+e0
+(rpt strip_tac >> drule Le_cases >> 
+ pop_assum strip_assume_tac (* 2 *)
+ >-- (drule $ iffLR Lt_Suc_Le >> arw[]) >>
+ arw[])
+(form_goal “!a b. Le(a,Suc(b)) ==> (Le(a,b) | a = Suc(b))”));
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("a",mem_sort N)],
+ “!b.  Le(b,a) ==> ?p. Add(p,b) = a”))] 
+ N_ind_P 
+in
+val Le_Add = prove_store("Le_Add",
+e0
+(strip_tac >> match_mp_tac l >> rw[Suc_def,Le_O_iff] >>
+ rpt strip_tac (* 2 *)
+ >-- (arw[] >> qexists_tac ‘O’ >> rw[Add_O]) >>
+ rpt strip_tac >> drule Le_Suc >> 
+ pop_assum strip_assume_tac 
+ >-- (first_x_assum drule >> 
+     pop_assum strip_assume_tac >>
+     qexists_tac ‘Suc(p)’ >> arw[Add_Suc1]) >>
+ arw[] >> qexists_tac ‘O’ >> rw[Add_O2])
+(form_goal
+ “!m n. Le(n,m) ==> ?p. Add(p,n) = m”));
+end
 
 val lej_def = 
 fVar_Inst 
@@ -715,7 +777,98 @@ fVar_Inst
 |> ex2fsym0 "lej" [] |> conjE1
 |> store_as "lej_def";
 
+val LE_def = 
+fVar_Inst 
+[("P",([("m",mem_sort N),("n",mem_sort N)],
+ “Sub(m,n) = O”))] 
+(AX1 |> qspecl [‘N’, ‘N’] |> uex_expand)
+|> ex2fsym0 "LE" [] |> conjE1
+|> store_as "LE_def";
 
+
+val LT_def = 
+fVar_Inst 
+[("P",([("m",mem_sort N),("n",mem_sort N)],
+ “Holds(LE,m,n) & ~(m = n)”))] 
+(AX1 |> qspecl [‘N’, ‘N’] |> uex_expand)
+|> ex2fsym0 "LT" [] |> conjE1
+|> store_as "LT_def";
+
+val LE_Le = prove_store("LE_Le",
+e0
+(rw[LE_def,Le_def])
+(form_goal “!a b. Holds(LE,a,b) <=> Le(a,b)”));
+
+
+val LT_Lt = prove_store("LT_Lt",
+e0
+(rw[LT_def,Lt_def,LE_Le])
+(form_goal “!a b. Holds(LT,a,b) <=> Lt(a,b)”));
+
+(*a <= b <=> ?c. a + c = b
+  a <= 0 , the c is 0.
+  a <= suc n. *)
+
+val LE_Trans = prove_store("LE_Trans",
+e0
+(rw[Trans_def,LE_Le] >> rpt strip_tac >>
+ rw[Le_def] >> drule Le_Add >>
+ pop_assum (strip_assume_tac o GSYM) >> arw[] >>
+ qsspecl_then [‘a2’,‘p’] assume_tac Add_sym >> 
+ once_arw[] >> rw[Sub_Add] >> fs[Le_def] >>
+ rw[Sub_of_O])
+(form_goal “Trans(LE)”));
+
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("p",mem_sort N)],
+ “Lt(a,b) <=> Lt(Add(a,p),Add(b,p))”))] 
+ N_ind_P 
+in
+val LESS_MONO_ADD = prove_store("LESS_MONO_ADD",
+e0
+(strip_tac >> strip_tac >> match_mp_tac l >>
+ rw[Suc_def] >> rw[Add_O,Add_Suc,LESS_MONO_EQ])
+(form_goal “!m n p. Lt(m,n) <=> Lt(Add(m,p),Add(n,p))”));
+end
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("p",mem_sort N)],
+ “(Add(a,p) = Add(b,p)) <=> a = b”))] 
+ N_ind_P 
+in
+val EQ_MONO_ADD_EQ = prove_store("EQ_MONO_ADD_EQ",
+e0
+(strip_tac >> strip_tac >> match_mp_tac l >>
+ rw[Add_O,Suc_def,Add_Suc] >> rpt strip_tac >>
+ arw[Suc_eq_eq])
+(form_goal “!m n p.(Add(m,p) = Add(n,p)) <=> m = n”));
+end
+
+val LESS_MONO_ADD_EQ = GSYM LESS_MONO_ADD
+                            |> store_as 
+                            "LESS_MONO_ADD_EQ";
+
+val LESS_OR_EQ = prove_store("LESS_OR_EQ",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >--
+ (drule Le_cases >> arw[]) 
+ >-- fs[Lt_def] >>
+ arw[Le_def,Sub_EQ_O])
+(form_goal “Le(m,n)<=> (Lt(m,n) | m = n)”));
+
+
+val LESS_EQ_MONO_ADD_EQ = prove_store("LESS_EQ_MONO_ADD_EQ",
+e0
+(rw[LESS_OR_EQ,LESS_MONO_ADD_EQ,EQ_MONO_ADD_EQ])
+(form_goal “!m n p. Le(Add(m,p),Add(n,p)) <=> Le(m,n)”));
+
+
+val Le_trans = LE_Trans |> rewr_rule[Trans_def,LE_Le]
 
 val lej_property = prove_store("lej_property",
 e0
@@ -740,6 +893,7 @@ e0
 (form_goal
  “!A B ab:mem(A * B). ?a b. ab = Pair(a,b)”));
 
+
 (*LESS_EQ_LESS_EQ_MONO
 
 LESS_EQ_MONO_ADD_EQ
@@ -748,20 +902,38 @@ LESS_EQ_TRANS
 *)
 
 (*
-
-val Le_trans = prove_store("Le_trans",
+val LESS_EQ_LESS_EQ_MONO = prove_store("LESS_EQ_LESS_EQ_MONO",
 e0
-()
-());
+(rpt strip_tac >>
+ irule )
+(form_goal “!m n p q. Le(m,p) & Le(n,q) ==> Le(Add(m,n),Add(p,q)) ”));
+*)
 
 val Le_Add = prove_store("Le_Add",
 e0
-(rw[Le_def] >> chear
+(rpt strip_tac >> irule Le_trans >>
+ qexists_tac ‘Add(a,d)’ >> arw[LESS_EQ_MONO_ADD_EQ] >>
+ qsspecl_then [‘b’,‘a’] assume_tac Add_sym >>
+ arw[] >>
+ qsspecl_then [‘d’,‘a’] assume_tac Add_sym >>
+ arw[] >> arw[LESS_EQ_MONO_ADD_EQ]
 (*need sub of add*))
 (form_goal
  “!a b c d. Le(a,c) & Le(b,d) ==> 
-Le(Add(a,b),Add(c,d))”));
+   Le(Add(a,b),Add(c,d))”));
 
+
+(*
+Add(a, b''), Add(b, a'')
+
+(a + b'' <= b + a''
+sufficient to prove 
+a + b' + a'+ b'' <= b + b' +a' + a''
+a + b' + a' + b'' <= b + a' + a' + b''
+
+)
+
+*)
 
 val lej_Trans = prove_store("lej_Trans",
 e0
@@ -770,11 +942,250 @@ e0
  qsspecl_then  [‘a2’] assume_tac Pair_has_comp >>
  qsspecl_then  [‘a3’] assume_tac Pair_has_comp >>
  fs[] >> fs[] >> fs[Pair_def'] >> 
-  
- fs[Pair_def']
- )
+ qsuff_tac ‘Le(Add(Add(a,b''),Add(a',b')),
+               Add(Add(b,a''),Add(a',b')))’
+ >-- rw[LESS_EQ_MONO_ADD_EQ] >>
+ qsspecl_then [‘Add(a,b')’,‘Add(a',b'')’,
+               ‘Add(b,a')’,‘Add(b',a'')’]
+ assume_tac Le_Add >> rfs[] >>
+ qsuff_tac ‘Add(Add(a, b'), Add(a', b'')) = 
+ Add(Add(a, b''), Add(a', b')) & 
+ Add(Add(b, a'), Add(b', a'')) = 
+ Add(Add(b, a''), Add(a', b'))’
+ >-- (strip_tac >> fs[]) >> strip_tac >--
+ (once_rw[Add_sym] >>
+ qsspecl_then [‘b''’,‘a’] assume_tac Add_sym >> arw[] >>
+ rw[Add_assoc] >> 
+ qsspecl_then [‘b''’,‘Add(a',b')’] assume_tac Add_sym>>
+ arw[] >> rw[GSYM Add_assoc] >>
+ qsspecl_then [‘a’,‘b'’] assume_tac Add_sym >>
+ once_arw[] >> rw[Add_assoc] >>
+ qsspecl_then [‘a'’,‘b''’] assume_tac Add_sym >>
+ once_arw[] >> rw[]) >>
+ qsspecl_then [‘Add(b',a'')’,‘Add(b,a')’]
+ assume_tac Add_sym >> arw[] >>
+ qsspecl_then [‘a''’,‘b'’] assume_tac Add_sym >> arw[]>>
+ qsspecl_then [‘a''’,‘b’] assume_tac Add_sym >> arw[]>>
+ rw[GSYM Add_assoc] >>
+ qsuff_tac ‘Add(b', Add(b, a')) = Add(b, Add(a', b'))’
+ >-- (strip_tac >> arw[]) >>
+ qsspecl_then [‘b'’,‘a'’] assume_tac Add_sym >>
+ arw[] >>
+ rw[Add_assoc] >> 
+ qsspecl_then [‘b'’,‘b’] assume_tac Add_sym >> arw[])
 (form_goal
  “Trans(lej)”));
 
 
-*)
+(*TODO: something like AP_TERM_TAC*)
+val J1_x = prove_store("J1_x",
+e0
+(rw[lej_def,Pair_def',Addj_property] >>
+ rpt strip_tac >> 
+ qsuff_tac 
+ ‘Le(Add(Add(a, d), Add(e, f)), Add(Add(b, c), Add(e,f))) &
+  Add(Add(a, e), Add(d, f)) = Add(Add(a, d), Add(e, f)) & 
+  Add(Add(b, f), Add(c, e)) = Add(Add(b, c), Add(e, f))’
+ >-- (rpt strip_tac >> arw[]) >>
+ rpt strip_tac (* 3 *)
+ >-- arw[LESS_EQ_MONO_ADD_EQ]
+ >-- (rw[GSYM Add_assoc] >>
+      qsuff_tac ‘Add(e, Add(d, f)) = Add(d, Add(e, f))’ 
+      >-- (strip_tac >> arw[]) >>
+      rw[Add_assoc] >>
+      qsspecl_then [‘d’,‘e’] assume_tac Add_sym >> arw[]) >>
+ rw[GSYM Add_assoc] >>
+ qsuff_tac ‘Add(f, Add(c, e)) = Add(c, Add(e, f))’
+ >-- (strip_tac >> arw[]) >>
+ qsspecl_then [‘Add(c,e)’,‘f’] assume_tac Add_sym >> arw[] >>
+ rw[Add_assoc])
+(form_goal
+ “!a b c d e f. Holds(lej,Pair(a,b),Pair(c,d)) ==> 
+ Holds(lej,Addj(Pair(a,b),Pair(e,f)),
+           Addj(Pair(c,d),Pair(e,f)))”));
+
+val J2_iv = prove_store("J2_iv",
+e0
+(once_rw[lej_def] >> once_rw[ZR_def] >> rw[Pair_def'] >>
+ rpt strip_tac >> 
+ qsuff_tac 
+ ‘(Le(Add(a, d), Add(b, c)) <=> 
+  Le(Add(Add(a,d),Add(b',d')), Add(Add(b,c),Add(b',d')))) &
+  (Le(Add(Add(a,d),Add(b',d')), Add(Add(b,c),Add(b',d'))) <=> 
+  Le(Add(Add(a',d'),Add(b,d)), Add(Add(b',c'),Add(b,d)))) & 
+  (Le(Add(Add(a',d'),Add(b,d)), Add(Add(b',c'),Add(b,d))) <=> 
+ Le(Add(a',d'), Add(b',c')))’
+ >-- (rpt strip_tac >> arw[]) >> rpt strip_tac (* 2 *)
+ >-- rw[LESS_EQ_MONO_ADD_EQ] 
+ >-- (qsuff_tac ‘Add(Add(a, d), Add(b', d')) = 
+                Add(Add(a', d'), Add(b, d)) & 
+                Add(Add(b, c), Add(b', d')) = 
+                Add(Add(b', c'), Add(b, d))’
+     >-- (strip_tac >> arw[]) >> strip_tac (* 2 *)
+     >-- (qsspecl_then [‘Add(b',d')’,‘Add(a,d)’] 
+          assume_tac Add_sym >> arw[] >>
+          qsspecl_then [‘d'’,‘b'’] assume_tac Add_sym >> arw[] >>
+          rw[Add_assoc] >>
+          qsuff_tac ‘Add(Add(d', b'), a) = 
+                     Add(Add(a', d'), b)’
+          >-- (strip_tac >> arw[]) >>
+          qsspecl_then [‘d'’,‘a'’] assume_tac Add_sym >> arw[] >>
+          rw[GSYM Add_assoc] >> 
+          qsspecl_then [‘a’,‘b'’] assume_tac Add_sym >> arw[]) >>
+     qsspecl_then [‘Add(b',d')’,‘Add(b,c)’] assume_tac Add_sym >>
+     arw[] >> 
+     qsspecl_then [‘c’,‘b’] assume_tac Add_sym >> arw[] >>
+     qsspecl_then [‘d’,‘b’] assume_tac Add_sym >> arw[] >>
+     rw[Add_assoc] >>
+     qsuff_tac ‘Add(Add(b', d'), c) = Add(Add(b', c'), d)’ 
+     >-- (strip_tac >> arw[]) >>
+     rw[GSYM Add_assoc] >>
+     qsspecl_then [‘c’,‘d'’] assume_tac Add_sym >> arw[]) >>
+ rw[LESS_EQ_MONO_ADD_EQ]
+ )
+(form_goal “!a b c d a' b' c' d'. Holds(ZR,Pair(a,b),Pair(a',b')) &
+ Holds(ZR,Pair(c,d),Pair(c',d')) ==> 
+ (Holds(lej,Pair(a,b),Pair(c,d)) <=> Holds(lej,Pair(a',b'),Pair(c',d')))”));
+
+val LEz_def = 
+fVar_Inst 
+[("P",([("z1",mem_sort Z),("z2",mem_sort Z)],
+ “Holds(lej,rep(z1),rep(z2))”))] 
+(AX1 |> qspecl [‘Z’,‘Z’] |> uex_expand)
+|> ex2fsym0 "LEz" [] |> conjE1
+|> store_as "LEz_def";
+
+val LEz_Refl = prove_store("LEz_Refl",
+e0
+(rw[Refl_def,LEz_def] >> 
+ assume_tac lej_Refl >> fs[Refl_def])
+(form_goal “Refl(LEz)”));
+
+val LEz_Trans = prove_store("LEz_Trans",
+e0
+(assume_tac lej_Trans >> fs[Trans_def] >> rw[LEz_def] >> 
+ rpt strip_tac >> 
+ qsspecl_then [‘rep(a1)’] assume_tac Pair_has_comp >> 
+ qsspecl_then [‘rep(a2)’] assume_tac Pair_has_comp >>
+ qsspecl_then [‘rep(a3)’] assume_tac Pair_has_comp >>
+ pop_assum_list (map_every strip_assume_tac) >>
+ arw[] >> first_x_assum irule >> rfs[] >>
+ qexists_tac ‘Pair(a',b')’ >> arw[]
+ )
+(form_goal “Trans(LEz)”));
+
+
+val _ = new_pred "Asym" [("R",rel_sort (mk_set "A") (mk_set "A"))]
+
+val Asym_def = store_ax("Asym_def",“!A R:A->A. Asym(R) <=> 
+!a b. Holds(R,a,b) & Holds(R,b,a) ==> a = b”)
+
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("a",mem_sort N)],
+ “a = Suc(a)”))] 
+ WOP 
+in
+val Suc_NEQ = prove_store("Add_Suc_NEQ",
+e0
+(strip_tac >> ccontra_tac >> drule l >>
+ pop_assum strip_assume_tac >>
+ cases_on “a0 = O” >-- fs[GSYM Suc_NONZERO] >>
+ fs[O_xor_Suc] >> fs[] >>
+ fs[Suc_eq_eq] >>
+ first_x_assum drule >> 
+ drule $ iffRL Lt_Suc_Le >> fs[Lt_def])
+(form_goal “!a. ~(a = Suc(a))”));
+end
+
+
+
+val Lt_Suc = prove_store("Lt_Suc",
+e0
+(rw[Lt_def,Le_def,Sub_Suc,Suc_NEQ,Sub_EQ_O,Pre_O])
+(form_goal “!a. Lt(a,Suc(a))”));
+
+
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("b",mem_sort N)],
+ “Lt(a,Add(a,Suc(b)))”))] 
+ N_ind_P 
+in
+val Add_Suc_Lt = prove_store("Add_Suc_NEQ",
+e0
+(strip_tac >> match_mp_tac l >> rw[Suc_def] >> strip_tac 
+ >-- (rw[Lt_def,Le_def,Add_Suc,Add_O,Sub_Suc,Pre_O,O_xor_Suc,
+        Suc_NEQ,Pre_O,Sub_EQ_O]) >>
+ rpt strip_tac >> rw[Add_Suc] >> rw[Lt_Suc_Le] >>
+ rw[GSYM Add_Suc] >> fs[Lt_def])
+(form_goal “!a b. Lt(a,Add(a,Suc(b)))”));
+end
+
+
+
+val LT_Trans = prove_store("LT_Trans",
+e0
+(rw[Trans_def] >> rw[LT_Lt] >> rw[Lt_def] >>
+ assume_tac Le_trans >> rpt strip_tac >--
+ (first_x_assum irule >> qexists_tac ‘a2’ >> arw[]) >>
+ qby_tac ‘(?p1. Add(a1,Suc(p1)) = a2) & 
+          ?p2. Add(a2,Suc(p2)) = a3’ >-- cheat >>
+ pop_assum (strip_assume_tac o GSYM) >>
+ fs[] >> rw[GSYM Add_assoc] >> once_rw[Add_Suc] >>
+ assume_tac Add_Suc_Lt >> fs[Lt_def])
+(form_goal “Trans(LT)”));
+
+val Lt_trans = LT_Trans |> rewr_rule[LT_Lt,Trans_def]
+                        |> store_as "Lt_trans";
+
+val LE_Asym = prove_store("Le_Asym",
+e0
+(rw[Asym_def] >> rpt strip_tac >> fs[LE_Le] >> 
+ drule Le_cases >> pop_assum strip_assume_tac >> arw[] >>
+ rev_drule Le_cases >> pop_assum strip_assume_tac >> arw[] >>
+ qby_tac ‘Lt(a,a)’ >-- (irule Lt_trans >>
+ qexists_tac ‘b’ >> arw[]) >> fs[Lt_def])
+(form_goal “Asym(LE)”));
+
+val Le_asym = LE_Asym |> rewr_rule[LE_Le,Asym_def]
+                      |> store_as "Le_Asym";
+
+val LEz_Asym = prove_store("LEz_Asym",
+e0
+(rw[Asym_def,LEz_def] >> strip_tac >> strip_tac >> 
+ qsspecl_then [‘rep(a)’] assume_tac Pair_has_comp >> 
+ qsspecl_then [‘rep(b)’] assume_tac Pair_has_comp >>
+ pop_assum_list (map_every strip_assume_tac) >> arw[] >>
+ rw[lej_def,Pair_def'] >>
+ strip_tac >> once_rw[z_eq_cond] >>
+ qexistsl_tac [‘Pair(a'',b'')’,‘Pair(a',b')’] >>
+ rw[ZR_def,Pair_def'] >> rpt strip_tac 
+ >-- (pop_assum_list (map_every (assume_tac o GSYM)) >>
+      arw[rep_asz]) 
+ >-- (pop_assum_list (map_every (assume_tac o GSYM)) >>
+      arw[rep_asz]) >>
+ irule Le_asym >> 
+ qsspecl_then [‘a''’,‘b'’] assume_tac Add_sym >>fs[] >>
+ qsspecl_then [‘a'’,‘b''’] assume_tac Add_sym >> fs[])
+(form_goal “Asym(LEz)”));
+
+val _ = new_pred "Total" [("R",rel_sort (mk_set "A") (mk_set "A"))]
+
+val Total_def = store_ax("Total_def",“!A R:A->A.Total(R)<=> !a b. Holds(R,a,b) | Holds(R,b,a)”);
+
+
+val LEz_Total = prove_store("LEz_Total",
+e0
+(rw[Total_def,LEz_def,lej_def] >> rpt strip_tac >>
+ qsspecl_then [‘rep(a)’] assume_tac Pair_has_comp >> 
+ qsspecl_then [‘rep(b)’] assume_tac Pair_has_comp >>
+ pop_assum_list (map_every strip_assume_tac) >> arw[Pair_def'] >>
+ qsspecl_then [‘a'’,‘b''’] assume_tac Add_sym >> arw[] >>
+ qsspecl_then [‘a''’,‘b'’] assume_tac Add_sym >> arw[] >>
+ rw[LESS_EQ_cases] )
+(form_goal “Total(LEz)”));

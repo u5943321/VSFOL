@@ -830,6 +830,80 @@ hasCard_ex |> spec_all |> eqT_intro
             |> iffRL |> ex2fsym "hasCard" ["X"] 
             |> C mp (trueI []) |> gen_all;
 
+
+
+
+val hasCard_property = prove_store("hasCard_property",
+e0
+(rpt strip_tac >> rw[GSYM hasCard_def] >>
+ rw[GSYM Tp0_def] >>
+ rw[o_assoc,Pa_distr,idL,p1_of_Pa] >>
+ once_rw[one_to_one_id] >> rw[idR,idL] >>
+ once_rw[GSYM p31_def] >> 
+once_rw [GSYM p32_def] >> 
+ once_rw[GSYM p33_def] >>
+ rw[o_assoc,Pa_distr,p12_of_Pa] >>
+ rw[GSYM p31_def,GSYM p32_def,GSYM p33_def] >>
+ once_rw[BIGINTER_property] >> once_rw[GSYM Tp1_def] >>
+ once_rw[Ev_of_Tp_el'] >> 
+ rw[o_assoc] >> rw[p12_of_Pa] >>
+ once_rw[Pa_distr] >> once_rw[CONJ_def]>>
+ rw[Pa_distr,o_assoc] >> rw[idL,idR] >>
+ once_rw[one_to_one_id] >> rw[idR] >>
+ once_rw[All_def] >> rw[o_assoc,Pa_distr] >>
+ once_rw[IMP_def] >> once_rw[All_def] >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >>  once_rw[IMP_def] >> once_rw[o_assoc] >> once_rw[p12_of_Pa] >>
+ once_rw[NEG_def] >>
+ once_rw[TRUE_xor_FALSE] >>
+ once_rw[Pa_distr] >> once_rw[o_assoc] >>
+ once_rw[Pa_distr] >>
+ once_rw[GSYM Ins_def] >> once_rw[o_assoc] >>
+ once_rw[Pa_distr] >> once_rw[p12_of_Pa] >> 
+  once_rw[p12_of_Pa] >>  once_rw[p12_of_Pa] >> 
+once_rw[o_assoc] >>
+ once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+once_rw[o_assoc] >>
+ once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+once_rw[o_assoc] >>
+ once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+once_rw[o_assoc] >>
+ once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (first_x_assum irule >> once_rw[GSYM Mem_def] >>
+     once_arw[] >> rw[] >> strip_tac >>
+     qby_tac ‘?s n. x = Pa(s,n)’ >-- 
+     (qexistsl_tac [‘p1(Exp(X,1+1),N) o x’,
+                    ‘p2(Exp(X,1+1),N) o x’] >>
+     rw[GSYM to_P_component]) >>
+     pop_assum strip_assume_tac >>
+     once_arw[] >> rw[p12_of_Pa,o_assoc,Pa_distr] >>
+     rpt strip_tac >> first_x_assum drule >>
+     first_x_assum irule >> 
+     rw[IN_def,GSYM Mem_def,True1TRUE] >>
+     first_x_assum accept_tac) >>
+ last_x_assum (qspecl_then [‘s0’] assume_tac) >> 
+ first_x_assum irule >> fs[GSYM Mem_def] >>
+ rpt strip_tac >>
+ first_x_assum (qspecl_then [‘Pa(s0',n0)’] assume_tac) >>
+ pop_assum mp_tac >> rw[p12_of_Pa,o_assoc,Pa_distr] >> 
+ rpt strip_tac >> first_x_assum irule >> arw[] >>
+ fs[IN_def,GSYM Mem_def,True1TRUE]
+)
+(form_goal
+ “!X xs:1->Exp(X,1+1) n. hasCard(X) o Pa(xs,n) = TRUE <=>
+ !P:1 -> Exp(Exp(X,1+1) * N,1+1).
+  Ev(Exp(X,1+1) * N,1+1) o Pa(Pa(Empty(X),O),P) = TRUE & 
+  (!s0:1-> Exp(X,1+1) n0:1-> N. Ev(Exp(X,1+1) * N,1+1) o Pa(Pa(s0,n0),P) = TRUE ==>
+  !e:1->X.~(IN(e,s0)) ==>
+    Ev(Exp(X,1+1) * N,1+1) o Pa(Pa(Ins(e,s0),SUC o n0),P) = TRUE) ==> 
+  Ev(Exp(X,1+1) * N,1+1) o Pa(Pa(xs,n),P) = TRUE”));
+
+
+
+
+
+
+(*
 val hasCard_property = prove_store("hasCard_property",
 e0
 (rpt strip_tac >> rw[GSYM hasCard_def] >>
@@ -887,6 +961,9 @@ once_rw [GSYM p32_def] >>
   !e:1->X.~(IN(e,s0)) ==>
     Ev(Exp(X,1+1) * N,1+1) o Pa(Pa(Ins(e,s0),SUC o n0),P) = TRUE) ==> 
   Ev(Exp(X,1+1) * N,1+1) o Pa(Pa(xs,n),P) = TRUE”));
+*)
+
+
 
 val Pre_ex = prove_store("Pre_ex",
 e0
@@ -1340,3 +1417,21 @@ e0
  fs[] >>  fs[Pre_Suc])
 (form_goal
  “!X xs.isFinite(X) o xs= TRUE ==> ?!n.hasCard(X) o Pa(xs,n) = TRUE”));
+
+
+val Card_def = Fin_Card |> strip_all_and_imp
+                        |> uex_expand
+                        |> ex2fsym0 "Card" ["xs"]
+                        |> disch_all
+                        |> gen_all
+                        |> store_as "Card_def";
+(*want CARD: Exp(X,1+1) -> N.
+ hasCard: Exp(X,1+1) * N -> 2.
+
+ Exp(X,1+1) -> Exp(N,1+1)
+
+ Exp(N,1+1) -> N
+
+ 
+
+*)

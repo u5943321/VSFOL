@@ -2937,6 +2937,9 @@ Proposition: Given a set 𝑋, a 𝑓:𝑋→𝑋, and 𝑎∈𝑋
 can not have im(p) as function, since then we have func that takes ar into sets
 *)
 
+
+(*
+
 fun Eval f e = mk_fun "Eval" [f,e] 
 
 
@@ -3232,3 +3235,4 @@ val it =
    ([], ["( 1 -> mem(pv A : psv  1))"],
     ["(z -> psv  2)", "(y -> psv  0)", "(a -> psv  1)"], [], 3):
    string list * string list * string list * string list * int
+*)

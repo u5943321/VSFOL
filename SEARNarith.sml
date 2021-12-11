@@ -1922,7 +1922,7 @@ Map(f:A->B): 'a list set -> 'b list set
 
 *)
 
-
+(*
 
 
 val ADD_def0 = Nind_def |> specl [rastt "N"]
@@ -1945,4 +1945,4 @@ f: (n,pre n) |-> (suc n, n)
 val PRE_def0 = Nind_def |> specl [rastt "N * N"]
                         |> specl [rastt "SUC"]
                         |> C mp SUC_Fun 
-                        
+*)                        
