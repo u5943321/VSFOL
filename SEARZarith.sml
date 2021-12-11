@@ -1189,3 +1189,72 @@ e0
  qsspecl_then [‘a''’,‘b'’] assume_tac Add_sym >> arw[] >>
  rw[LESS_EQ_cases] )
 (form_goal “Total(LEz)”));
+
+val Z = mk_fun "Z" []
+
+val _ = new_pred "Lez" [("z1",mem_sort Z),("z2",mem_sort Z)]
+
+val Lez_def = store_ax("Lez_def",
+“!z1 z2.Lez(z1,z2) <=> Holds(LEz,z1,z2)”);
+
+
+
+
+val Z2_x = prove_store("Z2_x",
+e0
+(rpt strip_tac >>
+ 
+rw[Lez_def,Addz_eqn',Addj_property,LEz_def])
+(form_goal “!z1 z2 z3.Lez(z1,z2) ==>
+            Lez(Addz(z1,z3), Addz(z2,z3))”));
+
+val J2_iv' = prove_store("J2_iv'",
+e0
+(rpt strip_tac >> 
+ qsspecl_then [‘ab’] assume_tac Pair_has_comp >>
+ qsspecl_then [‘ab'’] assume_tac Pair_has_comp >>
+ qsspecl_then [‘cd’] assume_tac Pair_has_comp >>
+ qsspecl_then [‘cd'’] assume_tac Pair_has_comp >>
+ pop_assum_list (map_every strip_assume_tac) >> rfs[] >>
+ irule J2_iv >> arw[])  
+(form_goal
+ “!ab cd ab' cd'. Holds(ZR,ab,ab') & Holds(ZR,cd,cd') ==> 
+ (Holds(lej,ab,cd) <=> Holds(lej,ab',cd'))”));
+
+val ZR_sym_iff = prove_store("ZR_sym_iff",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >>
+ drule ZR_sym >> arw[])
+(form_goal
+ “!a1 a2. Holds(ZR,a1,a2) <=> Holds(ZR,a2,a1)”));
+
+val Z2_x = prove_store("Z2_x",
+e0
+(rw[Lez_def,Addz_eqn',Addj_property,LEz_def] >>
+ rpt strip_tac >>
+ qsuff_tac 
+ ‘Holds(lej,Pair(a, b),Pair(c, d)) ==> 
+  Holds(lej, Pair(Add(a, e), Add(b, f)),
+             Pair(Add(c, e), Add(d, f)))’ >--
+ (rpt strip_tac >>
+ qby_tac ‘Holds(lej, Pair(a, b), Pair(c, d)) ’
+ >-- (irule $ iffLR J2_iv' >>
+      qexistsl_tac 
+      [‘rep(asz(Pair(a, b)))’,‘rep(asz(Pair(c, d)))’]>>
+      arw[] >> rw[GSYM rep_rel_all]) >>
+ first_x_assum drule >> 
+ irule $ iffLR J2_iv' >> 
+ qexistsl_tac
+ [‘Pair(Add(a, e), Add(b, f))’,‘Pair(Add(c, e), Add(d, f))’] >>
+ arw[] >> once_rw[ZR_sym_iff] >> rw[GSYM rep_rel_all]) >>
+ pop_assum (K all_tac) >>
+ rw[lej_property] >> rpt strip_tac >>
+ qsspecl_then [‘Add(d,f)’,‘Add(a,e)’] assume_tac Add_sym >>
+ arw[] >> rw[Add_assoc] >> rw[LESS_EQ_MONO_ADD_EQ] >>
+ once_rw[Add_sym] >> rw[Add_assoc] >>
+ rw[LESS_EQ_MONO_ADD_EQ] >> 
+ qsspecl_then [‘c’,‘b’] assume_tac Add_sym >> fs[]
+ )
+(form_goal “!a b c d e f.Lez(asz(Pair(a,b)),asz(Pair(c,d))) ==>
+            Lez(Addz(asz(Pair(a,b)),asz(Pair(e,f))),
+                Addz(asz(Pair(c,d)),asz(Pair(e,f))))”));
