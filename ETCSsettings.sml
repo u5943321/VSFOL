@@ -3233,3 +3233,1127 @@ e0
 
 
 
+
+val iscoPr_expand = iscoPr_def |> conv_rule $ once_depth_fconv no_conv (rewr_fconv $ uex_def “?!fg : AB->X. fg o i1 = f & fg o i2 = g”) |> store_as "iscoPr_expand";
+
+val copa_def = 
+    iscoPr_expand |> iffLR |> strip_all_and_imp
+                  |> ex2fsym0 "copa" ["i1","i2","f","g"]
+                  |> gen_all |> disch_all |> gen_all
+                  |> store_as "copa_def"
+
+val i12_of_copa = copa_def |> strip_all_and_imp
+                           |> conjE1
+                           |> gen_all 
+                           |> disch_all
+                           |> gen_all
+                           |> store_as "i12_of_copa"
+
+
+val is_copa = copa_def |> strip_all_and_imp
+                       |> conjE2
+                       |> gen_all 
+                       |> disch_all
+                       |> gen_all
+                       |> store_as "is_copa"
+
+
+(*a version of prop_5 lemma for general copr*)
+
+val coPr_Iso = prove_store("coPr_Iso",
+e0
+(rpt strip_tac >> rw[Iso_def] >> 
+ qexists_tac ‘copa(iA,iB,i1(A,B),i2(A,B))’>>
+  strip_tac (* 2 *)
+  >-- (irule from_coP_eq >> rw[o_assoc,i12_of_coPa,idL] >>
+      drule i12_of_copa >> arw[]) >>
+  drule is_copa >> 
+  qsuff_tac
+  ‘coPa(iA, iB) o copa(iA, iB, i1(A, B), i2(A, B)) = 
+   copa(iA,iB,iA,iB) & id(AB) = copa(iA,iB,iA,iB)’
+  >-- (strip_tac >> arw[]) >> strip_tac (* 2 *) >--
+  (first_x_assum irule >> drule i12_of_copa >>
+   arw[o_assoc,i12_of_coPa]) >> 
+  first_x_assum irule >> rw[idL])
+(form_goal
+ “!A B AB iA:A->AB iB:B->AB. 
+  iscoPr(iA,iB) ==> Iso(coPa(iA,iB))”)); 
+
+(*actually can have a stronger version*)
+
+
+val inc_Mono = prove_store("inc_Mono",
+e0
+(rpt strip_tac (* 2 *) >--
+ (rw[Mono_def] >> rpt strip_tac >>
+ irule FUN_EXT >> strip_tac >>
+ qby_tac ‘copa(iA,iB,id(A),g o a o To1(B)) o iA o g = copa(iA,iB,id(A),g o a o To1(B)) o iA o h’
+ >-- arw[] >> pop_assum mp_tac >>
+ drule i12_of_copa >> rw[GSYM o_assoc] >>
+ arw[idL] >> strip_tac >> arw[]) >>
+ rw[Mono_def] >> rpt strip_tac >>
+ irule FUN_EXT >> strip_tac >>
+ qby_tac ‘copa(iA,iB,g o a o To1(A),id(B)) o iB o g =
+          copa(iA,iB,g o a o To1(A),id(B)) o iB o h’
+ >-- arw[] >> pop_assum mp_tac >>
+ drule i12_of_copa >> rw[GSYM o_assoc] >>
+ arw[idL] >> strip_tac >> arw[])
+(form_goal 
+“!A B AB iA:A->AB iB:B->AB. iscoPr(iA,iB) ==>
+ Mono(iA) & Mono(iB)”));
+
+val prop_5_lemma_copa = prove_store("prop_5_lemma_copa",
+e0
+(rpt strip_tac >>
+ ccontra_tac >>
+ qsuff_tac ‘i1(A,B) o x0 = i2(A,B) o x0'’
+ >-- rw[prop_5_lemma] >>
+ qby_tac ‘copa(i1,i2,i1(A,B),i2(A,B)) o i1 o x0 =
+          copa(i1,i2,i1(A,B),i2(A,B)) o i2 o x0'’
+ >-- arw[] >>
+ drule i12_of_copa >> 
+ fs[GSYM o_assoc])
+(form_goal
+ “!A B AB i1:A->AB i2:B->AB. iscoPr(i1,i2) ==> 
+  !x0:1->A x0':1->B.~(i1 o x0 = i2 o x0')”));
+
+val from_copr_components = prove_store(
+"from_copr_components",
+e0
+(repeat strip_tac >> irule is_copa >> arw[])
+(form_goal “!A B AB i1:A->AB i2:B->AB. iscoPr(i1, i2) ==>!X f:AB->X. f = copa(i1, i2, f o i1, f o i2)”));
+
+val from_cop_eq = prove_store("from_cop_eq",
+e0
+(rpt strip_tac >> 
+ qsuff_tac ‘f = copa(i1,i2,f o i1,f o i2) &
+            g = copa(i1,i2,g o i1,g o i2)’
+ >-- (strip_tac >> once_arw_tac[] >> 
+     pop_assum (K all_tac) >> pop_assum (K all_tac) >> 
+     arw_tac[]) >> strip_tac
+ >> match_mp_tac from_copr_components >> arw_tac[])
+(form_goal “!A B AB i1:A->AB i2:B->AB.iscoPr(i1,i2) ==> !X f:AB ->X g. f o i1 = g o i1 & f o i2 = g o i2 ==> f = g”));
+
+
+val inc_fac = prove_store("inc_fac",
+e0
+(rpt strip_tac >> 
+ qspecl_then [‘A’,‘B’,‘copa(iA,iB,i1(A,B),i2(A,B)) o f’] 
+ strip_assume_tac INC_FAC (* 2 *) >--
+ (disj1_tac >> qexists_tac ‘f0’ >> 
+  qby_tac
+  ‘coPa(iA,iB) o i1(A, B) o f0 = coPa(iA,iB) o copa(iA, iB, i1(A, B), i2(A, B)) o f’ >-- arw[] >>
+  fs[GSYM o_assoc,i12_of_coPa] >>
+  qsuff_tac ‘(coPa(iA, iB) o copa(iA, iB, i1(A, B), i2(A, B)))  = id(AB)’ >-- (strip_tac >> arw[idL]) >>
+  irule from_cop_eq >> 
+  qexistsl_tac [‘A’,‘iA’,‘B’,‘iB’] >> drule i12_of_copa >>
+  arw[o_assoc,i12_of_coPa,idL]) >>
+ disj2_tac >> qexists_tac ‘f0’ >> 
+  qby_tac
+  ‘coPa(iA,iB) o i2(A, B) o f0 = coPa(iA,iB) o copa(iA, iB, i1(A, B), i2(A, B)) o f’ >-- arw[] >>
+  fs[GSYM o_assoc,i12_of_coPa] >>
+  qsuff_tac ‘(coPa(iA, iB) o copa(iA, iB, i1(A, B), i2(A, B)))  = id(AB)’ >-- (strip_tac >> arw[idL]) >>
+  irule from_cop_eq >> 
+  qexistsl_tac [‘A’,‘iA’,‘B’,‘iB’] >> drule i12_of_copa >>
+  arw[o_assoc,i12_of_coPa,idL])
+(form_goal
+ “!A AB iA:A->AB B iB:B->AB. iscoPr(iA,iB) ==>
+ !f:1->AB. (?f0:1->A. iA o f0 = f)  |
+           (?f0:1->B. iB o f0 = f) ”));
+
+
+val copr_disjoint = prove_store("copr_disjoint",
+e0
+(rpt strip_tac >> drule prop_5_lemma_copa >> 
+ drule inc_Mono >> drule inc_fac >> 
+ first_x_assum (qspecl_then [‘x’] assume_tac) >>
+ cases_on “?x0 : 1 -> A. x:1->AB = iA o x0” (* 2 *)
+ >-- (arw[] >> pop_assum strip_assume_tac >>
+     ccontra_tac >> pop_assum strip_assume_tac >>
+     qby_tac ‘iA o x0 = iB o x0'’ 
+     >-- (pop_assum mp_tac >> 
+          pop_assum (assume_tac o GSYM) >>
+          strip_tac >> pop_assum (assume_tac o GSYM) >>
+          qpick_x_assum ‘!x0 x0'. ~(iA o x0 = iB o x0')’
+          (K all_tac) >> arw[]) >>
+     rfs[]) >>
+ arw[] >> pop_assum_list (map_every strip_assume_tac) (* 2 *)
+ >-- (qby_tac ‘?x0. x = iA:A->AB o x0’
+      >-- (qexists_tac ‘f0’ >> arw[]) >>
+      first_x_assum opposite_tac) >>
+ qexists_tac ‘f0’ >> arw[])
+(form_goal “!A B AB iA:A->AB iB:B->AB. iscoPr(iA,iB) ==>
+!x:1->AB. (~(?x0:1->A. x = iA o x0)) <=> (?x0:1->B. x = iB o x0)”));
+
+
+
+val Char_Diag' = Char_Diag |> rewr_rule[TRUE_def]
+                           |> store_as "Char_Diag'";
+
+
+
+
+
+
+val Iso_Epi = prove_store("Iso_Epi",
+e0
+(rw[Iso_def,Epi_def] >> rpt strip_tac >>
+ qsuff_tac ‘h o f o f' = g o f o f'’ 
+ >-- (arw[idR] >> strip_tac >> arw[]) >> 
+ arw[GSYM o_assoc])
+(form_goal “!A B f:A->B. Iso(f) ==> Epi(f)”));
+
+
+val iso_coPr_coPr = prove_store("iso_coPr_coPr",
+e0
+(rpt strip_tac >> rw[iscoPr_expand] >> rpt strip_tac >>
+ drule $ iffLR Iso_def >> drule copa_def >> fs[] >>
+ first_x_assum (qspecl_then [‘X'’,‘f’,‘g’] assume_tac) >>
+ qexists_tac ‘copa(iA,iB,f,g) o f'’ >> rw[o_assoc] >>
+ qby_tac ‘f' o f0 = iA & f' o g0 = iB’ >-- 
+ (qby_tac ‘f' o copa(iA, iB, f0, g0) o iA = id(AB) o iA & 
+           f' o copa(iA, iB, f0, g0) o iB = id(AB) o iB’
+  >-- arw[GSYM o_assoc] >>
+  pop_assum mp_tac >> drule i12_of_copa >> arw[idL]) >>
+ arw[] >> 
+ drule i12_of_copa >> arw[] >> 
+ rpt strip_tac >> irule $ iffLR Epi_def >>
+ qexistsl_tac [‘AB’,‘copa(iA, iB, f0, g0)’] >>
+ drule Iso_Epi >> arw[o_assoc,idR] >>
+ drule from_cop_eq >> first_x_assum irule >> 
+ drule i12_of_copa >> arw[o_assoc]
+ )
+(form_goal “!A B AB iA:A->AB iB:B->AB. iscoPr(iA,iB) ==>
+ !X f0:A->X g0:B->X. Iso(copa(iA,iB,f0,g0)) ==> iscoPr(f0,g0)”));
+
+
+val copa_coPa = prove_store("copa_coPa",
+e0
+(rpt strip_tac >> flip_tac >> irule is_copa >> 
+ rw[i12_of_coPa,i2_def])
+(form_goal
+ “!A X f:A->X B g:B->X. copa(i1(A,B),i2(A,B),f,g) = coPa(f,g)”));
+
+
+
+
+val i1_xor_i2_1 = prove_store("i1_xor_i2_1",
+e0
+(rpt strip_tac >> qspecl_then [‘1’,‘1’] assume_tac i2_def >>
+ drule copr_disjoint >>
+ first_x_assum (qspecl_then [‘x’] assume_tac) >>
+ qby_tac ‘(?x0. x = i1(1, 1) o x0) <=> x = i1(1,1)’
+ >-- (dimp_tac >> strip_tac >-- (pop_assum mp_tac >> once_rw[one_to_one_id] >> rw[idR]) >>
+     qexists_tac ‘id(1)’ >> arw[idR]) >> fs[] >>
+ qby_tac ‘(?x0. x = i2(1, 1) o x0) <=> x = i2(1,1)’
+ >-- (dimp_tac >> strip_tac >-- (pop_assum mp_tac >> once_rw[one_to_one_id] >> rw[idR]) >>
+     qexists_tac ‘id(1)’ >> arw[idR]) >> fs[] >>
+ cases_on “x = i1(1,1)” (* 2 *) >> dimp_tac >> strip_tac (* 3 *)
+ >-- (ccontra_tac >> fs[]) >-- arw[] >> fs[])
+(form_goal 
+ “!x:1->1+1. x = i1(1,1) <=> ~(x = i2(1,1))”));
+
+
+val TRUE2FALSE = prove_store("TRUE2FALSE",
+e0
+(assume_tac i1_xor_i2_1 >> fs[GSYM TRUE_def,GSYM FALSE_def])
+(form_goal
+“!f. ~(f = TRUE) <=> f = FALSE”));
+
+
+
+val IMP_ex = prove_store("IMP_ex",
+e0
+(rpt strip_tac >> 
+ by_tac “Mono(Pa(TRUE,FALSE))”
+ >-- rw[from_one_Mono] >>
+ drule Thm5 >> 
+ pop_assum (x_choosel_then ["M","imp0"] strip_assume_tac) >>
+ drule Char_def >> fs[TRUE_def] >>
+ qexists_tac ‘Char(imp0)’ >> rpt strip_tac >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ fs[GSYM copa_coPa] >>
+ qspecl_then [‘1’,‘M’] assume_tac i2_def >>
+ drule iso_coPr_coPr >> first_x_assum drule >> drule copr_disjoint >> 
+ first_x_assum (qspecl_then [‘Pa(p1,p2)’] assume_tac) >>
+ qby_tac 
+ ‘(?x0:1->1. Pa(p1, p2) = Pa(TRUE, FALSE) o x0) <=> Pa(p1, p2) = Pa(TRUE, FALSE)’
+ >-- (dimp_tac >> strip_tac >-- (first_x_assum mp_tac >> once_rw[one_to_one_id] >> rw[idR]) >>
+      qexists_tac ‘id(1)’ >> arw[idR]) >>
+ fs[Pa_eq_eq] >> 
+ pop_assum (K all_tac) >> pop_assum (assume_tac o GSYM) >> 
+ fconv_tac (land_fconv no_conv (once_depth_fconv no_conv (rewr_fconv (eq_sym "ar")))) >>
+ arw[] >> dimp_tac >> rpt strip_tac >> fs[] (* 2 *)
+ >-- fs[GSYM TRUE2FALSE] >>
+ ccontra_tac >> fs[] >> fs[GSYM TRUE_def,GSYM FALSE_def,i1_ne_i2_1])
+(form_goal 
+“?imp:(1+1) * (1 + 1)->1+1. 
+ !p1 p2. imp o Pa(p1,p2) = TRUE <=> (p1 = TRUE ==> p2 = TRUE)”));
+
+val IMP_def = IMP_ex |> ex2fsym0 "IMP" [] |> store_as "IMP_def";
+
+
+val CONJ_ex = prove_store("CONJ_ex",
+e0
+(rpt strip_tac >> 
+ qexists_tac ‘Char(Pa(TRUE,TRUE))’ >> 
+ qby_tac ‘Mono(Pa(TRUE,TRUE))’ >-- rw[from_one_Mono] >> 
+ drule Char_def >> fs[TRUE_def] >> pop_assum (assume_tac o GSYM) >>
+ once_arw[] >> rw[Pa_distr,Pa_eq_eq] >> once_rw[one_to_one_id] >> rw[idR] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (*  3 *)
+ >-- (pop_assum (K all_tac) >> arw[])  
+ >-- (once_arw[] >> rw[]) >>
+ qexists_tac ‘id(1)’ >> arw[])
+(form_goal 
+“?conj:(1+1) * (1+1)->1+1. 
+ !p1 p2. conj o Pa(p1,p2) = TRUE <=>
+ (p1 = TRUE & p2 = TRUE)”));
+
+val CONJ_def = CONJ_ex |> ex2fsym0 "CONJ" [] |> store_as "CONJ_def";
+
+val IFF_ex = prove_store("IFF_ex",
+e0
+(rpt strip_tac >>
+ qexists_tac ‘CONJ o Pa(IMP,IMP o Pa(p2(1+1,1+1),p1(1+1,1+1)))’ >> 
+ rpt strip_tac >> rw[o_assoc,Pa_distr,CONJ_def] >> 
+ rw[IMP_def,p12_of_Pa] >> dimp_tac >> rpt strip_tac (*  3*)
+ >-- (dimp_tac >> strip_tac (* 2 *) >> first_x_assum drule >> arw[]) 
+ >-- fs[] >-- fs[])
+(form_goal 
+“?iff:(1+1) * (1+1)->1+1. 
+ !p1 p2. iff o Pa(p1,p2) = TRUE <=>
+ (p1 = TRUE <=> p2 = TRUE)”));
+
+
+val IFF_def = IFF_ex |> ex2fsym0 "IFF" [] |> store_as "IFF_def";
+
+val True1TRUE = prove_store("True1TRUE",
+e0
+(rw[GSYM True_def] >> once_rw[one_to_one_id] >> rw[idR])
+(form_goal “True(1) = TRUE”));
+
+
+
+val DISJ_ex = prove_store("DISJ_ex",
+e0
+(rpt strip_tac >> 
+ by_tac “Mono(Pa(FALSE,FALSE))” >-- rw[from_one_Mono] >> 
+ drule Thm5 >> 
+ pop_assum (x_choosel_then ["O","or0"] strip_assume_tac) >>
+ drule Char_def >>
+ qexists_tac ‘Char(or0)’ >> rpt strip_tac >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ fs[GSYM copa_coPa] >>
+ qspecl_then [‘1’,‘O’] assume_tac i2_def >>
+ drule iso_coPr_coPr >> first_x_assum drule >> drule copr_disjoint >> 
+ first_x_assum (qspecl_then [‘Pa(p1,p2)’] assume_tac) >>
+ fs[TRUE_def] >> 
+ fconv_tac (land_fconv no_conv (once_depth_fconv no_conv (rewr_fconv (eq_sym "ar")))) >>
+ pop_assum (assume_tac o GSYM) >> arw[] >> rw[Pa_distr,Pa_eq_eq] >>
+ once_rw[one_to_one_id] >> rw[idR]>> 
+ qby_tac
+ ‘(?x0:1->1 . p1 = FALSE & p2 = FALSE) <=> p1 = FALSE & p2 = FALSE’ 
+ >-- (dimp_tac >> strip_tac >-- arw[] >> qexists_tac ‘id(1)’ >> arw[]) >>
+ arw[] >> dimp_tac >> strip_tac (* 3 *)
+ >-- (cases_on “p1 = TRUE” (* 2 *) >-- arw[] >>
+     fs[TRUE2FALSE] >> fs[GSYM TRUE2FALSE]) 
+ >> ccontra_tac >> fs[GSYM TRUE_def,GSYM FALSE_def,i1_ne_i2_1])
+(form_goal
+“?or:(1+1) * (1 +1)->1+1. 
+ !p1:1->1+1 p2. or o Pa(p1,p2) = TRUE <=> 
+  (p1 = TRUE | p2 = TRUE)”));
+
+val DISJ_def = DISJ_ex |> ex2fsym0 "DISJ" [] |> store_as "DISJ_def";
+
+
+
+val NEG_ex = prove_store("NEG_ex",
+e0
+(rpt strip_tac >> 
+ qexists_tac ‘coPa(TRUE,FALSE)’ >> strip_tac >>
+ assume_tac i1_xor_i2_1 >> fs[TRUE_def,FALSE_def] >>
+ cases_on “pred = TRUE” >--
+ (arw[] >> rw[GSYM TRUE_def,i12_of_coPa,GSYM FALSE_def] >> 
+ ccontra_tac >> fs[TRUE_def,FALSE_def] >> 
+ first_x_assum $ qspecl_then [‘TRUE’] assume_tac >> fs[]) >>
+ rfs[] >> 
+ first_x_assum $ qspecl_then [‘pred’] assume_tac >> fs[] >>
+ rfs[] >> fs[GSYM FALSE_def,i12_of_coPa])
+(form_goal
+“?neg: 1+1 -> 1+1.
+ !pred:1->1+1. neg o pred = TRUE <=> pred = FALSE”));
+
+
+val NEG_def = NEG_ex |> ex2fsym0 "NEG" [] |> store_as "NEG_def";
+
+
+(*
+YX(y : ar(1, Y))(pxy : ar(X * Y, 1 + 1))
+   
+   ----------------------------------------------------------------------
+   (NEG o All(X) o Tp(NEG o Ev(X, 1 + 1))) o Tp(pxy) o y = TRUE <=>
+             ?(x : ar(1, X)). pxy o Pa(x#, y) = TRUE
+
+parser bug
+*)
+
+val TRUE_xor_FALSE = i1_xor_i2_1 |> rewr_rule[FALSE_def,TRUE_def]
+                                |> store_as "TRUE_xor_FALSE";
+
+val TRUE_ne_FALSE = i1_ne_i2_1 |> rewr_rule[FALSE_def,TRUE_def]
+                               |> store_as "TRUE_ne_FALSE";
+
+
+
+
+
+val All_ex = prove_store("All_ex",
+e0
+(strip_tac >> qexists_tac ‘Char(Tp1(True(X)))’ >>
+ qby_tac ‘Mono(Tp1(True(X)))’ >-- rw[from_one_Mono] >> 
+ drule Char_def >> pop_assum (assume_tac o GSYM) >>
+ fs[TRUE_def] >> once_rw[one_to_one_id] >> rw[idR] >> rpt strip_tac >>
+ qby_tac
+ ‘(?x0:1->1. Tp1(True(X)) = Tp(pxy) o y) <=> 
+  Tp1(True(X)) = Tp(pxy) o y’ 
+ >-- (dimp_tac >> strip_tac >> qexists_tac ‘id(1)’ >> arw[]) >>
+ arw[] >> dimp_tac >> rpt strip_tac (* 2 *) >--
+ (qby_tac ‘Ev(X,1+1) o Pa(p1(X,1),Tp1(True(X)) o p2(X,1)) =
+          Ev(X,1+1) o Pa(p1(X,1),Tp(pxy) o y o p2(X,1))’
+ >-- arw[GSYM o_assoc] >>
+ fs[GSYM Tp1_def,Ev_of_Tp,GSYM True_def] >>
+ fs[Pa_o_split,GSYM o_assoc,Ev_of_Tp] >> fs[o_assoc] >> 
+ qby_tac
+ ‘(TRUE o To1(X) o p1(X, 1)) o Pa(x,id(1)) =
+  (pxy o Pa(p1(X, 1), y o p2(X, 1))) o Pa(x,id(1))’ 
+ >-- arw[] >> fs[o_assoc,Pa_distr,p12_of_Pa,idR] >>
+ pop_assum  mp_tac >> once_rw[one_to_one_id] >> rw[idR] >> 
+ strip_tac >> arw[]) >>
+ flip_tac >> rw[GSYM Tp1_def] >> irule is_Tp >>
+ rw[o_assoc,Pa_o_split] >> rw[GSYM o_assoc,Ev_of_Tp] >>
+ irule FUN_EXT >> strip_tac >> rw[o_assoc,Pa_distr] >>
+ once_rw[one_to_one_id] >> rw[idR] >> arw[] >>
+ rw[GSYM True_def] >> rw[o_assoc] >> once_rw[one_to_one_id] >>
+ rw[idR])
+(form_goal
+“!X.?Uq:Exp(X,1+1) -> 1+1. 
+ !Y pxy:X * Y-> 1+1 y:1->Y.
+ (Uq o Tp(pxy) o y = TRUE  <=> 
+  !x:1->X. pxy o Pa(x,y) = TRUE)”));
+
+
+val All_def = All_ex |> spec_all |> ex2fsym0 "All" ["X"]
+                     |> gen_all
+                     |> store_as "All_def";
+
+
+
+val pxy_true = prove_store("pxy_true",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *) >--
+ (arw[o_assoc,GSYM True_def] >> once_rw[one_to_one_id] >> 
+ rw[idR]) >>
+ irule FUN_EXT >> strip_tac >> once_rw[to_P_component] >>
+ arw[GSYM True_def] >> rw[o_assoc] >> 
+ once_rw[one_to_one_id] >> rw[idR])
+(form_goal
+“!X Y pred:X * Y -> 1+1.pred = True(X * Y) <=> 
+    !x:1->X y:1->Y. pred o Pa(x,y) = TRUE”));
+
+
+fun exists_forall (n,s) = 
+    let 
+        val f0 = mk_fvar "f0" []
+        val af0 = mk_forall n s (mk_neg f0)
+        val ef0 = mk_exists n s f0
+        val d1 = (C negI)
+                     (existsE (n,s) (assume ef0)
+                 (negE (assume f0) 
+                   ((C allE) (assume af0) (mk_var(n,s)))))
+                 af0 |>
+                 disch ef0
+        val d2 = elim_double_neg
+                     ((C negI)
+                          (negE
+                               (allI (n,s)
+                                     ((C negI)
+                                          (negE
+                                               (existsI (n,s) (mk_var(n,s)) f0 ((C add_cont) (assume f0) (HOLset.add(essps,(n,s))))
+                                                        )
+                                               (assume (mk_neg ef0)))
+                                          f0))
+                               (assume (mk_neg af0))
+)
+                          (mk_neg ef0))|>
+                     disch (mk_neg af0)
+    in dimpI d1 d2
+    end
+
+
+val Exq_ex = prove_store("Exq_ex",
+e0
+(strip_tac >> 
+ qexists_tac ‘NEG o All(X) o Tp(NEG o Ev(X,1+1))’ >>
+ rpt strip_tac >>
+ rw[o_assoc,NEG_def] >>
+ qby_tac
+ ‘Tp(NEG o Ev(X,1+1)) o Tp(pxy) = Tp(NEG o pxy)’ 
+ >-- (irule is_Tp >> rw[o_assoc,Pa_o_split] >> rw[GSYM o_assoc,Ev_of_Tp] >>
+      rw[o_assoc,Ev_of_Tp]) >>
+rw[TRUE_xor_FALSE,All_def] >> rw[o_assoc,NEG_def,Ev_of_Tp_el] >>
+dimp_tac >> strip_tac (* 2 *) >--
+(ccontra_tac >> 
+ qsuff_tac ‘!x:1->X. pxy o Pa(x,y) = FALSE’ >-- arw[] >>
+ strip_tac >>
+ qpick_x_assum ‘~(!x:1->X. pxy o Pa(x,y) = FALSE)’ (K all_tac) >>
+ rw[TRUE_xor_FALSE] >> ccontra_tac >>
+ qsuff_tac ‘?x:1->X. pxy o Pa(x,y) = TRUE’ >-- arw[] >>
+ qexists_tac ‘x’ >> arw[]) >>
+ccontra_tac >>
+first_x_assum (qspecl_then [‘x’] assume_tac) >> fs[TRUE_ne_FALSE]
+)
+(form_goal
+“!X.?Exq:Exp(X,1+1) -> 1+1. 
+ !Y pxy:X * Y->1+1 y:1->Y. 
+ (Exq o Tp(pxy) o y = TRUE  <=> 
+  ?x:1->X. pxy o Pa(x,y) = TRUE)”));
+
+val Ex_def = Exq_ex |> spec_all |> ex2fsym0 "Ex" ["X"] |> gen_all
+                    |> store_as "Ex_def"
+
+
+val Eq_property_TRUE = prove_store("Eq_property_TRUE",
+e0
+(rpt strip_tac >> rw[GSYM True1TRUE] >> rw[GSYM Eq_property])
+(form_goal
+ “!X p1 p2.Eq(X) o Pa(p1,p2) = TRUE <=> p1 = p2”));
+
+(*better have p1 p2 p3*)
+val E1_ex = prove_store("E1_ex",
+e0
+(strip_tac >>
+ abbrev_tac
+ “IMP o 
+    Pa(CONJ o Pa(Ev(X,1+1) o Pa(p1(X,X * Exp(X,1+1)), p2(X,Exp(X,1+1)) o p2(X,X * Exp(X,1+1))),
+                 Ev(X,1+1) o Pa(p1(X,Exp(X,1+1)) o p2(X,X * Exp(X,1+1)),p2(X,Exp(X,1+1)) o p2(X,X * Exp(X,1+1)))),
+      Eq(X) o 
+      Pa(p1(X,X * Exp(X,1+1)), p1(X,Exp(X,1+1)) o p2(X,X * Exp(X,1+1)))) = p0” >>
+ qexists_tac 
+ ‘CONJ o
+  Pa(Ex(X),All(X) o Tp(All(X) o Tp(p0)))’ >> rpt strip_tac >>
+  rw[o_assoc,Pa_distr,CONJ_def] >> rw[All_def] >> rw[o_assoc,All_def] >>
+ rw[Ex_def] >> 
+ pop_assum (assume_tac o GSYM) >> once_arw[] >>
+ rw[o_assoc,Pa_distr,IMP_def] >> once_rw[CONJ_def] >>
+ rw[p12_of_Pa] >> once_rw[Eq_property_TRUE] >>
+ rw[Ev_of_Tp_el] >> dimp_tac >> strip_tac (* 2 *)
+ >-- (qexists_tac ‘x’ >> arw[] >> rpt strip_tac >> first_x_assum irule >> arw[]) >>
+ strip_tac >-- (qexists_tac ‘x’ >> arw[]) >>
+ rpt strip_tac >> 
+ qsuff_tac ‘x'' = x  & x' = x’ >-- (strip_tac >> arw[]) >> strip_tac >>
+ first_x_assum irule >> arw[]
+ )
+(form_goal
+“!X.?Exq: Exp(X,1+1) -> 1+1. 
+ !Y pxy:X * Y->1+1 y:1->Y. 
+ (Exq o Tp(pxy) o y = TRUE  <=> 
+  ?x:1->X. pxy o Pa(x,y) = TRUE & 
+  !x0:1->X. pxy o Pa(x0,y) = TRUE ==> x0 = x)”));
+
+
+val E1_def =  E1_ex |> spec_all |> ex2fsym0 "E1" ["X"] |> gen_all
+                    |> store_as "E1_def";
+ 
+
+
+fun NEG_CONJ2IMP_NEG0 A B = 
+    let 
+        val AB = mk_conj A B
+        val l = mk_neg AB
+        val nB = mk_neg B
+        val r = mk_imp A nB
+        val l2r = negE (conjI (assume A) (assume B)) (assume l) |> negI B |> disch A |> disch l
+        val r2l = negE (conjE2 (assume AB)) (mp (assume r) (conjE1 (assume AB))) 
+                       |> negI AB |> disch r
+    in dimpI l2r r2l
+    end
+
+val NEG_CONJ2IMP_NEG = NEG_CONJ2IMP_NEG0 (mk_fvar "A" []) (mk_fvar "B" [])
+
+
+
+val FUN_EXT_iff = prove_store("FUN_EXT_iff",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *) >-- 
+ (drule FUN_EXT >> arw[]) >>
+ rpt strip_tac >> arw[])
+(form_goal
+“!A B f:A->B g. (!a:1->A. f o a = g o a) <=> f = g”));
+
+
+val True2TRUE = prove_store("True2TRUE",
+e0
+(rpt strip_tac >> rw[GSYM True_def,o_assoc] >>
+ once_rw[one_to_one_id] >> rw[idR])
+(form_goal
+“!X x:1->X. True(X) o x = TRUE”));
+
+
+val False2FALSE = prove_store("False2FALSE",
+e0
+(rw[GSYM False_def,o_assoc] >> once_rw[one_to_one_id] >>
+ rw[idR])
+(form_goal
+ “!X x:1->X. False(X) o x = FALSE”)); 
+
+
+
+local
+val eq_sym = 
+prove_store("eq_sym",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> once_arw[] >> rw[])
+(form_goal
+“!A B f:A->B g:A->B. f = g <=> g = f”));
+in
+val pred_subset_ex = prove_store("pred_subset_ex",
+e0
+(rpt strip_tac >> 
+ qspecl_then [‘X’,‘1+1’,‘pred’,‘1’,‘TRUE’] strip_assume_tac isPb_ex >>
+ drule $ GSYM Pb_fac_iff_1 >>
+ qexistsl_tac [‘P’,‘p’] >> arw[] >> strip_tac >> 
+ (*TODO: write one function do the long thing parametized by the eq_sym.*)
+ fconv_tac (rand_fconv no_conv (once_depth_fconv no_conv (rewr_fconv (spec_all eq_sym)))) >> rw[] (*almost equally stupid*)
+ (*stupid *) (*rpt strip_tac >> dimp_tac >> rpt strip_tac >--
+ (qex_tac ‘a’ >> arw[]) >> qex_tac ‘x0’ >> arw[]*))
+(form_goal
+“!X pred:X->1+1.?A ss:A ->X.
+ (!x:1->X. pred o x = TRUE <=> ?x0:1->A. x = ss o x0)”));
+val pred_subset_ex' = prove_store("pred_subset_ex'",
+e0
+(rpt strip_tac >> 
+ qspecl_then [‘X’,‘1+1’,‘pred’,‘1’,‘TRUE’] strip_assume_tac isPb_ex >>
+ drule $ GSYM Pb_fac_iff>>
+ qexistsl_tac [‘P’,‘p’] >> arw[] >>
+ qby_tac ‘Mono(p)’
+ >-- (drule Pb_Mono_Mono >>
+     first_x_assum irule >> rw[from_one_Mono]) >>
+ arw[] >> pop_assum (K all_tac) >>
+ pop_assum mp_tac >> once_rw[To1_def] >>
+ rw[GSYM True_def] >> strip_tac >> arw[] >>
+ rpt strip_tac >>
+ first_x_assum 
+  (qspecl_then [‘K’,‘x’,‘To1(K)’] assume_tac) >>
+ arw[] >>
+ (*TODO: write one function do the long thing parametized by the eq_sym.*)
+ fconv_tac (rand_fconv no_conv (once_depth_fconv no_conv (rewr_fconv (spec_all eq_sym)))) >> rw[] (*almost equally stupid*)
+ (*stupid *) (*rpt strip_tac >> dimp_tac >> rpt strip_tac >--
+ (qex_tac ‘a’ >> arw[]) >> qex_tac ‘x0’ >> arw[]*))
+(form_goal
+“!X pred:X->1+1.?A ss:A ->X. Mono(ss) & 
+ (!K x:K->X. pred o x = True(K) <=> ?x0:K->A. x = ss o x0)”));
+end
+
+val Swap_ex = proved_th $
+e0
+(rpt strip_tac >> qexists_tac ‘Pa(p2(A,B),p1(A,B))’ >> rw[])
+(form_goal
+ “!A B. ?swap:A * B ->B * A. Pa(p2(A,B),p1(A,B)) = swap”)
+
+val Swap_def = 
+    Swap_ex |> spec_all |> eqT_intro
+               |> iffRL |> ex2fsym "Swap" ["A","B"] 
+               |> C mp (trueI []) |> gen_all
+               |> store_as "Swap_def";
+
+
+val Swap_property = proved_th $
+e0
+(rw[GSYM Swap_def,p12_of_Pa])
+(form_goal
+ “!A B. p1(B,A) o Swap(A,B) = p2(A,B) & p2(B,A) o Swap(A,B) = p1(A,B)”)
+
+
+val Swap_Swap_id = prove_store("Swap_Swap_id",
+e0
+(rpt strip_tac >> irule to_P_eq >> rw[GSYM Swap_def,idR] >>
+ rw[Pa_distr,p12_of_Pa])
+(form_goal
+ “!A B. Swap(B,A) o Swap(A,B) = id(A * B)”));
+
+val has_components = prove_store("has_components",
+e0
+(rpt strip_tac >>
+ qexistsl_tac [‘p1(A,B) o ab’,‘p2(A,B) o ab’] >>
+ rw[GSYM to_P_component])
+(form_goal
+ “!X A B ab:X->A * B.
+  ?a b. ab = Pa(a,b)”));
+
+
+
+val Refl_Diag = prove_store("Refl_Diag",
+e0
+(rw[Refl_def] >> rpt strip_tac >>
+ dimp_tac >> strip_tac >> qexists_tac ‘d’ (* 2 *)
+ >-- (arw[GSYM Diag_def,Pa_distr,Pa_eq_eq]) >>
+ fs[GSYM Diag_def,Pa_distr,Pa_eq_eq])
+(form_goal
+ “!R A f0:R->A f1. Refl(f0,f1) <=>
+  ?d:A->R. Pa(f0,f1) o d = Diag(A)”));
+
+
+val Sym_alt = prove_store("Sym_alt",
+e0
+(rw[Sym_def] >> rpt strip_tac >>
+ dimp_tac >> strip_tac (* 2 *)
+ >-- (qexists_tac ‘t’ >> arw[Pa_distr,Pa_eq_eq]) >>
+ qexists_tac ‘d’ >> fs[Pa_distr,Pa_eq_eq] >>
+ fs[GSYM Diag_def,Pa_distr,Pa_eq_eq])
+(form_goal
+ “!R A f0:R->A f1. Sym(f0,f1) <=>
+  ?d:R ->R. Pa(f0,f1) o d = Pa(f1,f0)”));
+
+val Pa_Swap_Mono0 = prove_store("Pa_Swap_Mono0",
+e0
+(rw[Mono_def] >> rpt strip_tac >>
+ first_x_assum irule >>
+ qby_tac
+ ‘Swap(B,A) o Pa(f1, f0) o g = 
+  Swap(B,A) o Pa(f1, f0) o h’ 
+ >-- arw[] >>
+ fs[GSYM Swap_def,GSYM o_assoc,Pa_distr,p12_of_Pa])
+(form_goal
+ “!R A B f0:R->A f1:R->B. Mono(Pa(f0,f1)) ==> Mono(Pa(f1,f0))”));
+
+
+val Swap_Mono = prove_store("Swap_Mono",
+e0
+(strip_tac >> strip_tac >> strip_tac >>
+ strip_tac >> once_rw[to_P_component] >>
+ rpt strip_tac >> drule Pa_Swap_Mono0 >>
+ rw[GSYM Swap_def,GSYM o_assoc,p12_of_Pa] >>
+ first_x_assum accept_tac)
+(form_goal
+ “!R A B f:R->A * B. Mono(f) ==> Mono(Swap(A,B) o f)”));
+
+
+
+
+val dflip_tac = 
+fconv_tac 
+ (basic_once_fconv no_conv (rewr_fconv (eq_sym "ar")))
+
+
+
+val p21_Swap = prove_store("p12_Swap",
+e0
+(rpt strip_tac >> rw[GSYM Swap_def] >>
+ irule to_P_eq >> rw[p12_of_Pa,GSYM o_assoc])
+(form_goal
+ “!R A B f:R->A * B. Pa(p2(A,B) o f,p1(A,B) o f) = Swap(A,B) o f”));
+
+
+
+val Trans_alt = prove_store("Trans_alt",
+e0
+(rw[Trans_def] >> rpt strip_tac >>
+ dimp_tac >> rpt strip_tac (* 2 *) >-- 
+ (qby_tac ‘p1(A,A) o Pa(f0, f1) o r01 = 
+           p1(A,A) o Pa(h0, h1) & 
+           p2(A,A) o Pa(f0, f1) o r01 =
+           p2(A,A) o Pa(h0, h1) & 
+           p1(A,A) o Pa(f0, f1) o r12 = 
+           p1(A,A) o Pa(h1, h2) & 
+           p2(A,A) o Pa(f0, f1) o r12 =
+           p2(A,A) o Pa(h1, h2)’ 
+  >-- arw[] >>
+  fs[GSYM o_assoc,p12_of_Pa] >>
+  qby_tac ‘f1 o r01 = f0 o r12’ >-- arw[] >>
+  first_x_assum drule >> pop_assum strip_assume_tac >>
+  qexists_tac ‘u’ >> arw[Pa_distr,Pa_eq_eq]) >>
+ qsuff_tac
+ ‘?u:X->R. Pa(f0,f1) o u = Pa(f0 o h0, f1 o h1)’ >--
+ (strip_tac >> qexists_tac ‘u’ >> 
+  fs[Pa_distr,Pa_eq_eq]) >>
+ first_x_assum irule >>
+ qexistsl_tac [‘f1 o h0’,‘h0’,‘h1’] >>
+ rw[Pa_distr,Pa_eq_eq] >> arw[])
+(form_goal
+ “!R A f0:R->A f1:R->A. Trans(f0,f1) <=>
+  !X h0:X->A h1:X->A h2:X->A r01:X->R r12:X ->R .
+  Pa(f0,f1) o r01 = Pa(h0,h1) &  Pa(f0,f1) o r12 = Pa(h1,h2) ==> ?r02. Pa(f0,f1) o r02 = Pa(h0,h2)”));
+
+
+
+val prop_2_half2' = prove_store("prop_2_half2",
+e0
+(rpt strip_tac >> cases_on “is0(Y)” (* 2 *) >--
+ (qby_tac ‘is0(X)’ >--
+  (ccontra_tac >> 
+   qsuff_tac ‘?y:1->Y.T’ >-- 
+   (rw[] >> irule zero_no_MEM >> arw[]) >>
+   drule NONZERO_EL >>
+   pop_assum strip_assume_tac >>
+   first_x_assum (qspecl_then [‘a o x’,‘x’] assume_tac) >>
+   fs[] >> qexists_tac ‘xb'’ >> rw[]) >>
+  fs[is0_expand] >>
+  first_assum (qspecl_then [‘Y’] strip_assume_tac) >>
+  qexists_tac ‘f’ >> 
+  first_assum (qspecl_then [‘A’] strip_assume_tac) >>
+  first_assum (qspecl_then [‘b o f’] strip_assume_tac) >>
+  first_assum (qspecl_then [‘a’] strip_assume_tac) >>
+  fs[]) >>
+ drule Mono_no_zero_post_inv >> first_assum drule >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘g o a’ >> irule FUN_EXT >>
+ strip_tac >> 
+ first_assum (qspecl_then [‘a o a'’,‘a'’] assume_tac) >>
+ fs[] >> pop_assum (assume_tac o GSYM) >> arw[o_assoc] >>
+ qby_tac ‘b o g o b o xb' = b o (g o b) o xb'’
+ >-- rw[o_assoc] >>
+ arw[idL])
+(form_goal
+ “!X A a:X->A Y b:Y->A. Mono(b) ==>
+  (!x:1->A xb:1->X. a o xb = x ==> ?xb':1->Y. b o xb' = x)
+  ==> ?h:X->Y. b o h = a”));
+
+
+val Trans_alt' = prove_store("Trans_alt",
+e0
+(rw[Trans_alt] >> rpt strip_tac >>
+ dimp_tac >> rpt strip_tac >-- 
+ (first_x_assum irule >> 
+ qexistsl_tac [‘h1’,‘r01’,‘r12’] >> arw[]) >>
+ irule prop_2_half2' >> arw[] >>
+ rpt strip_tac >>
+ fs[Pa_eq_eq,Pa_distr] >>
+ first_assum 
+ (qspecl_then [‘h0 o xb’,‘h1 o xb’,‘h2 o xb’,
+               ‘r01 o xb’,‘r12 o xb’]
+ assume_tac) >>
+ fs[GSYM o_assoc] >> rfs[] >>
+ qexists_tac ‘r02’ >> arw[Pa_distr,Pa_eq_eq])
+(form_goal
+ “!R A f0:R->A f1:R->A. Mono(Pa(f0,f1)) ==> (Trans(f0,f1) <=>
+  !h0:1->A h1:1->A h2:1->A r01:1->R r12:1 ->R .
+  Pa(f0,f1) o r01 = Pa(h0,h1) &  Pa(f0,f1) o r12 = Pa(h1,h2) ==> ?r02. Pa(f0,f1) o r02 = Pa(h0,h2))”));
+
+val Swap_Pa = prove_store("Swap_Pa",
+e0
+(rpt strip_tac >> rw[GSYM Swap_def] >> rw[Pa_distr,Pa_eq_eq,p12_of_Pa])
+(form_goal “!X A f:X->A B g:X->B. Swap(A,B) o Pa(f,g) = Pa(g,f)”));
+
+
+val p31_ex = prove_store("p31_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(A,B * C)’ >> rw[])
+(form_goal
+ “!A B C. ?p31: A * B * C ->A. p1(A,B * C) = p31”));
+
+val p31_def = p31_ex |> spec_all |> eqT_intro
+                     |> iffRL |> ex2fsym "p31" ["A","B","C"]
+                     |> C mp (trueI []) |> gen_all
+
+val p32_ex = prove_store("p32_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(B,C) o p2(A,B * C)’ >> rw[])
+(form_goal
+ “!A B C. ?p32: A * B * C ->B.p1(B,C) o p2(A,B * C) = p32”));
+
+val p32_def = p32_ex |> spec_all |> eqT_intro
+                     |> iffRL |> ex2fsym "p32" ["A","B","C"]
+                     |> C mp (trueI []) |> gen_all
+
+val p33_ex = prove_store("p33_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p2(B,C) o p2(A,B * C)’ >> rw[])
+(form_goal
+ “!A B C. ?p33: A * B * C ->C.p2(B,C) o p2(A,B * C) = p33”));
+
+val p33_def = p33_ex |> spec_all |> eqT_intro
+                     |> iffRL |> ex2fsym "p33" ["A","B","C"]
+                     |> C mp (trueI []) |> gen_all
+
+
+val p31_of_Pa = prove_store("p31_of_Pa",
+                            e0
+                                (rpt strip_tac >> rw[GSYM p31_def,p1_of_Pa] )
+                                (form_goal
+                                     “!A B C X a:X-> A bc: X-> B * C. p31(A,B,C) o Pa(a, bc) = a”));
+
+
+val p32_of_Pa = prove_store("p32_of_Pa",
+e0
+(rpt strip_tac >> rw[GSYM p32_def,o_assoc,p12_of_Pa] )
+(form_goal
+“!A B C X a:X-> A b: X-> B c: X-> C. p32(A,B,C) o Pa(a, Pa(b,c)) = b”));
+
+
+val p33_of_Pa = prove_store("p33_of_Pa",
+e0
+(rpt strip_tac >> rw[GSYM p33_def,o_assoc,p2_of_Pa] )
+(form_goal
+“!A B C X a:X-> A b: X-> B c: X-> C. p33(A,B,C) o Pa(a, Pa(b,c)) = c”));
+
+
+
+
+
+val Pa3_ex = prove_store("Pa3_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Pa(f,Pa(g,h))’ >> rw[])
+(form_goal
+ “!A B C X f:X->A g:X ->B h:X->C. ?Pa3.
+ Pa(f,Pa(g,h)) = Pa3 
+”));
+
+
+val Pa3_def = Pa3_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "Pa3" ["f","g","h"]
+              |> C mp (trueI []) |> gen_all
+
+val Pa4_ex = prove_store("Pa4_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Pa(f,Pa(g,Pa(h,j)))’ >> rw[])
+(form_goal
+ “!A B C D X f:X->A g:X ->B h:X->C j:X->D. ?Pa4.
+ Pa(f,Pa(g,Pa(h,j))) = Pa4
+”));
+
+val Pa4_def = Pa4_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "Pa4" ["f","g","h","j"]
+              |> C mp (trueI []) |> gen_all
+
+val p41_ex = prove_store("p41_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(A, B * C * D)’ >> rw[])
+(form_goal 
+ “!A B C D. ?p41. p1(A,B * C * D) = p41”));
+
+val p41_def = p41_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p41" ["A","B","C","D"]
+              |> C mp (trueI []) |> gen_all
+
+val p42_ex = prove_store("p42_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(B, C * D) o p2(A,B * C * D)’ >> rw[])
+(form_goal 
+ “!A B C D. ?p42. p1(B, C * D) o p2(A,B * C * D) = p42”));
+
+
+val p42_def = p42_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p42" ["A","B","C","D"]
+              |> C mp (trueI []) |> gen_all
+
+
+val p43_ex = prove_store("p43_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(C,D) o p2(B, C * D) o p2(A,B * C * D)’ >> rw[])
+(form_goal 
+ “!A B C D. ?p43. p1(C,D) o p2(B, C * D) o p2(A,B * C * D) = p43”));
+
+
+val p43_def = p43_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p43" ["A","B","C","D"]
+              |> C mp (trueI []) |> gen_all
+
+
+val p44_ex = prove_store("p44_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p2(C,D) o p2(B, C * D) o p2(A,B * C * D)’ >> rw[])
+(form_goal 
+ “!A B C D. ?p44. p2(C,D) o p2(B, C * D) o p2(A,B * C * D) = p44”));
+
+
+val p44_def = p44_ex |> spec_all |> eqT_intro
+                     |> iffRL |> ex2fsym "p44" ["A","B","C","D"]
+                     |> C mp (trueI []) |> gen_all
+
+fun mk_o a1 a2 = mk_fun "o" [a1,a2]
+
+val CONJ = mk_fun "CONJ" []
+
+fun Pa f g = mk_fun "Pa" [f,g]
+
+fun Ex X = mk_fun "Ex" [X]
+
+fun Tp f = mk_fun "Tp" [f]
+
+val IMP = mk_fun "IMP" []
+
+val two = rastt "1+1";
+
+
+
+val p31_of_Pa3 = proved_th $
+e0
+(rpt strip_tac >> rw[GSYM Pa3_def,GSYM p31_def,p1_of_Pa])
+(form_goal
+“!A B C X f:X->A g:X->B h:X->C. p31(A,B,C) o Pa3(f,g,h) = f”)
+
+
+
+val p32_of_Pa3 = proved_th $
+e0
+(rpt strip_tac >> rw[GSYM Pa3_def,GSYM p32_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C X f:X->A g:X->B h:X->C. p32(A,B,C) o Pa3(f,g,h) = g”)
+
+
+val p33_of_Pa3 = prove_store("p33_of_Pa3",
+e0
+(rpt strip_tac >> rw[GSYM Pa3_def,GSYM p33_def,p2_of_Pa,o_assoc])
+(form_goal
+“!A B C X f:X->A g:X->B h:X->C. p33(A,B,C) o Pa3(f,g,h) = h”));
+
+
+
+
+val Ev_of_Tp_el' = prove_store("Ev_of_Tp_el'",
+e0
+(rpt strip_tac >> 
+ qby_tac ‘Tp(f) = Tp(f) o id(P)’ >-- rw[idR] >>
+ once_arw[] >> rw[Ev_of_Tp_el])
+(form_goal
+“!A B P f:A * P -> B  a:P -> A.
+Ev(A, B) o Pa(a, Tp(f)) = f o Pa(a, id(P))”));
+
+
+val Ev_of_el = prove_store("Ev_of_el",
+e0
+(rpt strip_tac >>
+ qby_tac 
+ ‘f = Tp1(Tp0(f))’ >-- rw[Tp1_Tp0_inv] >> once_arw[] >>
+ rw[GSYM Tp1_def,Ev_of_Tp_el'] >> rw[Tp1_def,Tp1_Tp0_inv] >>
+ rw[o_assoc,p1_of_Pa,idR])
+(form_goal
+ “!A B f:1->Exp(A,B) a:1->A.
+  Ev(A,B) o Pa(a,f) = Tp0(f) o a”));
+
+fun Po A B = mk_fun "*" [A,B]
+
+
+
+
+
+val p41_of_Pa4 = prove_store("p41_of_Pa4",
+e0
+(rpt strip_tac >> rw[GSYM Pa4_def,GSYM p41_def,p12_of_Pa])
+(form_goal
+“!A B C D X f:X->A g:X->B h:X->C k:X->D.
+ p41(A,B,C,D) o Pa4(f,g,h,k) = f”));
+
+val p42_of_Pa4 = prove_store("p42_of_Pa4",
+e0
+(rpt strip_tac >> rw[GSYM Pa4_def,GSYM p42_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C D X f:X->A g:X->B h:X->C k:X->D.
+ p42(A,B,C,D) o Pa4(f,g,h,k) = g”));
+
+
+val p43_of_Pa4 = prove_store("p43_of_Pa4",
+e0
+(rpt strip_tac >> rw[GSYM Pa4_def,GSYM p43_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C D X f:X->A g:X->B h:X->C k:X->D.
+ p43(A,B,C,D) o Pa4(f,g,h,k) = h”));
+
+
+val p44_of_Pa4 = prove_store("p44_of_Pa4",
+e0
+(rpt strip_tac >> rw[GSYM Pa4_def,GSYM p44_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C D X f:X->A g:X->B h:X->C k:X->D.
+ p44(A,B,C,D) o Pa4(f,g,h,k) = k”));
+
+
+
+val Pa5_ex = prove_store("Pa5_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Pa(f,Pa(g,Pa(h,Pa(j,k))))’ >> rw[])
+(form_goal
+ “!A B C D E X f:X->A g:X ->B h:X->C j:X->D k:X->E. ?Pa5.
+ Pa(f,Pa(g,Pa(h,Pa(j,k)))) = Pa5
+”));
+
+val Pa5_def = Pa5_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "Pa5" ["f","g","h","j","k"]
+              |> C mp (trueI []) |> gen_all
+
+
+
+val p51_ex = prove_store("p51_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(A, B * C * D * E)’ >> rw[])
+(form_goal 
+ “!A B C D E. ?p51. p1(A,B * C * D * E) = p51”));
+
+val p51_def = p51_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p51" ["A","B","C","D","E"]
+              |> C mp (trueI []) |> gen_all
+
+
+val p55_ex = prove_store("p55_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p2(D,E) o p2(C, D * E) o p2(B,C * D * E) o p2(A,B * C * D * E)’ >> rw[])
+(form_goal 
+ “!A B C D E. ?p55. p2(D,E) o p2(C, D * E) o p2(B,C * D * E) o p2(A,B * C * D * E) = p55”));
+
+
+val p55_def = p55_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p55" ["A","B","C","D","E"]
+              |> C mp (trueI []) |> gen_all
+
+
+
+
+
+val p51_of_Pa5 = prove_store("p51_of_Pa5",
+e0
+(rpt strip_tac >> rw[GSYM Pa5_def,GSYM p51_def,p12_of_Pa])
+(form_goal
+“!A B C D E X f:X->A g:X->B h:X->C j:X->D k:X->E.
+ p51(A,B,C,D,E) o Pa5(f,g,h,j,k) = f”));
+
+
+
+val p55_of_Pa5 = prove_store("p55_of_Pa5",
+e0
+(rpt strip_tac >> rw[GSYM Pa5_def,GSYM p55_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C D X f:X->A g:X->B h:X->C j:X->D k:X->E.
+ p55(A,B,C,D,E) o Pa5(f,g,h,j,k) = k”));
+
+
+val Tp0_INJ = prove_store("Tp0_INJ",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >-- 
+ (once_rw[GSYM Tp1_Tp0_inv] >> arw[]) >> arw[])
+(form_goal
+ “!A B f:1->Exp(A,B) g:1->Exp(A,B).
+  Tp0(f) = Tp0(g) <=> f = g”));
+
+val pred_ext = prove_store("pred_ext",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *) >-- 
+ (cases_on “p1:1->1+1 = TRUE” >-- fs[] >>
+ fs[TRUE2FALSE] >> fs[TRUE_ne_FALSE] >>
+ fs[TRUE2FALSE]) >>
+ arw[])
+(form_goal
+“!p1 p2. (p1 = TRUE <=> p2 = TRUE) <=> p1 = p2”));
+
+fun Pow A = Exp A two
+
+fun Tp0 f = mk_fun "Tp0" [f]
+
+
+val Pre_ex = prove_store("Pre_ex",
+e0
+(rpt strip_tac >> qexistsl_tac [‘PRE o n’] >> rw[])
+(form_goal “!X n:X->N. ?pn. PRE o n = pn”));
+
+val Pre_def = Pre_ex |> spec_all |> ex2fsym0 "Pre" ["n"]
+                     |> gen_all |> store_as "Pre_def";
+
