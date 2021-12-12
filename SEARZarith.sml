@@ -755,7 +755,7 @@ val l =
  N_ind_P 
 in
 (*edit its name!!!!!*)
-val Le_Add = prove_store("Le_Add",
+val Le_Add_ex = prove_store("Le_Add_ex",
 e0
 (strip_tac >> match_mp_tac l >> rw[Suc_def,Le_O_iff] >>
  rpt strip_tac (* 2 *)
@@ -813,7 +813,7 @@ e0
 val LE_Trans = prove_store("LE_Trans",
 e0
 (rw[Trans_def,LE_Le] >> rpt strip_tac >>
- rw[Le_def] >> drule Le_Add >>
+ rw[Le_def] >> drule Le_Add_ex >>
  pop_assum (strip_assume_tac o GSYM) >> arw[] >>
  qsspecl_then [‘a2’,‘p’] assume_tac Add_sym >> 
  once_arw[] >> rw[Sub_Add] >> fs[Le_def] >>
@@ -1135,7 +1135,15 @@ e0
  assume_tac Le_trans >> rpt strip_tac >--
  (first_x_assum irule >> qexists_tac ‘a2’ >> arw[]) >>
  qby_tac ‘(?p1. Add(a1,Suc(p1)) = a2) & 
-          ?p2. Add(a2,Suc(p2)) = a3’ >-- cheat >>
+          ?p2. Add(a2,Suc(p2)) = a3’ >-- 
+ (drule Le_Add_ex >> rev_drule Le_Add_ex >> fs[] >>
+  qby_tac ‘~(p = O)’ >-- 
+  (ccontra_tac >> fs[Add_O2]) >>
+  qby_tac ‘~(p' = O)’ >-- 
+  (ccontra_tac >> fs[Add_O2]) >>
+  fs[O_xor_Suc] >> strip_tac
+ >-- (qexists_tac ‘pn'’ >> once_rw[Add_sym] >> fs[]) >>
+ qexists_tac ‘pn’ >> once_rw[Add_sym] >> fs[]) >>
  pop_assum (strip_assume_tac o GSYM) >>
  fs[] >> rw[GSYM Add_assoc] >> once_rw[Add_Suc] >>
  assume_tac Add_Suc_Lt >> fs[Lt_def])
