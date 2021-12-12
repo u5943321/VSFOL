@@ -754,6 +754,7 @@ val l =
  “!b.  Le(b,a) ==> ?p. Add(p,b) = a”))] 
  N_ind_P 
 in
+(*edit its name!!!!!*)
 val Le_Add = prove_store("Le_Add",
 e0
 (strip_tac >> match_mp_tac l >> rw[Suc_def,Le_O_iff] >>
@@ -1198,7 +1199,7 @@ val Lez_def = store_ax("Lez_def",
 “!z1 z2.Lez(z1,z2) <=> Holds(LEz,z1,z2)”);
 
 
-
+(*
 
 val Z2_x = prove_store("Z2_x",
 e0
@@ -1207,6 +1208,8 @@ e0
 rw[Lez_def,Addz_eqn',Addj_property,LEz_def])
 (form_goal “!z1 z2 z3.Lez(z1,z2) ==>
             Lez(Addz(z1,z3), Addz(z2,z3))”));
+*)
+
 
 val J2_iv' = prove_store("J2_iv'",
 e0
