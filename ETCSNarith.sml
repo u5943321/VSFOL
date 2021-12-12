@@ -3061,7 +3061,7 @@ val lej_def = ex2fsym0 "lej" [] lej_ex
 val Le_trans = prove_store("Le_trans",
 e0
 (rpt strip_tac >> rw[Le_def] >>
- drule Le_Add >> pop_assum (strip_assume_tac o GSYM)>>
+ drule Le_Add_ex >> pop_assum (strip_assume_tac o GSYM)>>
  arw[] >> 
  qsspecl_then [‘p’,‘b’] assume_tac Add_sym >>
  once_arw[] >> rw[Sub_Add] >> fs[Le_def] >>
