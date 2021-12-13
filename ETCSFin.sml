@@ -1135,13 +1135,83 @@ e0
 (form_goal
  “!X xs.isFinite(X) o xs= TRUE ==> ?!n.hasCard(X) o Pa(xs,n) = TRUE”));
 
+val _ = new_pred "FINITE" [("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)"))]
 
-val Card_def = Fin_Card |> strip_all_and_imp
-                        |> uex_expand
-                        |> ex2fsym0 "Card" ["xs"]
-                        |> disch_all
+
+val FINITE_def0 = store_ax("FINITE_def0",
+“!A X xs:A-> Exp(X,1+1). FINITE(xs) <=> isFinite(X) o xs = True(A)”);
+
+val FINITE_def = FINITE_def0 |> allE ONE 
+                             |> rewr_rule[True1TRUE]
+                             |> store_as "FINITE_def";
+
+val FINITE_hasCard = Fin_Card |> rewr_rule[GSYM FINITE_def]
+
+val Card_ex = prove_store("Card_ex",
+e0
+(strip_tac >>
+ assume_tac Rel2Ar' >>
+ qby_tac
+ ‘?R: Exp(X,1+1) * N -> 1+1.
+  !xs n.R o Pa(xs,n) = TRUE <=>
+  (FINITE(xs) & hasCard(X) o Pa(xs,n) = TRUE) | 
+  (~(FINITE(xs)) & n = O)’ >-- 
+ (qexists_tac 
+ ‘Or(And(isFinite(X) o p1(Exp(X,1+1),N),
+         hasCard(X)),
+     And(NEG o isFinite(X) o p1(Exp(X,1+1),N),Eq(N) o Pa(p2(Exp(X,1+1),N),O o To1(Exp(X,1+1) * N))))’
+  >--  once_rw[GSYM Or_def] >> once_rw[o_assoc] >>
+       once_rw[Pa_distr] >> once_rw[DISJ_def] >>
+       once_rw[GSYM And_def] >> once_rw[o_assoc] >>
+       once_rw[Pa_distr] >> once_rw[CONJ_def] >>
+       once_rw[o_assoc] >> once_rw[Pa_distr] >>
+       once_rw[Eq_property_TRUE] >>
+       once_rw[o_assoc] >> once_rw[NEG_def]>>
+       once_rw[TRUE_xor_FALSE] >> 
+       once_rw[one_to_one_id] >> rw[idR] >>
+       rw[p12_of_Pa] >> rw[GSYM FINITE_def])  >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘!xs. ?!n. R o Pa(xs,n) = TRUE’ >--
+ (strip_tac >> uex_tac >> 
+ arw[] >> 
+ cases_on “FINITE(xs:1->Exp(X,1+1))” >> arw[] (* 2 *)
+ >-- (drule FINITE_hasCard >>
+     pop_assum (assume_tac o uex_expand) >> arw[]) >>
+ qexists_tac ‘O’ >> rw[]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘f’ >> strip_tac >>
+ cases_on “FINITE(xs:1->Exp(X,1+1))”
+ >-- (arw[] >> 
+      first_x_assum 
+      (qsspecl_then [‘xs’] $ strip_assume_tac o uex_expand) >>
+      rfs[] >> 
+      qsuff_tac ‘f o xs = n’ 
+      >-- (strip_tac >> arw[]) >> arw[]) >>
+ arw[])
+(form_goal
+ “!X. ?cx:Exp(X,1+1) -> N. 
+  !xs. (FINITE(xs) ==> hasCard(X) o Pa(xs,cx o xs) = TRUE) & 
+       (~FINITE(xs) ==> cx o xs = O)”));
+
+
+val Card_def = Card_ex |> strip_all_and_imp
+                        |> ex2fsym0 "Card" ["X"]
                         |> gen_all
                         |> store_as "Card_def";
+
+
+val CARD_ex = prove_store("CARD_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Card(X) o xs’ >> rw[])
+(form_goal
+ “!A X xs:A -> Exp(X,1+1). ?c. Card(X) o xs = c”));
+
+val CARD_def = CARD_ex |> spec_all |> ex2fsym0 "CARD" ["xs"]
+                       |> gen_all
+                       |> store_as "CARD_def";
+
 (*want CARD: Exp(X,1+1) -> N.
  hasCard: Exp(X,1+1) * N -> 2.
 
