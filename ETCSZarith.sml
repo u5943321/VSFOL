@@ -90,7 +90,12 @@ e0
  irule FUN_EXT >> rpt strip_tac >>
  qby_tac
  ‘?a0 b0 c0 d0.a = Pa(Pa(a0,b0),Pa(c0,d0))’
- >-- cheat >>
+ >-- (qsspecl_then [‘a’] assume_tac has_components >>
+     pop_assum strip_assume_tac >> 
+     qsspecl_then [‘a'’] assume_tac has_components >>
+     qsspecl_then [‘b’] assume_tac has_components >>
+     pop_assum_list (map_every strip_assume_tac) >>
+     qexistsl_tac [‘a'''’,‘b''’,‘a''’,‘b'’] >> arw[]) >>
  pop_assum strip_assume_tac >> arw[] >>
  rw[GSYM ADDj_def] >> rw[Pa_distr,o_assoc,p12_of_Pa] >> 
  qspecl_then [‘c0’,‘a0’] assume_tac ADD_SYM >>
@@ -365,16 +370,6 @@ e0
 (form_goal “!X z:X->Z. asz(rep(z)) = z”)); 
 
 (*asz_def rep_def toZ_def REP_def*)
-
-val lflip_tac =
-fconv_tac 
- (land_fconv no_conv 
- $ basic_once_fconv no_conv (rewr_fconv (eq_sym "ar")))
-
-val rflip_tac =
-fconv_tac 
- (rand_fconv no_conv 
- $ basic_once_fconv no_conv (rewr_fconv (eq_sym "ar")))
 
 
 
@@ -763,13 +758,32 @@ val Sub_mono_eq = SUB_MONO_EQ
                       |> rewr_rule[Sub_def,Suc_def]
                       |> store_as "Sub_mono_eq";
 
+
+(*
+a - (b + c) = (a - b) - c
+
+ALL A * B -> 1+1 = 2
+
+
+A * B -> 2
+
+a + b = a
+
+B -> 2
+
+!a. a + b = a
+*)
+
 val Sub_Add = prove_store("Sub_Add",
 e0
 (qby_tac
  ‘?P0. !c b a:1->N. P0 o Pa3(c,b,a) = TRUE <=> 
   Sub(a,Add(b,c)) = Sub(Sub(a,b),c)’ >-- 
  (qexists_tac 
- ‘Eq(N) o Pa(SUB o Pa(p33(N,N,N),ADD o Pa(p32(N,N,N),p31(N,N,N))),SUB o Pa(SUB o Pa(p33(N,N,N),p32(N,N,N)),p31(N,N,N)))’ >>
+  ‘Eq(N) o Pa(SUB o Pa(p33(N,N,N),ADD o Pa(p32(N,N,N),p31(N,N,N))),SUB o Pa(SUB o Pa(p33(N,N,N),p32(N,N,N)),p31(N,N,N)))’
+(*
+
+ ‘Eq(N) o Pa(SUB o Pa(p33(N,N,N),ADD o Pa(p32(N,N,N),p31(N,N,N))),SUB o Pa(SUB o Pa(p33(N,N,N),p32(N,N,N)),p31(N,N,N)))’ *) >>
   once_rw[GSYM Pa3_def] >> 
   once_rw[GSYM p31_def] >> once_rw[GSYM p32_def] >>
   once_rw[o_assoc] >> once_rw[Pa_distr] >>
@@ -825,7 +839,12 @@ e0
 (qby_tac
  ‘?P. !n m. P o Pa(n,m) = TRUE <=> 
   (Le(n,m) ==> ?p. Add(p,n) = m)’
- >-- cheat >>
+ >-- (qexists_tac 
+      ‘Imp(Char(LE), EX(Eq(N) o Pa(ADD o Pa(p31(N,N,N),p32(N,N,N)), p33(N,N,N))))’
+      >>
+      rpt strip_tac >> rw[GSYM Imp_def,o_assoc,IMP_def,Pa_distr] >>
+      rw[GSYM Le_def1,EX_property,o_assoc,Pa_distr,Eq_property_TRUE] >> 
+      rw[Pa3_def,p31_of_Pa3,p32_of_Pa3,p33_of_Pa3] >> rw[Add_def]) >>
  pop_assum strip_assume_tac >>
  qsuff_tac
  ‘!m. ALL(P) o m = TRUE’ 
@@ -915,6 +934,101 @@ qby_tac
 val Suc_eq_eq = 
 INV_SUC_EQ |> rewr_rule[Suc_def]
            |> store_as "Suc_eq_eq";
+
+(*
+fun binop_t s t1 t2 = mk_fun s [t1,t2]
+
+fun unop_t s t = mk_fun s [t]
+
+val And = binop_t "And"
+
+val Or = binop_t "Or"
+
+val Imp = binop_t "Imp"
+
+val Iff = binop_t "Iff"
+
+val id = unop_t "id"
+
+fun dest_ar s = 
+    case view_sort s of
+       vSrt("ar",[d,c]) => (d,c) 
+     | _ => raise simple_fail "not an arr"
+
+val dom = fst o dest_ar 
+val cod = snd o dest_ar 
+
+fun term2IL v t =
+    if t = v then id (cod $ sort_of t)
+    else
+        case view_term t of 
+            vVar(n,s) => binop_t "o" t (unop_t "To1" (cod $ sort_of v))
+          | vFun(f,s,tl) => 
+            Fun(f,ar_sort (cod $ sort_of v) (cod s),List.map (term2IL v) tl)
+          | _ => raise simple_fail "bound variables should not be here"; 
+
+fun form2IL v f = 
+    case view_form f of 
+        vConn("&",[f1,f2]) => 
+        And (form2IL v f1) (form2IL v f2)
+      | vConn("|",[f1,f2]) => 
+        Or (form2IL v f1) (form2IL v f2)
+      | vConn("==>",[f1,f2]) => 
+        Imp (form2IL v f1) (form2IL v f2)
+      | vPred(P,tl) =>
+
+*)
+
+
+
+(*
+
+n : 1-> N  
+!n.  &n < i 
+Fun("&",1->Z,[n:1->N])
+
+
+Fun("&",N->Z,[id(N)])
+
+v |->  n  t |-> i
+ 
+have a dict store the corres
+
+LTz o Pa((& (id(N))): N ->Z,i o To1(N)) 
+
+
+*)
+(* m + n = n + m
+
+
+
+a:1->Z
+
+inc: N ->Z
+ & (n) := inc o n:X->N
+
+
+
+Fun("&",(->Z),[n:X->N]) 
+
+Add(m,n) = Add(m,n)
+
+say bound n . induct on n.
+
+Eq_property_TRUE
+
+Eq(N) o Pa(Add(m o To1(N),id(N)), Add(id(N), m o To1(N)))
+
+here P is "=", tl is [m+n,n + m]
+
+*)
+
+(*
+fun induct_tac th (ct,asl,w) = 
+    let val ((n,s),f0) = dest_forall f
+*)
+
+
 
 val EQ_MONO_ADD_EQ = prove_store("EQ_MONO_ADD_EQ",
 e0
@@ -1237,7 +1351,6 @@ e0
  fs[O_xor_Suc] >> strip_tac 
  >-- (qexists_tac ‘n0'’ >> arw[] >> once_rw[Add_sym] >> fs[]) >>
  (qexists_tac ‘n0’ >> arw[] >> once_rw[Add_sym] >> fs[])) >>
- cheat >>
  pop_assum (strip_assume_tac o GSYM) >>
  fs[] >> rw[GSYM Add_assoc] >> once_rw[Add_Suc] >>
  assume_tac Add_Suc_Lt >> fs[Lt_def])

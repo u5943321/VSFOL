@@ -111,16 +111,6 @@ val Empty_def =
              |> iffRL |> ex2fsym "Empty" ["X"]
              |> C mp (trueI []) |> gen_all
 
-val Mem_ex = prove_store("Mem_ex",
-e0
-(strip_tac >> qexists_tac ‘Ev(X,1+1)’ >> rw[])
-(form_goal
- “!X. ?mem. Ev(X,1+1) = mem”));
-
-val Mem_def = Mem_ex |> spec_all |> eqT_intro
-             |> iffRL |> ex2fsym "Mem" ["X"]
-             |> C mp (trueI []) |> gen_all
-
 
 
 val contain_empty = 
@@ -417,19 +407,6 @@ e0
 “!X x:1->X. ~(Mem(X) o Pa(x,Empty(X)) = TRUE)”));
 
 
-val _ = new_pred "IN" [("a",ar_sort (mk_ob "X") (mk_ob "A")),
-                       ("as",ar_sort (mk_ob "X") (Exp (mk_ob "A") two))]
-
-val IN_def = store_ax("IN_def",
-“!X A a:X->A ss:X->Exp(A,1+1). 
- IN(a,ss) <=> Mem(A) o Pa(a,ss) = True(X)”);
-
-val IN_def1 = prove_store("IN_def1",
-e0
-(rw[True1TRUE,IN_def])
-(form_goal “!A a:1->A ss:1->Exp(A,1+1). 
- IN(a,ss) <=> Mem(A) o Pa(a,ss) = TRUE”));
-
 val NOTIN_Empty = prove_store("NOTIN_Empty",
 e0
 (assume_tac NOT_IN_Empty >> fs[GSYM IN_def1])
@@ -450,17 +427,6 @@ val Ins_absorb = prove_store("Ins_absorb",
 e0
 (assume_tac ABSORPTION_RWT  >> fs[IN_def,True1TRUE])
 (form_goal “!X x:1->X s0.IN(x,s0) <=> Ins(x,s0) = s0”));
-
-
-val IN_EXT = prove_store("IN_EXT",
-e0
-(rw[IN_def,GSYM Mem_def] >> rpt strip_tac >> dimp_tac >>
- rpt strip_tac >> arw[] >> irule Ev_eq_eq >> 
- fs[True1TRUE,pred_ext] >> irule FUN_EXT >>
- rpt strip_tac >> rw[Pa_distr,o_assoc] >>
- once_rw[one_to_one_id] >> rw[idR] >> arw[])
-(form_goal “!X s1:1-> Exp(X,1+1) s2.
- s1 = s2 <=> (!x.IN(x,s1) <=> IN(x,s2))”));
  
 val Del_Ins = prove_store("Del_Ins",
 e0
@@ -1193,6 +1159,60 @@ e0
 (form_goal
  “!X. ?cx:Exp(X,1+1) -> N. 
   !xs. (FINITE(xs) ==> hasCard(X) o Pa(xs,cx o xs) = TRUE) & 
+       (~FINITE(xs) ==> cx o xs = O)”));
+
+
+
+
+
+
+val Card_ex = prove_store("Card_ex",
+e0
+(strip_tac >>
+ assume_tac Rel2Ar' >>
+ qby_tac
+ ‘?R: Exp(X,1+1) * N -> 1+1.
+  !xs n.R o Pa(xs,n) = TRUE <=>
+  (FINITE(xs) & hasCard(X) o Pa(xs,n) = TRUE) | 
+  (~(FINITE(xs)) & n = O)’ >-- 
+ (qexists_tac 
+ ‘Or(And(isFinite(X) o p1(Exp(X,1+1),N),
+         hasCard(X)),
+     And(NEG o isFinite(X) o p1(Exp(X,1+1),N),Eq(N) o Pa(p2(Exp(X,1+1),N),O o To1(Exp(X,1+1) * N))))’
+  >--  once_rw[GSYM Or_def] >> once_rw[o_assoc] >>
+       once_rw[Pa_distr] >> once_rw[DISJ_def] >>
+       once_rw[GSYM And_def] >> once_rw[o_assoc] >>
+       once_rw[Pa_distr] >> once_rw[CONJ_def] >>
+       once_rw[o_assoc] >> once_rw[Pa_distr] >>
+       once_rw[Eq_property_TRUE] >>
+       once_rw[o_assoc] >> once_rw[NEG_def]>>
+       once_rw[TRUE_xor_FALSE] >> 
+       once_rw[one_to_one_id] >> rw[idR] >>
+       rw[p12_of_Pa] >> rw[GSYM FINITE_def])  >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘!xs. ?!n. R o Pa(xs,n) = TRUE’ >--
+ (strip_tac >> uex_tac >> 
+ arw[] >> 
+ cases_on “FINITE(xs:1->Exp(X,1+1))” >> arw[] (* 2 *)
+ >-- (drule FINITE_hasCard >>
+     pop_assum (assume_tac o uex_expand) >> arw[]) >>
+ qexists_tac ‘O’ >> rw[]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘f’ >> strip_tac >>
+ cases_on “FINITE(xs:1->Exp(X,1+1))” >> arw[]
+ (*>-- arw[] >>
+ arw[]>-- (arw[] >> 
+      first_x_assum 
+      (qsspecl_then [‘xs’] $ strip_assume_tac o uex_expand) >>
+      rfs[] >> 
+      qsuff_tac ‘f o xs = n’ 
+      >-- (strip_tac >> arw[]) >> arw[]) >>
+ arw[] *))
+(form_goal
+ “!X. ?cx:Exp(X,1+1) -> N. 
+  !xs. (FINITE(xs) ==> (!n. cx o xs = n <=> hasCard(X) o Pa(xs,n) = TRUE)) & 
        (~FINITE(xs) ==> cx o xs = O)”));
 
 

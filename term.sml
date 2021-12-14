@@ -56,7 +56,7 @@ datatype sort_view =
 fun view_term t = 
     case t of
         Var v => vVar v
-      | Bound i => vB i
+      | Bound i => vB i (*raise ERR instead, user cannot see it!*)
       | Fun sst => vFun sst
 
 fun view_sort s = 

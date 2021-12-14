@@ -222,6 +222,16 @@ val Cons_def = Cons_ex |> spec_all |> ex2fsym0 "Cons" ["A"]
                        |> store_as "Cons_def";
 
 
+val CONS_ex = prove_store("CONS_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Cons(A) o Pa(a0,l0)’ >> rw[])
+(form_goal
+ “!X a0:X->A l0. ?l. Cons(A) o Pa(a0,l0) = l”));
+
+val CONS_def = CONS_ex |> spec_all |> ex2fsym0 "CONS" ["a0","l0"]
+                       |> gen_all |> store_as "CONS_def";
+
+
 val cRf_ex = prove_store("Rf_ex",
 e0
 (rpt strip_tac >>
@@ -304,15 +314,6 @@ val Rf_def = Rf_ex |> spec_all |> ex2fsym0 "Rf" ["x","t"]
                    |> qgen ‘t’ |> qgen ‘A’
                    |> gen_all 
                    |> store_as "Rf_def";
-
-val CONS_ex = prove_store("CONS_ex",
-e0
-(rpt strip_tac >> qexists_tac ‘Cons(A) o Pa(a0,l0)’ >> rw[])
-(form_goal
- “!X a0:X->A l0. ?l. Cons(A) o Pa(a0,l0) = l”));
-
-val CONS_def = CONS_ex |> spec_all |> ex2fsym0 "CONS" ["a0","l0"]
-                       |> gen_all |> store_as "CONS_def";
 
 
 val isList_ind =
@@ -415,7 +416,7 @@ e0
 (form_goal
  “!A a l. ~(CONS(a,l) = Nil(A))”));
 
-val Rf_Nil_unique = prove_store("Rf_base_unique",
+val Rf_Nil_unique = prove_store("Rf_Nil_unique",
 e0
 (rpt strip_tac >> ccontra_tac >> 
  qsuff_tac ‘?P. P o Pa(Nil(A),x) = TRUE & 
@@ -463,15 +464,228 @@ val Rf_CONS = Rf_property |> spec_all |> conjE2
                           |> gen_all
                           |> store_as "Rf_CONS";
 
-val CONS_eq_eq = prove_store("CONS_eq_eq",
+
+val Ins_eq_eq = prove_store("Ins_eq_eq",
+e0
+(rpt strip_tac >-- (ccontra_tac >>
+ qsuff_tac ‘~(IN(a2,Ins(a2,s2)))’
+ >-- rw[IN_Ins] >>
+ qsuff_tac ‘~(IN(a2,Ins(a1,s1)))’
+ >-- arw[] >>
+ rw[IN_Ins] >> arw[] >> dflip_tac >> first_x_assum accept_tac) >>
+ rw[IN_EXT] >> strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (qby_tac ‘IN(x,Ins(a1,s1))’ >-- arw[IN_Ins] >> rfs[] >>
+      fs[IN_Ins] >> pop_assum (assume_tac o GSYM) >> fs[]) >>
+ qpick_x_assum ‘Ins(a1, s1) = Ins(a2, s2)’ (assume_tac o GSYM) >>
+ qby_tac ‘IN(x,Ins(a2,s2))’ >-- arw[IN_Ins] >>
+ rfs[] >> fs[IN_Ins] >> pop_assum (assume_tac o GSYM) >> fs[]
+ )
+(form_goal
+ “!A a1:1->A s1 a2 s2. ~(IN(a1,s1)) & ~(IN(a2,s2)) & ~(IN(a1,s2)) & ~(IN(a2,s1)) & 
+ Ins(a1,s1) = Ins(a2,s2) ==> a1 = a2 & s1 = s2”));
+
+val FINITE_Empty = isFinite_Empty|> rewr_rule[GSYM FINITE_def] 
+                                 |> store_as "FINITE_Empty";
+
+val FINITE_Ins = isFinite_Insert |> rewr_rule[GSYM FINITE_def]
+                                 |> store_as "FINITE_Ins";
+
+val Del_Empty = prove_store("Del_Empty",
+e0
+(rw[IN_EXT,IN_Del,NOT_IN_Empty,IN_def1])
+(form_goal
+ “!X x:1->X. Del(x,Empty(X)) = Empty(X)”));
+
+val isFinite_Del0 = prove_store("isFinite_Del0",
 e0
 (strip_tac >>
  qby_tac
- ‘?P. !a’)
+ ‘?P. !xs. (isFinite(X) o xs = TRUE & !x. isFinite(X) o Del(x,xs) = TRUE) <=> P o xs = TRUE’ 
+ >-- cheat >>
+ pop_assum strip_assume_tac >>
+ arw[] >> match_mp_tac Finite_ind >> pop_assum (assume_tac o GSYM) >> arw[] >>
+ rw[Del_Empty,isFinite_Empty] >> strip_tac >>
+ strip_tac >> drule isFinite_Insert >> arw[] >> rpt strip_tac >>
+ cases_on “x = x':1->X” >-- 
+ (arw[] >> cases_on “IN(x':1->X,xs')”
+ >-- (drule $iffLR Ins_absorb >> arw[]) >>
+ drule Del_Ins >> arw[]) >>
+ drule Del_Ins_SWAP >> arw[] >> 
+ last_x_assum (qspecl_then [‘x'’] assume_tac) >>
+ drule isFinite_Insert>> arw[])
+(form_goal
+ “!X xs. isFinite(X) o xs = TRUE ==> isFinite(X) o xs = TRUE & 
+   !x. isFinite(X) o Del(x,xs) = TRUE”));
+
+val FINITE_Del = prove_store("FINITE_Del",
+e0
+(rw[FINITE_def] >> rpt strip_tac >> drule isFinite_Del0 >>
+ arw[])  
+(form_goal
+ “!X xs:1->Exp(X,1+1). FINITE(xs) ==> !x. FINITE(Del(x,xs))”));
+
+val Card_FINITE = Card_def |> spec_all |> conjE1 |> gen_all
+                           |> store_as "Card_FINITE";
+
+val Card_INFINITE = Card_def |> spec_all |> conjE2 |> gen_all
+                           |> store_as "Card_INFINITE";
+
+val CARD_Empty = prove_store("CARD_Empty",
+e0
+(rw[GSYM CARD_def] >> assume_tac FINITE_Empty >> strip_tac >>
+ first_x_assum $ qspecl_then [‘X’] assume_tac >>
+ drule Card_FINITE >> arw[] >> rw[hasCard_Empty])
+(form_goal
+ “!X. CARD(Empty(X)) = O”));
+
+val CARD_Ins = prove_store("CARD_Ins",
+e0
+(rw[GSYM CARD_def] >> rpt strip_tac >> drule Card_FINITE >> 
+ first_x_assum (qspecl_then [‘Card(X) o xs’] assume_tac) >> fs[] >>
+ drule hasCard_Ins >> first_x_assum drule >>
+ drule FINITE_Ins >> 
+ first_x_assum $ qspecl_then [‘x’] assume_tac >> drule Card_FINITE >>
+ arw[])
+(form_goal
+ “!X xs. FINITE(xs) ==> 
+         !x:1->X. ~(IN(x,xs)) ==> CARD(Ins(x,xs)) = Suc(CARD(xs))”));
+
+val CARD_Del = prove_store("CARD_Del",
+e0
+(rpt strip_tac >> rw[GSYM CARD_def] >>
+ drule FINITE_Del >> drule Card_FINITE >> 
+ first_x_assum (qspecl_then [‘x’] assume_tac) >> 
+ drule Card_FINITE >> arw[] >> 
+ last_x_assum (qspecl_then [‘Card(X) o xs’] assume_tac) >> fs[] >>
+ drule hasCard_Del >> fs[] >> first_x_assum drule >> arw[])
+(form_goal “!X xs:1->Exp(X,1+1). FINITE(xs) ==> 
+ !x. IN(x,xs) ==> CARD(Del(x,xs)) = Pre(CARD(xs))”));
+
+val isList_Finite = prove_store("isList_Finite",
+e0
+(rw[FINITE_def] >> strip_tac >> match_mp_tac isList_ind >> 
+ rw[isFinite_Empty] >> rpt strip_tac >> drule isFinite_Insert >> arw[])
+(form_goal “!A l. isList(A) o l = TRUE ==> FINITE(l)”));
+
+val List_LI_Finite = prove_store("List_LI_Finite",
+e0
+(assume_tac isList_Finite >> rpt strip_tac >> first_x_assum irule >>
+ rw[List_def1] >> qexists_tac ‘l’ >> rw[])
+(form_goal “!A l:1-> List(A). FINITE(LI(A) o l)”));
+
+
+val isList_CARD_NOTIN0 = prove_store("isList_CARD_NOTIN0",
+e0
+(strip_tac >> 
+ qby_tac ‘?P. !l. P o l = TRUE <=>  
+          (isList(A) o l = TRUE & !n:1->N a:1->A. IN(Pa(n,a),l) ==> Lt(n,CARD(l)))’  >-- cheat >>
+ pop_assum (strip_assume_tac o GSYM) >> arw[] >>
+ match_mp_tac isList_ind >>
+ pop_assum (assume_tac o GSYM) >> arw[NOTIN_Empty] >> rpt strip_tac (* 3 *)>--
+ rw[isList_Empty] >-- (drule isList_cons >> arw[]) >>
+ fs[IN_Ins] (* 2 *)
+ >-- (fs[Pa_eq_eq] >>
+     qby_tac ‘~(IN(Pa(CARD(l0), a),l0))’ >-- 
+     (ccontra_tac >> first_x_assum drule >> fs[Lt_def]) >>
+     drule isList_Finite >> drule CARD_Ins >> first_x_assum drule >> 
+     arw[] >> rw[Lt_Suc]) >>
+ first_x_assum drule >> drule isList_Finite >> drule CARD_Ins >>
+ cases_on “IN(Pa(CARD(l0), a:1->A), l0)”
+ >-- (drule $ iffLR Ins_absorb >> arw[]) >>
+ drule CARD_Ins >> first_x_assum drule >> arw[] >>
+ irule Lt_trans >>
+ qexists_tac ‘CARD(l0)’ >> arw[Lt_Suc])
+(form_goal
+ “!A l. isList(A) o l = TRUE ==> isList(A) o l = TRUE & 
+        !n a. IN(Pa(n,a),l) ==> Lt(n,CARD(l))”));
+
+
+
+
+val isList_CARD_NOTIN = prove_store("isList_CARD_NOTIN",
+e0
+(rpt strip_tac >> drule isList_CARD_NOTIN0 >> pop_assum strip_assume_tac >>
+ first_x_assum drule >> arw[])
+(form_goal
+ “!A l. isList(A) o l = TRUE ==> 
+        !n a. IN(Pa(n,a),l) ==> Lt(n,CARD(l))”));
+
+val Cons_Mono = prove_store("Cons_Mono",
+e0
+(rw[Mono_def] >> rpt strip_tac >> irule FUN_EXT >> strip_tac >>
+ qby_tac ‘Cons(A) o g o a = Cons(A) o h o a’ 
+ >-- arw[GSYM o_assoc] >>
+ qsspecl_then [‘g o a’] (x_choosel_then ["a1","l1"] assume_tac) has_components>>
+ qsspecl_then [‘h o a’] (x_choosel_then ["a2","l2"] assume_tac) has_components>>
+ fs[Cons_def] >>
+ assume_tac Cons_def >>
+ first_x_assum $ qsspecl_then [‘a2’,‘l2’,‘Cons(A) o Pa(a2,l2)’] assume_tac >>
+ fs[] >>
+ qby_tac ‘Ins(Pa(CARD(LI(A) o l1), a1), LI(A) o l1) = 
+          Ins(Pa(CARD(LI(A) o l2), a2), LI(A) o l2)’
+ >-- arw[] >>
+ qsuff_tac
+ ‘Pa(CARD(LI(A) o l1), a1) = Pa(CARD(LI(A) o l2), a2) & 
+  LI(A) o l1 = LI(A) o l2’
+ >-- (rw[Pa_eq_eq] >> strip_tac >> arw[] >>
+     irule $ iffLR Mono_def >> qexistsl_tac [‘Exp(N * A,1+1)’,‘LI(A)’] >>
+     arw[LI_Mono]) >>
+ irule Ins_eq_eq >> arw[] >> 
+ qby_tac ‘isList(A) o LI(A) o l1 = TRUE’
+ >-- (rw[List_def1] >> qexists_tac ‘l1’ >> rw[]) >> 
+ qby_tac ‘~IN(Pa(CARD(LI(A) o l1), a1), LI(A) o l1)’ >-- 
+ (ccontra_tac >> drule isList_CARD_NOTIN >> first_x_assum drule >>
+  fs[Lt_def]) >>
+ qby_tac ‘isList(A) o LI(A) o l2 = TRUE’
+ >-- (rw[List_def1] >> qexists_tac ‘l2’ >> rw[]) >> 
+ qby_tac ‘~IN(Pa(CARD(LI(A) o l2), a2), LI(A) o l2)’ >-- 
+ (ccontra_tac >> drule isList_CARD_NOTIN >> first_x_assum drule >>
+  fs[Lt_def]) >> 
+ arw[] >> 
+ qby_tac ‘CARD(LI(A) o l2) = CARD(LI(A) o l1)’
+ >-- (drule Del_Ins >> rev_drule Del_Ins >>
+     qby_tac ‘FINITE(Ins(Pa(CARD(LI(A) o l2), a2), LI(A) o l2))’ >--
+     (irule FINITE_Ins >> rw[List_LI_Finite])  >>
+     drule CARD_Del >>
+     first_x_assum (qspecl_then [‘Pa(CARD(LI(A) o l2), a2)’] assume_tac) >>
+     fs[IN_Ins] >> rfs[] >>
+     qby_tac ‘FINITE(Ins(Pa(CARD(LI(A) o l1), a1), LI(A) o l1))’ >-- 
+     (irule FINITE_Ins >> rw[List_LI_Finite]) >>
+     drule CARD_Del >>
+     first_x_assum (qspecl_then [‘Pa(CARD(LI(A) o l1), a1)’] assume_tac) >>
+     fs[IN_Ins] >> rfs[]) >>
+ strip_tac (* 2 *)
+ >-- (pop_assum (assume_tac o GSYM) >> arw[] >> 
+      ccontra_tac >> drule isList_CARD_NOTIN >> first_x_assum drule >>
+      fs[Lt_def]) >>
+ arw[] >> ccontra_tac >> rev_drule isList_CARD_NOTIN >> first_x_assum drule >>
+ fs[Lt_def])
+(form_goal
+ “!A.Mono(Cons(A))”));
+
+val CONS_eq_eq = prove_store("CONS_eq_eq",
+e0
+(strip_tac >> 
+ qspecl_then [‘A’] assume_tac Cons_Mono >>
+ fs[Mono_def,GSYM CONS_def] >> rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ first_x_assum drule >> fs[Pa_eq_eq])
 (form_goal
  “!A a1:1->A l1:1->List(A) a2 l2.
-  CONS(a1,l1) = CONS(a2,l2) <=> (a1 = a2 & l2 = l2) ”));
+  CONS(a1,l1) = CONS(a2,l2) <=> (a1 = a2 & l1 = l2) ”));
 
+
+val CONS_or_Nil = prove_store("CONS_or_Nil",
+e0
+(strip_tac >>
+ qby_tac ‘?P. !l. P o l = TRUE <=> (l = Nil(A) | ?a0 l0. l = CONS(a0,l0))’
+ >-- cheat >>
+ pop_assum (assume_tac o GSYM) >> pop_assum strip_assume_tac >>
+ arw[] >> irule List_ind >> pop_assum (assume_tac o GSYM) >>
+ arw[] >> rpt strip_tac (* 2 *)
+ >-- (disj2_tac >> qexistsl_tac [‘a’,‘l'’] >> rw[]) >>
+ disj2_tac >> qexistsl_tac [‘a’,‘l'’] >> rw[])
+(form_goal
+ “!A l:1-> List(A). l = Nil(A) | ?a0 l0. l = CONS(a0,l0)”));
 
 val Rf_Cons_back = prove_store("Rf_Cons_back",
 e0
@@ -491,20 +705,11 @@ e0
  rw[GSYM CONS_NOTNIL] >> rpt strip_tac (* 3 *)
  >-- rw[Rf_property] 
  >-- (drule Rf_CONS >> arw[]) >>
- cases_on
- “?a2:1->A l2. l = CONS(a2,l2)”
- >-- (pop_assum strip_assume_tac >> first_x_assum drule >>
-      pop_assum strip_assume_tac >>  
-      qby_tac ‘l1 = l’ >-- cheat
-      (*need lemma saying a:: l = a' :: l'*) >>
-      qexists_tac ‘x0'’ >> arw[] >> fs[] >> 
-      qby_tac ‘a = a'’ >-- cheat >> arw[]) >>
- (*need lemma saying cons xor nil,so if it is not cons, then it is nil*)
- qby_tac ‘l = Nil(A)’ >-- cheat >> fs[] >>
- qby_tac ‘l1 = l’ >-- cheat >> fs[] >>
- qexists_tac ‘x0'’ >> fs[] >>
- qby_tac ‘a = a'’ >-- cheat >> arw[] 
-)
+ (*cases_on
+ “?a2:1->A l2. l = CONS(a2,l2)” *)
+ qsspecl_then [‘l’] strip_assume_tac CONS_or_Nil >-- (* 2 *)
+ (fs[CONS_eq_eq] >> qexists_tac ‘x0'’ >> arw[]) >>
+ fs[CONS_eq_eq] >> qexists_tac ‘x0'’ >> arw[])
 (form_goal
  “!X x:1->X A t:A * X ->X l0 x0. Rf(x,t) o Pa(l0,x0) = TRUE ==>
   Rf(x,t) o Pa(l0,x0) = TRUE & 
@@ -527,16 +732,60 @@ e0
  drule Rf_Cons_back >> 
  pop_assum strip_assume_tac >>
  first_x_assum (qspecl_then [‘a’,‘l’] assume_tac) >> fs[] >>
- first_x_assum drule >> arw[]                                                            
- )
+ first_x_assum drule >> arw[])
 (form_goal
  “!X x:1->X A t:A * X ->X l0 x0. 
   Rf(x,t) o Pa(l0,x0) = TRUE ==>
   !x'. Rf(x,t) o Pa(l0,x') = TRUE ==> x' = x0”));
 
+val Rf_uex = prove_store("Rf_uex",
+e0
+(rpt strip_tac >>
+ qby_tac ‘?P. !l0. (?!x0. Rf(x,t) o Pa(l0,x0) = TRUE) <=> P o l0 = TRUE’
+ >-- cheat >> pop_assum strip_assume_tac >> arw[] >>
+ irule List_ind >> pop_assum (assume_tac o GSYM) >> arw[] >>
+ rpt strip_tac (* 2 *) >--
+ (pop_assum (strip_assume_tac o uex_expand) >>
+ drule Rf_CONS >> 
+ first_x_assum (qspecl_then [‘a’] assume_tac) >>
+ uex_tac >> qexists_tac ‘t o Pa(a,x0)’ >> arw[] >> drule Rf_unique >> arw[]) >>
+ uex_tac >> qexists_tac ‘x’ >> rw[Rf_property] >>
+ rw[Rf_Nil_unique])
+(form_goal
+ “!X x:1->X A t:A * X ->X l0.?!x0. Rf(x,t) o Pa(l0,x0) = TRUE”));
+
+val from_List_eq = prove_store("from_List_eq",
+e0
+(rpt strip_tac >> irule FUN_EXT >> 
+ qby_tac ‘?P. !l. f1 o l = f2 o l <=> P o l = TRUE’
+ >-- cheat >> pop_assum strip_assume_tac >> arw[] >>
+ irule List_ind >> pop_assum (assume_tac o GSYM) >> arw[])
+(form_goal
+ “!A X f1:List(A) ->X f2. (f1 o Nil(A) = f2 o Nil(A) &
+ (!l:1-> List(A). f1 o l = f2 o l ==> !a. f1 o CONS(a,l) = f2 o CONS(a,l))) ==> f1 = f2”));
+
 val List_rec = prove_store("List_rec",
 e0
-()
+(rpt strip_tac >>
+ assume_tac Rel2Ar' >> assume_tac Rf_uex >>
+first_x_assum (qsspecl_then [‘Rf(x,t)’] assume_tac) >> 
+ last_x_assum mp_tac >> strip_tac >>
+ pop_assum (qspecl_then [‘X’,‘x’,‘A’,‘t’] assume_tac) >> 
+ first_x_assum drule >> pop_assum strip_assume_tac >>
+ uex_tac >> qexists_tac ‘f’ >>  arw[] >> rw[Rf_property] >> 
+ qby_tac
+ ‘f o Cons(A) = t o Pa(p1(A, List(A)), f o p2(A, List(A)))’
+ >-- (irule FUN_EXT >> rw[o_assoc] >> strip_tac >>
+ qsspecl_then [‘a’] (x_choosel_then ["a0","l0"] assume_tac) has_components >>
+ arw[] >>
+ first_x_assum (qspecl_then [‘l0’,‘f o l0’] assume_tac) >> fs[] >>
+ drule Rf_CONS >> rw[Pa_distr,p12_of_Pa,CONS_def,o_assoc] >> arw[]) >>
+ arw[] >> rpt strip_tac >> irule from_List_eq >> arw[] >>
+ rpt strip_tac
+ >-- (arw[GSYM CONS_def,GSYM o_assoc] >> 
+      rw[o_assoc,Pa_distr,p12_of_Pa] >> arw[]) >>
+ flip_tac >> arw[] >> rw[Rf_property]
+ )
 (form_goal
  “!X x:1->X A t:A * X ->X. 
   ?!f:List(A) -> X. f o Nil(A) = x &

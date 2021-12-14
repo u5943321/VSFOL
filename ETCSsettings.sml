@@ -1066,6 +1066,18 @@ fun eq_sym a =
                     [],[],[])
 
 
+
+val lflip_tac =
+fconv_tac 
+ (land_fconv no_conv 
+ $ basic_once_fconv no_conv (rewr_fconv (eq_sym "ar")))
+
+val rflip_tac =
+fconv_tac 
+ (rand_fconv no_conv 
+ $ basic_once_fconv no_conv (rewr_fconv (eq_sym "ar")))
+
+
 val Tp1_Tp0_inv = prove_store("Tp1_Tp0_inv",
 e0
 (rpt strip_tac >> rw[GSYM Tp1_def,GSYM Tp0_def] >>
@@ -4356,4 +4368,188 @@ e0
 
 val Pre_def = Pre_ex |> spec_all |> ex2fsym0 "Pre" ["n"]
                      |> gen_all |> store_as "Pre_def";
+
+
+
+
+val Mem_ex = prove_store("Mem_ex",
+e0
+(strip_tac >> qexists_tac ‘Ev(X,1+1)’ >> rw[])
+(form_goal
+ “!X. ?mem. Ev(X,1+1) = mem”));
+
+val Mem_def = Mem_ex |> spec_all |> eqT_intro
+             |> iffRL |> ex2fsym "Mem" ["X"]
+             |> C mp (trueI []) |> gen_all
+
+
+
+val _ = new_pred "IN" [("a",ar_sort (mk_ob "X") (mk_ob "A")),
+                       ("as",ar_sort (mk_ob "X") (Exp (mk_ob "A") two))]
+
+val IN_def = store_ax("IN_def",
+“!X A a:X->A ss:X->Exp(A,1+1). 
+ IN(a,ss) <=> Mem(A) o Pa(a,ss) = True(X)”);
+
+val IN_def1 = prove_store("IN_def1",
+e0
+(rw[True1TRUE,IN_def])
+(form_goal “!A a:1->A ss:1->Exp(A,1+1). 
+ IN(a,ss) <=> Mem(A) o Pa(a,ss) = TRUE”));
+
+
+
+val IN_EXT = prove_store("IN_EXT",
+e0
+(rw[IN_def,GSYM Mem_def] >> rpt strip_tac >> dimp_tac >>
+ rpt strip_tac >> arw[] >> irule Ev_eq_eq >> 
+ fs[True1TRUE,pred_ext] >> irule FUN_EXT >>
+ rpt strip_tac >> rw[Pa_distr,o_assoc] >>
+ once_rw[one_to_one_id] >> rw[idR] >> arw[])
+(form_goal “!X s1:1-> Exp(X,1+1) s2.
+ s1 = s2 <=> (!x.IN(x,s1) <=> IN(x,s2))”));
+
+
+
+
+
+
+(*singleton*)
+val Sing_ex = prove_store("Sing_ex",
+e0
+(strip_tac >> qexists_tac ‘Tp(Char(Diag(A)))’ >>
+ rw[])
+(form_goal “!A. ?Sing. Tp(Char(Diag(A))) = Sing”));
+
+val Sing_def = Sing_ex |> spec_all 
+                       |> ex2fsym0 "Sing" ["A"]
+                       |> store_as "Sing_def";
+
+
+
+(*sigma*)
+val Sig_ex = prove_store("Sig_ex",
+e0
+(strip_tac >> qexists_tac ‘Char(Sing(A))’ >>
+ rw[])
+(form_goal “!A. ?Sig. Char(Sing(A)) = Sig”));
+
+val Sig_def = Sig_ex |> spec_all 
+                       |> ex2fsym0 "Sig" ["A"]
+                       |> store_as "Sig_def";
+
+
+val pred_ext' = prove_store("pred_ext'",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ irule FUN_EXT >> strip_tac >> 
+ once_rw[GSYM pred_ext] >> arw[])
+(form_goal
+ “!X p1:X->1+1 p2. 
+  (!x. p1 o x = TRUE <=> p2  o x = TRUE) <=> p1 = p2”));
+
+val Sing_Mono = prove_store("Sing_Mono",
+e0
+(strip_tac >> rw[Mono_def] >> rpt strip_tac >>
+ qby_tac ‘Mem(B) o Pa(p1(B,B),Sing(B) o p2(B,B))
+          = Eq(B)’
+ >-- rw[GSYM Mem_def,GSYM Sing_def,GSYM Eq_def,
+        Ev_of_Tp] >> 
+ qby_tac ‘Eq(B) o Pa(p1(B,X),g o p2(B,X)) = 
+          Eq(B) o Pa(p1(B,X),h o p2(B,X))’
+ >-- (pop_assum (assume_tac o GSYM) >> arw[] >>
+     rw[o_assoc,Pa_distr,p12_of_Pa] >>
+     arw[GSYM o_assoc]) >>
+ irule FUN_EXT >> strip_tac >>
+ qsuff_tac ‘!a'. g o a = a' <=> h o a = a'’ >--
+ (rpt strip_tac >> 
+ first_x_assum (qspecl_then [‘g o a’] assume_tac) >>
+ fs[]) >>
+ strip_tac >> 
+ pop_assum mp_tac >>
+ once_rw[GSYM pred_ext'] >> 
+ strip_tac >>
+ first_x_assum 
+  (qspecl_then [‘Pa(a',a)’] assume_tac) >>
+ fs[o_assoc,Pa_distr,p12_of_Pa,Eq_property_TRUE] >>
+ dflip_tac >> arw[])
+(form_goal “!B. Mono(Sing(B))”));
+
+
+
+val Mem_Sing = prove_store("Mem_Sing",
+e0
+(rw[GSYM Mem_def,GSYM Sing_def] >>
+ rw[Ev_of_Tp_el] >> rw[Char_Diag,GSYM TRUE_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[])
+(form_goal
+ “!B b0:1->B b. Mem(B) o Pa(b,Sing(B) o b0) = TRUE<=>
+ b0 = b ”));
+
+val Rel_U_fac = prove_store("Rel_U_fac",
+e0
+(rpt strip_tac>> irule prop_2_half2' >>
+ rw[Sing_Mono] >> rpt strip_tac >>
+ first_x_assum (qsspecl_then [‘xb’] assume_tac) >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘b’ >> 
+ once_rw[IN_EXT] >>
+ rw[IN_def,True1TRUE] >>
+ rw[Mem_Sing] >> 
+ rw[GSYM Mem_def] >>
+ last_x_assum (assume_tac o GSYM) >> arw[] >>
+ rw[Ev_of_Tp_el] >>
+ strip_tac >> dimp_tac >> strip_tac >--
+ (pop_assum (assume_tac o GSYM) >> arw[]) >>
+ first_x_assum drule >> arw[])
+(form_goal
+ “!A B R:B * A -> 1+1.
+    (!a:1->A.?!b:1->B. R o Pa(b,a) = TRUE) ==>
+    ?f:A->B. Sing(B) o f = Tp(R)”));
+
+
+val Rel2Ar = prove_store("Rel2Ar",
+e0
+(rpt strip_tac >> drule Rel_U_fac >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘h’ >>
+ rpt strip_tac >> 
+ qby_tac
+ ‘Mem(B) o Pa(b,Sing(B) o h o a) = Mem(B) o Pa(b,Tp(R) o a)’
+ >-- arw[GSYM o_assoc] >>
+ fs[GSYM Mem_def,GSYM Sing_def,Ev_of_Tp_el] >> 
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ rw[Char_Diag,GSYM TRUE_def] >> rflip_tac >> rw[]
+ )
+(form_goal
+ “!A B R:B * A -> 1+1. 
+   (!a:1->A.?!b:1->B. R o Pa(b,a) = TRUE) ==>
+   (?f:A->B. !a b. f o a = b <=> R o Pa(b,a) = TRUE)”));
+
+
+val Rel2Ar' = prove_store("Rel2Ar'",
+e0
+(rpt strip_tac >> 
+ assume_tac Rel2Ar >>
+ qby_tac
+ ‘?R'. !a b. R' o Pa(b,a) = TRUE <=> 
+  R o Pa(a,b) = TRUE’
+ >-- (qexists_tac ‘R o Swap(B,A)’ >>
+     rw[o_assoc,Swap_Pa]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘!a:1->A. ?!b.R' o Pa(b,a) = TRUE’ 
+ >-- (strip_tac >>uex_tac >>
+     last_x_assum 
+     (qspecl_then [‘a’] (strip_assume_tac o uex_expand)) >>
+     qexists_tac ‘b’ >> arw[]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘f’ >>
+ fs[])
+(form_goal
+ “!A B R:A * B -> 1+1. 
+   (!a:1->A.?!b:1->B. R o Pa(a,b) = TRUE) ==>
+   (?f:A->B. !a b. f o a = b <=> R o Pa(a,b) = TRUE)”));
+
 

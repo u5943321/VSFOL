@@ -1850,7 +1850,15 @@ val WOP = prove_store("WOP",
 e0
 (rpt strip_tac >> ccontra_tac >>
  qby_tac ‘!l:mem(N). P(l) ==> ?n:mem(N). P(n) & ~(Le(l,n))’
- >-- cheat >>
+ >-- (rpt strip_tac >> ccontra_tac >>
+      qsuff_tac ‘?a0:mem(N). P(a0) & !a1:mem(N). P(a1)==> Le(a0,a1)’ 
+     >-- (rw[]>> first_x_assum accept_tac) >>
+     qexists_tac ‘l’ >> strip_tac (* 2 *)
+     >-- first_x_assum accept_tac >>
+     rpt strip_tac >> ccontra_tac >>
+     qby_tac ‘?n:mem(N). P(n) & ~(Le(l,n))’ 
+     >-- (qexists_tac ‘a1’ >> strip_tac >> first_x_assum accept_tac) >>
+     first_x_assum opposite_tac ) >>
  qsuff_tac ‘!n:mem(N). ~(P(n))’ >-- (rpt strip_tac >>
  first_x_assum (qspecl_then [‘a’] assume_tac) >> 
  first_x_assum opposite_tac) >>
