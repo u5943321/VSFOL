@@ -4586,3 +4586,145 @@ e0
    (?f:A->B. !a b. f o a = b <=> R o Pa(a,b) = TRUE)”));
 
 
+
+val Fst_ex = prove_store("Fst_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(A,B) o ab’ >> rw[])
+(form_goal “!X A B ab:X->A * B. ?fst.p1(A,B) o ab = fst”));
+
+
+val Snd_ex = prove_store("Snd_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p2(A,B) o ab’ >> rw[])
+(form_goal “!X A B ab:X->A * B. ?snd.p2(A,B) o ab = snd”));
+
+val Fst_def = Fst_ex |> spec_all |> ex2fsym0 "Fst" ["ab"]
+                     |> gen_all
+                     |> store_as "Fst_def";
+
+
+
+val Snd_def = Snd_ex |> spec_all |> ex2fsym0 "Snd" ["ab"]
+                     |> gen_all
+                     |> store_as "Snd_def";
+
+val Fst_Snd_Pa = p12_of_Pa |> rewr_rule[Fst_def,Snd_def]
+                           |> store_as "Fst_Snd_Pa";
+
+val Fst_Pa = p1_of_Pa |> rewr_rule[Fst_def] |> store_as "Fst_Pa";
+
+val Snd_Pa = p2_of_Pa |> rewr_rule[Snd_def] |> store_as "Snd_Pa";
+
+
+val And_ex = prove_store("And_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘CONJ o Pa(p,q)’ >> rw[])
+(form_goal “!X p:X->1+1 q. ?pq. CONJ o Pa(p,q) = pq”));
+
+val And_def = And_ex |> spec_all
+                     |> ex2fsym0 "And" ["p","q"]
+                     |> gen_all
+                     |> store_as "And_def";
+
+val And_property = rewr_rule[And_def] CONJ_def
+
+
+val Or_ex = prove_store("Or_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘DISJ o Pa(p,q)’ >> rw[])
+(form_goal “!X p:X->1+1 q. ?pq. DISJ o Pa(p,q) = pq”));
+
+val Or_def = Or_ex |> spec_all
+                   |> ex2fsym0 "Or" ["p","q"]
+                   |> gen_all
+                   |> store_as "Or_def";
+
+val Or_property = rewr_rule[Or_def] DISJ_def;
+
+
+val Imp_ex = prove_store("Imp_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘IMP o Pa(p,q)’ >> rw[])
+(form_goal “!X p:X->1+1 q. ?pq. IMP o Pa(p,q) = pq”));
+
+val Imp_def = Imp_ex |> spec_all
+                   |> ex2fsym0 "Imp" ["p","q"]
+                   |> gen_all
+                   |> store_as "Imp_def";
+
+val Imp_property = rewr_rule[Imp_def] IMP_def;
+
+
+val Iff_ex = prove_store("Iff_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘IFF o Pa(p,q)’ >> rw[])
+(form_goal “!X p:X->1+1 q. ?pq. IFF o Pa(p,q) = pq”));
+
+val Iff_def = Iff_ex |> spec_all
+                   |> ex2fsym0 "Iff" ["p","q"]
+                   |> gen_all
+                   |> store_as "Iff_def";
+
+val Iff_property = rewr_rule[Iff_def] IFF_def;
+
+
+val ALL_ex = prove_store("ALL_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘All(X) o Tp(p)’ >> rw[])
+(form_goal “!X Y p:X * Y -> 1+1. ?ap.All(X) o Tp(p) = ap”));
+
+val ALL_def = ALL_ex |> spec_all |> ex2fsym0 "ALL" ["p"]
+                     |> gen_all |> store_as "ALL_def";
+
+
+val ALL_property = All_def |> rewr_rule[GSYM o_assoc,ALL_def]
+
+
+val EX_ex = prove_store("EX_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Ex(X) o Tp(p)’ >> rw[])
+(form_goal “!X Y p:X * Y -> 1+1. ?ep.Ex(X) o Tp(p) = ep”));
+
+val EX_def = EX_ex |> spec_all |> ex2fsym0 "EX" ["p"]
+                     |> gen_all |> store_as "EX_def";
+
+val EX_property = Ex_def |> rewr_rule[GSYM o_assoc,EX_def]
+
+
+val UE_ex = prove_store("UE_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘E1(X) o Tp(p)’ >> rw[])
+(form_goal “!X Y p:X * Y -> 1+1. ?uep.E1(X) o Tp(p) = uep”));
+
+val UE_def = UE_ex |> spec_all |> ex2fsym0 "UE" ["p"]
+                   |> gen_all |> store_as "UE_def";
+
+val UE_property = E1_def |> rewr_rule[GSYM o_assoc,UE_def]
+
+val EQ_ex = prove_store("EQ_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Eq(X) o Pa(f,g)’ >> rw[])
+(form_goal “!A X f:A->X g. ?fg. Eq(X) o Pa(f,g) = fg”));
+
+val EQ_def = EQ_ex |> spec_all |> ex2fsym0 "EQ" ["f","g"]
+                   |> gen_all |> store_as "EQ_def";
+
+val EQ_property_TRUE = Eq_property_TRUE 
+                           |> rewr_rule[EQ_def]
+
+val EQ_property = Eq_property
+                           |> rewr_rule[EQ_def]
+
+
+
+val Not_ex = prove_store("Not_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘NEG o p’ >> rw[])
+(form_goal “!X p:X->1+1. ?np. NEG o p = np”));
+
+val Not_def = Not_ex |> spec_all
+                     |> ex2fsym0 "Not" ["p"]
+                     |> gen_all
+                     |> store_as "Not_def";
+
+val Not_property = rewr_rule[Not_def] NEG_def;
