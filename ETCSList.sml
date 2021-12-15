@@ -715,17 +715,36 @@ e0
   ?x1:1->X. Rf(x,t) o Pa(l1,x1) = TRUE & x0 = t o Pa(a,x1))’
  >-- (strip_tac >> qexists_tac ‘And(Rf(x,t),P1)’ >> arw[GSYM And_def,CONJ_def,o_assoc,Pa_distr]) >>
  qexists_tac 
- ‘ALL(ALL(Imp(Eq(List(A)) o Pa(p43(List(A),A,List(A),X),CONS(p42,p41)), 
+ ‘ALL(ALL(Imp(Eq(List(A)) o Pa(p43(List(A),A,List(A),X),CONS(p42(List(A),A,List(A),X),p41(List(A),A,List(A),X))), 
               EX(And(Rf(x,t) o 
-                     Pa(p54(X,List(A),A,List(A),X), p55(X,List(A),A,List(A),X)), 
+                     Pa(p52(X,List(A),A,List(A),X), p51(X,List(A),A,List(A),X)), 
                      Eq(X) o 
-                     Pa(p55, t o Pa(p53,p51))))
+                     Pa(p55(X,List(A),A,List(A),X), t o Pa(p53(X,List(A),A,List(A),X),p51(X,List(A),A,List(A),X)))))
               )
          )
-      )’
-
-
-)cheat >>
+      )’ >>
+ once_rw[GSYM p54_def] >> once_rw[GSYM p53_def] >> once_rw[GSYM p51_def] >>
+ once_rw[GSYM p52_def] >>
+ once_rw[GSYM p55_def] >> once_rw[GSYM p43_def] >> once_rw[GSYM p42_def] >>
+ once_rw[GSYM p41_def] >>
+ once_rw[ALL_property] >>  once_rw[ALL_property] >>
+ once_rw[GSYM Imp_def] >> once_rw[o_assoc] >> once_rw[Pa_distr] >>
+ once_rw[IMP_def] >> once_rw[o_assoc] >>
+ once_rw[Pa_distr] >> once_rw[Eq_property_TRUE] >>
+ once_rw[EX_property] >>
+ once_rw[GSYM And_def] >> once_rw[o_assoc] >> once_rw[Pa_distr] >>
+ once_rw[CONJ_def] >> once_rw[o_assoc] >> once_rw[Pa_distr] >>
+ once_rw[Eq_property_TRUE] >> once_rw[o_assoc] >>
+ once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[GSYM CONS_def] >> 
+ once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[p12_of_Pa] >>
+ once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[p12_of_Pa] >> rw[])>>
  pop_assum strip_assume_tac >>
  qsuff_tac
  ‘!l0 x0.Rf(x, t) o Pa(l0, x0) = TRUE ==> P o Pa(l0,x0) = TRUE’
