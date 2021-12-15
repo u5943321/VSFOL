@@ -4306,6 +4306,39 @@ val p51_def = p51_ex |> spec_all |> eqT_intro
               |> C mp (trueI []) |> gen_all
 
 
+
+val p52_ex = prove_store("p52_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(B,C * D * E) o p2(A,B * C * D * E)’ >> rw[])
+(form_goal 
+ “!A B C D E. ?p52. p1(B,C * D * E) o p2(A,B * C * D * E) = p52”));
+
+val p52_def = p52_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p52" ["A","B","C","D","E"]
+              |> C mp (trueI []) |> gen_all
+
+
+val p53_ex = prove_store("p53_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(C,D * E) o p2(B,C * D * E) o p2(A,B * C * D * E)’ >> rw[])
+(form_goal 
+ “!A B C D E. ?p53.  p1(C,D * E) o p2(B,C * D * E) o p2(A,B * C * D * E) = p53”));
+
+val p53_def = p53_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p53" ["A","B","C","D","E"]
+              |> C mp (trueI []) |> gen_all
+
+val p54_ex = prove_store("p54_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘p1(D,E) o p2(C,D * E) o p2(B,C * D * E) o p2(A,B * C * D * E)’ >> rw[])
+(form_goal 
+ “!A B C D E. ?p54. p1(D,E) o p2(C,D * E) o p2(B,C * D * E) o p2(A,B * C * D * E) = p54”));
+
+val p54_def = p54_ex |> spec_all |> eqT_intro
+              |> iffRL |> ex2fsym "p54" ["A","B","C","D","E"]
+              |> C mp (trueI []) |> gen_all
+
+
 val p55_ex = prove_store("p55_ex",
 e0
 (rpt strip_tac >> qexists_tac ‘p2(D,E) o p2(C, D * E) o p2(B,C * D * E) o p2(A,B * C * D * E)’ >> rw[])

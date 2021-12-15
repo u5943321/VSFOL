@@ -716,8 +716,10 @@ e0
  >-- (strip_tac >> qexists_tac ‘And(Rf(x,t),P1)’ >> arw[GSYM And_def,CONJ_def,o_assoc,Pa_distr]) >>
  qexists_tac 
  ‘ALL(ALL(Imp(Eq(List(A)) o Pa(p43(List(A),A,List(A),X),CONS(p42,p41)), 
-              EX(And(, 
-                    ))
+              EX(And(Rf(x,t) o 
+                     Pa(p54(X,List(A),A,List(A),X), p55(X,List(A),A,List(A),X)), 
+                     Eq(X) o 
+                     Pa(p55, t o Pa(p53,p51))))
               )
          )
       )’
@@ -750,7 +752,9 @@ e0
  qby_tac
  ‘?P. !l0 x0. P o Pa(l0,x0) = TRUE <=>
  (!x'. Rf(x,t) o Pa(l0,x') = TRUE ==> x' = x0)’
- >-- cheat >> pop_assum strip_assume_tac >>
+ >-- (qexists_tac ‘ALL(Imp(Rf(x,t) o Pa(p32(X,List(A),X),p31(X,List(A),X)),Eq(X) o Pa(p31(X,List(A),X),p33(X,List(A),X))))’ >>
+      rw[ALL_property] >> rw[GSYM Imp_def,o_assoc,Pa_distr,IMP_def] >>
+      rw[Pa3_def,p31_of_Pa3,p32_of_Pa3,p33_of_Pa3] >> rw[Eq_property_TRUE])>> pop_assum strip_assume_tac >>
  qsuff_tac 
  ‘!l0 x0. Rf(x,t) o Pa(l0,x0) = TRUE ==> P o Pa(l0,x0) = TRUE’ 
  >-- arw[] >>
@@ -770,7 +774,12 @@ val Rf_uex = prove_store("Rf_uex",
 e0
 (rpt strip_tac >>
  qby_tac ‘?P. !l0. (?!x0. Rf(x,t) o Pa(l0,x0) = TRUE) <=> P o l0 = TRUE’
- >-- cheat >> pop_assum strip_assume_tac >> arw[] >>
+ >-- (qexists_tac ‘UE(Rf(x,t) o Swap(X,List(A)))’ >>
+      rw[GSYM UE_def,E1_def,o_assoc] >> rw[Swap_Pa] >> 
+     rpt strip_tac >> dimp_tac >> rpt strip_tac 
+    >-- (pop_assum (strip_assume_tac o uex_expand) >> 
+         qexists_tac ‘x0’ >> arw[]) >>
+    uex_tac >> qexists_tac ‘x'’ >> arw[]) >> pop_assum strip_assume_tac >> arw[] >>
  irule List_ind >> pop_assum (assume_tac o GSYM) >> arw[] >>
  rpt strip_tac (* 2 *) >--
  (pop_assum (strip_assume_tac o uex_expand) >>
@@ -786,7 +795,8 @@ val from_List_eq = prove_store("from_List_eq",
 e0
 (rpt strip_tac >> irule FUN_EXT >> 
  qby_tac ‘?P. !l. f1 o l = f2 o l <=> P o l = TRUE’
- >-- cheat >> pop_assum strip_assume_tac >> arw[] >>
+ >-- (qexists_tac ‘Eq(X) o Pa(f1,f2)’ >> rw[o_assoc,Pa_distr,Eq_property_TRUE])
+ >> pop_assum strip_assume_tac >> arw[] >>
  irule List_ind >> pop_assum (assume_tac o GSYM) >> arw[])
 (form_goal
  “!A X f1:List(A) ->X f2. (f1 o Nil(A) = f2 o Nil(A) &
