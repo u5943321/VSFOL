@@ -501,7 +501,7 @@ e0
 (strip_tac >>
  qby_tac
  ‘?P. !xs. (isFinite(X) o xs = TRUE & !x. isFinite(X) o Del(x,xs) = TRUE) <=> P o xs = TRUE’ 
- >-- cheat >>
+ >-- (qexists_tac ‘And(isFinite(X),ALL(isFinite(X) o Del(p1(X,Exp(X,1+1)),p2(X,Exp(X,1+1)))))’ >> rw[GSYM And_def,o_assoc,Pa_distr,CONJ_def,p12_of_Pa,ALL_property,GSYM Del_def]) >>
  pop_assum strip_assume_tac >>
  arw[] >> match_mp_tac Finite_ind >> pop_assum (assume_tac o GSYM) >> arw[] >>
  rw[Del_Empty,isFinite_Empty] >> strip_tac >>
@@ -578,7 +578,14 @@ val isList_CARD_NOTIN0 = prove_store("isList_CARD_NOTIN0",
 e0
 (strip_tac >> 
  qby_tac ‘?P. !l. P o l = TRUE <=>  
-          (isList(A) o l = TRUE & !n:1->N a:1->A. IN(Pa(n,a),l) ==> Lt(n,CARD(l)))’  >-- cheat >>
+          (isList(A) o l = TRUE & !n:1->N a:1->A. IN(Pa(n,a),l) ==> Lt(n,CARD(l)))’  >-- (qexists_tac 
+     ‘And
+     (isList(A),
+      ALL (ALL (Imp (Mem(N * A) o Pa(Pa(p32(A,N,Exp(N * A,1+1)),p31(A,N,Exp(N * A,1+1))), p33(A,N,Exp(N * A,1+1))),Char(LT) o Pa(p32(A,N,Exp(N * A,1+1)),CARD(p33(A,N, Exp(N * A,1+1))))) )))’
+      >> rw[GSYM And_def,GSYM CARD_def,GSYM Imp_def,o_assoc,CONJ_def,
+            GSYM p31_def,GSYM p32_def,GSYM p33_def,p12_of_Pa,Pa_distr,
+            ALL_property,IMP_def] >>
+         rw[IN_def1,Lt_def1]) >>
  pop_assum (strip_assume_tac o GSYM) >> arw[] >>
  match_mp_tac isList_ind >>
  pop_assum (assume_tac o GSYM) >> arw[NOTIN_Empty] >> rpt strip_tac (* 3 *)>--
@@ -678,7 +685,14 @@ val CONS_or_Nil = prove_store("CONS_or_Nil",
 e0
 (strip_tac >>
  qby_tac ‘?P. !l. P o l = TRUE <=> (l = Nil(A) | ?a0 l0. l = CONS(a0,l0))’
- >-- cheat >>
+ >-- (qexists_tac
+      ‘Or(Eq(List(A)) o Pa(id(List(A)),Nil(A) o To1(List(A))),
+          EX(EX(Eq(List(A)) o Pa(p33(List(A),A,List(A)), CONS(p32(List(A),A,List(A)),p31(List(A),A,List(A))) ) )))’ >>
+      rw[GSYM Or_def, o_assoc,Pa_distr,DISJ_def] >>
+      rw[EX_property] >> rw[GSYM p31_def,GSYM p32_def,GSYM p33_def] >>
+      rw[Pa_distr,o_assoc,p12_of_Pa,Eq_property_TRUE] >>
+      rw[GSYM CONS_def,p12_of_Pa,o_assoc,Pa_distr] >> once_rw[one_to_one_id] >>
+      rw[idR,idL]) >>
  pop_assum (assume_tac o GSYM) >> pop_assum strip_assume_tac >>
  arw[] >> irule List_ind >> pop_assum (assume_tac o GSYM) >>
  arw[] >> rpt strip_tac (* 2 *)
@@ -694,8 +708,22 @@ e0
  ‘?P. !l0:1->List(A) x0:1->X. P o Pa(l0,x0) = TRUE <=>
   (Rf(x,t) o Pa(l0,x0) = TRUE & 
   !a:1->A l1. l0 = CONS(a,l1) ==> 
+  ?x1:1->X. Rf(x,t) o Pa(l1,x1) = TRUE & x0 = t o Pa(a,x1))’ >-- (
+ qsuff_tac
+ ‘?P1. !l0:1->List(A) x0:1->X. P1 o Pa(l0,x0) = TRUE <=>
+  (!a:1->A l1. l0 = CONS(a,l1) ==> 
   ?x1:1->X. Rf(x,t) o Pa(l1,x1) = TRUE & x0 = t o Pa(a,x1))’
- >-- cheat >>
+ >-- (strip_tac >> qexists_tac ‘And(Rf(x,t),P1)’ >> arw[GSYM And_def,CONJ_def,o_assoc,Pa_distr]) >>
+ qexists_tac 
+ ‘ALL(ALL(Imp(Eq(List(A)) o Pa(p43(List(A),A,List(A),X),CONS(p42,p41)), 
+              EX(And(, 
+                    ))
+              )
+         )
+      )’
+
+
+)cheat >>
  pop_assum strip_assume_tac >>
  qsuff_tac
  ‘!l0 x0.Rf(x, t) o Pa(l0, x0) = TRUE ==> P o Pa(l0,x0) = TRUE’
@@ -725,7 +753,7 @@ e0
  >-- cheat >> pop_assum strip_assume_tac >>
  qsuff_tac 
  ‘!l0 x0. Rf(x,t) o Pa(l0,x0) = TRUE ==> P o Pa(l0,x0) = TRUE’ 
- >-- cheat >>
+ >-- arw[] >>
  match_mp_tac Rf_min >> arw[] >> 
  strip_tac (* 2 *)
  >-- rw[Rf_Nil_unique] >> rpt strip_tac >>
