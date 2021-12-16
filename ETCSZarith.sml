@@ -1714,7 +1714,41 @@ lej o Pa(0j,Pa(e,f)) = TRUE ==>
 
 
 
-
+val Z2_xi = prove_store("Z2_xi",
+e0
+(strip_tac >> strip_tac >> strip_tac >> strip_tac >>  
+ strip_tac >> strip_tac >>
+ rw[Lez_def] >> rw[LEz_def] >>
+ rpt strip_tac >>
+ qby_tac ‘lej o Pa(Pa(a,b),Pa(c,d)) = TRUE’
+ >-- (irule $ iffLR J2_iv' >>
+      qexistsl_tac [‘rep(asz(Pa(a, b)))’,‘rep(asz(Pa(c, d)))’] >>
+     arw[] >> rw[GSYM rep_rel_all]) >>
+ qby_tac ‘lej o Pa(0j,Pa(e,f)) = TRUE’
+ >-- (fs[GSYM zj_def] >> irule $ iffLR J2_iv' >>
+        qexistsl_tac [‘rep(asz(Pa(O, O)))’,‘rep(asz(Pa(e, f)))’] >>
+        arw[] >> rw[GSYM rep_rel_all]) >>
+ rw[GSYM Mulz_def,GSYM MULz_def,Pa_distr,p12_of_Pa,o_assoc] >> 
+ rw[asz_def,rep_def,Mulj_def] >>
+ irule $ iffLR J2_iv' >> 
+ qexistsl_tac [‘Mulj(Pa(a,b),Pa(e,f))’,‘Mulj(Pa(c,d),Pa(e,f))’] >> 
+ strip_tac (* 2 *)
+ >-- (irule J1_xi >> arw[]) >> strip_tac (* 2 *)
+ >-- (once_rw[ZR_cond] >>
+     qexistsl_tac [‘Mulj(Pa(a, b), Pa(e, f))’,
+                   ‘Mulj(rep(asz(Pa(a, b))), rep(asz(Pa(e, f))))’]>>
+     rw[ZR_refl,GSYM rep_rel_all] >> 
+     irule J2_iii' >> once_rw[ZR_sym] >>rw[GSYM rep_rel_all]) >>
+once_rw[ZR_cond] >>
+qexistsl_tac [‘Mulj(Pa(c, d), Pa(e, f))’,
+              ‘Mulj(rep(asz(Pa(c, d))), rep(asz(Pa(e, f))))’]>>
+rw[ZR_refl,GSYM rep_rel_all] >> 
+irule J2_iii' >> once_rw[ZR_sym] >>rw[GSYM rep_rel_all]
+)
+(form_goal
+ “!a b c d e f.
+  Lez(asz(Pa(a,b)),asz(Pa(c,d))) & Lez(asz(0j),asz(Pa(e,f))) ==>
+  Lez(Mulz(asz(Pa(a,b)),asz(Pa(e,f))),Mulz(asz(Pa(c,d)),asz(Pa(e,f))))”));
 
 
 
