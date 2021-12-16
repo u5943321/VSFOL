@@ -109,7 +109,6 @@ val ADDz_def = ADDz_ex |> ex2fsym0 "ADDz" []
 
 
 
-
 val ADDj_SYM = prove_store("ADDj_SYM",
 e0
 (rw[GSYM Swap_def] >>
@@ -488,6 +487,18 @@ e0
 (form_goal
  “!a:1->N b a' b' c d c' d'. ZR(Pa(a,b),Pa(a',b')) & ZR(Pa(c,d),Pa(c',d')) ==>
  ZR(Addj(Pa(a,b),Pa(c,d)),Addj(Pa(a',b'),Pa(c',d')))”));
+
+val J2_i' = prove_store("J2_i'",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘ab’] strip_assume_tac has_components >>
+ qsspecl_then [‘pq’] strip_assume_tac has_components >>
+ qsspecl_then [‘cd’] strip_assume_tac has_components >>
+ qsspecl_then [‘rs’] strip_assume_tac has_components >>
+ fs[] >> irule J2_i >> arw[])
+(form_goal
+ “!ab:1->N * N pq cd rs. ZR(ab,pq) & ZR(cd,rs) ==>
+ ZR(Addj(ab,cd),Addj(pq,rs))”));
 
 
 val J2_i_z = prove_store("J2_i_z",
@@ -1174,8 +1185,303 @@ e0
 (form_goal “!a:1->N b c d e f. ZR(Mulj(Mulj(Pa(a,b),Pa(c,d)),Pa(e,f)), 
                              Mulj(Pa(a,b),Mulj(Pa(c,d),Pa(e,f))))”));
 
+val J2_iii = prove_store("J2_iii",
+e0
+(rw[ZR_def,Mulj_property] >>
+ rw[Fst_Snd_Pa] >> rpt strip_tac >>
+ rw[] >>
+ abbrev_tac 
+ “Add(Mul(p:1->N,c),Add(Mul(q,c),Add(Mul(p,d),Mul(q,d)))) = l” >>
+ qsuff_tac 
+ ‘Add(Add(Add(Mul(a, c), Mul(b, d)), Add(Mul(p, s), Mul(q, r))),l) = 
+  Add(Add(Add(Mul(a, d), Mul(b, c)), Add(Mul(p, r), Mul(q, s))),l)’ 
+ >-- rw[EQ_MONO_ADD_EQ] >>
+ qsuff_tac
+ ‘Add(Add(Add(Mul(a, c), Mul(b, d)), Add(Mul(p, s), Mul(q, r))), l) = 
+  Add(Mul(Add(a,q),c),
+      Add(Mul(Add(b,p),d),
+          Add(Mul(p,Add(c,s)),Mul(q,Add(d,r))))) & 
+ Add(Add(Add(Mul(a, d), Mul(b, c)), Add(Mul(p, r), Mul(q, s))), l) = 
+  Add(Mul(Add(b,p),c),
+      Add(Mul(Add(a,q),d),
+          Add(Mul(p,Add(d,r)),Mul(q,Add(c,s))))) &
+  Add(Mul(Add(a,q),c),
+      Add(Mul(Add(b,p),d),
+          Add(Mul(p,Add(c,s)),Mul(q,Add(d,r))))) = 
+  Add(Mul(Add(b,p),c),
+      Add(Mul(Add(a,q),d),
+          Add(Mul(p,Add(d,r)),Mul(q,Add(c,s)))))’
+ >-- (strip_tac >> arw[]) >>
+ rpt strip_tac
+ >-- (pop_assum mp_tac >>
+     pop_assum_list (map_every (K all_tac)) >>
+     strip_tac >>
+     pop_assum (assume_tac o GSYM) >> arw[] >>
+     rw[GSYM Add_assoc,RIGHT_DISTR,LEFT_DISTR] >>
+     qsuff_tac
+     ‘Add(Mul(b, d),
+                 Add(Mul(p, s),
+                  Add(Mul(q, r),
+                   Add(Mul(p, c), Add(Mul(q, c), Add(Mul(p, d), Mul(q, d))))))) = 
+     Add(Mul(q, c),
+                 Add(Mul(b, d),
+                  Add(Mul(p, d),
+                   Add(Mul(p, c), Add(Mul(p, s), Add(Mul(q, d), Mul(q, r)))))))’
+     >-- (strip_tac >> arw[]) >>
+     qsspecl_then 
+     [‘Mul(q,c)’,
+     ‘Add(Mul(b, d),
+                 Add(Mul(p, d),
+                  Add(Mul(p, c), Add(Mul(p, s), Add(Mul(q, d), Mul(q, r))))))’] assume_tac Add_sym >>
+     arw[GSYM Add_assoc] >>
+     qsuff_tac
+     ‘Add(Mul(p, s),
+                 Add(Mul(q, r),
+                  Add(Mul(p, c), Add(Mul(q, c), Add(Mul(p, d), Mul(q, d)))))) = 
+      Add(Mul(p, d),
+                 Add(Mul(p, c),
+                  Add(Mul(p, s), Add(Mul(q, d), Add(Mul(q, r), Mul(q, c))))))’
+     >-- (strip_tac >> arw[]) >>
+     qsspecl_then [‘Mul(p,d)’,
+     ‘Add(Mul(p, c),
+      Add(Mul(p, s), Add(Mul(q, d), Add(Mul(q, r), Mul(q, c)))))’] assume_tac Add_sym >> arw[] >>
+     rw[GSYM Add_assoc] >>
+     qsspecl_then 
+     [‘Mul(p,c)’,
+      ‘Add(Mul(p, s),
+                 Add(Mul(q, d), Add(Mul(q, r), Add(Mul(q, c), Mul(p, d)))))’] assume_tac Add_sym >>
+     arw[GSYM Add_assoc] >>
+     qsuff_tac 
+     ‘Add(Mul(q, r),
+                 Add(Mul(p, c), Add(Mul(q, c), Add(Mul(p, d), Mul(q, d))))) = 
+      Add(Mul(q, d),
+                 Add(Mul(q, r), Add(Mul(q, c), Add(Mul(p, d), Mul(p, c)))))’
+     >-- (strip_tac >> arw[]) >>
+     qsspecl_then [‘Mul(q,d)’,
+     ‘Add(Mul(q, r), Add(Mul(q, c), Add(Mul(p, d), Mul(p, c))))’] assume_tac Add_sym >> arw[GSYM Add_assoc] >>
+     qsuff_tac
+     ‘Add(Mul(p, c), Add(Mul(q, c), Add(Mul(p, d), Mul(q, d)))) = Add(Mul(q, c), Add(Mul(p, d), Add(Mul(p, c), Mul(q, d))))’ >-- (strip_tac >> arw[]) >>
+     qsspecl_then [‘Mul(p, c)’,‘Add(Mul(q, c), Add(Mul(p, d), Mul(q, d)))’] assume_tac Add_sym >> 
+     arw[GSYM Add_assoc] >>
+     qsspecl_then [‘Mul(q,d)’,‘Mul(p,c)’]
+     assume_tac Add_sym >> arw[]) 
+>-- (
+pop_assum (mp_tac o GSYM) >> 
+pop_assum_list (map_every (K all_tac)) >>
+strip_tac >> arw[] >>
+pop_assum (K all_tac) >>
+rw[GSYM Add_assoc,LEFT_DISTR,RIGHT_DISTR] >> 
+qsspecl_then [‘Mul(a,d)’,
+‘Add(Mul(b, c),
+                 Add(Mul(p, r),
+                  Add(Mul(q, s),
+                   Add(Mul(p, c), Add(Mul(q, c), Add(Mul(p, d), Mul(q, d)))))))’] assume_tac Add_sym >>
+arw[GSYM Add_assoc] >>
+qsuff_tac
+‘Add(Mul(p, r),
+                 Add(Mul(q, s),
+                  Add(Mul(p, c),
+                   Add(Mul(q, c), Add(Mul(p, d), Add(Mul(q, d), Mul(a, d))))))) = 
+ Add(Mul(p, c),
+                 Add(Mul(a, d),
+                  Add(Mul(q, d),
+                   Add(Mul(p, d), Add(Mul(p, r), Add(Mul(q, c), Mul(q, s)))))))’
+>-- (strip_tac >> arw[]) >>
+qsspecl_then [‘Mul(p, r)’,
+‘Add(Mul(q, s),
+                 Add(Mul(p, c),
+                  Add(Mul(q, c), Add(Mul(p, d), Add(Mul(q, d), Mul(a, d))))))’] assume_tac Add_sym >>
+arw[GSYM Add_assoc] >>
+qsspecl_then [‘Mul(q, s)’,
+‘Add(Mul(p, c),
+                 Add(Mul(q, c),
+                  Add(Mul(p, d), Add(Mul(q, d), Add(Mul(a, d), Mul(p, r))))))’] assume_tac Add_sym >>
+arw[GSYM Add_assoc] >>
+qsuff_tac
+‘Add(Mul(q, c),
+                 Add(Mul(p, d),
+                  Add(Mul(q, d), Add(Mul(a, d), Add(Mul(p, r), Mul(q, s)))))) =
+ Add(Mul(a, d),
+                 Add(Mul(q, d),
+                  Add(Mul(p, d), Add(Mul(p, r), Add(Mul(q, c), Mul(q, s))))))’
+>-- (strip_tac >> arw[]) >>
+rw[Add_assoc] >> 
+qsspecl_then
+[‘Add(Add(Add(Add(Mul(a, d), Mul(q, d)), Mul(p, d)),
+                  Mul(p, r)), Mul(q, c))’,‘Mul(q,s)’]
+assume_tac Add_sym >> arw[] >>
+rw[Add_assoc] >>
+qsspecl_then 
+[‘Add(Add(Add(Add(Mul(q, s), Mul(a, d)), Mul(q, d)),
+                  Mul(p, d)), Mul(p, r))’,‘Mul(q,c)’]
+assume_tac Add_sym >> arw[] >>
+rw[GSYM Add_assoc] >>
+qsuff_tac
+ ‘Add(Mul(p, d),
+                 Add(Mul(q, d), Add(Mul(a, d), Add(Mul(p, r), Mul(q, s))))) = 
+ Add(Mul(q, s),
+                 Add(Mul(a, d), Add(Mul(q, d), Add(Mul(p, d), Mul(p, r)))))’
+>-- (strip_tac >> arw[]) >>
+rw[Add_assoc] >>
+qsspecl_then
+[‘Add(Add(Add(Mul(p, d), Mul(q, d)), Mul(a, d)), Mul(p, r))’,‘Mul(q,s)’] assume_tac Add_sym >> arw[GSYM Add_assoc] >>
+qsuff_tac
+‘Add(Mul(p, d), Add(Mul(q, d), Add(Mul(a, d), Mul(p, r))))=
+Add(Mul(a, d), Add(Mul(q, d), Add(Mul(p, d), Mul(p, r))))’
+>-- (strip_tac >> arw[]) >>
+qsspecl_then
+[‘Mul(p, d)’,
+ ‘Add(Mul(q, d), Add(Mul(a, d), Mul(p, r)))’]
+assume_tac Add_sym >>
+arw[GSYM Add_assoc] >>
+qsspecl_then
+[‘Mul(q, d)’,
+ ‘Add(Mul(a, d), Add(Mul(p, r), Mul(p, d)))’]
+assume_tac Add_sym >>
+arw[GSYM Add_assoc] >>
+qsuff_tac
+‘Add(Mul(p, r), Add(Mul(p, d), Mul(q, d))) = 
+ Add(Mul(q, d), Add(Mul(p, d), Mul(p, r)))’
+>-- (strip_tac >> arw[]) >>
+qsspecl_then
+[‘Mul(p, r)’,‘Add(Mul(p, d), Mul(q, d))’]
+assume_tac Add_sym >> arw[Add_assoc] >> 
+qsspecl_then [‘Mul(p,d)’,‘Mul(q,d)’] assume_tac Add_sym >>
+arw[]
+ )>>
+ arw[])
+(form_goal
+“!a:1->N b p q c d r s. ZR(Pa(a,b),Pa(p,q)) & 
+ZR(Pa(c,d),Pa(r,s)) ==> 
+ ZR(Mulj(Pa(a,b),Pa(c,d)),Mulj(Pa(p,q),Pa(r,s)))”));
+
+val J2_iii' = prove_store("J2_iii'",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘ab’] strip_assume_tac has_components >>
+ qsspecl_then [‘pq’] strip_assume_tac has_components >>
+ qsspecl_then [‘cd’] strip_assume_tac has_components >>
+ qsspecl_then [‘rs’] strip_assume_tac has_components >> fs[] >>
+ irule J2_iii >> arw[])
+(form_goal
+ “!ab:1->N * N pq cd rs. ZR(ab,pq) & ZR(cd,rs) ==>
+ ZR(Mulj(ab,cd),Mulj(pq,rs))”));
 
 
+
+
+val MULz_ex = prove_store("MULz_ex",
+e0
+(qexists_tac ‘toZ o MULj o Pa(REP o p1(Z,Z),REP o p2(Z,Z))’ >>
+ rw[])
+(form_goal
+ “?mulz. toZ o MULj o Pa(REP o p1(Z,Z),REP o p2(Z,Z)) = mulz”));
+
+
+
+val MULz_def = MULz_ex |> ex2fsym0 "MULz" []
+                       |> store_as "MULz_def";
+
+
+
+
+val Mulz_ex = prove_store("Mulz_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘MULz o Pa(z1,z2)’ >> rw[])
+(form_goal
+ “!X z1:X->Z z2. ?z12. MULz o Pa(z1,z2) = z12”));
+
+val Mulz_def = Mulz_ex |> spec_all |> ex2fsym0 "Mulz" ["z1","z2"]
+                       |> gen_all |> store_as "Mulz_def";
+
+
+val Mulz_eqn = prove_store("Mulz_eqn",
+e0
+(assume_tac J2_iii >>
+ rpt strip_tac >>
+ rw[GSYM Mulz_def,GSYM MULz_def] >>
+ rw[asz_def,rep_def,Mulj_def,Pa_distr,p12_of_Pa,o_assoc] >>
+ once_rw[samez_cond] >>
+ qsspecl_then [‘rep(asz(Pa(a, b)))’] strip_assume_tac has_components >>
+ qsspecl_then [‘rep(asz(Pa(c, d)))’] strip_assume_tac has_components >>
+ arw[] >>
+ first_x_assum irule >>
+ pop_assum_list (map_every (assume_tac o GSYM)) >> arw[] >>
+ rw[GSYM rep_rel_all])
+(form_goal
+“!a:1->N b c d. Mulz(asz(Pa(a,b)),asz(Pa(c,d))) = 
+ asz(Mulj(Pa(a,b),Pa(c,d)))”));
+
+val Z2_v = prove_store("Z2_v",
+e0
+(rpt strip_tac >> rw[Mulz_eqn] >> 
+ rw[GSYM Mulz_def] >> rw[GSYM MULz_def] >>
+ rw[Mulj_def,rep_def,asz_def,o_assoc,Pa_distr,p12_of_Pa] >>
+ assume_tac J1_v >>
+ rw[samez_cond] >> once_rw[ZR_cond] >>
+ qexistsl_tac 
+[‘Mulj(Mulj(Pa(a,b),Pa(c,d)),Pa(e,f))’,
+ ‘Mulj(Pa(a,b),Mulj(Pa(c,d),Pa(e,f)))’] >> arw[] >> strip_tac (* 2 *)
+ >--(assume_tac J2_iii >> 
+ qsspecl_then [‘rep(asz(Mulj(Pa(a, b), Pa(c, d))))’]
+ strip_assume_tac has_components >>
+ qsspecl_then [‘rep(asz(Pa(e, f)))’] 
+ strip_assume_tac has_components >> arw[] >>
+ qsspecl_then [‘Mulj(Pa(a, b), Pa(c, d))’] 
+ strip_assume_tac has_components >> arw[] >>
+ first_x_assum irule >>
+ pop_assum_list (map_every (assume_tac o GSYM)) >>
+ arw[GSYM rep_rel_all]) >>
+ assume_tac J2_iii >>
+ qsspecl_then [‘rep(asz(Pa(a, b)))’]
+ strip_assume_tac has_components >>
+ qsspecl_then [‘rep(asz(Mulj(Pa(c, d), Pa(e, f))))’]
+ strip_assume_tac has_components >> 
+ qsspecl_then [‘Mulj(Pa(c, d), Pa(e, f))’]
+ strip_assume_tac has_components >>
+ arw[] >> first_x_assum irule >> 
+ pop_assum_list (map_every (assume_tac o GSYM)) >> arw[GSYM rep_rel_all]
+ )
+(form_goal
+ “!a:1->N b c d e f.Mulz(Mulz(asz(Pa(a,b)),asz(Pa(c,d))),asz(Pa(e,f))) = 
+ Mulz(asz(Pa(a,b)),Mulz(asz(Pa(c,d)),asz(Pa(e,f))))”));
+
+
+val J1_vi = prove_store("J1_vi",
+e0
+(rw[ZR_def] >> rpt strip_tac >>
+ rw[Mulj_property] >> rw[Addj_property] >>
+ rw[Fst_Snd_Pa] >> rw[Mulj_property] >> rw[Fst_Snd_Pa] >>
+ rw[RIGHT_DISTR,LEFT_DISTR,GSYM Add_assoc] >> cheat
+ (*tedious...*))
+(form_goal
+ “!a:1->N b c d e f.
+ZR(Mulj(Pa(a, b), Addj(Pa(c, d), Pa(e, f))),
+              Addj(Mulj(Pa(a, b), Pa(c, d)), Mulj(Pa(a, b), Pa(e, f))))”));
+
+val Z2_vi = prove_store("Z2_vi",
+e0
+(rpt strip_tac >> rw[Mulz_eqn] >>
+ rw[Addz_eqn'] >> 
+rw[GSYM Mulz_def] >> rw[GSYM MULz_def] >>
+ rw[Mulj_def,rep_def,asz_def,o_assoc,Pa_distr,p12_of_Pa] >>
+ rw[GSYM Addz_def] >> rw[GSYM ADDz_def] >>
+ rw[Addj_def,rep_def,asz_def,o_assoc,Pa_distr,p12_of_Pa] >>
+ rw[samez_cond] >> once_rw[ZR_cond] >>
+ qexistsl_tac [‘Mulj(Pa(a,b),Addj(Pa(c,d),Pa(e,f)))’,
+               ‘Addj(Mulj(Pa(a,b),Pa(c,d)),
+                     Mulj(Pa(a,b),Pa(e,f)))’] >>
+ rpt strip_tac (* 3 *)
+ >-- (irule J2_iii' >> rw[GSYM rep_rel_all]) 
+ >-- (irule J2_i' >> rw[GSYM rep_rel_all]) >>
+ rw[J1_vi]
+ (*need J1_vi*)
+ )
+(form_goal
+ “!a:1->N b c d e f. 
+  Mulz(asz(Pa(a,b)),Addz(asz(Pa(c,d)),asz(Pa(e,f)))) = 
+  Addz(Mulz(asz(Pa(a,b)),asz(Pa(c,d))),
+       Mulz(asz(Pa(a,b)),asz(Pa(e,f))))”));
 
 (*
 val lej_ex = prove_store("lej_ex",
