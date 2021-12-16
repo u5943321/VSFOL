@@ -2185,6 +2185,21 @@ e0
                   (Mul(Suc(m),n) = Add(Mul(m,n),n)) &
                   (Mul(m,Suc(n)) = Add(m,Mul(m,n)))”));
 
+
+
+val Mul_clauses' = prove_store("Mul_clauses'",
+e0
+(rw[Mul_O,Mul_Suc,Mul_Suc1,Mul_LEFT_1,Mul_RIGHT_1,Mul_LEFT_O] >>
+ rpt strip_tac >--
+ qsspecl_then [‘n’,‘Mul(m,n)’] accept_tac Add_sym >> 
+ qsspecl_then [‘Mul(m,n)’,‘m’] accept_tac Add_sym)
+(form_goal “!m. (Mul(O,m) = O) & (Mul(m,O) = O) & 
+                  (Mul(Suc(O),m) = m) & (Mul(m,Suc(O)) = m) &
+                  !n.(Mul(Suc(m),n) = Add(Mul(m,n),n)) &
+                  (Mul(m,Suc(n)) = Add(m,Mul(m,n)))”));
+
+
+
 val Mul_sym = prove_store("Mul_sym",
 e0
 (qby_tac ‘?P.!m.(!n. Mul(m,n) = Mul(n,m)) <=> P o m = TRUE’ >-- cheat >>
