@@ -1704,17 +1704,20 @@ e0
  strip_tac >>
  qsspecl_then [‘b’,‘c’] assume_tac Add_sym >> arw[] >>
  qsspecl_then [‘d’,‘a’] assume_tac Add_sym >> arw[] >>
- qsspecl_then [‘c’,‘b’] assume_tac Add_sym >> arw[]
-
- qby_tac ‘’
- 
- 
- 
- qby_tac ‘’)
+ fs[] >> 
+ qsspecl_then [‘Mul(e, Add(a, d))’,‘Mul(f, Add(c, b))’]
+ assume_tac Add_sym >> fs[])
 (form_goal “!a b c d e f. 
 lej o Pa(Pa(a,b),Pa(c,d)) = TRUE & 
 lej o Pa(0j,Pa(e,f)) = TRUE ==> 
  lej o Pa(Mulj(Pa(a,b),Pa(e,f)),Mulj(Pa(c,d),Pa(e,f))) = TRUE”));
+
+
+
+
+
+
+
 (*
 val lej_ex = prove_store("lej_ex",
 e0
