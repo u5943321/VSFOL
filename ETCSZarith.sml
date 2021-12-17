@@ -1452,7 +1452,63 @@ e0
 (rw[ZR_def] >> rpt strip_tac >>
  rw[Mulj_property] >> rw[Addj_property] >>
  rw[Fst_Snd_Pa] >> rw[Mulj_property] >> rw[Fst_Snd_Pa] >>
- rw[RIGHT_DISTR,LEFT_DISTR,GSYM Add_assoc] >> cheat
+ rw[RIGHT_DISTR,LEFT_DISTR,GSYM Add_assoc] >> 
+ qsspecl_then 
+ [‘Mul(a, c)’,
+  ‘Add(Mul(a, e),
+                 Add(Mul(b, d),
+                  Add(Mul(b, f),
+                   Add(Mul(a, d), Add(Mul(b, c), Add(Mul(a, f), Mul(b, e)))))))’] assume_tac Add_sym >> arw[GSYM Add_assoc] >>
+ qsspecl_then 
+ [‘Mul(a, e)’,
+  ‘Add(Mul(b, d),
+                 Add(Mul(b, f),
+                  Add(Mul(a, d),
+                   Add(Mul(b, c), Add(Mul(a, f), Add(Mul(b, e), Mul(a, c)))))))’] assume_tac Add_sym >> arw[GSYM Add_assoc] >>
+ qsspecl_then
+ [‘Mul(b, d)’,
+  ‘Add(Mul(b, f),
+                 Add(Mul(a, d),
+                  Add(Mul(b, c),
+                   Add(Mul(a, f), Add(Mul(b, e), Add(Mul(a, c), Mul(a, e)))))))’] assume_tac Add_sym >> arw[GSYM Add_assoc] >>
+ qsspecl_then
+ [‘Mul(b, f)’,
+  ‘Add(Mul(a, d),
+                 Add(Mul(b, c),
+                  Add(Mul(a, f),
+                   Add(Mul(b, e), Add(Mul(a, c), Add(Mul(a, e), Mul(b, d)))))))’] assume_tac Add_sym >> arw[GSYM Add_assoc] >>
+ qsuff_tac
+ ‘Add(Mul(b, c),
+                 Add(Mul(a, f),
+                  Add(Mul(b, e),
+                   Add(Mul(a, c), Add(Mul(a, e), Add(Mul(b, d), Mul(b, f))))))) = 
+ Add(Mul(a, f),
+                 Add(Mul(b, c),
+                  Add(Mul(b, e),
+                   Add(Mul(a, c), Add(Mul(b, d), Add(Mul(a, e), Mul(b, f)))))))’ >-- (strip_tac >> arw[]) >>
+ qsspecl_then
+ [‘Mul(b, c)’,
+ ‘Add(Mul(a, f),
+                 Add(Mul(b, e),
+                  Add(Mul(a, c), Add(Mul(a, e), Add(Mul(b, d), Mul(b, f))))))’] assume_tac Add_sym >> arw[GSYM Add_assoc] >>
+ qsuff_tac
+ ‘Add(Mul(b, e),
+                 Add(Mul(a, c),
+                  Add(Mul(a, e), Add(Mul(b, d), Add(Mul(b, f), Mul(b, c)))))) = Add(Mul(b, c),
+                 Add(Mul(b, e),
+                  Add(Mul(a, c), Add(Mul(b, d), Add(Mul(a, e), Mul(b, f))))))’ >-- (strip_tac >> arw[]) >>
+ qsspecl_then 
+ [‘Mul(b, c)’,
+  ‘Add(Mul(b, e),
+                 Add(Mul(a, c), Add(Mul(b, d), Add(Mul(a, e), Mul(b, f)))))’] assume_tac Add_sym >> arw[GSYM Add_assoc] >>
+ qsuff_tac
+ ‘Add(Mul(a, e), Add(Mul(b, d), Add(Mul(b, f), Mul(b, c)))) = 
+  Add(Mul(b, d), Add(Mul(a, e), Add(Mul(b, f), Mul(b, c))))’
+ >-- (strip_tac >> arw[]) >>
+ rw[Add_assoc] >>
+ qsspecl_then
+ [‘Mul(a, e)’,‘Mul(b, d)’] assume_tac Add_sym >>
+ arw[]
  (*tedious...*))
 (form_goal
  “!a:1->N b c d e f.
@@ -1547,7 +1603,10 @@ e0
 (qby_tac
  ‘?P. !a. (!b. Le(b,a) ==> Sub(Suc(a),b) = Suc(Sub(a,b))) <=>
       P o a = TRUE’ 
- >-- cheat >>
+ >-- (qexists_tac ‘ALL(Imp(Char(LE),Eq(N) o Pa(SUB o Pa(SUC o p2(N,N),p1(N,N)), SUC o SUB o Swap(N,N))))’ >>
+      rw[ALL_property] >> rpt strip_tac >>
+      rw[GSYM Imp_def,IMP_def,o_assoc,Pa_distr,p12_of_Pa,Swap_Pa,
+          Eq_property_TRUE] >> rw[GSYM Le_def1,Sub_def,Suc_def] ) >>
  pop_assum strip_assume_tac >> arw[IP_el] >>
  pop_assum (assume_tac o GSYM) >> arw[] >>
  rw[Le_O_iff,Sub_of_O] >> strip_tac (* 2 *)
@@ -1555,7 +1614,13 @@ e0
  strip_tac >> strip_tac >> rw[Suc_def] >>
  qby_tac
  ‘?P1. !b. (Le(b, Suc(n)) ==> Sub(Suc(Suc(n)), b) = Suc(Sub(Suc(n), b))) <=> P1 o b = TRUE’ 
- >-- cheat >>
+ >-- (qexists_tac ‘Imp(Char(LE) o Pa(id(N),Suc(n) o To1(N)),
+                       EQ(Sub(Suc(Suc(n)) o To1(N),id(N)),Suc(Sub(Suc(n) o To1(N),id(N)))))’ >> strip_tac >>
+      rw[GSYM Suc_def,GSYM Sub_def,GSYM Imp_def,IMP_def,
+         o_assoc,Pa_distr,p12_of_Pa,GSYM EQ_def,
+         Eq_property_TRUE] >>
+      once_rw[one_to_one_id] >> rw[idL,idR] >> 
+      rw[GSYM Le_def1]) >>
  pop_assum strip_assume_tac >>
  arw[IP_el] >> pop_assum (assume_tac o GSYM) >>
  arw[] >> rw[Le_O,Sub_O] >> strip_tac >>
@@ -1574,14 +1639,24 @@ val SUB_ADD = prove_store("SUB_ADD",
 e0
 (qby_tac
  ‘?P. !m. (!n. Le(n,m) ==> Add(Sub(m,n),n) = m) <=> P o m = TRUE’  
- >-- cheat >>
+ >-- (qexists_tac ‘ALL(Imp(Char(LE),EQ(Add(SUB o Swap(N,N),p1(N,N)),p2(N,N))))’ >>strip_tac >>
+     rw[ALL_property,GSYM Imp_def,IMP_def,p12_of_Pa,GSYM Add_def,o_assoc,
+       Pa_distr,GSYM EQ_def,Eq_property_TRUE,Swap_Pa,GSYM Le_def1,
+       GSYM Sub_def] ) >>
  pop_assum strip_assume_tac >> arw[IP_el] >>
  pop_assum (assume_tac o GSYM) >> arw[] >>
  rw[Sub_of_O,Add_O2,Le_O_iff] >> strip_tac >>
  strip_tac >> rw[Suc_def] >>
  qby_tac
  ‘?P1. !n'.(Le(n', Suc(n)) ==> Add(Sub(Suc(n), n'), n') = Suc(n)) <=>
-  P1 o n' = TRUE’ >-- cheat >>
+  P1 o n' = TRUE’ >-- 
+ (qexists_tac ‘Imp(Char(LE) o Pa(id(N),Suc(n) o To1(N)),
+       EQ(Add(Sub(Suc(n) o To1(N),id(N)),id(N)),Suc(n) o To1(N)))’ >>
+ strip_tac >>
+  rw[GSYM Imp_def,IMP_def,p12_of_Pa,GSYM Add_def,o_assoc,
+       Pa_distr,GSYM EQ_def,Eq_property_TRUE,Swap_Pa,GSYM Le_def1,
+       GSYM Sub_def] >>
+  once_rw[one_to_one_id] >> rw[idL,idR]) >>
  pop_assum strip_assume_tac >> arw[IP_el] >>
  pop_assum (assume_tac o GSYM) >> arw[] >> 
  rw[Sub_O,Add_Suc1,Add_O] >> strip_tac >> arw[] >>
@@ -1599,12 +1674,28 @@ e0
 val ADD_EQ_SUB = prove_store("ADD_EQ_SUB",
 e0
 (strip_tac >>
- qby_tac ‘?P.!n.(!p. Le(n,p) ==> (Add(m,n) = p <=> m = Sub(p,n))) <=> P o n = TRUE’ >-- cheat >>
+ qby_tac ‘?P.!n.(!p. Le(n,p) ==> (Add(m,n) = p <=> m = Sub(p,n))) <=> P o n = TRUE’ >-- 
+ (qexists_tac ‘ALL(Imp(Char(LE) o Swap(N,N),
+                   Iff(EQ(Add(m o To1(N * N),p2(N,N)),p1(N,N)),
+                       EQ(m o To1(N * N),SUB))))’ >>
+ strip_tac >>
+ rw[ALL_property,GSYM Imp_def,IMP_def,GSYM Iff_def,IFF_def,p12_of_Pa,GSYM Add_def,o_assoc,
+       Pa_distr,GSYM EQ_def,Eq_property_TRUE,Swap_Pa,GSYM Le_def1,
+       GSYM Sub_def] >>
+ once_rw[one_to_one_id] >> rw[idL,idR]) >>
  pop_assum strip_assume_tac >>
  arw[IP_el,Suc_def] >> pop_assum (assume_tac o GSYM) >> arw[] >>
  rw[Le_O_iff,Add_O,Sub_O] >> strip_tac >> strip_tac >>
  qby_tac ‘?P1. !p.(Le(Suc(n), p) ==>
-               (Add(m, Suc(n)) = p <=> m = Sub(p, Suc(n)))) <=> P1 o p = TRUE’ >-- cheat >> 
+               (Add(m, Suc(n)) = p <=> m = Sub(p, Suc(n)))) <=> P1 o p = TRUE’ >--
+ (qexists_tac ‘Imp(Char(LE) o Pa(Suc(n) o To1(N),id(N)),
+ Iff(EQ(Add(m,Suc(n)) o To1(N),id(N)),
+     EQ(m o To1(N),Sub(id(N),Suc(n) o To1(N)))))’ >>
+  strip_tac >>
+ rw[GSYM Imp_def,IMP_def,GSYM Iff_def,IFF_def,p12_of_Pa,GSYM Add_def,o_assoc,
+       Pa_distr,GSYM EQ_def,Eq_property_TRUE,Swap_Pa,GSYM Le_def1,
+       GSYM Sub_def] >>
+ once_rw[one_to_one_id] >> rw[idL,idR] )  >> 
  pop_assum strip_assume_tac >>
  arw[IP_el,Suc_def] >> pop_assum (assume_tac o GSYM) >> arw[] >>
  rw[Le_def,Sub_O,Suc_NONZERO] >> strip_tac >> arw[] >>
@@ -1633,7 +1724,13 @@ val NOT_LESS = prove_store("NOT_LESS",
 e0
 (qby_tac
  ‘?P. !m. (!n. ~(Lt(m,n)) <=> Le(n,m)) <=> P o m = TRUE’ 
- >-- cheat >> pop_assum strip_assume_tac >>
+ >-- (qexists_tac ‘ALL(Iff(Not(Char(LT) o Swap(N,N)),Char(LE)))’
+     >> strip_tac >>
+     rw[ALL_property,GSYM Iff_def,IFF_def,p12_of_Pa,o_assoc,
+       GSYM Not_def,NEG_def,
+       Pa_distr,Swap_Pa,GSYM Le_def1,
+       GSYM Lt_def1,TRUE_xor_FALSE]
+     )>> pop_assum strip_assume_tac >>
  arw[IP_el] >> pop_assum (assume_tac o GSYM) >> arw[] >>
  rw[Suc_def] >> rw[Le_O_iff] >> strip_tac (* 2 *)
  >-- (strip_tac >> dimp_tac >> strip_tac >>
@@ -1641,7 +1738,13 @@ e0
      fs[Le_def,Sub_Suc,Sub_of_O,Pre_O] >> rfs[]) >>
  strip_tac >> strip_tac >>
  qby_tac ‘?P1.!n'. (~Lt(Suc(n), n') <=> Le(n', Suc(n))) <=> 
- P1 o n' = TRUE’ >-- cheat >>
+ P1 o n' = TRUE’ >--
+ (qexists_tac ‘Iff(Not(Char(LT) o Pa(Suc(n) o To1(N),id(N))),Char(LE) o Pa(id(N),Suc(n) o To1(N)))’ >> strip_tac >>
+  rw[GSYM Iff_def,IFF_def,p12_of_Pa,o_assoc,
+       GSYM Not_def,NEG_def,
+       Pa_distr,GSYM Le_def1,
+       GSYM Lt_def1,TRUE_xor_FALSE]>>
+ once_rw[one_to_one_id] >> rw[idL,idR] ) >>
  pop_assum strip_assume_tac >> arw[IP_el] >>
  pop_assum (assume_tac o GSYM) >> arw[] >> rw[NOT_SUC_LT_O,Le_O] >>
  rw[Suc_def] >> strip_tac >> arw[] >>

@@ -2136,7 +2136,10 @@ e0
 
 val Mul_LEFT_O = prove_store("Mul_LEFT_O",
 e0
-(qby_tac ‘?P. !m. Mul(O,m) = O <=> P o m = TRUE’ >-- cheat >>
+(qby_tac ‘?P. !m. Mul(O,m) = O <=> P o m = TRUE’ >--
+ (qexists_tac ‘EQ(Mul(O o To1(N),id(N)),O o To1(N))’ >>
+  rw[GSYM EQ_def,Eq_property_TRUE,Pa_distr,o_assoc,idL,idR,GSYM Mul_def]>>
+ once_rw[one_to_one_id] >> rw[idL,idR])  >>
  pop_assum strip_assume_tac >> arw[] >> rw[IP_el] >>
  pop_assum (assume_tac o GSYM) >> arw[] >> 
  rw[Mul_O,Suc_def,Mul_Suc] >> rpt strip_tac >> arw[Add_O])
@@ -2145,7 +2148,10 @@ e0
 
 val Mul_LEFT_1 =  prove_store("Mul_LEFT_1",
 e0
-(qby_tac ‘?P. !m. Mul(Suc(O),m) = m <=> P o m = TRUE’ >-- cheat >>
+(qby_tac ‘?P. !m. Mul(Suc(O),m) = m <=> P o m = TRUE’ >--
+ (qexists_tac ‘EQ(Mul(Suc(O) o To1(N),id(N)),id(N))’ >>
+ rw[GSYM EQ_def,Eq_property_TRUE,Pa_distr,o_assoc,idL,idR,GSYM Mul_def]>>
+ once_rw[one_to_one_id] >> rw[idL,idR]) >>
  pop_assum strip_assume_tac >> arw[] >> rw[IP_el] >>
  pop_assum (assume_tac o GSYM) >> arw[] >> 
  rw[Mul_O,Suc_def,Mul_Suc] >> rpt strip_tac >> arw[Add_Suc,Add_O])
@@ -2159,7 +2165,10 @@ e0
 val Mul_Suc1 = prove_store("Mul_Suc1",
 e0
 (qby_tac ‘?P.!m. (!n. Mul(Suc(n),m) = Add(m,Mul(n,m))) <=> P o m = TRUE’
- >-- cheat >>
+ >-- (qexists_tac ‘ALL(EQ(Mul(Suc(p1(N,N)),p2(N,N)) , 
+                          Add(p2(N,N),MUL)) )’ >>
+      strip_tac >>
+      rw[ALL_property,GSYM EQ_def,Eq_property_TRUE,GSYM Mul_def,Pa_distr,p12_of_Pa,o_assoc,GSYM Suc_def,GSYM Add_def] ) >>
  pop_assum strip_assume_tac >> arw[] >> rw[IP_el] >> 
  pop_assum (assume_tac o GSYM) >> arw[] >>
  rw[Mul_O,Add_O] >> rw[Suc_def,Mul_Suc] >> rpt strip_tac >>
@@ -2202,7 +2211,9 @@ e0
 
 val Mul_sym = prove_store("Mul_sym",
 e0
-(qby_tac ‘?P.!m.(!n. Mul(m,n) = Mul(n,m)) <=> P o m = TRUE’ >-- cheat >>
+(qby_tac ‘?P.!m.(!n. Mul(m,n) = Mul(n,m)) <=> P o m = TRUE’ >--
+ (qexists_tac ‘ALL(EQ(MUL o Swap(N,N),MUL))’ >> strip_tac >>
+  rw[ALL_property,GSYM EQ_def,Eq_property_TRUE,o_assoc,Pa_distr,p12_of_Pa,Swap_Pa,GSYM Mul_def])>>
  pop_assum strip_assume_tac >> arw[] >> rw[IP_el] >>
  pop_assum (assume_tac o GSYM) >> arw[] >> rw[Mul_clauses,Suc_def] >>
  rpt strip_tac >> arw[] >>
@@ -2222,7 +2233,10 @@ val RIGHT_DISTR = prove_store("RIGHT_DISTR",
 e0
 (strip_tac >> strip_tac >>
  qby_tac ‘?P. !p. Mul(Add(m,n),p) = Add(Mul(m,p),Mul(n,p)) <=> P o p = TRUE’ 
- >-- cheat >>
+ >-- (qexists_tac ‘EQ(Mul(Add(m,n) o To1(N),id(N)),
+                      Add(Mul(m o To1(N),id(N)),Mul(n o To1(N),id(N))))’ >>
+      rw[GSYM EQ_def,Eq_property_TRUE,GSYM Mul_def,Pa_distr,o_assoc,GSYM Add_def] >>
+      once_rw[one_to_one_id] >> rw[idL,idR] )>>
  pop_assum strip_assume_tac >> arw[] >> rw[IP_el] >>
  pop_assum (assume_tac o GSYM) >> arw[] >>
  rw[Mul_clauses,Add_clauses] >>
@@ -2250,7 +2264,10 @@ e0
 val Mul_assoc = prove_store("Mul_assoc",
 e0
 (qby_tac ‘?P. !m. (!n p. Mul(m,Mul(n,p)) = Mul(Mul(m,n),p)) <=> P o m = TRUE’
- >-- cheat >>
+ >-- (qexists_tac ‘ALL(ALL(EQ(Mul(p33(N,N,N),Mul(p32(N,N,N),p31(N,N,N))),
+                              Mul(Mul(p33(N,N,N),p32(N,N,N)),p31(N,N,N)))))’ >>
+      strip_tac >> rw[ALL_property,GSYM EQ_def,Eq_property_TRUE,GSYM p31_def,
+      GSYM p32_def,GSYM p33_def,Pa_distr,o_assoc,p12_of_Pa,GSYM Mul_def]) >>
  pop_assum strip_assume_tac >> arw[] >> rw[IP_el] >>
  pop_assum (assume_tac o GSYM) >> arw[] >>
  rw[Mul_clauses,RIGHT_DISTR,Suc_def] >> rpt strip_tac >>
@@ -2270,7 +2287,13 @@ val Le_MONO_Mul = prove_store("Le_MONO_Mul",
 e0
 (strip_tac >> strip_tac >>
  qby_tac ‘?P. !p. (Le(m,n) ==> Le(Mul(m,p),Mul(n,p))) <=> P o p = TRUE’ 
- >-- cheat >> 
+ >-- (qexists_tac ‘Imp(Char(LE) o Pa(m,n) o To1(N), 
+                       Char(LE) o Pa(Mul(m o To1(N),id(N)),
+                                     Mul(n o To1(N),id(N))))’ >>
+      strip_tac >> 
+      rw[GSYM Imp_def,IMP_def,Pa_distr,p12_of_Pa,o_assoc,GSYM Mul_def] >>
+      once_rw[one_to_one_id] >> rw[idL,idR] >> 
+      rw[GSYM Le_def1]) >> 
  pop_assum strip_assume_tac >> arw[IP_el] >>
  pop_assum (assume_tac o GSYM) >> arw[] >> 
  (*check behaviour of arw, why it does not make change without strip*)
