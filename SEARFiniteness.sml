@@ -292,24 +292,6 @@ e0
 
 
 
-val Fst_ex = prove_store("Fst_ex",
-e0
-(rpt strip_tac >> qexists_tac ‘Eval(p1(A,B),x)’ >> rw[])
-(form_goal
- “!A B x:mem(A * B).?fstx. Eval(p1(A,B),x) = fstx”));
-
- 
-val Snd_ex = prove_store("Snd_ex",
-e0
-(rpt strip_tac >> qexists_tac ‘Eval(p2(A,B),x)’ >> rw[])
-(form_goal
- “!A B x:mem(A * B).?sndx. Eval(p2(A,B),x) = sndx”));
-
-val Fst_def = Fst_ex |> spec_all |> ex2fsym0 "Fst" ["x"]
-val Snd_def = Snd_ex |> spec_all |> ex2fsym0 "Snd" ["x"]
-
-val Pair_def' = Pair_def |> rewr_rule[Fst_def,Snd_def]
-
 
 val Ins_NONEMPTY = prove_store("Ins_NONEMPTY",
 e0

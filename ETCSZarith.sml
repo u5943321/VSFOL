@@ -1534,7 +1534,6 @@ rw[GSYM Mulz_def] >> rw[GSYM MULz_def] >>
  >-- (irule J2_iii' >> rw[GSYM rep_rel_all]) 
  >-- (irule J2_i' >> rw[GSYM rep_rel_all]) >>
  rw[J1_vi]
- (*need J1_vi*)
  )
 (form_goal
  “!a:1->N b c d e f. 
