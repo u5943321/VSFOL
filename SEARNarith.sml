@@ -1158,7 +1158,7 @@ val is_To1 = To1_def |> spec_all |> conjE2 |> gen_all
                      |> store_as "is_To1";
 
 val To1_Fun = To1_def |> spec_all |> conjE1 |> gen_all
-                     |> store_as "is_To1";
+                     |> store_as "To1_Fun";
 
 val ADD_property = prove_store("ADD_property",
 e0
@@ -1221,7 +1221,7 @@ e0
 (form_goal
  “!A B f:A->B a1 a2.a1 = a2 ==> Eval(f,a1) = Eval(f,a2)”))
 
-val Eval_Pa_Pair = prove_store("Eval_Pa",
+val Eval_Pa_Pair = prove_store("Eval_Pa_Pair",
 e0
 (rpt strip_tac >>  irule Cross_eq >> rw[Pair_def] >> strip_tac >>
  irule $ iffLR Eval_o_l >> 
@@ -1889,6 +1889,149 @@ e0
 (form_goal
  “!a. P(a:mem(N)) ==> ?a0. P(a0) & !a1.P(a1) ==> Le(a0,a1)”));
 end
+
+local 
+val precond = proved_th $
+e0
+(strip_tac >-- (irule o_Fun >> rw[To1_Fun,El_Fun]) >>
+ irule o_Fun >> rw[ADD_Fun] >> irule Pa_Fun >>
+ rw[p12_Fun] >> irule o_Fun >> rw[p1_Fun])
+(form_goal “isFun(El(O) o To1(N)) &
+      isFun(ADD o Pa(p2(N * N, N), p1(N, N) o p1(N * N, N))) ”)
+in
+val MUL_def0 = Thm1 |> allE $ rastt "N" 
+                |> allE $ rastt "N" 
+                |> allE $ rastt "El(O) o To1(N)"
+                |> allE $ rastt "ADD o Pa(p2(N * N,N),p1(N, N) o p1(N * N,N))"|> C mp precond |>  ex2fsym0 "MUL" [] |> iffRL
+                |> allE (rastt "MUL") |> rewr_rule[] 
+                |> rewr_rule[o_assoc]
+                |> store_as "MUL_def0";
+end
+
+val MUL_Fun = MUL_def0 |> conjE1 |> store_as "MUL_Fun";
+
+val MUL_def = prove_store("MUL_def",
+e0
+(rw[MUL_def0] >> irule o_eq_r >>
+ irule is_To1>> irule o_Fun >> rw[To1_Fun,p1_Fun])
+(form_goal
+ “MUL o Pa(p1(N, 1), El(O) o p2(N, 1)) = El(O) o To1(N * 1) &
+      ADD o Pa(p2(N * N, N), (p1(N, N) o p1(N * N, N))) o
+        Pa(id(N * N), MUL) = MUL o Pa(p1(N, N), SUC o p2(N, N))”));
+
+
+val Mul_ex = prove_store("Mul_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Eval(MUL,Pair(a,b))’ >> rw[])
+(form_goal “!a b.?ab. Eval(MUL,Pair(a,b)) = ab”));
+
+val Mul_def = Mul_ex |> spec_all |> ex2fsym0 "Mul" ["a","b"]
+                     |> gen_all |> store_as "Mul_def";
+
+val Eval_Pa2 = Eval_Pa |> sspecl [rastt "id(A)",rastt "g:B->D"]
+                       |> rewr_rule[id_Fun,idL]
+                       |> undisch 
+                       |> gen_all |> disch_all 
+                       |> gen_all
+                       |> store_as "Eval_Pa2";
+
+val Eval_p1_Pair = prove_store("Eval_p1_Pair",
+e0
+(rw[Fst_def,Pair_def'])
+(form_goal
+ “!A B a b. Eval(p1(A,B),Pair(a,b)) = a”));
+
+
+val Eval_p2_Pair = prove_store("Eval_p2_Pair",
+e0
+(rw[Snd_def,Pair_def'])
+(form_goal
+ “!A B a b. Eval(p2(A,B),Pair(a,b)) = b”));
+
+val Mul_O = prove_store("Mul_O",
+e0
+(strip_tac >> rw[GSYM Mul_def] >> 
+ assume_tac MUL_def >>
+ qby_tac
+ ‘Eval(MUL, Pair(n, O)) = 
+  Eval(MUL o Pa(p1(N, 1), El(O) o p2(N, 1)), 
+       Pair(n,dot))’ 
+ >-- (flip_tac >> irule $ iffRL Eval_o_l >> 
+     rw[MUL_Fun] >> 
+     qsspecl_then [‘O’] assume_tac El_Fun >>
+     drule Eval_Pa2 >> arw[] >> rw[Eval_p1_Pair] >>
+     strip_tac >--
+     (irule Eval_input_eq >> rw[Pair_eq_eq] >>
+     irule $ iffRL Eval_o_l >> rw[El_Fun,p2_Fun] >>
+     rw[Eval_p2_Pair] >> rw[El_def]) >>
+     irule Pa_Fun >> rw[p1_Fun] >>
+     irule o_Fun >> rw[El_Fun,p2_Fun]) >>
+ arw[] >> irule $ iffRL Eval_o_l >> 
+ rw[dot_def,El_def,To1_Fun])
+(form_goal “!n. Mul(n,O) = O”));
+
+
+val Mul_Suc = prove_store("Mul_Suc",
+e0
+(rpt strip_tac >> rw[GSYM Mul_def,GSYM Suc_def] >>
+ assume_tac MUL_def >>
+ qby_tac
+ ‘Eval(MUL, Pair(n, Eval(SUC, n0))) = 
+  Eval(MUL o Pa(p1(N, N), SUC o p2(N, N)),Pair(n,n0))’
+ >-- (flip_tac >> irule $ iffRL Eval_o_l >> rw[MUL_Fun] >>
+     strip_tac >-- (irule Eval_input_eq >> 
+     assume_tac SUC_Fun >> drule Eval_Pa2 >> arw[] >>
+     rw[Eval_p1_Pair,Pair_eq_eq] >> irule $ iffRL Eval_o_l >>
+     rw[Eval_p2_Pair,p2_Fun,SUC_Fun]) >>
+     irule Pa_Fun >> rw[p1_Fun] >> irule o_Fun >> rw[SUC_Fun,p2_Fun]) >>
+ arw[] >> 
+ last_x_assum (assume_tac o GSYM) >> arw[] >>
+ irule $ iffRL Eval_o_l >> rw[ADD_Fun] >> strip_tac 
+ >-- (qspecl_then [‘N * N’,‘N’] assume_tac p2_Fun >> drule Pa_distr >>
+     qby_tac ‘isFun(p1(N,N) o p1(N * N,N))’
+     >-- (irule o_Fun >> rw[p1_Fun]) >>
+     first_x_assum drule >> 
+     qby_tac ‘isFun(Pa(id(N * N),MUL))’
+     >-- (irule Pa_Fun >> rw[id_Fun,MUL_Fun]) >>
+     first_x_assum drule >> arw[] >>
+     rw[GSYM Add_def] >> irule Eval_input_eq >>
+     qby_tac ‘isFun(id(N * N)) & isFun(MUL)’
+     >-- rw[id_Fun,MUL_Fun] >> drule p2_of_Pa>> arw[] >>
+     rw[o_assoc] >>
+     drule p1_of_Pa >> arw[] >> rw[idR] >> 
+     qby_tac ‘isFun(MUL) & isFun(p1(N,N))’ 
+     >-- rw[MUL_Fun,p1_Fun] >> drule Eval_Pa_Pair >> arw[] >>
+     rw[Eval_p1_Pair]) >>
+ irule o_Fun >> strip_tac (* 2 *)
+ >-- (irule Pa_Fun >> rw[p2_Fun] >> irule o_Fun >> rw[p1_Fun]) >>
+ irule Pa_Fun >> rw[MUL_Fun,id_Fun])
+(form_goal “!n n0. Mul(n,Suc(n0)) = Add(Mul(n,n0),n)”));
+
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("n",mem_sort N)],
+ “Mul(O,n) = O”))] 
+ N_ind_P 
+in
+val Mul_LEFT_O = prove_store("Mul_LEFT_O",
+e0
+(irule l >> rw[Suc_def,Mul_O,Mul_Suc,Add_O])
+(form_goal “!m. Mul(O,m) = O”));
+end
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("n",mem_sort N)],
+ “Mul(O,n) = O”))] 
+ N_ind_P 
+in
+val Mul_LEFT_1 = prove_store("Mul_LEFT_1",
+e0
+()
+(form_goal “!m.Mul(Suc(O),m) = m”));
 
 
 (*TODO: have SEAR master and ETCS master
