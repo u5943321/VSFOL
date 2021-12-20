@@ -847,3 +847,76 @@ first_x_assum (qsspecl_then [‘Rf(x,t)’] assume_tac) >>
  “!X x:1->X A t:A * X ->X. 
   ?!f:List(A) -> X. f o Nil(A) = x &
       f o Cons(A) = t o Pa(p1(A,List(A)), f o p2(A,List(A)))”));
+
+
+val Length_ex = prove_store("Length_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Card(N * A) o LI(A)’ >> rw[])
+(form_goal “!A. ?lg.Card(N * A) o LI(A) = lg”));
+
+val Length_def =Length_ex |> spec_all |> ex2fsym0 "Length" ["A"]
+|> gen_all |> store_as "Length_def";
+
+
+val LENGTH_ex = prove_store("LENGTH_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Length(A) o l’ >> rw[])
+(form_goal
+ “!X A l:X->List(A).?n. Length(A) o l = n”));
+
+
+val LENGTH_def = LENGTH_ex |> spec_all |> ex2fsym0 "LENGTH" ["l"]
+                           |> qgen ‘l’ |> qgen ‘A’ |> gen_all
+                           |> store_as "LENGTH_def";
+
+
+val LENGTH_def1 = LENGTH_def |> allE (rastt "1")
+
+val LENGTH_Nil = prove_store("LENGTH_Nil",
+e0
+(strip_tac >> rw[GSYM LENGTH_def] >> rw[GSYM Length_def] >>
+ rw[o_assoc,Nil_def] >> rw[CARD_def,CARD_Empty])
+(form_goal “!A. LENGTH(Nil(A)) = O”));
+
+val List_CARD_NOTIN = prove_store("List_CARD_NOTIN",
+e0
+(rpt strip_tac >>
+ ccontra_tac >> 
+ assume_tac isList_CARD_NOTIN >>
+ first_x_assum (qsspecl_then [‘LI(A) o l’] assume_tac) >>
+ fs[List_def1] >>
+ qby_tac ‘?x0:1->List(A). LI(A) o l = LI(A) o x0’ >--
+ (qexists_tac ‘l’ >> rw[]) >>
+ first_x_assum drule >>
+ first_x_assum drule >> fs[Lt_def])
+(form_goal “!A a:1->A l. ~IN(Pa(CARD(LI(A) o l), a), LI(A) o l)”));
+
+val LENGTH_CONS = prove_store("LENGTH_CONS",
+e0
+(rpt strip_tac >> rw[GSYM LENGTH_def,GSYM Length_def,o_assoc] >> 
+ assume_tac Cons_def >>
+ first_x_assum (qsspecl_then [‘a’,‘l’,‘CONS(a,l)’] assume_tac) >>
+ fs[CONS_def] >> pop_assum (assume_tac o GSYM) >> arw[] >>
+ rw[CARD_def] >> irule CARD_Ins >>
+ rw[List_LI_Finite] >> ccontra_tac >>
+ fs[List_CARD_NOTIN])
+(form_goal
+ “!A a:1->A l. LENGTH(CONS(a,l)) = Suc(LENGTH(l))”));
+
+val Map_ex = prove_store("Map_ex",
+e0
+(rpt strip_tac >>
+ assume_tac List_rec >>
+ first_x_assum (qsspecl_then [‘Nil(B)’,‘Cons(B) o Pa(f o p1(A,List(B)),p2(A,List(B)))’] assume_tac) >> 
+ pop_assum (strip_assume_tac o uex_expand) >>
+ pop_assum (K all_tac) >> qexists_tac ‘f'’ >> arw[] >>
+ rpt strip_tac >> rw[GSYM CONS_def] >>
+ arw[GSYM o_assoc] >>
+ rw[o_assoc,p12_of_Pa,Pa_distr] )
+(form_goal
+ “!A B f:A->B. ?map:List(A) ->List(B).
+ map o Nil(A)  = Nil(B) & 
+ !a:1->A l. map o CONS(a,l) = CONS(f o a,map o l)”));
+
+val Map_def = Map_ex |> spec_all |> ex2fsym0 "Map" ["f"]
+                     |> gen_all |> store_as "Map_def";

@@ -743,7 +743,291 @@ e0
   ?!f:List(A) -> X. isFun(f) & Eval(f,Nil(A)) = x &
       f o Cons(A) = t o Pa(p1(A,List(A)), f o p2(A,List(A)))”));
 
+ 
+local 
+val l = 
+ fVar_Inst 
+[("P",([("l",mem_sort (rastt "List(A)")),("n",mem_sort N)],
+“n = CARD(sof(l:mem(List(A))))”))] 
+(AX1 |> qspecl [‘List(A)’,‘N’]) |> uex_expand 
+in
+val Length_ex = prove_store("Length_ex",
+e0
+(strip_tac >> strip_assume_tac l  >>
+ qexists_tac ‘R’ >> rw[] >>
+qby_tac ‘isFun(R)’ 
+>-- (arw[Fun_expand] >> rpt strip_tac (* 2 *)
+    >-- (qexists_tac ‘CARD(sof(a))’ >> arw[]) >>
+    arw[]) >>
+ arw[])
+(form_goal
+ “!A. ?lg:List(A) -> N. isFun(lg) &
+ (!l n.Holds(lg,l,n) <=> n = CARD(sof(l)))”));
+end
 
+val Length_def = Length_ex |> spec_all |> ex2fsym0 "Length" ["A"]
+|> gen_all |> store_as "Length_def";
+
+val LENGTH_ex = prove_store("LENGTH_ex",
+e0
+(rpt strip_tac >> qexists_tac ‘Eval(Length(A),l)’ >> rw[])
+(form_goal
+ “!A l:mem(List(A)).?n. Eval(Length(A),l) = n”));
+ 
+val LENGTH_def = LENGTH_ex |> spec_all |> ex2fsym0 "LENGTH" ["l"]
+                           |> gen_all
+                           |> store_as "LENGTH_def";
+
+val Eval_Length = prove_store("Eval_Length",
+e0
+(rpt strip_tac >> qspecl_then [‘A’] strip_assume_tac Length_def >>
+ drule $ GSYM Eval_def >> flip_tac >> arw[] >>
+ lflip_tac >> rw[])
+(form_goal
+ “!A l n. Eval(Length(A),l) = n <=> n = CARD(sof(l))”));
+
+val LENGTH_Nil = prove_store("LENGTH_Nil",
+e0
+(rw[GSYM LENGTH_def,Eval_Length] >> 
+ rw[sof_Nil,CARD_Empty])
+(form_goal
+ “!A. LENGTH(Nil(A)) = O”));
+
+val LENGTH_CONS = prove_store("LENGTH_CONS",
+e0
+(rpt strip_tac >> rw[GSYM LENGTH_def,Eval_Length] >>
+ rw[GSYM CONS_eqn] >>
+ qby_tac ‘Eval(Length(A), l) = CARD(sof(l))’ 
+ >-- rw[Eval_Length] >>
+ arw[] >>
+ flip_tac >> irule CARD_Ins >>
+ rw[LI_Fin] >>
+ ccontra_tac >> drule isList_CARD_NOTIN0 >> fs[Lt_def])
+(form_goal
+“!A a:mem(A) l. LENGTH(CONS(a,l)) = Suc(LENGTH(l))”));
+
+val LENGTH_eqn = prove_store("LENGTH_eqn",
+e0
+(rw[GSYM LENGTH_def,Eval_Length])
+(form_goal
+ “!A l:mem(List(A)). LENGTH(l) = CARD(sof(l))”));
+
+
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("l",mem_sort (rastt "List(A)"))],
+“!n. Lt(n,LENGTH(l)) ==> ?!a:mem(A). IN(Pair(n,a),sof(l))”))] 
+(List_ind |> qspecl [‘A’]) 
+in
+val El_lemma = prove_store("El_lemma",
+e0
+(strip_tac >> match_mp_tac l >>
+ rw[LENGTH_Nil,NOT_Lt_O] >> rpt strip_tac >>
+ fs[LENGTH_CONS] >> fs[Lt_Suc_Le] >>
+ fs[Le_cases_iff] (* 2 *)
+ >-- (first_x_assum drule >> uex_tac >>
+     pop_assum (strip_assume_tac o uex_expand) >>
+     qexists_tac ‘a'’ >> 
+     arw[GSYM CONS_eqn,IN_Ins] >> rw[Pair_eq_eq] >> rpt strip_tac (* 2 *)
+     >-- fs[GSYM LENGTH_def,GSYM Eval_Length,Lt_def] >>
+     first_x_assum irule >> arw[]) >>
+ uex_tac >> qexists_tac ‘a’ >>
+ rw[GSYM CONS_eqn,IN_Ins] >> arw[LENGTH_eqn] >>
+ rw[Pair_eq_eq] >> rpt strip_tac >> drule isList_CARD_NOTIN0 >>
+ fs[Lt_def])
+(form_goal
+ “!A l:mem(List(A)) n. Lt(n,LENGTH(l)) ==> ?!a. IN(Pair(n,a),sof(l))”));
+end
+
+val Arb_ex = prove_store("Arb_ex",
+e0
+(rw[])
+(form_goal
+ “!A. (?a:mem(A).T) ==> (?a:mem(A).a = a) ”));
+
+val Arb_def = Arb_ex |> spec_all |> undisch
+                     |> ex2fsym0 "Arb" ["A"]
+                     |> disch_all
+                     |> gen_all
+                     |> store_as "Arb_def";
+
+val List_CARD_NOTIN = prove_store("List_CARD_NOTIN",
+e0
+(rpt strip_tac >> ccontra_tac >> drule isList_CARD_NOTIN0 >>
+ fs[Lt_def])
+(form_goal
+ “!A l a:mem(A).~IN(Pair(CARD(sof(l)),a),sof(l))”));
+
+(*
+val Lt_xor_Le = prove_store("Lt_xor_Le",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *) >-- 
+ (fs[Lt_def] >>
+ cases_on “a = b:mem(N)” >-- (fs[] >> rw[Le_refl]) >>
+ fs[] >> 
+ qsspecl_then [‘a’,‘b’] assume_tac LESS_EQ_cases >> fs[]) >>
+ 
+ )
+(form_goal
+ “!a b. ~Lt(a,b) <=> Le(b,a)”));
+*) 
+ 
+local
+val l = 
+ fVar_Inst 
+[("P",([("n",mem_sort N)],
+“~(n = O) ==> Lt(m,Add(m,n))”))] 
+N_ind_P
+in
+val LESS_ADD_NONZERO = prove_store("LESS_ADD_NONZERO",
+e0
+(strip_tac >> match_mp_tac l >> rw[Suc_def] >> 
+rpt strip_tac >> cases_on “n' = O” 
+ >-- arw[Add_Suc,Add_O,Lt_Suc] >>
+ first_x_assum drule >>
+ rw[Add_Suc] >> irule Lt_trans >>
+ qexists_tac ‘Add(m,n')’ >> arw[Lt_Suc])
+(form_goal
+ “!m n. ~(n = O) ==> Lt(m,Add(m,n))”));
+end
+
+val SUB_LESS = prove_store("SUB_LESS",
+e0
+(rpt strip_tac >>
+ drule Le_Add_ex >> pop_assum (strip_assume_tac o GSYM)>>
+ arw[] >>
+ rw[Add_Sub] >> 
+ irule LESS_ADD_NONZERO >> fs[Lt_def] >> flip_tac >> arw[]
+ )
+(form_goal
+ “!m n. Lt(O,n) & Le(n,m) ==> Lt(Sub(m,n),m)”));
+
+
+local 
+val l = 
+ fVar_Inst 
+[("P",([("nl",mem_sort $ Cross N (rastt "List(A)")),
+        ("a",mem_sort (mk_set "A"))],
+“(Le(Fst(nl),LENGTH(Snd(nl))) & IN(Pair(Sub(LENGTH(Snd(nl)),(Fst(nl))),a:mem(A)),sof(Snd(nl)))) |
+ (Fst(nl) = O & a = Arb(A)) |
+ (Lt(LENGTH(Snd(nl)),Fst(nl)) & a = Arb(A))”))] 
+(AX1 |> qspecl [‘N * List(A)’,‘A’]) |> uex_expand 
+in
+val El_ex = prove_store("El_ex",
+e0
+(rpt strip_tac >> strip_assume_tac l >>
+ pop_assum (K all_tac) >>
+ qexists_tac ‘R’ >> arw[Pair_def'] >>
+ qby_tac ‘isFun(R)’ 
+ >-- (rw[Fun_def] >>
+     strip_tac  >>
+     qsspecl_then [‘x’] (x_choosel_then ["n","l"] strip_assume_tac)
+     Pair_has_comp >>
+     cases_on “n = O” (* 2 *)
+     >-- (uex_tac >> qexists_tac ‘Arb(A)’ >>
+         arw[] >> rw[Pair_def'] >>
+         rw[Sub_O,LENGTH_eqn,List_CARD_NOTIN,NOT_Lt_O]) >>
+     cases_on “(Lt(LENGTH(l:mem(List(A))),n))”
+     >-- (uex_tac >> qexists_tac ‘Arb(A)’ >> arw[] >>
+          rw[Pair_def'] >> arw[] >> rw[LENGTH_eqn] >> rpt strip_tac >>
+          arw[] >> fs[LENGTH_eqn] >> 
+          fs[Lt_def] >>  
+          qsuff_tac ‘CARD(sof(l)) = n’ >-- arw[] >>
+          irule Le_asym >> arw[]) >>
+ qspecl_then [‘A’] assume_tac El_lemma >>
+ uex_tac >> arw[] >> rw[Pair_def'] >>
+ arw[] >> fs[NOT_LESS] >>
+ qsuff_tac
+ ‘?!b. IN(Pair(Sub(LENGTH(l), n), b), sof(l))’
+ >-- (strip_tac >> pop_assum (assume_tac o uex_expand) >>arw[]) >>
+ first_x_assum irule >> irule SUB_LESS >>
+ arw[] >> fs[O_xor_Suc] >> rw[LESS_O]) >>
+ arw[] >> rpt strip_tac >> 
+ fs[NOT_LESS] >> 
+ qsuff_tac
+ ‘~ Lt(LENGTH(l), n) ’ >-- (strip_tac >> arw[]) >>
+ rw[NOT_LESS] >> arw[] )
+(form_goal
+ “!A. ?el:N * List(A) ->A. 
+  isFun(el) &
+  !n l a. ~(n = O) & ~(Lt(LENGTH(l),n)) ==>
+  (Holds(el,Pair(n,l),a) <=> 
+  IN(Pair(Sub(LENGTH(l),n),a),sof(l)))”));
+end
+
+
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("al0",mem_sort (rastt "A * List(B)")),
+        ("l",mem_sort (rastt "List(B)"))],
+“CONS(Eval(f:A->B,Fst(al0)),Snd(al0)) = l”))] 
+(AX1 |> qspecl [‘A * List(B)’,‘List(B)’]) |> uex_expand 
+in
+val Map_ex = prove_store("Map_ex",
+e0
+(rpt strip_tac >> strip_assume_tac l >>
+ pop_assum (K all_tac) >> 
+ qby_tac ‘isFun(R)’ 
+ >-- (arw[Fun_expand] >> rpt strip_tac (* 2 *)
+     >-- (qexists_tac ‘CONS(Eval(f, Fst(a)), Snd(a))’ >> rw[]) >>
+     pop_assum (assume_tac o GSYM) >> arw[]) >>
+ qsspecl_then [‘Nil(B)’,‘R’] assume_tac List_rec >>
+ first_x_assum drule >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ pop_assum (K all_tac) >>
+ qexists_tac ‘f'’ >> arw[] >>
+ rpt strip_tac >>
+ rw[GSYM CONS_def] >> irule $ iffLR Eval_o_l >>
+ arw[] >> rw[Cons_def] >> irule $ iffRL Eval_o_l >>
+ arw[] >> 
+ qby_tac ‘isFun(p1(A, List(A))) & isFun(f' o p2(A, List(A)))’ 
+ >-- (rw[p1_Fun] >> irule o_Fun >> arw[p2_Fun]) >>
+ drule Eval_Pa_Pair >> arw[] >>
+ rw[Eval_p1_Pair,Eval_p2_Pair] >>
+ assume_tac $ GSYM o_Eval >>
+ pop_assum (qsspecl_then [‘p2(A,List(A))’,‘f'’,‘Pair(a,l)’]
+ assume_tac) >> rfs[p2_Fun] >> 
+ rw[Eval_p2_Pair] >>
+ qpick_x_assum ‘isFun(R)’ assume_tac >>
+ drule $GSYM Eval_def >> flip_tac >> arw[] >>
+ rw[Pair_def'] >> rw[CONS_def] >>
+ irule Pa_Fun  >> rw[p1_Fun] >>
+ irule o_Fun >> arw[p2_Fun] )
+(form_goal
+ “!A B f:A->B. isFun(f) ==> ?map:List(A) -> List(B). 
+  isFun(map) & 
+  Eval(map, Nil(A)) = Nil(B) &
+  !a l.Eval(map,CONS(a,l)) = CONS(Eval(f,a),Eval(map,l))”)); 
+end
+
+
+val Map_def = Map_ex |> spec_all |> ex2fsym0 "Map" ["f"]
+                     |> gen_all |> store_as "Map_def";
+
+
+(*
+local  
+val l = 
+ fVar_Inst 
+[("P",([("nl",mem_sort $Cross N (rastt "List(A)")),("a",mem_sort (mk_set "A"))],
+“IN(Pair(,a),sof(Snd(nl)))”))] 
+(AX1 |> qspecl [‘N * List(A)’,‘A’]) |> uex_expand 
+in
+val El_ex = prove_store("El_ex",
+e0
+()
+(form_goal
+ “!A l n. ? Le(n,LENGTH(l)) ==> ”));
+
+val Map_property = prove_store("Map_property",
+e0
+()
+(form_goal
+ “!A l n f:A->B. El(n,Map(f,l)) = Eval(f,El(n,l))”));
 (*
 val Rf_ex = prove_store("Rf_ex",
 e0
@@ -761,13 +1045,8 @@ val Rf_def  =
 
 *)
 
-val isList_property = prove_store("isList_property",
-e0
-()
-(form_goal “!A l:List(A). 
- !
- ”));
 
 
 
 
+*)

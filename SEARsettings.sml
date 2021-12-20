@@ -365,7 +365,26 @@ fun Rel2Pred P (ns as (n,s)) =
     in AX1 (mk_conj conj1 P)  (onens,ns)
     end
 *)
-val R_EXT = new_ax “!A B R1:A->B R2. R1 = R2 <=> !a b.Holds(R1,a,b) <=> Holds(R2,a,b)”
+
+local
+val l = 
+ fVar_Inst 
+[("P",([("a",mem_sort (mk_set "A")),("b",mem_sort (mk_set "B"))],
+“Holds(R1:A->B,a,b)”))] 
+(AX1 |> qspecl [‘A’,‘B’]) |> uex_expand
+in
+val R_EXT = prove_store("R_EXT",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] >>
+ strip_assume_tac l >>
+ qsuff_tac ‘R1 = R & R2= R’ >-- (strip_tac >> arw[]) >> 
+ strip_tac >> first_x_assum irule >> arw[]
+ )
+(form_goal
+“!A B R1:A->B R2. R1 = R2 <=> !a b.Holds(R1,a,b) <=> Holds(R2,a,b)”));
+end
+
+new_ax “!A B R1:A->B R2. R1 = R2 <=> !a b.Holds(R1,a,b) <=> Holds(R2,a,b)”
 
 val FUN_EXT = proved_th $
 e0
@@ -2912,6 +2931,10 @@ e0
 (form_goal
  “!n1 n2. Eval(SUC,n1) = Eval(SUC,n2) <=> n1 = n2”));
 
+
+
+
+
 (*
 fun pick_nth_assum n ttac = fn (ct,asl, w) => ttac (assume (List.nth(rev asl,Int.-(n,1)))) (ct,asl, w)
 
@@ -2939,6 +2962,11 @@ Proposition: Given a set 𝑋, a 𝑓:𝑋→𝑋, and 𝑎∈𝑋
 can not have im(p) as function, since then we have func that takes ar into sets
 *)
 
+val AX5 = store_ax("AX5",
+“!A.?B p:B->A Y M:B->Y.  
+ (!b Mb. (?i:Mb->Y. Inj(i) & 
+  !y. (?y0. Eval(i,y0) = y) <=> Holds(M,b,y)) ==> P(Eval(p,b),Mb)) & 
+ !a:mem(A) X. P(a,X) ==> ?b. Eval(p,b) = a”)
 
 (*
 
