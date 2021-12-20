@@ -920,3 +920,154 @@ e0
 
 val Map_def = Map_ex |> spec_all |> ex2fsym0 "Map" ["f"]
                      |> gen_all |> store_as "Map_def";
+
+val Arb_ex = prove_store("Arb_ex",
+e0
+(rw[])
+(form_goal
+ “!A. (?a:1->A.T) ==> (?a:1->A.a = a) ”));
+
+val Arb_def = Arb_ex |> spec_all |> undisch
+                     |> ex2fsym0 "Arb" ["A"]
+                     |> disch_all
+                     |> gen_all
+                     |> store_as "Arb_def";
+
+val LENGTH_eqn = prove_store("LENGTH_eqn",
+e0
+(rw[GSYM LENGTH_def,GSYM Length_def,GSYM CARD_def,o_assoc])
+(form_goal
+ “!A l:1->List(A). LENGTH(l) = CARD(LI(A) o l)”));
+
+val NOT_Lt_O = rewr_rule[GSYM Lt_def1] NOT_LT_O
+                        |> store_as "NOT_Lt_O";
+
+
+
+
+val Le_cases_iff = prove_store("Le_cases_iff",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac 
+ >-- (drule Le_cases >> arw[]) 
+ >-- fs[Lt_def] >>
+ arw[Le_refl])
+(form_goal
+ “!n0 n:1->N. Le(n0,n) <=> 
+  (Lt(n0,n) | n0 = n)”));
+
+
+val CONS_eqn = prove_store("CONS_eqn",
+e0
+(rpt strip_tac >>
+ assume_tac Cons_def >>
+ first_x_assum
+ (qsspecl_then [‘a0’,‘l0’,‘Cons(A) o Pa(a0,l0)’] assume_tac) >>
+ fs[CONS_def])
+(form_goal
+ “!A a0 l0:1->List(A). Ins(Pa(CARD(LI(A) o l0),a0), LI(A) o l0) = 
+            LI(A) o CONS(a0,l0)”));
+
+val El_lemma = prove_store("El_lemma",
+e0
+(strip_tac >> 
+ qby_tac
+ ‘?P.!l. (!n. Lt(n,LENGTH(l)) ==> ?!a. IN(Pa(n,a),LI(A) o l)) <=> 
+          P o l = TRUE’
+ >-- cheat >>
+ pop_assum strip_assume_tac >>
+ arw[] >> match_mp_tac List_ind >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ rw[LENGTH_Nil,NOT_Lt_O] >> rpt strip_tac >>
+ fs[LENGTH_CONS] >> fs[Lt_Suc_Le] >> fs[Le_cases_iff] 
+ >-- (first_x_assum drule >> uex_tac >>
+     pop_assum (strip_assume_tac o uex_expand) >>
+     qexists_tac ‘a'’ >>
+     arw[GSYM CONS_eqn,IN_Ins] >> rw[Pa_eq_eq] >> rpt strip_tac (* 2 *)
+     >-- 
+     fs[GSYM LENGTH_def,GSYM Length_def,Lt_def,o_assoc,GSYM CARD_def]>>
+     first_x_assum irule >> arw[]) >>
+uex_tac >> qexists_tac ‘a’ >> rw[GSYM CONS_eqn,IN_Ins] >>
+arw[LENGTH_eqn] >> rw[Pa_eq_eq] >> rpt strip_tac >>
+fs[List_CARD_NOTIN])
+(form_goal
+ “!A l:1->List(A) n. Lt(n,LENGTH(l)) ==> ?!a. IN(Pa(n,a),LI(A) o l)”));
+
+
+
+val LESS_ADD_NONZERO = prove_store("LESS_ADD_NONZERO",
+e0
+(strip_tac >> 
+ qby_tac ‘?P. !n.(~(n = O) ==> Lt(m,Add(m,n))) <=> P o n = TRUE’
+ >-- cheat >>
+ pop_assum strip_assume_tac >> arw[IP_el] >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+rw[Suc_def] >> 
+rpt strip_tac >> cases_on “n = O” 
+ >-- arw[Add_Suc,Add_O,Lt_Suc] >>
+ first_x_assum drule >>
+ rw[Add_Suc] >> irule Lt_trans >>
+ qexists_tac ‘Add(m,n)’ >> arw[Lt_Suc])
+(form_goal
+ “!m:1->N n. ~(n = O) ==> Lt(m,Add(m,n))”));
+
+val Add_Sub = rewr_rule[Add_def,Sub_def] ADD_SUB
+                       |> store_as "Add_Sub";
+
+val SUB_LESS = prove_store("SUB_LESS",
+e0
+(rpt strip_tac >>
+ drule Le_Add_ex >> pop_assum (strip_assume_tac o GSYM)>>
+ arw[] >>
+ rw[Add_Sub] >> 
+ irule LESS_ADD_NONZERO >> fs[Lt_def] >> dflip_tac >> arw[]
+ )
+(form_goal
+ “!m n. Lt(O,n) & Le(n,m) ==> Lt(Sub(m,n),m)”));
+
+val LESS_O = rewr_rule[GSYM Lt_def1,Suc_def] LESS_0
+                      |> store_as "LESS_O";
+
+val El_ex = prove_store("El_ex",
+e0
+(rpt strip_tac >>
+ assume_tac Rel2Ar' >>
+ qby_tac
+ ‘?R. !n:1->N l:1->List(A) a:1->A.
+  R o Pa(Pa(n,l),a) = TRUE <=>
+  (Le(n, LENGTH(l)) & 
+   IN(Pa(Sub(LENGTH(l),n),a),LI(A) o l)) | 
+  (n = O & a = Arb(A)) |
+  (Lt(LENGTH(l),n) & a = Arb(A))’ 
+ >-- cheat >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘!nl:1-> N * List(A). ?!a. R o Pa(nl,a) = TRUE’ 
+ >-- (strip_tac >>
+     qsspecl_then [‘nl’] (x_choosel_then ["n","l"] assume_tac) 
+     has_components>> cases_on “n = O” (* 2 *)
+     >-- (uex_tac >> qexists_tac ‘Arb(A)’ >> arw[] >>
+         rw[Sub_O,LENGTH_eqn,List_CARD_NOTIN,NOT_Lt_O]) >>
+     cases_on “Lt(LENGTH(l:1-> List(A)),n)”
+     >-- (uex_tac >> qexists_tac ‘Arb(A)’ >> arw[] >>
+         rw[LENGTH_eqn] >> rpt strip_tac >>
+         fs[LENGTH_eqn] >> fs[Lt_def] >>
+         qsuff_tac ‘CARD(LI(A) o l) = n’ >-- arw[] >>
+         irule Le_asym >> arw[]) >>
+     qspecl_then [‘A’] assume_tac El_lemma >>
+     uex_tac >> arw[] >>
+     fs[NOT_LESS] >> 
+     qsuff_tac
+       ‘?!b. IN(Pa(Sub(LENGTH(l), n), b),LI(A) o  l)’
+     >-- (strip_tac >> pop_assum (assume_tac o uex_expand) >>arw[]) >>
+     first_x_assum irule >> irule SUB_LESS >> arw[] >>
+     fs[O_xor_Suc] >> rw[LESS_O]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘f’ >> 
+ rpt strip_tac >>
+ first_x_assum (qspecl_then [‘Pa(n,l)’,‘f o Pa(n,l)’] assume_tac)>>
+ fs[] >> rfs[]) 
+(form_goal
+ “!A. ?el:N * List(A) -> A.
+  !n l. ~(n = O) & ~(Lt(LENGTH(l),n)) ==>
+  IN(Pa(Sub(LENGTH(l),n),el o Pa(n,l) ),LI(A) o l)”));

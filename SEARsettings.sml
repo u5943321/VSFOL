@@ -384,7 +384,6 @@ e0
 “!A B R1:A->B R2. R1 = R2 <=> !a b.Holds(R1,a,b) <=> Holds(R2,a,b)”));
 end
 
-new_ax “!A B R1:A->B R2. R1 = R2 <=> !a b.Holds(R1,a,b) <=> Holds(R2,a,b)”
 
 val FUN_EXT = proved_th $
 e0
