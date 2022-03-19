@@ -17,10 +17,6 @@ val depends_on: sort -> term list
 val dest_sort: sort -> string * term list
 val of_sort: string -> term -> bool
 
-(*type sortdict = (string, (string * sort) list) Binarymap.dict
-
-any point of hiding it, or just a convension?
-*)
 
 val SortDB: (string, (string * sort) list) Binarymap.dict ref
 val SortInx: (string, string) Binarymap.dict ref
@@ -53,6 +49,7 @@ val mk_sort: string -> term list -> sort
 
 val mk_var: string * sort -> term
 val mk_fun: string -> term list -> term 
+val mk_fun0: string -> sort -> term list -> term 
 val mk_bound: int -> term
 
 val sort_of: term -> sort
@@ -63,8 +60,8 @@ val dest_fun: term -> string * sort * term list
 val dest_var: term -> string * sort
 
 
-val replaces: term * term -> sort -> sort
-val replacet: term * term -> term -> term
+val replaces: int * term -> sort -> sort
+val replacet: int * term -> term -> term
 
 val substs: (string * sort) * term -> sort -> sort
 val substt: (string * sort) * term -> term -> term 
@@ -126,5 +123,35 @@ val has_bound_s: sort -> bool
 
 val bigunion: ('a * 'a -> order) -> 'a set list -> 'a set
 val var_bigunion: (string * sort) set list -> (string * sort) set
+
+val abbrdict: (string * (term list), string * (term list)) Binarymap.dict ref
+val unabbrdict: (string * (term list), string * (term list)) Binarymap.dict ref
+val new_abbr: string * term list -> string * term list -> unit
+
+
+exception CLASH
+val dest_s: string * sort -> sort * int -> sort
+val dest_t: string * sort -> term * int -> term
+
+
+
+val vreplaces: int * (string * sort) -> sort -> sort
+val vreplacet: int * (string * sort) -> term -> term
+
+
+val pinst_s: vd -> sort -> sort
+val pinst_t: vd -> term -> term
+val pmatch_s:
+   sort list -> (string * sort) set -> sort -> sort -> vd -> vd
+val pmatch_t:
+   sort list -> (string * sort) set -> term -> term -> vd -> vd
+val pmatch_tl:
+   sort list -> (string * sort) set -> term list -> term list -> vd -> vd
+val recover_s: int -> sort -> sort
+val recover_t: int -> term -> term
+val shift_vd: int -> vd -> vd
+val shift_vd_eval: int -> vd -> (string * sort) -> term
+
+val filter_cont: (string * sort) set -> (string * sort) set
 end
 

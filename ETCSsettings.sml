@@ -1,3 +1,33 @@
+
+
+(*
+fun mk_foralls nsl f = 
+    case nsl of 
+        [] => f
+      | (h as (n,s)) :: t =>
+        mk_forall n s (mk_foralls t f)
+
+fun define_pred f = 
+    let val fvs = fvf f
+        val _ = HOLset.isEmpty fvs orelse 
+                raise simple_fail
+                      "formula has unexpected free variables"
+        val (body,bvs) = strip_forall f 
+        val (l,r) = dest_dimp body 
+        val (P,args) = dest_fvar l 
+        val _ = List.all is_var args orelse raise simple_fail"input arguments is not a variable list"
+        val _ = HOLset.isSubset (fvf r,fvf l) 
+                orelse raise simple_fail"unexpected free variable on RHS"
+        val _ = new_pred P (List.map dest_var args)
+        val l' = mk_pred P args
+        val f' = mk_foralls bvs (mk_dimp l' r)
+    in mk_thm(essps,[],f')
+    end 
+
+*)
+
+
+(*
 fun sspecl tl th = 
     let val (b,vs) = strip_forall $ concl th
         val ars = List.filter (fn (n,s) => not (on_ground o fst o dest_sort o snd $ (n,s))) vs
@@ -12,16 +42,19 @@ fun sspecl_then tl (ttac: thm_tactic): thm_tactic =
 
 val qsspecl_then = qterml_tcl sspecl_then
 
+*)
 
 
 
-
-
+(*
 fun store_as name th = 
 let val _ = store_thm(name, th)
 in th
 end
 
+*)
+
+(*
 local
 fun delete'(set,mem) = HOLset.delete(set,mem) handle _ => set
 in
@@ -50,6 +83,11 @@ fun ex2fsym fsym strl th =
         val b' = substf ((n,s),fterm) b
     in mk_thm (ct,asl,mk_imp hyp b')
     end
+
+*)
+
+
+
 
 fun uex_ex f = 
     let val th0 = iffLR $ uex_def f |> undisch
@@ -101,6 +139,8 @@ val _ = new_fun "id"
 
 val _ = new_sort_infix "ar" "->"
 
+
+(*
 fun new_ax f = 
     let
         val _ = HOLset.equal(fvf f,essps) orelse
@@ -110,6 +150,7 @@ fun new_ax f =
     end
  
 fun store_ax (name,f) = store_as name (new_ax f)
+*)
 
 val idL = store_ax("idL", “!B A f:B->A. id(A) o f = f”);
 
@@ -117,9 +158,16 @@ val idR = store_ax("idR",“!A B f:A->B. f o id(A) = f”);
 
 val o_assoc = store_ax("o_assoc",“!A.!B.!f: A -> B.!C.!g:B -> C.!D.!h: C -> D.(h o g) o f = h o g o f”);
 
+
+val is1_def = define_pred
+“!ONE. is1(ONE) <=> !X.?!f:X->ONE.T”
+
+(*
 val _ = new_pred "is1" [("ONE",ob_sort)]
 
 val is1_def = store_ax("is1_def",“!ONE. is1(ONE) <=> !X.?!f:X->ONE.T”)
+
+*)
 
 val ONE_ex = store_ax("ONE_ex",“?ONE.is1(ONE)”)
 
@@ -135,9 +183,14 @@ val ONE_prop = ONE_def |> rewr_rule [is1_def]
 
 val To1_def = ONE_prop |> spec_all |> uex_expand |> ex2fsym0 "To1" ["X"] |> gen_all |> store_as "To1_def"
 
-val _ = new_pred "is0" [("ZERO",ob_sort)]
+(*val _ = new_pred "is0" [("ZERO",ob_sort)] *)
 
-val is0_def = store_ax("is0_def",“!ZERO.is0(ZERO) <=> !X.?!f:ZERO ->X. T”)
+val is0_def = 
+define_pred “!ZERO.is0(ZERO) <=> !X.?!f:ZERO ->X. T”
+
+(* store_ax("is0_def",“!ZERO.is0(ZERO) <=> !X.?!f:ZERO ->X. T”) *)
+
+
 
 val ZERO_ex = store_ax("ZERO_ex",“?ZERO.is0(ZERO)”)
 
@@ -147,11 +200,18 @@ val ZERO_prop = ZERO_def |> conv_rule (once_depth_fconv no_conv (rewr_fconv (spe
 
 val From0_def = ZERO_prop |> spec_all |> uex_expand |> ex2fsym0 "From0" ["X"] |> gen_all |> store_as "From0_def"
 
+
+val isPr_def = define_pred“!A B AB p1:AB->A p2:AB->B. isPr(p1,p2) <=>
+   !X f:X->A g:X->B.?!fg:X->AB. p1 o fg = f & p2 o fg = g”
+
+(*
 val _ = new_pred "isPr" [("p1",ar_sort (mk_ob "AB") (mk_ob "A")),
                          ("p2",ar_sort (mk_ob "AB") (mk_ob "B"))]
 
 val isPr_def = store_ax("isPr_def",“!A B AB p1:AB->A p2:AB->B. isPr(p1,p2) <=>
    !X f:X->A g:X->B.?!fg:X->AB. p1 o fg = f & p2 o fg = g”)
+*)
+
 
 val isPr_ex = store_ax("isPr_ex",“!A B.?AB p1:AB->A p2:AB->B.isPr(p1,p2)”);
 
@@ -166,11 +226,19 @@ val Pa_def = p2_def |> rewr_rule[isPr_def] |> spec_all
                     |> ex2fsym0 "Pa" ["f","g"] |> gen_all
                     |> store_as "Pa_def"
 
+
+val iscoPr_def = define_pred
+“!A B AB i1:A->AB i2:B->AB. iscoPr(i1,i2) <=>
+   !X f:A->X g:B->X.?!fg:AB->X.fg o i1 = f & fg o i2 = g”
+
+(*
 val _ = new_pred "iscoPr" [("i1",ar_sort (mk_ob "A") (mk_ob "AB")),
                            ("i2",ar_sort (mk_ob "B") (mk_ob "AB"))]
 
 val iscoPr_def = store_ax("iscoPr_def",“!A B AB i1:A->AB i2:B->AB. iscoPr(i1,i2) <=>
    !X f:A->X g:B->X.?!fg:AB->X.fg o i1 = f & fg o i2 = g”);
+*)
+
 
 val iscoPr_ex = store_ax("iscoPr_ex",“!A B.?AB i1:A->AB i2:B->AB.iscoPr(i1,i2)”);
 
@@ -189,6 +257,16 @@ val coPa_def = i2_def |> rewr_rule[iscoPr_def] |> spec_all
 
 (*TODO: if ispr i.e. formula variable, then will loop*)
 
+
+val isEq_def = define_pred
+“!A B f:A->B g E e:E->A. 
+      isEq(f,g,e) <=> 
+      f o e = g o e & 
+      !X a:X->A. f o a = g o a ==>
+      ?!a0:X->E. a = e o a0”
+
+
+(*
 val _ = new_pred "isEq" 
                  [("f",ar_sort (mk_ob "A") (mk_ob "B")),
                   ("g",ar_sort (mk_ob "A") (mk_ob "B")),
@@ -200,8 +278,83 @@ val isEq_def = store_ax("isEq_def",
       f o e = g o e & 
       !X a:X->A. f o a = g o a ==>
       ?!a0:X->E. a = e o a0”)
+*) 
+
 
 val isEq_ex = store_ax("isEq_ex",“!A B f:A->B g:A->B.?E e:E->A.isEq(f,g,e)”)
+
+
+(*
+
+val Eo_Ea_def = isEq_ex |> spec_all |> ex2fsym0 "Eo" ["f","g"]
+|> ex2fsym0 "Ea" ["f","g"] |> gen_all         
+
+
+val Ea_eqn = Eo_Ea_def |> rewr_rule [isEq_def] |> spec_all |> conjE1
+|>   gen_all
+
+val Eia_def = Eo_Ea_def |> rewr_rule [isEq_def] |> spec_all |> conjE2
+|> spec_all |> undisch |> uex_expand |> ex2fsym0 "Eia" ["f","g","a"]
+|> disch_all |> gen_all
+
+val Eia_eqn = Eia_def |> spec_all |> undisch |> conjE1 |> disch_all 
+|> gen_all
+
+
+
+(*
+
+EQ_fsym "Ea" [assume “f1:A->B = f2”,assume “g1:A->B = g2”]
+ 
+ BA(g2 : ar(A, B))(g1 : ar(A, B))(f2 : ar(A, B))(f1 : ar(A, B))
+   1.f1 = f2
+   2.g1 = g2
+   3.Ea(f1, g1) o Eia(f1, g1, Ea(f2, g2)) = Ea(f2, g2)
+   ----------------------------------------------------------------------
+   f2 o Ea(f1, g1) = g2 o Ea(f1, g1)
+
+*)
+
+
+val Eo_Ea_CONG = prove_store("Eo_Ea_CONG",
+e0
+(rpt strip_tac >>
+ assume_tac Eia_def >>
+ qsuff_tac
+ ‘Eia(f1, g1, Ea(f2, g2)) o Eia(f2, g2, Ea(f1, g1)) = 
+ Eia(f1,g1,Ea(f1,g1)) & 
+ id(Eo(f1,g1))  = 
+ Eia(f1,g1,Ea(f1,g1))’
+ >-- (strip_tac >> arw[]) >>
+ strip_tac >--
+ (first_x_assum (qsspecl_then [‘f1’,‘g1’,‘Ea(f1,g1)’] assume_tac) >>
+ pop_assum mp_tac >> 
+ once_rw[Ea_eqn] >> rw[] >> strip_tac >>
+ first_x_assum irule >> 
+ rw[GSYM o_assoc] >>
+ qby_tac ‘(Ea(f1, g1) o Eia(f1, g1, Ea(f2, g2))) = Ea(f2, g2)’
+ >-- (irule $ GSYM Eia_eqn >> pop_assum (K all_tac) >>
+     arw[Ea_eqn]) >>
+ qpick_x_assum ‘Ea(f1, g1) = Ea(f1, g1) o Eia(f1, g1, Ea(f1, g1))’
+ (K all_tac) >> arw[] >>
+ irule Eia_eqn >> 
+ qsuff_tac
+ ‘f1 o Ea(f1, g1) = g1 o Ea(f1, g1)’
+ >-- arw[] >> rw[Ea_eqn]) >>
+ first_x_assum (qsspecl_then [‘f1’,‘g1’,‘Ea(f1,g1)’] assume_tac) >>
+ pop_assum mp_tac >> 
+ once_rw[Ea_eqn] >> rw[] >> strip_tac >>
+ first_x_assum irule >> 
+ rw[idR])
+(form_goal
+ “!A B f1:A->B g1 f2 g2. f1 = f2 & g1 = g2 ==>
+  Eia(f1,g1,Ea(f2,g2)) o Eia(f2,g2,Ea(f1,g1)) = id(Eo(f1,g1)) ”));
+
+
+rastt "Eia(i1(1,1),i2(1,1),id(1))"
+
+
+*)
 
 val Eqa_def = 
     isEq_def |> iffLR 
@@ -212,6 +365,16 @@ val Eqa_def =
              |> gen_all
              |> store_as "Eqa_def"
 
+
+
+val iscoEq_def = define_pred
+“!A B f:A->B g cE ce:B -> cE. 
+      iscoEq(f,g,ce) <=> 
+      ce o f = ce o g & 
+      !X x:B->X. x o f = x o g ==>
+      ?!x0:cE->X. x = x0 o ce”
+
+(*
 val _ = new_pred "iscoEq" 
                  [("f",ar_sort (mk_ob "A") (mk_ob "B")),
                   ("g",ar_sort (mk_ob "A") (mk_ob "B")),
@@ -223,6 +386,8 @@ val iscoEq_def = store_ax("iscoEq_def",
       ce o f = ce o g & 
       !X x:B->X. x o f = x o g ==>
       ?!x0:cE->X. x = x0 o ce”)
+
+*)
 
 val iscoEq_ex = store_ax("iscoEq_ex",“!A B f:A->B g:A->B.?cE ce:B->cE.iscoEq(f,g,ce)”);
 
@@ -249,12 +414,22 @@ BA such that (A × h)e = f. This
 universal mapping property is partly expressed by the following diagram.
 *)
 
+
+
+val isExp_def = define_pred
+“!A B A2B ev:A * A2B -> B.
+         isExp(ev) <=> !X f:A * X->B. ?!h:X->A2B. ev o Pa(p1(A,X), h o p2(A,X)) = f”
+
+
+(*
 val _ = new_pred "isExp" 
  [("ev",ar_sort (Po (mk_ob "A") (mk_ob "A2B")) (mk_ob "B"))]
 
 val isExp_def =
  store_ax("isExp_def",“!A B A2B ev:A * A2B -> B.
          isExp(ev) <=> !X f:A * X->B. ?!h:X->A2B. ev o Pa(p1(A,X), h o p2(A,X)) = f”)
+
+*)
 
 
 (*example here : we cannot get function for eqlz, because the inputs are a pair of ars, and we need to produce an object first. But here the input are objects, we can produce an object from the objects first, the exp, and then have ev(A,B)*)
@@ -3086,6 +3261,51 @@ assume_tac Pb_fac_iff >>
  qexistsl_tac [‘Z’,‘f’,‘g’] >> arw[])
 (form_goal “!X Z f:X->Z Y g:Y->Z Pb p:Pb->X q:Pb->Y.isPb(f:X->Z,g:Y->Z,p,q) ==> 
  !A u v. f o u = g o v ==> ?a:A->Pb. p o a = u & q o a = v”);
+(*
+
+
+
+val char_pb = cg $
+expandf
+(rpt strip_tac >> irule prop_2_coro_subo >> arw[]>>
+ drule Pb_Mono_Mono >> 
+ qspecl_then [‘1+1’,‘i2(1,1)’] assume_tac from_one_Mono >>
+ first_x_assum drule >> arw[] >>
+ rpt strip_tac (* 2 *) >-- 
+ (qby_tac
+  ‘?y:1->Pb. pb1:Pb->X o y = a:A->X o x:1->A & pb2:Pb->1 o y = id(1)’
+  >-- (drule pb_fac_exists' )))
+(form_goal
+“!A X a.Mono(a:A->X) ==> 
+ !Pb pb1 pb2. isPb(Char(a),i2(1,1),pb1,pb2) ==> 
+    ?h1 h2.pb1 o h1 = a & a o h2 = pb1 & h1 o h2 = id(Pb) & h2 o h1 = id(A)”);
+
+>>
+ pop_assum (qspecl_then [‘1’] assume_tac)
+
+
+
+val char_pb = proved_th $
+expandf
+(rpt strip_tac >> irule prop_2_coro_subo >> arw[]>>
+ drule Pb_Mono_Mono >> 
+ qspecl_then [‘1+1’,‘i2(1,1)’] assume_tac from_one_Mono >>
+ first_x_assum drule >> arw[] >>
+ rpt strip_tac (* 2 *) >-- 
+ (qby_tac
+  ‘?y:1->Pb. pb1:Pb->X o y = a:A->X o x:1->A & pb2:Pb->1 o y = id(1)’
+  >-- (drule pb_fac_exists' >> (*TO-DO:irule bug,should use irule works*)
+  first_x_assum (qspecl_then [‘1’,‘a o x’,‘id(1)’] assume_tac) >>
+  rev_drule Char_def >> first_x_assum (qspecl_then [‘a o x’] assume_tac) >>
+  qsuff_tac ‘Char(a) o a o x = i2(1,1)’ 
+  >-- (strip_tac >> fs[idR] >> rfs[](* >> qexistsl_tac [‘a'’] >> arw[] *)))))
+(form_goal
+“!A X a.Mono(a:A->X) ==> 
+ !Pb pb1 pb2. isPb(Char(a),i2(1,1),pb1,pb2) ==> 
+    ?h1 h2.pb1 o h1 = a & a o h2 = pb1 & h1 o h2 = id(Pb) & h2 o h1 = id(A)”);
+
+*)
+
 
 val char_pb = proved_th $
 e0
@@ -3386,11 +3606,11 @@ e0
      >-- (pop_assum mp_tac >> 
           pop_assum (assume_tac o GSYM) >>
           strip_tac >> pop_assum (assume_tac o GSYM) >>
-          qpick_x_assum ‘!x0 x0'. ~(iA o x0 = iB o x0')’
+          qpick_x_assum ‘!x0:1->A x0'. ~(iA o x0 = iB o x0')’
           (K all_tac) >> arw[]) >>
      rfs[]) >>
  arw[] >> pop_assum_list (map_every strip_assume_tac) (* 2 *)
- >-- (qby_tac ‘?x0. x = iA:A->AB o x0’
+ >-- (qby_tac ‘?x0:1->A. x = iA:A->AB o x0’
       >-- (qexists_tac ‘f0’ >> arw[]) >>
       first_x_assum opposite_tac) >>
  qexists_tac ‘f0’ >> arw[])
@@ -4360,6 +4580,33 @@ e0
 (form_goal
 “!A B C D E X f:X->A g:X->B h:X->C j:X->D k:X->E.
  p51(A,B,C,D,E) o Pa5(f,g,h,j,k) = f”));
+
+
+val p52_of_Pa5 = prove_store("p52_of_Pa5",
+e0
+(rpt strip_tac >> rw[GSYM Pa5_def,GSYM p52_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C D E X f:X->A g:X->B h:X->C j:X->D k:X->E.
+ p52(A,B,C,D,E) o Pa5(f,g,h,j,k) = g”));
+
+
+val p53_of_Pa5 = prove_store("p53_of_Pa5",
+e0
+(rpt strip_tac >> rw[GSYM Pa5_def,GSYM p53_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C D E X f:X->A g:X->B h:X->C j:X->D k:X->E.
+ p53(A,B,C,D,E) o Pa5(f,g,h,j,k) = h”));
+
+
+val p54_of_Pa5 = prove_store("p54_of_Pa5",
+e0
+(rpt strip_tac >> rw[GSYM Pa5_def,GSYM p54_def,p12_of_Pa,o_assoc])
+(form_goal
+“!A B C D E X f:X->A g:X->B h:X->C j:X->D k:X->E.
+ p54(A,B,C,D,E) o Pa5(f,g,h,j,k) = j”));
+
+
+
 
 
 

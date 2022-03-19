@@ -102,7 +102,12 @@ val isList_def = isList_ex |> spec_all |> ex2fsym0 "isList" ["A"]
 
 val isList_property = prove_store("isList_property",
 e0
-(rpt strip_tac >> once_rw[GSYM isList_def] >>
+(rpt strip_tac >>(*
+ rw[GSYM isList_def,GSYM Lists_def,GSYM Tp0_def,o_assoc,Pa_distr,
+    idL,one_to_one_id,idR,BIGINTER_property,GSYM Tp1_def,
+    Ev_of_Tp_el',p12_of_Pa,Ev_of_el,cLists_def,IN_o]
+*)
+ once_rw[GSYM isList_def] >>
  once_rw[GSYM Lists_def] >> 
  once_rw[GSYM Tp0_def] >> once_rw[o_assoc] >>
  once_rw[Pa_distr] >> rw[o_assoc,idL] >>
@@ -251,7 +256,7 @@ e0
  >-- (strip_tac >> qexists_tac ‘CONJ o Pa(P0,P1)’ >> 
       arw[o_assoc,Pa_distr,CONJ_def]) >>
  qsuff_tac
- ‘?P2. !x:1->List(A) l ss. 
+ ‘?P2. !x:1->X l ss. 
   P2 o Pa(x,Pa(l,ss)) = TRUE <=>
    IN(Pa(l, x), ss) ==>
   !a:1->A. IN(Pa(Cons(A) o Pa(a, l), t o Pa(a, x)), ss)’
@@ -507,7 +512,7 @@ e0
  rw[Del_Empty,isFinite_Empty] >> strip_tac >>
  strip_tac >> drule isFinite_Insert >> arw[] >> rpt strip_tac >>
  cases_on “x = x':1->X” >-- 
- (arw[] >> cases_on “IN(x':1->X,xs')”
+ (arw[] >> cases_on “IN(x':1->X,xs)”
  >-- (drule $iffLR Ins_absorb >> arw[]) >>
  drule Del_Ins >> arw[]) >>
  drule Del_Ins_SWAP >> arw[] >> 
@@ -696,8 +701,8 @@ e0
  pop_assum (assume_tac o GSYM) >> pop_assum strip_assume_tac >>
  arw[] >> irule List_ind >> pop_assum (assume_tac o GSYM) >>
  arw[] >> rpt strip_tac (* 2 *)
- >-- (disj2_tac >> qexistsl_tac [‘a’,‘l'’] >> rw[]) >>
- disj2_tac >> qexistsl_tac [‘a’,‘l'’] >> rw[])
+ >-- (disj2_tac >> qexistsl_tac [‘a’,‘l’] >> rw[]) >>
+ disj2_tac >> qexistsl_tac [‘a’,‘l’] >> rw[])
 (form_goal
  “!A l:1-> List(A). l = Nil(A) | ?a0 l0. l = CONS(a0,l0)”));
 
@@ -757,8 +762,8 @@ e0
  (*cases_on
  “?a2:1->A l2. l = CONS(a2,l2)” *)
  qsspecl_then [‘l’] strip_assume_tac CONS_or_Nil >-- (* 2 *)
- (fs[CONS_eq_eq] >> qexists_tac ‘x0'’ >> arw[]) >>
- fs[CONS_eq_eq] >> qexists_tac ‘x0'’ >> arw[])
+ (fs[CONS_eq_eq] >> qexists_tac ‘x0’ >> arw[]) >>
+ fs[CONS_eq_eq] >> qexists_tac ‘x0’ >> arw[])
 (form_goal
  “!X x:1->X A t:A * X ->X l0 x0. Rf(x,t) o Pa(l0,x0) = TRUE ==>
   Rf(x,t) o Pa(l0,x0) = TRUE & 

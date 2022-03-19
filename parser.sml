@@ -149,6 +149,7 @@ fun chasevars ps env =
 
 fun term_from_pt env pt = 
     let val sn = hd (ground_sorts (!SortDB))
+        val abbrs = Binarymap.listItems(!unabbrdict)
     in
     if on_ground sn then
         case (chasevart pt env) of 
@@ -162,7 +163,29 @@ fun term_from_pt env pt =
             end
           | pVar(n,ps) => mk_var (n,sort_from_ps env ps) 
           | pFun(f,ps,ptl) => 
-            mk_fun f (List.map (term_from_pt env) ptl)
+            let val tl0 = List.map (term_from_pt env) ptl
+            in 
+                case List.find
+                    (fn (ftl,abftl) =>
+                        fst ftl = f andalso
+                        can (fn ts => match_tl essps ts tl0 emptyvd)
+                            (snd ftl))
+                    abbrs 
+                 of SOME (ftl,abftl) => 
+                    mk_fun (fst abftl) 
+                   (List.map (inst_term (match_tl essps (snd ftl) tl0 emptyvd)) (snd abftl))
+                  | NONE => mk_fun f tl0
+            end
+(*
+case Binarymap.peek(!unabbrdict,f) of 
+                   NONE => ft0
+                 | SOME (abf,tl1,tl2) => 
+                   let val tenv = (match_tl essps tl1 tl0 emptyvd)
+                                     
+                   in  mk_fun abf (List.map (inst_term tenv) tl2)
+                   end
+                   handle _ => ft0
+            end *)
           | pAnno(pt,ps) => term_from_pt env pt
     else 
         raise
@@ -734,7 +757,7 @@ fun ast2pt ast (env,n) =
                         (*It can be pAnno(pAnno(pVar(name,psvar),ps1),ps2)*)
                 end 
         else
-            if mem str ["*","+","^","o"] then
+            if mem str ["*","+","^","o","@"] then
                 let val (pt1,(env1,n1)) = ast2pt ast1 (env,n)
                     val (pt2,(env2,n2)) = ast2pt ast2 (env1,n1)
                     val (Av,env3) = fresh_var env2
@@ -984,7 +1007,7 @@ fun rapf str =
 val rastt = fst o read_ast_t
 
 
-fun readfq [QUOTE s] = rapf s
+fun readfq [HOLPP.QUOTE s] = rapf s
 
 
 fun ast_of_term t = 
@@ -998,6 +1021,7 @@ and ast_of_sort s =
     case dest_sort s of 
         (n,tl) => aApp(n, List.map ast_of_term tl)
 
+(*
 fun anno_ast (ns as (n,s)) ast = 
     case ast of
         aId a => 
@@ -1010,6 +1034,24 @@ fun anno_ast (ns as (n,s)) ast =
         aInfix (anno_ast ns ast1,str, anno_ast ns ast2)
       | aBinder (str,bns,ast1) => 
         aBinder (str,anno_ast ns bns, anno_ast ns ast1)
+*)
+
+fun anno_ast (ns as (n,s)) ast = 
+    case ast of
+        aId a => 
+        if a = n then 
+            aInfix (aId(a),":",ast_of_sort s)
+        else ast
+      | aApp (s,astl) => 
+        aApp(s,List.map (anno_ast ns) astl)
+      | aInfix (ast1,str,ast2) =>
+        aInfix (anno_ast ns ast1,str, anno_ast ns ast2)
+      | aBinder (str,bns,ast1) => 
+        let val n1 = name_of_ast bns
+        in if n = n1 then ast else
+        aBinder (str,anno_ast ns bns, anno_ast ns ast1)
+        end
+
 
 fun anno_cont_ast ct ast = 
     HOLset.foldr (uncurry anno_ast) ast ct
@@ -1037,6 +1079,26 @@ fun parse_form_with_cont ct fstr =
 
 
 (*
+val (ct,asl,w) = 
+cg $
+e0
+(rpt strip_tac >> drule prop_5_lemma_copa >> 
+ drule inc_Mono >> drule inc_fac >> 
+ first_x_assum (qspecl_then [‘x’] assume_tac) >>
+ cases_on “?x0 : 1 -> A. x:1->AB = iA o x0” (* 2 *)
+ >-- (arw[] >> pop_assum strip_assume_tac >>
+     ccontra_tac >> pop_assum strip_assume_tac >>
+     qby_tac ‘iA o x0 = iB o x0'’ 
+     >-- (pop_assum mp_tac >> 
+          pop_assum (assume_tac o GSYM) >>
+          strip_tac >> pop_assum (assume_tac o GSYM))))
+(form_goal “!A B AB iA:A->AB iB:B->AB. iscoPr(iA,iB) ==>
+!x:1->AB. (~(?x0:1->A. x = iA o x0)) <=> (?x0:1->B. x = iB o x0)”)
+
+*)
+
+
+(*
 fun qmatch_parse0 ct fq fl = 
     let val f0 = rapf $ q2str fq
         fun mfn _ asm = 
@@ -1055,7 +1117,7 @@ fun qmatch_parse0 ct fq fl =
 fun match_parse ct fl fq = 
     let val f0 = parse_form_with_cont ct fq
         fun mfn _ asm = 
-            let val menv = match_form essps f0 asm mempty
+            let val menv = match_form essps (HOLset.empty String.compare) f0  asm mempty
             in SOME asm
                     (*only care about the fact that it can match, do not care about the menv, what to write in this case?*)
             end

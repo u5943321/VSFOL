@@ -94,7 +94,7 @@ val arw: thm list -> tactic
 val once_rw: thm list -> tactic 
 val once_arw: thm list -> tactic
 val fs: thm list -> tactic 
-
+val rfs: thm list -> tactic
 val rpt: tactic -> tactic
 
 val existsl_tac: term list -> tactic
@@ -102,4 +102,12 @@ val existsl_tac: term list -> tactic
 val disch_then: thm_tactic -> tactic
 val disch_tac: tactic
 
+val sspecl: term list -> thm -> thm
+val sspecl_then: term list -> thm_tactic -> thm_tactic
+
+val ind_with: thm_tactic
+val flip_tac: tactic
+val lflip_tac: tactic
+val rflip_tac: tactic
+val uex_tac:tactic
 end

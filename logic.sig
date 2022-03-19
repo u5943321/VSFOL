@@ -41,6 +41,12 @@ val trans: thm -> thm -> thm
 val trueI: form list -> thm
 val view_thm: thm -> thm_view
 val uex_def:form -> thm
-val define_pred: form -> thm 
+val new_ax: form -> thm
+val fVar_Inst_th: string * ((string * sort) list * form) -> thm -> thm
+
+val define_fsym: string * (string * sort) list -> term -> thm
+val define_psym: string * (string * sort) list -> form -> thm
+
+val SKOLEM: thm -> string -> (string * sort) list -> thm -> thm
 
 end

@@ -7,8 +7,7 @@ type form
 datatype form_view =
     vConn of string * form list
   | vQ of string * string * sort * form
-  | vPred of string * term list
-  | vfVar of string * term list
+  | vPred of string * bool * term list
 
 val view_form: form -> form_view
 
@@ -85,7 +84,7 @@ val mk_fenv: (string * form) list -> fvd
 val mk_inst: ((string * sort) * term) list -> (string * form) list -> menv
 val mk_menv: vd -> fvd -> menv
 
-val match_form: (string * sort) set -> form -> form -> menv -> menv
+val match_form: (string * sort) set -> string set -> form -> form -> menv -> menv
 val strip_forall: form -> form * (string * sort) list
 val strip_forall0: form -> form * (string * sort) list
 val strip_exists: form -> form * (string * sort) list
@@ -104,5 +103,16 @@ val dest_quant0: form -> string * string * sort * form
 val dest_forall0: form -> (string * sort) * form
 val dest_exists0: form -> (string * sort) * form
 val dest_uex0: form -> (string * sort) * form
+val dest_f: form -> (string * sort) * form
+
+val fVars: form -> string set
+val fVarsl: form list -> string set
+val rename_bound: string -> form -> form
+(*val fVar_Inst_f: string * ((string * sort) list * form) -> form -> form *)
+val pinst_f: vd -> form -> form
+val strip_all_quants0: form -> (string * sort) list * form
+val fVar_Inst_f0:
+   sort list -> string * ((string * sort) list * form) -> form -> form
+val fVar_Inst_f: string * ((string * sort) list * form) -> form -> form
 end
 

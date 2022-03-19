@@ -13,7 +13,7 @@ fun aimp_rule th =
 fun norm th =
     if is_forall (concl th) then norm (spec_all th)
     else
-      case Lib.total dest_imp (concl th) of
+      case total dest_imp (concl th) of
           NONE => th
         | SOME (l,r) =>
           if is_conj l then norm (aimp_rule th)
@@ -86,21 +86,6 @@ fun form_list_diff l1 l2 =
 
 open SymGraph
 
-(*
-fun depends_t (n,s) t = 
-    case view_term t of 
-        vVar(n1,s1) => 
-        n = n1 andalso (*eq_sort(s,s1)*) s = s1
-        orelse depends_s (n,s) s1
-      | vFun(f,s1,l) => depends_s (n,s) s1 
-                       orelse List.exists (depends_t (n,s)) l 
-      | _ => false
-and depends_s (n,s) sort = 
-    case view_sort sort of
-        va(d,c) => depends_t (n,s) d orelse depends_t (n,s) c
-      | _ => false
-
-*)
 
 fun edges_from_fvs1 (n:string,s:sort) l = 
     case l of [] => []
@@ -179,7 +164,7 @@ fun recurse' acc groups th =
 fun reconstitute' groups th = recurse' [] groups th
 
 
-
+(*
 fun ir_canon th =
   let
     val th1 = norm (gen_all th)
@@ -198,5 +183,28 @@ fun ir_canon th =
           disch c th3 |> gen_all
         end
   end
+*)
+
+
+
+fun ir_canon th =
+  let
+    val th1 = norm (gen_all th)
+    val origl = ant th
+    val gfvs = fvfl (concl th1 :: origl) 
+    val newhyps = form_list_diff (ant th1)  origl
+    val grouped = group_hyps gfvs newhyps
+    val (cs, th2) = reconstitute' grouped th1
+  in
+    case cs of
+        [] => gen_all th2
+      | _ =>
+        let
+          val (th3,c) = conjl (rev cs) th2
+        in
+          disch c th3 |> gen_all
+        end
+  end
+
 
 val irule = match_mp_tac o ir_canon

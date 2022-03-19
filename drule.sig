@@ -142,4 +142,14 @@ val strip_all_and_imp: thm -> thm
 val strip_neg: thm -> thm
 val forall_iff: (string * sort) -> thm -> thm
 val CONJ_COMM:thm
+
+val uex_iff: (string * sort) -> thm -> thm
+
+val fVar_sInst_th: form -> form -> thm -> thm
+val eq_sym: string -> thm
+val uex_expand: thm -> thm
+val uex2ex_rule: thm -> thm
+val uex_ex: form -> thm
+val SKOLEM1: string -> (string * sort) list -> thm -> thm
+val ex_P_ex: form -> thm
 end

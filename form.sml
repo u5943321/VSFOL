@@ -3,10 +3,10 @@ struct
 open term 
 
 datatype form =
-Pred of string * term list
+Pred of string * bool * term list
 | Conn of string * form list
 | Quant of string * string * sort * form
-| fVar of string * term list;   
+
 
 
 
@@ -33,36 +33,34 @@ fun wrap_err s exn =
 
 (*edit same code of pred and fvar*)
 fun subst_bound t = 
-    let fun subst i (Pred(a,ts)) = Pred(a, List.map (replacet (mk_bound i, t)) ts) 
+    let fun subst i (Pred(a,b,ts)) = 
+            Pred(a, b,List.map (replacet (i, t)) ts) 
           | subst i (Conn(b,As)) = Conn(b, List.map (subst i) As) 
           | subst i (Quant(q,n,s,b)) =
-            Quant(q, n, replaces (mk_bound (i + 1),t) s, subst (i+1) b)
-          | subst i (fVar(a,ts)) =  fVar(a, List.map (replacet (mk_bound i, t)) ts) 
+            Quant(q, n, replaces (i,t) s, subst (i+1) b)
     in subst 0 end
 
 
 fun substf (V,t2) f = 
     case f of 
-        Pred(P,tl) => Pred(P,List.map (substt (V,t2)) tl)
+        Pred(P,b,tl) => Pred(P,b,List.map (substt (V,t2)) tl)
       | Conn(co,fl) => Conn(co,List.map (substf (V,t2)) fl)
       | Quant(q,n,s,b) => Quant(q,n,substs (V,t2) s,substf (V,t2) b)
-      | fVar(P,tl) => fVar(P,List.map (substt (V,t2)) tl)
+
 
 fun abstract t = 
-    let fun abs i (Pred(a,ts)) = Pred(a, List.map (substt (t,mk_bound i)) ts) 
+    let fun abs i (Pred(a,b,ts)) = Pred(a,b, List.map (substt (t,mk_bound i)) ts) 
           | abs i (Conn(b,As)) = Conn(b, List.map (abs i) As) 
           | abs i (Quant(q,b,s,A)) = 
-            Quant(q, b, substs (t, mk_bound (i + 1)) s, abs (i+1) A)
-          | abs i (fVar(a,ts)) = fVar(a, List.map (substt (t,mk_bound i)) ts) 
+            Quant(q, b, substs (t, mk_bound (i)) s, abs (i+1) A)
     in abs 0 end;
 
 
 fun fvf f = 
     case f of 
-        Pred(P,tl) => fvtl tl
+        Pred(P,b,tl) => fvtl tl
       | Conn(co,fl) => fvfl fl
       | Quant(q,n,s,b) => HOLset.union (fvs s,fvf b)
-      | fVar(P,tl) => fvtl tl
 and fvfl G = 
     case G of [] => essps
             | h :: t => HOLset.union (fvf h,fvfl t)
@@ -95,7 +93,7 @@ fun is_neg f =
       | _ => false
 
 fun is_eq f = 
-    case f of Pred("=",[t1,t2]) => true
+    case f of Pred("=",true,[t1,t2]) => true
             | _ => false
 
 fun is_forall f = 
@@ -122,7 +120,7 @@ fun is_quant f =
 
 fun is_var f = 
     case f of
-        fVar _ => true
+        Pred(_,false,_) => true
       | _ => false
 
 fun boundst t = 
@@ -136,9 +134,9 @@ and boundss s =
 
 (*Really need? tothink if do not allow var |-> bound matching makes everything safe.*)
 
-val TRUE = Pred("T",[])
+val TRUE = Pred("T",true,[])
 
-val FALSE = Pred("F",[])
+val FALSE = Pred("F",true,[])
 
 fun mk_conn co fl = Conn(co,fl)
 
@@ -160,15 +158,15 @@ fun mk_uex n s b = Quant("?!",n,s,abstract (n,s) b)
 
 fun mk_quant q n s b = Quant(q,n,s,abstract (n,s) b)
 
-fun mk_P0 p tl = Pred(p,tl)
+fun mk_P0 p tl = Pred(p,true,tl)
 
-fun mk_fvar f tl = fVar(f,tl)
+fun mk_fvar f tl = Pred(f,false,tl)
 
 (*destructor functions*)
 
 fun dest_eq f = 
     case f of
-        Pred("=",[t1,t2]) => (t1,t2)
+        Pred("=",true,[t1,t2]) => (t1,t2)
       | _ => raise ERR ("not an equality: ",[],[],[f])
 
 fun dest_imp f = 
@@ -201,7 +199,7 @@ fun dest_dimp f =
 
 fun dest_pred f = 
     case f of 
-        Pred(p,l) => (p,l)
+        Pred(p,true,l) => (p,l)
       | _ => raise ERR ("not a predicate: ",[],[],[f])
 
 fun dest_exists f = 
@@ -213,13 +211,26 @@ fun dest_exists f =
       | _ => raise ERR ("not an existantial: ",[],[],[f])
 
 
-fun dest_forall f = 
-    case f of 
-        Quant("!",n,s,b) =>
-        let val ns' = dest_var (pvariantt (fvf f) (mk_var(n,s)))
-        in (ns',subst_bound (mk_var ns') b)
-        end
-      | _ => raise ERR ("not a universal",[],[],[f])
+fun dest_f (Quant(q,n,s,b)) = 
+let fun dest (f,i) =
+    case f of
+        Pred(P,bl,tl) => 
+        Pred(P,bl,List.map (fn t => dest_t (n,s) (t,i)) tl)
+      | Conn("~",[f0]) => 
+        Conn("~",[dest (f0,i)])
+      | Conn(co,[f1,f2]) => 
+        Conn(co,[dest (f1,i),dest (f2,i)])
+      | Quant(q0,n0,s0,b0) => Quant(q0,n0,s0,dest (subst_bound (mk_var(n,s)) b0,i+1))
+      | _ => raise ERR ("dest.ill-formed formula",[],[],[])
+in ((n,s),dest(b,0))
+   handle CLASH =>
+          let val (n1,s1) = 
+                  dest_var (pvariantt (fvf b) (mk_var (n,s)))
+          in dest_f (Quant(q,n1,s1,b))
+          end
+end
+  | dest_f _ = raise ERR ("dest_f.not a quantification",[],[],[])
+
 
 fun dest_uex f = 
     case f of 
@@ -231,18 +242,17 @@ fun dest_uex f =
 
 fun dest_fvar f =
     case f of
-        fVar pair => pair
+        Pred(p,false,args)  => (p,args)
       | _ => raise ERR ("not a formula variable",[],[],[f])
 
 fun eq_form fp = PolyML.pointerEq (fst fp,snd fp) orelse
     case fp of 
-        (Pred(P1,tl1),Pred(P2,tl2)) => 
-        P1 = P2 andalso List.all (fn (t1,t2) => t1 = t2) (zip tl1 tl2)
+        (Pred(P1,b1,tl1),Pred(P2,b2,tl2)) => 
+        P1 = P2 andalso b1 = b2 andalso List.all (fn (t1,t2) => t1 = t2) (zip tl1 tl2)
       | (Conn(co1,fl1),Conn(co2,fl2)) => co1 = co2 andalso 
                                          ListPair.all eq_form (fl1,fl2)
       | (Quant(q1,n1,s1,b1),Quant(q2,n2,s2,b2)) => 
         q1 = q2 andalso s1 = s2 andalso eq_form (b1,b2)
-      | (fVar fm1,fVar fm2)  => fm1 = fm2
       | _ => false
 
 fun eq_forml (l1:form list) (l2:form list) = 
@@ -329,8 +339,11 @@ fVar_Inst1 ("P",([],“a = a”)) f0
 
 inst_form env0 f0 not coincide.
 
-val f0 = “!c. !a.P(a)”
+val f0 = “!c. !a.P(a,c)”
 fVar_Inst1 ("P",([("a",set_sort)],“a = c”)) f0
+
+fVar_Inst1 ("P",([("a",set_sort),("c",set_sort)],“a = c”)) f0
+
 seems that fVar_Inst is wrong for empty case, it is just a constant lambda 
 
 
@@ -345,30 +358,129 @@ Q(c:mem(C),d:mem(D))
 (*don;t do the inst above in this function, but need to call other functions to do the inst_sort first*)
 *)
 
-fun match_form nss pat cf env:menv = 
+fun match_form nss ps pat cf env:menv = 
     case (pat,cf) of
-        (Pred(P1,l1),Pred(P2,l2)) => 
+        (Pred(P1,true,l1),Pred(P2,true,l2)) => 
         if P1 <> P2 then 
             raise ERR ("different predicates: ",[],[],[pat,cf])
         else match_tl' nss l1 l2 env
       | (Conn(co1,l1),Conn(co2,l2)) => 
         if co1 <> co2 then 
             raise ERR ("different connectives: ",[],[],[pat,cf])
-        else match_fl nss l1 l2 env
+        else match_fl nss ps l1 l2 env
       | (Quant(q1,n1,s1,b1),Quant(q2,n2,s2,b2)) => 
         if q1 <> q2 then 
             raise ERR ("different quantifiers: ",[],[],[pat,cf])
-        else match_form nss b1 b2 (match_sort' nss s1 s2 env)
-      | (fVar (fm,[]),_) => 
+        else match_form nss ps b1 b2 (match_sort' nss s1 s2 env)
+      | (Pred (fm,false,[]),_) => 
+        if HOLset.member(ps,fm) then 
+            if eq_form(pat,cf) then env
+            else raise ERR ("match_form.current fvar is local constant",[],[],[pat])
+        else
             (case (lookup_f' env fm) of
                  SOME f => if eq_form(f,cf) then env else
                            raise ERR ("double bind of formula variables",[],[],[pat,f,cf])
                | _ => fv2f' fm cf env)
  (*P(a) <=> Q(a) match to P(f(a)) gives a|-> f(a), obtains
  P(f(a)) <=> Q(f(a)), if in second clause ,match a to a, useless *)
-      | (fVar(fm1,args1),cf) => 
+      | (Pred(fm1,false,args1),cf) =>
         (case cf of 
-             fVar(fm2,args2) => 
+            Pred(fm',false,args') =>
+            if fm' = fm1 then match_tl' nss args1 args' env
+            else raise ERR ("match_form.attempting match fvar with arguments to concrete formula, which is a formula variable",[],[],[pat])
+          | _ => raise ERR ("match_form.attempting match fvar with arguments to concrete formula",[],[],[pat]))
+      (*  else *)
+ 
+        (*if HOLset.member(ps,fm1) then 
+            case cf of 
+                Pred(fm',false,args') =>
+                if fm' = fm1 then match_tl' nss args1 args' env
+                else raise ERR ("match_form.current fvar is local constant,attempted to match to other formula variable",[],[],[pat])
+              | _ => raise ERR ("match_form.current fvar is local constant",[],[],[pat])
+        else
+        (case cf of 
+            Pred(fm2,false,args2) => 
+             if fm1 = fm2 then match_tl' nss args1 args2 env
+             else env
+            | _ => (*if length args1 = 1 andalso 
+                      length (HOLset.listItems (fvf cf)) = 1
+                   then 
+                       match_tl' nss [(hd args1)] 
+                                 [mk_var $ hd (HOLset.listItems (fvf cf))]    env
+                   else  *)
+raise ERR ("attempting to matching fvar with variables to some concrete formula",[],[],[]) (*env *)) *)
+      | _ => raise ERR ("different formula constructors",[],[],[pat,cf])
+and match_fl nss ps l1 l2 env = 
+    case (l1,l2) of 
+        ([],[]) => env
+      | (h1::t1,h2::t2) =>  
+        match_fl nss ps t1 t2 (match_form nss ps h1 h2 env)
+      | _ => raise simple_fail "incorrect length of list"
+
+
+fun fVars f = 
+    case f of
+        Pred(P,false,args) => HOLset.add(HOLset.empty String.compare,P)
+      | Conn("~",[f0]) => fVars f0
+      | Conn(_,[f1,f2]) => HOLset.union(fVars f1,fVars f2)
+      | Quant(_,_,_,b) => fVars b
+      | Pred(_,true,_) => HOLset.empty String.compare
+      |_ => raise ERR ("fVars.ill-formed formula",[],[],[f])
+
+fun fVarsl fl = bigunion String.compare (List.map fVars fl)
+
+(*
+want 
+
+(A & B ==> C) <=> (A ==> B ==> C)
+
+Inj(f) & Surj(f) ==> Bij(f) rw into 
+
+Inj(f) ==> Surj(f) ==> Bij(f)
+
+P(a,b) <=> Q(a,b) cannot be auto matched to anything 
+
+*)
+
+
+
+
+(*
+fun match_form nss ps pat cf env:menv = 
+    case (view_term pat,view_term cf) of
+        (vPred(P1,true,l1),vPred(P2,true,l2)) => 
+        if P1 <> P2 then 
+            raise ERR ("different predicates: ",[],[],[pat,cf])
+        else match_tl' nss l1 l2 env
+      | (vConn(co1,l1),vConn(co2,l2)) => 
+        if co1 <> co2 then 
+            raise ERR ("different connectives: ",[],[],[pat,cf])
+        else match_fl nss ps l1 l2 env
+      | (vQ(q1,n1,s1,b1),vQ(q2,n2,s2,b2)) => 
+        if q1 <> q2 then 
+            raise ERR ("different quantifiers: ",[],[],[pat,cf])
+        else match_form nss ps b1 b2 (match_sort' nss s1 s2 env)
+      | (Pred (fm,false,[]),_) => 
+        if HOLset.member(ps,fm) then 
+            if pat = cf then env
+            else raise ERR ("match_form.current fvar is local constant",[],[],[pat,cf])
+        else
+            (case (lookup_f' env fm) of
+                 SOME f => if eq_form(f,cf) then env else
+                           raise ERR ("double bind of formula variables",[],[],[pat,f,cf])
+               | _ => fv2f' fm cf env)
+      | (Pred(fm1,false,args1),cf) => 
+        if HOLset.member(ps,fm) then 
+            if pat = cf then env
+            else raise ERR ("match_form.current fvar is local constant",[],[],[pat,cf])
+        else
+            (case (lookup_f' env fm) of
+                 SOME f => if eq_form(f,cf) then env else
+                           raise ERR ("double bind of formula variables",[],[],[pat,f,cf])
+               | _ => fv2f' fm cf env)
+
+        (case cf of 
+            Pred(fm2,false,args2) => 
              if fm1 = fm2 then match_tl' nss args1 args2 env
              else env
             | _ => if length args1 = 1 andalso 
@@ -376,15 +488,20 @@ fun match_form nss pat cf env:menv =
                    then 
                        match_tl' nss [(hd args1)] 
                                  [mk_var $ hd (HOLset.listItems (fvf cf))]    env
-                   else env)
+                   else env) 
       | _ => raise ERR ("different formula constructors",[],[],[pat,cf])
-and match_fl nss l1 l2 env = 
+and match_fl nss ps l1 l2 env = 
     case (l1,l2) of 
         ([],[]) => env
       | (h1::t1,h2::t2) =>  
-        match_fl nss t1 t2 (match_form nss h1 h2 env)
+        match_fl nss ps t1 t2 (match_form nss ps h1 h2 env)
       | _ => raise simple_fail "incorrect length of list"
 
+val pat = “(P & Q ==> R)”
+val cf = mk_imp (mk_P0 "Inj" (mk_))
+match_form 
+
+*)
 
 fun strip_forall f = 
     case f of 
@@ -433,6 +550,23 @@ fun strip_quants f =
                           else raise ERR ("strip_quants.not a quantified formula",[],[],[f])
       | _ => raise ERR ("strip_quants.not a quantified formula",[],[],[f])
 
+(*code for pmatch*)
+fun strip_all_quants0 f = 
+    case f of 
+        Quant(q,n,s,b) => let val (l0,f0) = strip_all_quants0 b
+                          in ((n,s) :: l0,f0)
+                          end
+      | _ => ([],f)
+
+(*
+
+val f0 = mk_quant "!" "a" (set_sort) (mk_fvar "P" [mk_var("a",set_sort)])
+
+val f1 = mk_quant "?!" "a1" (set_sort) (f0)
+
+*)
+
+
 fun inst_term' env t = inst_term (vd_of env) t
 
 fun inst_sort' env s = inst_sort (vd_of env) s
@@ -444,35 +578,102 @@ fun name_clash n env =
     in 
         List.exists (fn n0 => n0 = n) new_names
     end
+(*name clash does the same work 
 
-fun rename_once_need n env = 
-    if name_clash n env = false then n else rename_once_need (n^"'") env
+        val new_terms = List.map snd (pvd (vd_of env))
+        val new_names = mapfilter (fst o dest_var) new_terms
+   
+*)
+
+
+
+(*
+fun rename_once_need nl n = 
+    if name_clash nl n = false then n else rename_once_need nl (n^"'") 
+*)
+
+
+(*
+
+x |-> .....f(n)
+y |-> ....g(n',j,k,l)
+
+!n. P(n)
+
+
+
+
+*)
+
 
 fun inst_form env f = 
     case f of
-        Pred(P,tl) => Pred(P,List.map (inst_term' env) tl)
+        Pred(P,true,tl) => Pred(P,true,List.map (inst_term' env) tl)
       | Conn(co,fl) => Conn(co,List.map (inst_form env) fl)
+      | Quant(q,n,s,b) => Quant(q,n,inst_sort' env s,inst_form env b)
+      | Pred(f,false,tl) => 
+        (case lookup_f' env f of
+             SOME f' =>(* inst_form env*) f'
+           | NONE => Pred(f,false,List.map (inst_term' env) tl))
+
+    
+
+
+(*
+fun inst_form env f = 
+    let val new_terms = List.map snd (pvd (vd_of env))
+        val new_names = mapfilter (fst o dest_var) new_terms
+        fun recurse f =
+            case f of
+        Pred(P,true,tl) => Pred(P,true,List.map (inst_term' env) tl)
+      | Conn(co,fl) => Conn(co,List.map recurse fl)
       | Quant(q,n,s,b) => 
         let 
             val s' = inst_sort' env s
-            val b' = inst_form env b
-            val n' = rename_once_need n env 
+            val b' = recurse b
+            val n' = rename_once_need new_names n 
         in 
             Quant(q,n',s',b')
         end
-      | fVar(f,tl) => 
+      | Pred(f,false,tl) => 
         (case lookup_f' env f of
              SOME f' => inst_form env f'
-           | NONE => fVar(f,List.map (inst_term' env) tl))
+           | NONE => Pred(f,false,List.map (inst_term' env) tl))
     (*  | fVar fvn => 
         (case lookup_f' env fvn of
              SOME f' => f'
            | NONE => f)*)
 
 
+fun inst_form env f = 
+    let val new_terms = List.map snd (pvd (vd_of env))
+        val new_names = mapfilter (fst o dest_var) new_terms
+        fun recurse f =
+            case f of
+        Pred(P,true,tl) => Pred(P,true,List.map (inst_term' env) tl)
+      | Conn(co,fl) => Conn(co,List.map recurse fl)
+      | Quant(q,n,s,b) => 
+        let 
+            val s' = inst_sort' env s
+            val b' = recurse b
+            val n' = rename_once_need new_names n 
+        in 
+            Quant(q,n',s',b')
+        end
+      | Pred(f,false,tl) => 
+        (case lookup_f' env f of
+             SOME f' => inst_form env f'
+           | NONE => Pred(f,false,List.map (inst_term' env) tl))
+    (*  | fVar fvn => 
+        (case lookup_f' env fvn of
+             SOME f' => f'
+           | NONE => f)*)
+*)
+
+
 fun psymsf f = 
     case f of 
-        Pred(p,_) => HOLset.add(HOLset.empty String.compare,p)
+        Pred(p,true,_) => HOLset.add(HOLset.empty String.compare,p)
       | Conn("~",[A]) => psymsf A
       | Conn(_,[A,B]) => HOLset.union(psymsf A,psymsf B)
       | Quant(_,_,_,b) => psymsf b
@@ -480,7 +681,7 @@ fun psymsf f =
 
 fun fsymsf f = 
     case f of 
-        Pred(_,l) => 
+        Pred(_,_,l) => 
         List.foldr 
             (fn (t,fs) => HOLset.union (fsymst t,fs))
             (HOLset.empty String.compare)
@@ -488,11 +689,6 @@ fun fsymsf f =
       | Conn("~",[A]) => fsymsf A
       | Conn(_,[A,B]) => HOLset.union(fsymsf A,fsymsf B)
       | Quant(_,_,_,b) => fsymsf b
-      | fVar(_,l) => 
-        List.foldr 
-            (fn (t,fs) => HOLset.union (fsymst t,fs))
-            (HOLset.empty String.compare)
-            l
       | _ => raise ERR ("fsyms.ill-formed formula",[],[],[f])
      (* | _ => raise ERR ("fsymfs.ill-formed formula: ",[],[],[f])*)
 
@@ -508,7 +704,7 @@ fun is_wfmenv menv =
     in List.all (ok_dpdc menv) pairs
     end
 
-fun mk_pred0 p tl = Pred (p,tl)
+fun mk_pred0 p tl = Pred (p,true,tl)
 
 fun mk_pred p tl = 
     case lookup_pred (!psyms) p of 
@@ -516,7 +712,7 @@ fun mk_pred p tl =
       | SOME l => 
         let val _ = match_tl essps (List.map mk_var l) tl emptyvd
                     handle _ => raise ERR ("mk_pred.wrong input of predicate:" ^ p,List.map sort_of tl,tl,[])
-        in Pred(p,tl)
+        in Pred(p,true,tl)
         end
 
 
@@ -535,17 +731,85 @@ fun mk_eq t1 t2 =
 datatype form_view =
     vConn of string * form list
   | vQ of string * string * sort * form
-  | vPred of string * term list
-  | vfVar of string * term list
+  | vPred of string * bool * term list
 
 
+(*
+local exception CLASH
+in
 fun dest_forall f = 
+    let val vs = fvf f
+    in
     case f of 
         Quant("!",n,s,b) =>
-        let val ns' = dest_var (pvariantt (fvf f) (mk_var(n,s)))
+        (case HOLset.find (fn (n0,s0) => n0 = n) vs of 
+             NONE =>((n,s),subst_bound (mk_var (n,s)) b)
+           | SOME _ => raise CLASH)
+        handle CLASH =>
+        let val ns' = dest_var (pvariantt vs (mk_var(n,s)))
         in (ns',subst_bound (mk_var ns') b)
         end
       | _ => raise ERR ("not a universal",[],[],[f])
+    end
+end
+*)
+
+
+local 
+(*
+fun vreplacet (i,(n,s)) t = 
+    case view_term t of 
+        vVar(n0,s0) => if n0 = n then raise CLASH else 
+                       replacet (i,mk_var(n,s)) t
+      | vFun(f,s0,tl0) => 
+        mk_fun f (List.map (vreplacet(i,(n,s))) tl0)
+      | vB j => if i = j then mk_var(n,s) else t
+and vreplaces (i,ns) s = 
+    case view_sort s of 
+        vSrt (name,tl) => 
+        mk_sort name (List.map (vreplacet (i,ns)) tl)
+*)
+fun vsubst_bound ns =  
+    let fun vsubst i (Pred(a,b,ts)) = 
+            Pred(a, b,List.map (vreplacet (i, ns)) ts) 
+          | vsubst i (Conn(b,As)) = Conn(b, List.map (vsubst i) As) 
+          | vsubst i (Quant(q,n,s,b)) =
+            Quant(q, n, vreplaces (i,ns) s, vsubst (i+1) b)
+    in vsubst 0 end
+in
+fun dest_forall f = 
+    (case f of 
+        Quant("!",n,s,b) =>
+        (((n,s),vsubst_bound (n,s) b)
+        handle CLASH  =>
+        let val ns' = dest_var (pvariantt (fvf f) (mk_var(n,s)))
+        in (ns',vsubst_bound ns' b)
+        end)
+      | _ => raise ERR ("not a universal",[],[],[f]))
+fun dest_exists f = 
+    (case f of 
+        Quant("?",n,s,b) =>
+        (((n,s),vsubst_bound (n,s) b)
+        handle CLASH  =>
+        let val ns' = dest_var (pvariantt (fvf f) (mk_var(n,s)))
+        in (ns',vsubst_bound ns' b)
+        end)
+      | _ => raise ERR ("not a existantial",[],[],[f]))
+fun dest_uex f = 
+    (case f of 
+        Quant("?!",n,s,b) =>
+        (((n,s),vsubst_bound (n,s) b)
+        handle CLASH  =>
+        let val ns' = dest_var (pvariantt (fvf f) (mk_var(n,s)))
+        in (ns',vsubst_bound ns' b)
+        end)
+      | _ => raise ERR ("not a uex",[],[],[f]))
+end
+
+
+
+
+(*think doing it the HOL way*)
 
 fun view_form f =
     case f of
@@ -555,7 +819,7 @@ fun view_form f =
         in vQ(q,n',s',subst_bound (mk_var (n',s')) b)
         end
       | Pred pi => vPred pi
-      | fVar f => vfVar f
+
 
 fun dest_quant0 f = 
     case f of Quant Qi => Qi
@@ -576,6 +840,163 @@ fun dest_uex0 f =
     case dest_quant0 f of 
         ("?!",n,s,f) => ((n,s),f)
       | _ => raise ERR ("dest_uex0.not a unique exists",[],[],[f])
+
+
+val _ = new_pred "T" [];
+val _ = new_pred "F" [];
+
+
+
+
+
+(*
+fun fVar_Inst1 (pair as (P,(argl:(string * sort) list,Q))) f = 
+    let val frees = fvf Q
+    in
+    case view_form f of
+        vPred(P0,false,args0) =>
+(*ListPair.map ListPair.foldl*)
+(*mk_inst (zip argl args0)ListPair. [] *)
+        if P0 = P then
+            let val venv = match_tl essps (List.map mk_var argl) args0 emptyvd 
+            in inst_form (mk_menv venv emptyfvd) Q
+            end
+(*if the number of arguments is wrong, or the sorts is wrong, then handle the matching exn by returning f *)
+        else f
+      | vConn(co,fl) => mk_conn co (List.map (fVar_Inst1 pair) fl)
+      | vQ(q,n,s,b) => 
+        (case HOLset.find (fn (n0,s0) => n0 = n) frees of 
+            SOME _ => 
+            (let val (n',s') = dest_var (pvariantt frees (mk_var(n,s)))
+            in mk_quant q n' s' (fVar_Inst1 pair (substf ((n,s),mk_var(n',s'))b))
+            end )
+           |_ => mk_quant q n s (fVar_Inst1 pair b)) 
+      | vPred (_,true,_) => f
+    end
+*)
+
+fun rename_bound n1 f = 
+    case f of 
+        Quant(q,n,s,b) => Quant(q,n1,s,b)
+      | _ => raise ERR ("rename_bound.not a quantified formula",[],[],[f])
+
+
+
+(*
+fun pinst_f env f = 
+    case f of
+        Pred(P,b,tl) => Pred(P,b,List.map (pinst_t env) tl)
+      | Conn(co,fl) => Conn(co,List.map (pinst_f env) fl)
+      | Quant(q,n,s,b) => Quant(q,n,pinst_s env s,pinst_f env b)
+*)
+
+
+fun pinst_f vd f = 
+    case f of 
+        Quant(q,n,s,b) => 
+        let val vd1 = shift_vd 1 vd
+            val b1 = pinst_f vd1 b
+            val s1 = inst_sort vd1 s
+        in Quant(q,n,s1,b1)
+        end 
+      | Pred(p,b,tl) => Pred(p,b,List.map (inst_term vd) tl)
+      | Conn(co,fl) => Conn(co,List.map (pinst_f vd) fl)
+      
+fun fVar_Inst_P bs (pair as (P,(argl:(string * sort) list,Q))) f =
+    let val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q) argl
+    in
+    case f of
+        Pred(P0,false,args0) =>
+        if P0 = P
+        then let val venv = pmatch_tl bs lcs
+                                     (List.map mk_var argl) args0
+                                     emptyvd
+             in pinst_f venv Q
+             end 
+             handle e => raise wrap_err "fVar_Inst_P" e
+        else raise ERR ("fVar_Inst_P.different formula variable",[],[],[f])
+      | _ => raise ERR ("fVar_Inst_P.not a formula variable",[],[],[f])
+    end
+
+
+
+fun fVar_Inst_f0 bs (pair as (P,(argl:(string * sort) list,Q))) f = 
+    let val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q) argl
+    in
+    case f of
+        Pred(P0,false,args0) => fVar_Inst_P bs pair f
+      | Conn(co,[f1,f2]) => 
+        (let val f1' = fVar_Inst_f0 bs pair f1
+         in Conn(co,[f1',fVar_Inst_f0 bs pair f2])
+            handle _ => Conn(co,[f1',f2])
+         end 
+         handle _ => Conn(co,[f1,fVar_Inst_f0 bs pair f2]))
+      | Conn("~",[f1]) => 
+        Conn("~",[fVar_Inst_f0 bs pair f1])
+      | Pred(_,true,_) => raise ERR ("fVar_Inst_f0.Pred cannot be fVar insted",[],[],[f])
+      | Quant(q,n,s,b) => Quant(q,n,s,fVar_Inst_f0 (s :: bs) pair b)
+    end
+
+(*
+fun fVar_Inst_f0 bs (pair as (P,(argl:(string * sort) list,Q))) f = 
+    let val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q) argl
+    in
+    case f of
+        Pred(P0,false,args0) =>
+        if P0 = P
+        then let val venv = pmatch_tl bs lcs
+                                     (List.map mk_var argl) args0
+                                     emptyvd
+             in pinst_f venv Q
+             end 
+             handle _ => f 
+        else f
+      | Conn(co,fl) => Conn(co,List.map (fVar_Inst_f0 bs pair) fl)
+      | Pred(_,true,_) => f
+      | Quant(q,n,s,b) => Quant(q,n,s,fVar_Inst_f0 (s :: bs) pair b)
+    end
+*)
+
+
+fun fVar_Inst_f (pair as (P,(argl:(string * sort) list,Q))) f = 
+fVar_Inst_f0 [] pair f
+
+
+(*
+
+fun fVar_Inst_f (pair as (P,(argl:(string * sort) list,Q))) f = 
+    let val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q) argl
+    in
+    case f of
+        Pred(P0,false,args0) =>
+        if P0 = P
+        then let val venv = pmatch_tl essps 
+                                     (List.map mk_var argl) args0
+                                     emptyvd
+             in pinst_f venv Q
+             end 
+             handle _ => f 
+        else f
+      | Conn(co,fl) => Conn(co,List.map (fVar_Inst_f pair) fl)
+      | Pred(_,true,_) => f
+      | Quant(q,n,s,b) => Quant(q,n,s,fVar_Inst_f pair b)
+    end
+
+*)
+
+
 
 
 

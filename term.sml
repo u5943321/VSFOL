@@ -9,6 +9,8 @@ and term =
 
 exception TER of string * sort list * term list
 
+exception CLASH
+
 fun mk_sort str tl = srt (str,tl)
 
 (*Any point of not put the line about in the sig?*)
@@ -119,15 +121,30 @@ fun srt2ns st =
     end
 
 
-fun replacet (u,new) t = 
-    if t=u then new else 
+fun replacet (i,new) t = 
+    if t=Bound i then new else 
     case t 
      of Fun(f,s,tl) => 
-        Fun(f,replaces (u,new) s, List.map (replacet(u,new)) tl) 
-      | _=> t
-and replaces (u,new) s = 
+        Fun(f,replaces (i,new) s, List.map (replacet(i,new)) tl) 
+      | Var(n,s) => Var(n,replaces (i,new) s)
+      | _ => t
+(*      | _ => t *)
+and replaces (i,new) s = 
     case s of 
-        srt (name,tl) => srt (name, List.map (replacet (u,new)) tl)
+        srt (name,tl) => srt (name, List.map (replacet (i,new)) tl)
+
+fun vreplacet (i,(n,s)) t = 
+    case t of 
+        Var(n0,s0) => if n0 = n then raise CLASH else 
+                       Var(n0,vreplaces (i,(n,s)) s0)
+      | Fun(f,s0,tl0) => 
+        Fun(f,vreplaces(i,(n,s)) s0,
+            List.map (vreplacet(i,(n,s))) tl0)
+      | Bound j => if i = j then mk_var(n,s) else t
+and vreplaces (i,ns) s = 
+    case s of 
+        srt (name,tl) => 
+        srt (name,List.map (vreplacet (i,ns)) tl)
 
 fun eq_term (t1,t2) = 
     case (t1,t2) of 
@@ -204,6 +221,45 @@ and term_compare (t1,t2) =
 
 val var_ord = (pair_compare String.compare sort_compare)
 
+fun var_ord1 ((n1,s1),(n2,s2)) =
+    case String.compare(n1,n2) of 
+        EQUAL => sort_compare (s1,s2)
+      | x => x
+
+fun sort_cpr (s1,s2) = 
+    if PolyML.pointerEq(s1,s2) then EQUAL else
+    case (dest_sort s1,dest_sort s2) of 
+        ((sn1,tl1),(sn2,tl2)) =>
+        (case String.compare (sn1,sn2) of 
+             EQUAL =>
+             list_compare term_cpr (tl1,tl2) 
+           | x => x)
+and term_cpr (t1,t2) = 
+    if PolyML.pointerEq(t1,t2) then EQUAL else
+    case (t1,t2) of 
+        (Var (ns1 as (n1,s1)),Var (ns2 as (n2,s2))) =>  
+        (case String.compare(n1,n2) of 
+            EQUAL => sort_cpr (s1,s2)
+          | x => x)
+     | (Var _ , _) => LESS
+     | (_,Var _) => GREATER
+     | (Bound i1, Bound i2) => Int.compare (i1,i2)
+     | (Bound _ , _) => LESS
+     | (_, Bound _) => GREATER
+     | (Fun(fsl1 as (f1,s1,l1)), Fun (fsl2 as (f2,s2,l2))) => 
+       (case String.compare(f1,f2) of 
+           EQUAL => 
+           (case sort_cpr(s1,s2) of 
+                EQUAL => list_compare term_cpr (l1,l2)
+              | x => x)
+         | x => x)
+
+val term_compare = term_cpr;
+val sort_compare = sort_cpr;
+
+
+
+
 (*empty string-sort-pair set*)
 val essps = HOLset.empty var_ord
 
@@ -238,7 +294,7 @@ fun match_term nss pat ct (env:vd) =
     case (view_term pat,view_term ct) of 
         (vFun(f1,s1,l1),vFun(f2,s2,l2)) => 
         if f1 <> f2 then 
-            raise TER("match_term.different function names: ",[],[pat,ct])
+            raise TER("match_term.different function names: " ^ f1 ^ " , " ^ f2,[],[pat,ct])
         else (match_sort nss s1 s2 (match_tl nss l1 l2 env)  
              handle e => raise wrap_ter "match_term." [s1,s2] [pat,ct] e)
       | (vVar(n1,s1),_) => 
@@ -341,6 +397,29 @@ and fvs s =
 and fvtl tl = var_bigunion (List.map fvt tl)
 
 
+fun fvta a t = 
+    case t of 
+        Var(p as (n,s)) => fvsa (HOLset.add(a,p)) s
+      | Bound _ => a 
+      | Fun(f,s,tl) => fvtla (fvsa a s) tl
+and fvtla a [] = a
+  | fvtla a (t :: ts) = fvtla (fvta a t) ts
+and fvsa a (srt(sname,ts)) = 
+    fvtla a ts
+
+val fvt = fvta essps
+
+val fvtl = fvtla essps
+
+val fvs = fvsa essps
+
+(*
+fun fvt a 
+
+
+*)
+
+
 fun fxty i = 
     case i of 
        "<=>" => 100
@@ -350,8 +429,11 @@ fun fxty i =
       | "=" => 450
       | "==" => 450
       | "o" => 455
+      | "@" => 455
       | ":" => 460 (*900*)
       | "->" => 470 (*900*)
+      | "=>" => 470 (*900*)
+      | "~>" => 470 
       | "+" => 500
       | "*" => 600
       | "^" => 700
@@ -415,5 +497,235 @@ fun new_fun f (s,tl) = fsyms := Binarymap.insert (!fsyms,f,(s,tl))
 fun ill_formed_fv (n,s) = 
     case dest_sort s of (_,tl) => 
                         List.exists is_bound tl
+
+val abbrdict0: 
+ (string * (term list), string * (term list)) Binarymap.dict = Binarymap.mkDict (pair_compare String.compare (list_compare term_compare))
+
+val abbrdict = ref abbrdict0
+
+val unabbrdict0: (string * (term list), string * (term list)) Binarymap.dict = Binarymap.mkDict (pair_compare String.compare (list_compare term_compare))
+
+val unabbrdict = ref unabbrdict0
+
+(*cannot use 
+f (abf,tl1,tl2)
+
+since then cannot capture abbrev such as Exp(X,2) as Pow 
+
+or handle error once the matching fails.
+
+*)
+
+fun new_abbr (f,tl) (abf,tl') =
+    let 
+        val _ = abbrdict :=
+                Binarymap.insert(!abbrdict,(f,tl),(abf,tl'))
+        val _ = unabbrdict := 
+                Binarymap.insert(!unabbrdict,(abf,tl'),(f,tl))
+in () end
+
+
+
+(*should we check that they are already registered as function symbols yet before inserting them into the dict?*)
+
+
+(*
+“!f:2 ->A. T”
+val _ = new_fun "2" (ob_sort,[])
+
+val _ = new_abbr ("+",[rastt "1",rastt "1"]) ("2",[]) 
+
+
+val _ = new_fun "Pow" (ob_sort,[("X",ob_sort)])
+
+"Pow" ("Exp",[rastt "X"],[rastt "X",rastt "1 * 1"])
+
+val _ = new_abbr ("Exp",[rastt "X",rastt "1 + 1"]) ("Pow",[rastt "X"]) 
+
+ "Exp" ("Pow",[rastt "X",rastt "1+1"],[rastt "X"])
+*)
+
+
+fun dest_t (n,s) (t,i) = 
+    case t of 
+        Bound j => if i = j then mk_var(n,s) else t
+      | Var(m,st) => if n = m then raise CLASH 
+                     else Var(m,dest_s (n,s) (st,i))
+      | Fun(f,st,tl) => Fun(f,dest_s (n,s) (st,i),
+                            List.map (fn t => dest_t (n,s) (t,i)) tl)
+and dest_s (n,s) (st,i) = 
+    case st of
+        srt(sname,tl) => 
+        srt(sname,List.map (fn t => dest_t (n,s) (t,i)) tl)
+
+
+
+(*
+
+P(a,b)
+
+match to 
+
+!A B a:mem(A) b:mem(B). P(a,b) <=> R(a,b)
+ 
+    P(B(1),B(0))
+sorts are rev [set_sort,set_sort,mem_sort (B(1)),mem_sort (B(1))]
+
+match a |-> B(1) b |-> B(0) 
+
+try to match 
+
+P(x1:mem(X),x2:mem(X)) <=> Q(x1,x2)
+
+want the form after inst to be
+
+Q(B(0),B(1))
+
+
+P(x1:mem(X1),x2:mem(X2)) <=> Q(x1,x2)
+
+Still Q(B(0),B(1))
+
+but if P(x1:mem(X1),x2:mem(X1)) <=> Q(x1,x2)
+
+and 
+
+!A B a1:mem(A) a2:mem(B). P(a1:mem(B(1)),a2:mem(B(1))) <=> R(a1,a2)
+
+then raise err. since X1 is double bind, to B(1) and ..
+
+match x2 |-> B(0), need to match sort accordingly, dict tells that 
+
+[mem_sort 1,mem_sort 1,set_sort,set_sort] is the list of bounded sorts from
+
+B(0),so B(0), which is the head, has sort mem_sort 1,
+then match X1 |-> B(1), 
+
+when matching x1 |-> B(1), need to match sort accordingly, dict tells that
+
+[mem_sort 1,mem_sort 1,set_sort,set_sort] 
+
+so the sort of B(1) is the snd entry, mem_sort 1 the sort need to change 
+
+
+
+match x1 |-> B(1), search for the match of X1, 
+
+the dict says [set_sort,set_sort,mem_sort 1,mem_sort 1]
+
+[mem_sort 1,mem_sort 1,set_sort,set_sort]
+
+the (1 + 1) = 2nd entry has sort mem_sort 1, so
+match X1 to B(1).
+
+when matching B(0),
+
+
+
+
+
+
+!A a1:mem(A) a2:mem(A). P(a1:mem(B(0)),a2:mem(B(1))) <=> R(a1,a2)
+
+*)
+
+fun recover_s i (srt (sname,tl)) = 
+    srt (sname,List.map (recover_t i) tl)
+and recover_t i t = 
+    case t of 
+        Var(n,s) => Var(n,recover_s i s)
+      | Fun(f,s,l) => Fun(f,recover_s i s, List.map (recover_t i) l)
+      | Bound j => Bound (i + j)
+
+
+
+
+fun shift_vd_eval i vd ns = 
+    case Binarymap.peek(vd,ns) of 
+        SOME t => recover_t i t
+      | _ => raise TER ("shift_vd_eval.no value stored for that key",[],[])
+
+fun shift_vd i vd = 
+    Binarymap.foldl 
+        (fn (ns,t,d) => Binarymap.insert(d,ns,recover_t i t)) vd vd
+
+
+
+
+
+
+
+fun pmatch_t bs nss pat ct (env:vd) = 
+    case (pat,ct) of 
+        (Fun(f1,s1,l1),Fun(f2,s2,l2)) => 
+        if f1 <> f2 then 
+            raise TER("match_term.different function names: "^ f1 ^ " , " ^ f2,[],[pat,ct])
+        else (pmatch_s bs nss s1 s2 (pmatch_tl bs nss l1 l2 env)  
+             handle e => raise wrap_ter "pmatch_term." [s1,s2] [pat,ct] e)
+      | (Var(n1,s1),Bound i) =>
+        let val s2 = el (i + 1) bs
+            val s2from0 = recover_s i s2
+            val vd1 = pmatch_s bs nss s1 s2from0 (env:vd) 
+        in v2t (n1,s1) ct vd1
+        end
+      | (Var(n1,s1),_) => 
+        if HOLset.member(nss,(n1,s1)) then
+            if pat = ct then env 
+            else raise TER ("match_term.current term is local constant: ",[],[pat,ct])
+        else 
+            (case (lookup_t env (n1,s1)) of
+                 SOME t => if t = ct then env else
+                           raise TER ("pmatch_t.double bind: ",[],[pat,t,ct])
+               | _ => 
+                 v2t (n1,s1) ct (pmatch_s bs nss s1 (sort_of ct) env)
+                 handle e => raise wrap_ter "pmatch_t." [] [pat,ct] e)
+      | (Bound i1,Bound i2) => 
+        if i1 <> i2 then 
+            raise TER ("pmatch_t.bound variables have different levels: ",[],[pat,ct])
+        else env
+      | _ => raise Fail "pmatch_t.unexpected term constructor"
+and pmatch_s bs nss sp cs env = 
+    case (dest_sort sp,dest_sort cs) of 
+        ((sn1,tl1),(sn2,tl2)) =>
+        if sn1 = sn2 then
+            pmatch_tl bs nss tl1 tl2 env
+        else raise TER ("match_sort.attempting matching two different sorts: "^ sn1 ^ " , " ^ sn2,[sp,cs],[])
+and pmatch_tl bs nss l1 l2 env =
+    case (l1,l2) of 
+        ([],[]) => env
+      | (h1 :: t1,h2 :: t2) => 
+        pmatch_tl bs nss t1 t2 (pmatch_t bs nss h1 h2 env)
+      | _ => raise TER ("match_sort.incorrect length of list",[],[])
+
+
+
+fun pinst_t (env:vd) t = 
+    case  t of 
+        Var(n,s) => 
+        (case lookup_t env (n,s) of 
+             SOME t' => t'
+           | _ => Var(n,pinst_s env s))
+      | Fun(f,s,tl) => 
+        Fun(f,pinst_s env s,List.map (pinst_t env) tl)
+      | _ => t
+and pinst_s env s = 
+    case (dest_sort s) of
+        (sn,tl) => 
+        srt(sn,List.map (pinst_t env) tl)
+
+
+
+
+local
+fun delete'(set,mem) = HOLset.delete(set,mem) handle _ => set
+in
+fun filter_cont ct = 
+    HOLset.foldr 
+        (fn (ns,set) => 
+            case HOLset.find 
+                     (fn (vn,vs) => HOLset.member(fvs vs,ns)) set of 
+                SOME _ => delete'(set,ns)
+              | NONE => set) ct ct
+end
 
 end

@@ -1,0 +1,49 @@
+
+(* inNf X = {0} ∪ {x + 1 | x ∈ X} *)
+
+val inNf_ex = prove_store("inNf_ex",
+e0
+(cheat)
+(form_goal “∃f. ∀p:mem(Pow(N0)). (∀x. IN(x,App(f,p)) ⇔ 
+ (x = O0 | 
+           ∃n0:mem(N0). IN(n0,p) ∧ x = App(S1,n0)) )”));
+
+val inNf_def = inNf_ex |> ex2fsym0 "inNf" []
+
+
+(* FIf xss = {∅_X} ∪ {{x} ∪ xs | x ∈ X | xs ∈ xss} *)
+val FIf_ex = prove_store("FIf_ex",
+e0
+(cheat)
+(form_goal
+ “∃f. ∀p:mem(Pow(N0)). (∀x. IN(x,App(f,p)) ⇔ 
+ (x = O0 | 
+           ∃n0:mem(N0). IN(n0,p) ∧ x = App(S1,n0)) )”));
+
+val inNf_def = inNf_ex |> ex2fsym0 "inNf" []
+
+
+
+
+assume “SS(App(inNf,inNs),X)”
+       |> rewr_rule[SS_def]
+       |> strip_all_and_imp
+       |> prove_hyp
+          (SS_Trans |> qspecl [‘N0’,‘App(inNf,inNs)’,
+                                ‘App(inNf,X)’]
+                    |> undisch
+                    |> qspecl [‘X:mem(Pow(N0))’]
+                    |> undisch)
+       |> prove_hyp
+          (inNf_monotone 
+               |> qspecl [‘inNs’,‘X:mem(Pow(N0))’]
+               |> undisch)
+       |> prove_hyp
+          (inNs_SS |> qspecl [‘X:mem(Pow(N0))’]
+                   |> undisch)
+       |> disch “SS(App(inNf, X), X)”
+       |> allI ("X",mem_sort (rastt "Pow(N0)"))
+       |> rewr_rule[inNs_cond]
+       |> disch “IN(a, App(inNf, inNs))”
+       |> allI ("a",mem_sort (rastt "N0"))
+       |> rewr_rule[GSYM SS_def]

@@ -690,9 +690,10 @@ fun genl vsl th =
 
 
 fun simple_genl vsl th = 
-    case rev vsl of 
+    case  vsl of 
         [] => th
       | h :: t => allI h (simple_genl t th) 
+
 
 fun gen_all th = 
     let 
@@ -1073,7 +1074,75 @@ fun forall_iff (n,s) th =
 
 
 
+(*prevent the case that 
+A,B
+T
+-----
+P(a:A->B)
 
+to
+
+A,B
+T,
+_------
+!f:C->D.P(a:A->B).
+
+can only do this after adding C and D in context
+
+*)
+
+(*
+
+val f = “Mono(f) <=> !g ”
+
+val th = spec_all Mono_def
+
+forall_iff ("f",sort_of $rastt "f:A->K") th
+
+forall_iff' ("f",sort_of $rastt "f:A->B") th
+
+*)
+
+fun forall_iff (n,s) th = 
+    let val (G,A,C0) = dest_thm th
+    in
+        case view_form C0 of 
+            vConn("<=>",[P,Q]) => 
+            let val _ = not $ HOLset.member(fvfl A,(n,s)) orelse
+                        raise simple_fail "forall_iff.variable to be abstract occurs in assumption" 
+                val G0 = HOLset.delete(G,(n,s)) handle _ => G
+                val _ = case HOLset.find 
+                                 (fn (n0,s0) => depends_on (n,s) (mk_var (n0,s0))) G0 of 
+                            NONE => ()
+                          | SOME _ => 
+                            raise simple_fail
+                                  "variable to be abstract occurs in context" 
+                val G1 = HOLset.union(G0,fvs s)
+            in mk_thm(G1,A,mk_dimp (mk_forall n s P) (mk_forall n s Q))
+            end
+          | _ => raise ERR ("all_iff.conclusion of theorem is not an iff:",[],[],[C0])
+    end
+
+(*
+
+val (ct,asl,w) = cg $
+e0
+(rw[GSYM False_def,o_assoc] >> once_rw[one_to_one_id])
+(form_goal
+ “!X x:1->X. False(X) o x = FALSE”)
+
+rw[idR] does not make change 
+
+val c = rewr_conv (spec_all idR)
+
+fconv_tac (basic_fconv c no_fconv) (ct,asl,w)
+
+basic_fconv c no_fconv w
+
+forall_iff ("x",sort_of (rastt "x:1->X")) 
+(mk_thm (essps,[],“FALSE o id(1) = FALSE <=> FALSE = FALSE”))
+
+*)
 fun exists_iff (n,s) th = 
     let
         val (G,A,C) = dest_thm th
@@ -1089,6 +1158,42 @@ fun exists_iff (n,s) th =
     in dimpI eP2eQ eQ2eP
     end
 
+
+
+(*worrying about case that 
+
+
+?!R. P(R) <=> ... !R'. ==> R' = R
+
+ but for Q.
+
+?!R. P(R) <=> ... !R'''. ==> R''' = R *)
+fun uex_iff (n,s) th = 
+    let
+        val (G,A,C) = dest_thm th
+        val (P,Q) = dest_dimp C
+        val ueP = mk_uex n s P
+        val ueQ = mk_uex n s Q
+        val uePdef = uex_def ueP
+        val PR = snd o dest_dimp o concl $ uePdef
+        val (_,PRb) = dest_exists PR
+        val ueQdef = uex_def ueQ
+        val QR = snd o dest_dimp o concl $ ueQdef
+        val (_,QRb) = dest_exists QR
+        val (n',s') = dest_var (pvariantt G (mk_var(n,s)))
+        val dimp0 = imp_iff 
+                   (inst_thm (mk_inst [((n,s),mk_var(n',s'))] []) th)
+                   (frefl (mk_eq (mk_var(n',s')) (mk_var(n,s))))
+        val dimp1 = forall_iff (n',s') dimp0
+        val dimp2 = conj_iff th dimp1
+        val dimp3 = exists_iff (n,s) dimp2
+        val dimp4 = iff_trans (iff_trans uePdef dimp3) (iff_swap ueQdef)
+    in
+        dimp4
+    end
+
+
+
 val CONJ_COMM = 
     let val p = mk_fvar "P" []
         val q = mk_fvar "Q" []
@@ -1101,6 +1206,49 @@ val CONJ_COMM =
     in
         dimpI l2r r2l
     end
+
+
+
+
+fun fVar_sInst_th f f' th = 
+    let val (P,args) = dest_fvar f
+        val vl = List.map dest_var args
+    in fVar_Inst_th (P,(vl,f')) th
+    end
+
+
+
+fun eq_sym a = 
+    if mem a (!EqSorts) then 
+        let val ns0 = srt2ns a
+            val v1 = mk_var ns0
+            val v2 = pvariantt (HOLset.add(essps,ns0)) v1
+            val v1v2 = mk_eq v1 v2
+            val v2v1 = mk_eq v2 v1
+            val l2r = assume v1v2 |> sym|> disch_all
+            val r2l = assume v2v1 |> sym|> disch_all
+        in dimpI l2r r2l
+        end
+    else raise ERR ("eq_sym.input sort: " ^ a ^ " does not have equality",
+                    [],[],[])
+
+
+fun uex_expand th = dimp_mp_l2r th (uex_def $ concl th)
+
+fun uex_ex f = 
+    let val th0 = dimpl2r $ uex_def f |> undisch
+        val c0 = concl th0
+        val ((n,s),b) = dest_exists c0
+        val th1 = assume b |> conjE1 
+        val th2 = existsI (n,s) (mk_var(n,s)) (concl th1) th1
+        val th3 = existsE (n,s) th0 th2
+    in disch f th3
+    end
+
+fun uex2ex_rule th = mp (uex_ex $concl th) th
+
+
+
 
 
 (*(!A. P(A) ==>Q) <=> (?A.P(A)) ==> Q
@@ -1257,5 +1405,198 @@ val F_disj_1 = F_disj1 (mk_fvar "f0")
 val F_disj_2 = F_disj2 (mk_fvar "f0")
 *)
 
+
+
+
+(*
+(?f. f = g & P(f) ) <=> P(g)
+
+
+
+basic_fconv no_conv ex_eq_fconv “?f:A->B. f = h & g = h & Mono(f)” works
+
+ “?f:A->B g. f = g & g = h & Mono(f)” ex_eq_fconv no change
+
+basic_fconv no_conv ex_eq_fconv 
+
+“?f:A->B g. a = Pa(f,g) & Mono(a)” <=> ?
+
+*)
+
+
+(*
+
+(*
+(!a. a = b & A ==> P(a)) <=> A ==> P(b)
+
+!a. a = b ==> P(a)
+
+val f = “!a:A->B. a = b ==> Mono(a)”
+
+not insert a T if not a conjunction, afraid of looping
+*)
+
+*)
+
+(*
+fun total f x = 
+  SOME (f x) handle _ => NONE
+
+val f2eqth = mk_thm(essps,[],“f2 <=> x = y & P(a)”)
+
+val f1 = “f1”
+
+val f2 = “f2”
+
+val f1eqth = mk_thm(essps,[],“f1 <=> x = y & P(a)”)
+
+fun PULL_CONJ p f = 
+  if p f then SOME (frefl f)
+  else
+    case view_form f of
+      vConn("&", [f1,f2]) => 
+       (case (PULL_CONJ p) f1 of
+          NONE => (case (PULL_CONJ p) f2 of
+                     NONE => NONE
+                   | SOME f2eqth => 
+                     if is_eq (f2eqth |> concl |> dest_dimp |> #2)
+                     then 
+                         let val th1 = conj_iff (frefl f1) f2eqth
+                             val f0 = mk_conj f1 (f2eqth |> concl |> dest_dimp |> #2)
+                             val f0th = conj_swap_fconv f0
+                         in SOME (iff_trans th1 f0th)
+                         end
+                     else
+                     let val eqandsth = f2eqth |> concl |> dest_dimp |> #2
+                         val f2eqth' = iff_trans f2eqth (conj_swap_fconv eqandsth)
+                         val cth = conj_iff (frefl f1) f2eqth'
+                         val tocossa = cth |> concl |> dest_dimp |> #2
+                         val th' = tocossa |> (conj_cossa_fconv thenfc conj_swap_fconv)
+                         val th1 = iff_trans cth th'
+                     in SOME th1
+                     end)
+        | SOME f1eqth => 
+          let val th0 = conj_iff f1eqth (frefl f2) 
+              val f' = th0 |> concl |> dest_dimp |> #2
+          in
+          SOME (iff_trans th0 (try_fconv conj_assoc_fconv f'))
+          end)
+    | _ => NONE
+
+
+
+fun PULL_CONJ p f = 
+  if p f then SOME (frefl f)
+  else
+    case view_form f of
+      vConn("&", [f1,f2]) => 
+       (case (PULL_CONJ p) f1 of
+          NONE => (case (PULL_CONJ p) f2 of
+                     NONE => NONE
+                   | SOME f2eqth => 
+                     if is_eq (f2eqth |> concl |> dest_dimp |> #2)
+                     then 
+                         let val th1 = conj_iff (frefl f1) f2eqth
+                             val f0 = mk_conj f1 (f2eqth |> concl |> dest_dimp |> #2)
+                             val f0th = conj_swap_fconv f0
+                         in SOME (iff_trans th1 f0th)
+                         end
+                     else
+                     let val eqandsth = f2eqth |> concl |> dest_dimp |> #2
+                         val f2eqth' = iff_trans f2eqth (conj_swap_fconv eqandsth)
+                         val cth = conj_iff (frefl f1) f2eqth'
+                         val tocossa = cth |> concl |> dest_dimp |> #2
+                         val th' = tocossa |> (conj_cossa_fconv thenfc conj_swap_fconv)
+                         val th1 = iff_trans cth th'
+                     in SOME th1
+                     end)
+        | SOME f1eqth => 
+          let val th0 = conj_iff f1eqth (frefl f2) 
+              val f' = th0 |> concl |> dest_dimp |> #2
+          in
+          SOME (iff_trans th0 (try_fconv conj_assoc_fconv f'))
+          end)
+    | _ => NONE
+
+fun pull_conj_fconv p f = 
+    case PULL_CONJ p f of SOME th => th
+                      | _ => raise simple_fail "pull_conj_fconv";
+
+PULL_CONJ (is_eq) “a = b & P(a) & x = y”
+
+basic_fconv no_conv (pull_conj_fconv (is_eq)) “P(a) & x = y & Q(a) & y =z & R(a)”
+
+PULL_CONJ (is_eq) “a = b & P(a)”
+       
+**
+
+easy case
+
+|- f2 ⇔ (x = e)
+--------------------
+|- f1 /\ f2 ⇔ f1 /\ (x = e)
+------------------------------ comm
+|- f1 /\ f2 ⇔ (x = e) /\ f1
+
+hard case:
+
+f = f1 /\ f2
+
+|- f2 <=> f2'  (* and by IH, f2' = (x = e) /\ ... *)
+
+|- f1 /\ f2 <=> f1 /\ ((x= e) /\ f20)   (* not quite *)
+
+use associativity and commutativity to combine and get
+
+
+  |-  f2 <=> (x = e) /\ f20     
+ - - - - - - - - - - - - - - -  comm
+  |-  f2 <=> f20 /\ (x = e)          
+ - - - - - - - - - - - - - -- -- - - - - -
+  |- f1 /\ f2 <=> f1 /\ (f20 /\ (x = e)) 
+------------------------------------------ assoc
+  |- f1 /\ f2 <=> (f1 /\ f20) /\ (x = e)
+ - --------------------------------------  comm
+  |- f1 /\ f2 <=> x = e /\ (f1 /\ f20)
+
+
+
+* 
+
+easy case
+
+|- f1 ⇔ x = e
+-------------
+|- f1 /\ f2 ⇔ x = e /\ f2
+
+
+hard case
+
+  |- f1 ⇔ (x = e) /\ f10
+ ------------------------
+ |- f1 /\ f2 ⇔ ((x = e) /\ f10) /\ f2
+-------------------------------------------------------- assoc
+ |- f1 /\ f2 ⇔ (x = e) /\ (f10 /\ f2)
+  
+
+
+
+*)
+
+fun ex_P_ex f = 
+    let val ((n,s),b) = dest_exists f 
+        val th0 = trueI [] |> add_cont (HOLset.add(essps,(n,s)))
+                        |> existsI (n,s) (mk_var(n,s)) TRUE
+                        |> existsE (n,s) (assume f)
+                        |> disch f
+    in th0
+    end
+
+(*?a. P ==> ?a. T*)
+fun SKOLEM1 fname vl th = 
+    let val eth0 = ex_P_ex (concl th)
+        val eth = mp eth0 th
+    in SKOLEM eth fname vl th
+    end
 
 end

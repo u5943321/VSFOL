@@ -103,7 +103,7 @@ fun disjE th1 th2 th3 =
                 raise ERR ("disjE.second disjunct not in the formula list: ",
                            [],[],[B])
     in
-        thm(contl_U [cont th1,cont th2, cont th3],asml_U [ril A (ant th2),ril B (ant th3)],
+        thm(contl_U [cont th1,cont th2, cont th3],asml_U [ant th1,ril A (ant th2),ril B (ant th3)],
             concl th3)
     end
 
@@ -131,6 +131,8 @@ fun EQ_fsym f thml =
                  mk_eq (mk_fun f ll) (mk_fun f rl))
         end
 
+
+
                 
 fun EQ_psym p thml = 
     case lookup_pred (!psyms) p of 
@@ -154,7 +156,40 @@ fun EQ_psym p thml =
                  mk_dimp (mk_pred p ll) (mk_pred p rl))
         end
 
+
+
+              
+fun EQ_psym p thml = 
+    if p = "=" then 
+        let 
+            val sl = List.map (fst o dest_eq o concl) thml
+            val (ll,rl,asml) = List.foldr thml_eq_pairs ([],[],[]) thml
+            fun mkeq l = case l of [t1,t2] => mk_eq t1 t2
+                                 | _ =>  raise ERR ("EQ_psym.mkeq.not a 2-item list",[],l,[])
+        in 
+            thm (contl_U (List.map cont thml),asml,
+                 mk_dimp (mkeq ll) (mkeq rl))
+        end
+    else 
+        let val sl = List.map (fst o dest_eq o concl) thml
+            val (ll,rl,asml) = List.foldr thml_eq_pairs ([],[],[]) thml
+        in case lookup_pred (!psyms) p of 
+               SOME _ => 
+               thm (contl_U (List.map cont thml),asml,
+                    mk_dimp (mk_pred p ll) (mk_pred p rl))
+             | _ => thm (contl_U (List.map cont thml),asml,
+                    mk_dimp (mk_fvar p ll) (mk_fvar p rl))
+        end
+
+
+
+
+
 fun tautI f = thm(fvf f,[],mk_disj f (mk_neg f))
+
+(*TODO find all drule that use it and take tautI out!!!!!!!\
+ add an axiom instead.
+*)
 
 fun negI f (thm (G,A,C)) = 
     let 
@@ -310,7 +345,8 @@ fvf phi,[] |- (?!a. ϕ(a)) <=> ?a. ϕ(a) & !a'. ϕ(a') ==> a' = a
 fun uex_def f = 
     case view_form f of
         vQ("?!",n,s,b) => 
-        let val n' = n ^ "'"
+        let val n' = fst o dest_var o (pvariantt (fvf b)) $ mk_var(n^"'",s)
+                                                          (*n ^ "'"*)
             val phia' = substf((n,s),mk_var(n',s)) b
             val impf = mk_imp phia' (mk_eq (mk_var(n',s)) (mk_var(n,s)))
             val allimpf = mk_forall n' s impf
@@ -420,6 +456,8 @@ fun new_ax f =
     end
 
 
+
+(*
 fun all_distinct l = 
     case l of [] => true
             | h :: ts => if List.exists (fn t => eq_term(t,h)) ts then false
@@ -463,6 +501,71 @@ fun define_pred f =
     end 
 (*check that R does not contain any unknown predicate symbols/fun syms*)
 
+*)
+
+
+fun mk_foralls nsl f = 
+    case nsl of 
+        [] => f
+      | (h as (n,s)) :: t =>
+        mk_forall n s (mk_foralls t f)
+
+fun define_pred f = 
+    let val fvs = fvf f
+        val _ = HOLset.isEmpty fvs orelse 
+                raise simple_fail
+                      "formula has unexpected free variables"
+        val (body,bvs) = strip_forall f 
+        val (l,r) = dest_dimp body 
+        val (P,args) = dest_fvar l 
+        val _ = List.all is_var args orelse raise simple_fail"input arguments is not a variable list"
+        val _ = HOLset.isSubset (fvf r,fvf l) 
+                orelse raise simple_fail"unexpected free variable on RHS"
+        val _ = new_pred P (List.map dest_var args)
+        val l' = mk_pred P args
+        val f' = mk_foralls bvs (mk_dimp l' r)
+    in mk_thm(essps,[],f')
+    end 
+
+
+
+
+(*
+local
+fun delete'(set,mem) = HOLset.delete(set,mem) handle _ => set
+in
+fun filter_cont ct = 
+    HOLset.foldr 
+        (fn (ns,set) => 
+            case HOLset.find 
+                     (fn (vn,vs) => HOLset.member(fvs vs,ns)) set of 
+                SOME _ => delete'(set,ns)
+              | NONE => set) ct ct
+end
+
+fun ex2fsym fsym strl th = 
+    let val th' = spec_all th
+        val (ct,asl) = (cont th',ant th')
+        val (hyp,conc) = dest_imp (concl th')
+        val inputvars0 = filter_cont (cont th') 
+        val inputvars = List.foldr (fn (s,e) => HOLset.add(e,s)) essps 
+                                   (List.map (dest_var o (parse_term_with_cont ct)) strl)
+        val _ = HOLset.isSubset(inputvars0,inputvars) orelse 
+                raise simple_fail "there are necessary input variables missing"
+        val inputvl = List.map (parse_term_with_cont ct) strl
+        val ((n,s),b) = dest_exists conc
+        val _ = new_fun fsym (s,List.map dest_var inputvl)
+        val fterm = mk_fun fsym inputvl
+        val b' = substf ((n,s),fterm) b
+    in mk_thm (ct,asl,mk_imp hyp b')
+    end
+
+*)
+
+
+
+
+(*
 fun define_fun f = 
     let val fvs = fvf f
         val _ = HOLset.isEmpty fvs orelse raise simple_fail"formula has unexpected free variables"
@@ -477,7 +580,7 @@ fun define_fun f =
         val fsyms0 = new_fun nf (sf,(List.map dest_var args))
     in mk_thm(essps,[],f)
     end
-
+*)
 
 
 
@@ -485,6 +588,127 @@ fun define_fun f =
 (*edit ex2fsym 1.!A B C. P(A,B,C) ==> ?Q.
 
 2.deal with uex*)
+
+
+fun new_ax f = 
+    let
+        val _ = HOLset.equal(fvf f,essps) orelse
+                raise simple_fail"formula has free variables"
+    in
+        mk_thm(essps,[],f)
+    end
+
+
+
+fun define_fsym fsym vars th = 
+    let val (ct,asl,con) = dest_thm th
+        val (hyp,conc) = dest_imp con 
+        val inputvars0 = filter_cont ct
+        val inputvars = List.foldr (fn (s,e) => HOLset.add(e,s)) 
+                                   essps vars
+        val _ = HOLset.isSubset(inputvars0,inputvars) orelse 
+                raise simple_fail "there are necessary input variables missing"
+        val ((n,s),b) = dest_exists conc
+        val _ = new_fun fsym (s,vars)
+        val fterm = mk_fun fsym (List.map mk_var vars)
+        val b' = substf ((n,s),fterm) b
+    in mk_thm (ct,asl,mk_imp hyp b')
+    end
+
+
+
+
+
+
+
+
+
+
+exception UNCHANGED
+ fun total f x = SOME (f x) handle e => NONE
+
+fun MAP f l = 
+   let
+     (* map2 is the version where something has changed *)
+     fun map2 A [] = List.rev A
+       | map2 A (h::t) = map2 ((f h handle e => h) :: A) t
+     (* map1 is the version to call where nothing has changed yet *)
+     fun map1 n [] = raise UNCHANGED
+       | map1 n (h::t) = 
+           case total f h of
+             SOME fh => map2 (fh::(rev $ List.take(l,n))) t
+           | NONE => map1 (n + 1) t
+   in
+     map1 0 l
+   end
+
+
+fun fVar_Inst_th (pair as (P,(argl:(string * sort) list,Q0))) th = 
+    let val (ct,asl,w) = dest_thm th
+        val lcs = List.foldr
+                      (fn (ns,nss) => HOLset.delete(nss,ns)
+                                      handle _ => nss) 
+                      (fvf Q0) argl
+        val ct' = HOLset.union(ct,lcs)
+        val aslw' = MAP (fVar_Inst_f pair) (w :: asl)
+    in mk_thm (ct',tl aslw',hd aslw')
+    end
+
+
+
+
+fun define_fsym (fname,vl) t = 
+    let val st = sort_of t
+        val _ = new_fun fname (st, vl)
+        val ft = mk_fun fname (List.map mk_var vl)
+        (*check vl is subset of vars in t*)
+        val inputvset = List.foldr (fn(a,s) => HOLset.add(s,a)) essps vl
+        val _ = HOLset.isSubset(fvt t,inputvset) orelse 
+                raise simple_fail "define_fsym.input contains extra variable(s)"
+        val f = mk_eq ft t
+        val ct = fvf f
+    in mk_thm (ct,[],f)
+    end
+
+
+ 
+fun define_psym (pname,vl) f = 
+    let 
+        val _ = new_pred pname vl
+        val pfm = mk_pred pname (List.map mk_var vl)
+        val fm = mk_dimp pfm f
+        val _ = HOLset.isSubset(fvf f,fvf pfm) orelse 
+                raise simple_fail "define_psym.input contains extra variable(s)"
+        val ct = fvf fm
+    in mk_thm (ct,[],fm)
+    end
+
+(*once proved existence of input terms can make sure the term of current sort exists, can have antecedent in th*)
+fun SKOLEM eth fname vl th = 
+    let val asm = ant th
+        val c = concl th
+        val ((n,s),b) = dest_exists c
+        val c0 = concl eth
+        val _ = HOLset.isSubset(cont eth,cont th) orelse
+                raise ERR ("SKOLEM.eth has extra variables",
+                           [],[],[])
+        val _ = eq_forml (ant eth) [] orelse
+                raise ERR ("SKOLEM.eth has assumptions",
+                           [],[],[])
+        val _ = eq_form(concl eth, mk_exists n s TRUE)
+                orelse 
+                raise ERR ("SKOLEM.ill-formed eth",[],[],[c0])
+        val _ = new_fun fname (s,vl)
+        val inputvars0 = filter_cont (cont th)
+        val inputvars = List.foldr (fn (s,e) => HOLset.add(e,s)) 
+                                   essps vl
+        val _ = HOLset.isSubset(inputvars0,inputvars) orelse 
+                raise simple_fail "there are necessary input variables missing"
+        val fntm = mk_fun fname (List.map mk_var vl)
+        val b' = substf ((n,s),fntm) b
+    in mk_thm(cont th,ant th,b')
+    end
+
 
 
 

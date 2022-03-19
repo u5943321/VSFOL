@@ -91,9 +91,11 @@ fun top_depth_conv conv tm =
 val simp_trace = ref false
 
 
+
+
 fun part_fmatch partfn th f = 
     let 
-        val fvd = match_form (fvfl (ant th)) (partfn th) f mempty
+        val fvd = match_form (fvfl (ant th)) (fVarsl (ant th)) (partfn th) f mempty
     in 
         inst_thm fvd th
     end
@@ -144,7 +146,7 @@ fun repeatfc fc f =
 
 fun pred_fconv c f = 
     case view_form f of 
-        vPred (P,tl) => EQ_psym P (List.map c tl)
+        vPred (P,_,tl) => EQ_psym P (List.map c tl)
       | _ => raise ERR ("pred_fconv.not a predicate",[],[],[f])
 
 (*conv on subformulas*)
@@ -233,12 +235,36 @@ fun forall_fconv fc f =
         (vQ("!",n,s,b)) => 
         forall_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
       | _ => raise ERR ("forall_fconv.not an all",[],[],[f])
+
+fun exists_fconv fc f = 
+    case view_form f of
+        (vQ("?",n,s,b)) => 
+         exists_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
+      | _ => raise ERR ("exists_fconv.not an all",[],[],[f])
  
 fun exists_fconv fc f = 
     case view_form f of
         (vQ("?",n,s,b)) => 
-        exists_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
+        let val th0 = fc (subst_bound (mk_var(n,s)) b)
+        in exists_iff (n,s) th0
+           handle _ =>
+                  let val (n',_) = dest_var 
+                                  (pvariantt (cont th0) 
+                                             (mk_var(n,s))) 
+                      val f' = rename_bound n' f 
+                      val ((n',s'),b') = dest_exists f'
+                      val th1 = fc (subst_bound (mk_var(n',s')) b')
+                  in
+                      exists_iff (n',s') th1
+                  end
+        end
       | _ => raise ERR ("exists_fconv.not an all",[],[],[f])
+
+fun uex_fconv fc f = 
+    case view_form f of
+        (vQ("?!",n,s,b)) => 
+        uex_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
+      | _ => raise ERR ("uex_fconv.not an all",[],[],[f])
 
 
 (*
@@ -265,6 +291,7 @@ fun sub_fconv c fc =
                  neg_fconv fc,
                  forall_fconv fc,
                  exists_fconv fc,
+                 uex_fconv fc,
                  pred_fconv c])
 
 (*TODO: uex_fconv*)
@@ -402,7 +429,7 @@ fun right_imp_forall_fconv f  =
 
 fun sym_fconv f = 
     case view_form f of 
-    vPred("=",[t1,t2]) => dimpI (assume f|> sym |> disch_all) (assume (mk_eq t2 t1) |> sym |> disch_all)
+    vPred("=",true,[t1,t2]) => dimpI (assume f|> sym |> disch_all) (assume (mk_eq t2 t1) |> sym |> disch_all)
   | vConn("<=>", [f1,f2]) => dimpI (assume f|> iff_swap |> disch_all) (assume (mk_dimp f2 f1)|> iff_swap |> disch_all)
   | _ => raise simple_fail "not an iff or equality"
 
@@ -422,13 +449,13 @@ val neg_neg_elim = conv_rule (once_depth_fconv no_conv double_neg_fconv)
 
 fun lpred_fconv c f = 
     case view_form f of 
-        vPred (P,[t1,t2]) => EQ_psym P [c t1,refl t2]
+        vPred (P,true,[t1,t2]) => EQ_psym P [c t1,refl t2]
       | _ => raise ERR ("lpred_fconv.not a predicate",[],[],[f])
 
 
 fun rpred_fconv c f = 
     case view_form f of 
-        vPred (P,[t1,t2]) => EQ_psym P [refl t1,c t2]
+        vPred (P,true,[t1,t2]) => EQ_psym P [refl t1,c t2]
       | _ => raise ERR ("rpred_fconv.not a predicate",[],[],[f])
 
 fun land_fconv c fc f = 
@@ -439,7 +466,7 @@ fun land_fconv c fc f =
         if co = "==>" then limp_fconv fc f else
         if co = "<=>" then ldimp_fconv fc f else
         raise simple_fail ("not a connective: " ^ co)
-      | vPred (p,[t1,t2]) => lpred_fconv c f
+      | vPred (p,true,[t1,t2]) => lpred_fconv c f
       | _ => all_fconv f
 
 
@@ -451,7 +478,7 @@ fun rand_fconv c fc f =
         if co = "==>" then rimp_fconv fc f else
         if co = "<=>" then rdimp_fconv fc f else
         raise simple_fail ("not a connective: " ^ co)
-      | vPred (p,[t1,t2]) => rpred_fconv c f
+      | vPred (p,true,[t1,t2]) => rpred_fconv c f
       | _ => all_fconv f
 
 
@@ -518,13 +545,15 @@ val ASSUME_CONJUNCT_LEMMA =
         mk_thm (essps,[],f0)
     end
 
-
+(*
 fun part_fmatch partfn th f = 
     let 
-        val fvd = match_form (fvfl (ant th)) (partfn th) f mempty
+        val fvd = match_form (fvfl (ant th)) (HOLset.empty String.compare) (partfn th) f mempty
     in 
         inst_thm fvd th
     end
+
+*)
 
 
 fun ASSUME_CONJUNCT_RULE th1 th2 = 
