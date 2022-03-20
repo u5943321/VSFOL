@@ -1,6 +1,9 @@
 
-val SS_def = define_pred “∀A P1:mem(Pow(A)) P2. SS(P1,P2) ⇔ 
- (∀a. IN(a,P1) ⇒ IN(a,P2))”
+val SS_def = qdefine_psym ("SS",[‘P1:mem(Pow(A))’,‘P2:mem(Pow(A))’])
+                          ‘(∀a. IN(a,P1) ⇒ IN(a,P2))’
+                          |> gen_all 
+                          |> store_as "SS_def";
+
 
 val SS_Trans = prove_store("SS_Trans",
 e0
@@ -310,7 +313,7 @@ fun mk_prim fdef =
         val spec_IN_ex = IN_def_P_ex |> allE pisin |> GSYM
                                      |> fVar_sInst_th fvar0 fvar1
         val skinputs = cont spec_IN_ex |> HOLset.listItems
-        val sk = spec_IN_ex |> ex2fsym0 (defname ^ "'s") (List.map #1 skinputs)
+        val sk = spec_IN_ex |> SKOLEM1 (defname ^ "'s") skinputs
     in sk
     end
 
@@ -326,7 +329,7 @@ fun mk_LFP primtm =
         val exth = bigintertm |> refl 
                               |> existsI (defname^"s",st) bigintertm templ
         val skinputs = cont exth |> HOLset.listItems
-        val LFP_def = exth |> ex2fsym0 LFPname (List.map #1 skinputs)
+        val LFP_def = exth |> SKOLEM1 LFPname skinputs
     in LFP_def
     end
 
@@ -487,7 +490,7 @@ fun mk_fex incond x =
 
 fun mk_fdef fname fexth = 
     let val skinputs = HOLset.listItems (cont fexth)
-    in fexth |> ex2fsym0 fname (List.map #1 skinputs)
+    in fexth |> SKOLEM1 fname skinputs
     end
 
 fun mk_ind1 fdef ind0 = ind0 |> rewr_rule[SS_def,fdef]

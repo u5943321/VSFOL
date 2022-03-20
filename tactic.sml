@@ -919,23 +919,35 @@ fun rev_full_simp_tac thms =
     pop_assum_list (f List.rev strip_assume_tac thms) then_tac arw_tac thms
 
 
-val flip_tac = 
+fun flip_tac (ct,asl,w) = 
     let val eqths = List.map eq_sym (!EqSorts)
+        val fc = first_fconv (List.map rewr_fconv eqths)
+    in fconv_tac (once_depth_fconv no_conv fc) (ct,asl,w)   
+    end
+(*
+
+fun flip_tac0 snames = 
+    let val eqths = List.map eq_sym snames
         val fc = first_fconv (List.map rewr_fconv eqths)
     in fconv_tac (once_depth_fconv no_conv fc)     
     end
 
-val lflip_tac = 
+val flip_tac = flip_tac0 (!EqSorts)
+
+*)
+
+
+fun lflip_tac (ct,asl,w) = 
     let val eqths = List.map eq_sym (!EqSorts)
         val fc = first_fconv (List.map rewr_fconv eqths)
-    in fconv_tac (land_fconv no_conv $ once_depth_fconv no_conv fc)        
+    in fconv_tac (land_fconv no_conv $ once_depth_fconv no_conv fc) (ct,asl,w)
     end
 
 
-val rflip_tac = 
+fun rflip_tac (ct,asl,w) = 
     let val eqths = List.map eq_sym (!EqSorts)
         val fc = first_fconv (List.map rewr_fconv eqths)
-    in fconv_tac (rand_fconv no_conv $ once_depth_fconv no_conv fc)        
+    in fconv_tac (rand_fconv no_conv $ once_depth_fconv no_conv fc) (ct,asl,w)
     end
 
 
