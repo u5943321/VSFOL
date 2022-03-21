@@ -312,8 +312,9 @@ fun mk_prim fdef =
                              |> rev |> implode
         val spec_IN_ex = IN_def_P_ex |> allE pisin |> GSYM
                                      |> fVar_sInst_th fvar0 fvar1
-        val skinputs = cont spec_IN_ex |> HOLset.listItems
-        val sk = spec_IN_ex |> SKOLEM1 (defname ^ "'s") skinputs
+        val skinputs = cont spec_IN_ex 
+        val skinputs' = filter_cont skinputs |> HOLset.listItems
+        val sk = spec_IN_ex |> SKOLEM1 (defname ^ "'s") skinputs'
     in sk
     end
 
@@ -328,8 +329,9 @@ fun mk_LFP primtm =
         val templ = mk_eq (mk_var(defname^"s",st)) bigintertm
         val exth = bigintertm |> refl 
                               |> existsI (defname^"s",st) bigintertm templ
-        val skinputs = cont exth |> HOLset.listItems
-        val LFP_def = exth |> SKOLEM1 LFPname skinputs
+        val skinputs = cont exth 
+        val skinputs' = filter_cont skinputs |> HOLset.listItems
+        val LFP_def = exth |> SKOLEM1 LFPname skinputs'
     in LFP_def
     end
 
@@ -489,7 +491,7 @@ fun mk_fex incond x =
     end
 
 fun mk_fdef fname fexth = 
-    let val skinputs = HOLset.listItems (cont fexth)
+    let val skinputs = (cont fexth) |> filter_cont |> HOLset.listItems 
     in fexth |> SKOLEM1 fname skinputs
     end
 
@@ -792,7 +794,7 @@ fun unpull_exists_fconv1 f =
     in dimpI all2ex ex2all 
     end
 
-
+(*
 val f = “(n = O0 ==> IN(n,inN)) &
          (!n0. IN(n0,inN) & n = App(S1,n0) ==> IN(n,inN))”
 
@@ -807,7 +809,7 @@ val f = “(xsn = Pair(Empty(X),O) ==> IN(xsn,Cd)) &
 
 val f = “(ls = Empty(N * X) ==> IN(ls,isL)) &
          (!ls0 x. IN(ls0,isL) & ls = Ins(Pair(CARD(ls0),x),ls0) ==> IN(ls,isL)) ”
-
+*)
 (*
 unpull_exists_fconv1 “(!n0. IN(n0,inN) & n = App(S1,n0) ==> IN(n,inN))”
 *)
@@ -830,4 +832,34 @@ fun mk_incond f =
                          (mk_dimp conc' ante')
     in (f3,newname ^ "0")
     end
+
+(*
+
+basic_once_fconv to use is_eq not good, will try write this
+
+fun all_conj_fconv fc = 
+    let val 
+
+*)
+
+fun mk_ind2 ind1 = 
+    ind1 |> conv_rule 
+         (basic_fconv no_conv disj_imp_distr_fconv)
+         |> conv_rule 
+         (basic_fconv no_conv forall_conj_split_fconv)
+         |> conv_rule 
+         (basic_fconv no_conv pull_exists_fconv1) 
+         |> conv_rule
+         (basic_once_fconv no_conv (pull_conj_fconv is_eq))
+         (*want to use once rather then basic since the eqn if exists musst be the first one, bu seems not sufficient, a conv only apply once until success?*)
+         |> conv_rule
+         (basic_fconv no_conv conj_imp_fconv)
+         |> conv_rule
+         (basic_once_fconv no_conv forall_in_eq_fconv)
+         |> conv_rule
+         (basic_once_fconv no_conv forall_eq_fconv)
+         |> conv_rule
+         (basic_fconv no_conv (rewr_fconv $ GSYM CONJ_IMP_IMP))
+
+
 

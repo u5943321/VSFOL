@@ -2009,13 +2009,14 @@ val inN_rules0 = mk_rules inNf_monotone inNs_SS inNs_cond;
 val inN_cases0 = mk_cases inNf_monotone inN_rules0 inNs_cond;
 val inN_ind0 = mk_ind inNs_cond;
 val inN_ind1 = mk_ind1 inNf_def inN_ind0;
+val inN_ind2 = mk_ind2 inN_ind1;
 val inN_cases1 = mk_case1 inNf_def inN_cases0;
 val inN_rules1 = mk_rules1 inNf_def inN_rules0;
 val inN_rules2 = mk_rules2 inN_rules1;
 val inN_rules3 = mk_rules3 inN_rules2;
 end
 
-val inN_ind = inN_ind1 |> store_as "inN_ind";
+val inN_ind = inN_ind2 |> store_as "inN_ind";
 val inN_cases = inN_cases1 |> store_as "inN_cases";
 val inN_rules = inN_rules3 |> store_as "inN_rules";
 
@@ -2124,32 +2125,56 @@ e0
 (form_goal “!n.~(App(SUC,n) = O)”));
 
 
-val inN_ind = inN_ind |> conv_rule 
-(basic_fconv no_conv disj_imp_distr_fconv)
-|> store_as "inN_ind";
-(*a machinary to convert things like O_xor_SUC into N0 form?*)
+
+(*a machinary to convert things like O_xor_SUC into N0 form? maybe this:*)
+
+val IMAGE_def = 
+    IN_def_P_ex |> qspecl [‘B’] |> fVar_sInst_th “P(b:mem(B))”
+                “?a. IN(a,s0) & b = App(f:A->B,a)” 
+                |> GSYM 
+                |> qSKOLEM "IMAGE" [‘f’,‘s0’] 
+                |> gen_all
+                |> store_as "IMAGE_def"; 
+
+val Whole_def = 
+    IN_def_P_ex |> qspecl [‘A’] |> fVar_sInst_th “P(a:mem(A))”
+                “T” 
+                |> rewr_rule [] 
+                |> qSKOLEM "Whole" [‘A’] 
+                |> gen_all
+                |> store_as "Whole_def"; 
+
+
+val IN_IMAGE_Inj = prove_store("IN_IMAGE_Inj",
+e0
+(rw[Inj_def,IMAGE_def] >> rpt strip_tac >>
+ dimp_tac >> strip_tac (* 2 *)
+ >-- (qexists_tac ‘a’ >> arw[]) >>
+ first_x_assum drule >> fs[])
+(form_goal “!A A0 i:A->A0. Inj(i) ==>
+ !s:mem(Pow(A)) a. IN(a,s) <=> IN(App(i,a),IMAGE(i,s))”));
+
+
 
 
 val N_ind_P = prove_store("N_ind_P",
 e0
 (x_choose_then "s" (assume_tac o conjE1) (IN_def_P_expand |> qspecl [‘N’]) >>
  arw[] >> 
- x_choose_then "s0" (assume_tac o GSYM o conjE1)
- (IN_def_P_expand |> qspecl [‘N0’]
-                  |> fVar_sInst_th “P(a:mem(N0))”  
-                     “?n. IN(n,s) & a = App(iN,n)”) >> 
- strip_tac >> 
- qsuff_tac ‘!a. IN(a,inNs) ==> IN(a,s0)’
- >-- (arw[] >> rpt strip_tac >>
-     first_x_assum (qspecl_then [‘App(iN,n)’] assume_tac) >>
-     fs[iN_inNs] >> drule iN_eq_eq >> fs[]) >>
- assume_tac inN_ind >>
- strip_tac >> first_x_assum match_mp_tac
- (*here why match_mp works but drule not? *) >>
- rpt strip_tac >> arw[] (* 2 *)
- >-- (qexists_tac ‘O’ >> arw[O_def]) >>
- rfs[] >> first_x_assum drule >>
- qexists_tac ‘App(SUC,n)’ >> arw[SUC_def,GSYM App_App_o])
+ strip_tac >> assume_tac iN_Inj >> drule IN_IMAGE_Inj >>
+ arw[] >> 
+ qspecl_then [‘IMAGE(iN,s)’] assume_tac inN_ind >>
+ fs[N_def] >> 
+ pop_assum 
+ (assume_tac o (conv_rule $ (basic_fconv no_conv pull_exists_fconv1))) >>
+ (*think more general on this step*)
+ strip_tac >> first_x_assum irule >> arw[O_def,iN_inNs] >>
+ rpt strip_tac (* 2 *)
+ >-- (pop_assum mp_tac >> pop_assum (K all_tac) >>
+     strip_tac >> fs[IMAGE_def] >>
+     fs[GSYM App_App_o,GSYM SUC_def] >> first_x_assum irule >>
+     qexists_tac ‘a'’ >> arw[]) >>
+ qexists_tac ‘n’>> rw[])
 (form_goal “P(O) & 
   (!n.P(n) ==> P(App(SUC,n)))==> !n:mem(N).P(n)”));
 
@@ -2163,6 +2188,7 @@ e0
 (form_goal “!n. ~(n = O) <=> ?pn.App(SUC,pn) = n”));
 
 
+
 val SUC_eq_eq = prove_store("SUC_eq_eq",
 e0
 (rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
@@ -2172,6 +2198,18 @@ e0
 
 val Suc_def = qdefine_fsym ("Suc",[‘n:mem(N)’]) ‘App(SUC,n)’ |> gen_all
                            |> store_as "Suc_def";
+
+val O_xor_Suc = O_xor_SUC |> rewr_rule[GSYM Suc_def] |> store_as "O_xor_Suc";
+
+val Suc_eq_eq = SUC_eq_eq |> rewr_rule[GSYM Suc_def] 
+                          |> store_as "Suc_eq_eq";
+
+val Suc_NONZERO = SUC_NONZERO |> rewr_rule[GSYM Suc_def]
+                              |> store_as "Suc_NONZERO";
+
+val N_induct = N_ind_P |> rewr_rule[GSYM Suc_def] 
+                       |> store_as "N_induct";
+
 
 val Eqv_def = qdefine_psym ("Eqv",[‘A’,‘B’]) ‘?f:A->B.Bij(f)’
               |> gen_all |> store_as "Eqv_def";

@@ -1,489 +1,223 @@
 
-fun ind_with th (ct,asl,w) = 
-    let 
-        val (P,_) = dest_fvar $ concl (strip_all_and_imp th)
-        val (b,bvs) = strip_forall w
-        val th1 = fVar_Inst [(P,(bvs,b))] th
-    in match_mp_tac th1 (ct,asl,w)
-    end
-
-
 local
-val lemma = 
- fVar_Inst 
-[("P",([("A",mem_sort$ Pow $ Cross N (mk_set "X"))],
-“IN(Pair(O,a:mem(X)),A) &
- (!n x.IN(Pair(n,x),A) ==> IN(Pair(Eval(SUC,n),Eval(f,x)),A))”))] 
-(IN_def_P_expand |> qspecl [‘Pow(N * X)’]) 
-val As_def = lemma |> ex2fsym0 "As" ["a","f"] |> conjE1 
-                   |> gen_all |> GSYM
-val U_ex_lemma = fVar_Inst 
-[("P",([("nx",mem_sort $ Cross N (mk_set "X"))],
-“IN(nx,Eval(BI(N * X),As(a0,f)))”))]
-(Thm_2_4 |> qspecl [‘N * X’]) 
-|> conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all BI_property)
-|> conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all As_def) |> gen_all
-val rel_ex_lemma = 
-fVar_Inst 
-[("P",([("n",mem_sort N),("x",mem_sort (mk_set "X"))],
-“?r.Eval(u0:U~> N * X,r) = Pair(n,x)”))]
-(AX1 |> qspecl [‘N’,‘X’]) |> uex_expand
-val imp_ind_l = 
-fVar_Inst 
-[("P",([("n",mem_sort N)],
-“!x.Holds(R:N~>X,n,x) ==> Holds(R,Eval(SUC,n),Eval(f,x))”))]
-N_ind_P
-val O_case_u_l = 
-fVar_Inst 
-[("P",([("nx",mem_sort $ Cross N (mk_set "X"))],
-“Holds(R,Eval(p1(N,X),nx),Eval(p2(N,X),nx)) & 
- ~(Eval(p1(N,X),nx) = O & Eval(p2(N,X),nx) = x)”))] 
-(IN_def_P_expand |> qspecl [‘(N * X)’]) 
-val ex_R_ss = 
-fVar_Inst 
-[("P",([("mr",mem_sort $ Cross N (mk_set "X"))],
-“Holds(R,Eval(p1(N,X),mr),Eval(p2(N,X),mr)) &
- !n. Eval(p1(N,X),mr) = Eval(SUC,n) ==>
- ?r0.Holds(R,n,r0) & Eval(p2(N,X),mr) = Eval(f:X~>X,r0)”))] 
-(IN_def_P_expand |> qspecl [‘(N * X)’]) 
-val u_R_ss1 = 
-fVar_Inst 
-[("P",([("mr",mem_sort $ Cross N (mk_set "X"))],
-“Holds(R,Eval(p1(N,X),mr),Eval(p2(N,X),mr)) &
- (!x'.Holds(R,Eval(p1(N,X),mr),x') ==> x' = Eval(p2(N,X),mr))”))] 
-(IN_def_P_expand |> qspecl [‘(N * X)’]) 
-val ex_ind_l = 
-fVar_Inst 
-[("P",([("n",mem_sort N)],
-“?x.Holds(R:N~>X,n,x)”))]
-N_ind_P
+val Nind_cl = 
+ “(nx = Pair(O,x0:mem(X)) ==> IN(nx,Nind)) &
+  (!nx0. IN(nx0,Nind) & nx = Pair(Suc(Fst(nx0)),App(f0:X->X,Snd(nx0)))
+    ==> IN(nx,Nind))”
 in
-val Nind_ex = prove_store("Nind_ex",
-e0
-(rpt strip_tac >> 
- qspecl_then [‘X’,‘a’,‘f’] (x_choosel_then ["U","u0"] 
- strip_assume_tac) U_ex_lemma >>
- strip_assume_tac rel_ex_lemma >> pop_assum (K all_tac) >>
- (*qexists_tac ‘R’ >> *)
- qby_tac 
- ‘!n x. Holds(R,n,x) <=>
-  !ss. IN(Pair(O,a),ss) &
-       (!n x. IN(Pair(n,x),ss) ==>
-              IN(Pair(Eval(SUC,n),Eval(f,x)),ss)) ==>
-        IN(Pair(n,x),ss)’
- >-- (arw[] >> rpt strip_tac >>
- fconv_tac 
- (rand_fconv no_conv 
- $ basic_once_fconv no_conv (rewr_fconv (eq_sym "mem"))) >> rw[]) >>
- pop_assum mp_tac >> pop_assum (K all_tac) >> 
- pop_assum (K all_tac) >> strip_tac >>
- qby_tac 
- ‘Holds(R,O,a)’ >-- (arw[] >> rpt strip_tac) >>
- qby_tac
- ‘!n x. Holds(R,n,x) ==> Holds(R,Eval(SUC,n),Eval(f,x))’
- >-- (match_mp_tac imp_ind_l (* irule bug *)>> strip_tac (* 2 *)
-     (*0 case*)
-     >-- (rpt strip_tac >>
-         qsuff_tac ‘Holds(R, O, x) ==>
-         Holds(R, Eval(SUC, O), Eval(f, x))’ 
-         >-- (rpt strip_tac >> first_assum drule >> arw[]) >>
-         arw[] >> rpt strip_tac >> first_assum irule >>
-         last_assum $ irule o iffLR >> arw[]) >>
-     rpt strip_tac >> arw[] >> 
-     rpt strip_tac >> first_assum irule >>
-     qpick_x_assum ‘Holds(R, Eval(SUC, n), x)’ mp_tac >> 
-     arw[] >> rpt strip_tac >> first_assum irule >> arw[]) >>
- qby_tac ‘!x. Holds(R,O,x) ==> x = a’
- >-- (rpt strip_tac >> ccontra_tac >>
-      qsuff_tac ‘?ss. IN(Pair(O,a),ss) & 
-      (!n x.IN(Pair(n,x),ss) ==> IN(Pair(Eval(SUC,n),Eval(f,x)),ss)) &
-      ~(IN(Pair(O,x),ss))’
-      >-- (last_assum (drule o iffLR) >> rpt strip_tac >>
-          qsuff_tac ‘IN(Pair(O, x), ss)’
-          >-- arw[] >>
-          first_x_assum irule >> arw[]) >>
-      x_choose_then "ss" strip_assume_tac O_case_u_l >>
-      pop_assum (K all_tac) >>
-      qby_tac ‘~(IN(Pair(O,x),ss))’
-      >-- (pop_assum (assume_tac o GSYM) >> once_arw[] >>
-          rw[Pair_def]) >>
-      qby_tac ‘IN(Pair(O,a),ss)’
-      >-- (pop_assum (K all_tac) >> pop_assum (assume_tac o GSYM) >>
-           once_arw[] >> rw[Pair_def] >> arw[] >>
-           flip_tac >> first_x_assum accept_tac) >>
-      qexists_tac ‘ss’ >> arw[] >>
-      pop_assum (K all_tac) >> pop_assum (K all_tac) >>
-      pop_assum (assume_tac o GSYM) >> strip_tac >> strip_tac >> 
-      once_arw[] >> rw[Pair_def] >> rpt strip_tac >-- 
-      (first_x_assum irule >> arw[]) >>
-      rw[SUC_NONZERO]) >>
- qby_tac ‘!ss.IN(Pair(O,a),ss) &
-      (!n x.IN(Pair(n,x),ss) ==> IN(Pair(Eval(SUC,n),Eval(f,x)),ss)) ==>
-      !n x. Holds(R,n,x) ==> IN(Pair(n,x),ss)’
- >-- (once_arw[] >> rpt strip_tac >> first_x_assum irule >>
-     arw[]) >>
- x_choose_then "ss" strip_assume_tac ex_R_ss >>
- pop_assum (K all_tac) >>
- pop_assum (assume_tac o GSYM) >>
- qby_tac ‘!n x. Holds(R,n,x) ==> IN(Pair(n,x),ss)’
- >-- (first_x_assum match_mp_tac >> once_arw[] >>
-      rw[Pair_def] >> strip_tac (* 2 *)
-      >-- (strip_tac >-- first_x_assum accept_tac >>
-           flip_tac >> rw[SUC_NONZERO]) >>
-      rpt strip_tac (*2  *)
-      >-- (first_x_assum irule >> first_x_assum accept_tac) >>
-      qexists_tac ‘x’ >> rw[] >>
-      fs[SUC_eq_eq]) >>
- pop_assum mp_tac >>
- last_x_assum mp_tac >> last_x_assum mp_tac >> 
- last_x_assum (assume_tac o GSYM) >> once_arw[] >>
- rw[Pair_def] >> rpt strip_tac >>
- qby_tac
- ‘!n x. Holds(R,Eval(SUC,n),x) ==> 
-  ?x0. Holds(R,n,x0) & x = Eval(f,x0)’
- >-- (rpt strip_tac >> first_x_assum drule >>
-     pop_assum strip_assume_tac >> 
-     first_x_assum (qspecl_then [‘n’] assume_tac) >> fs[] >>
-     qexists_tac ‘r0’ >> arw[]) >>
- x_choose_then "ss1" strip_assume_tac u_R_ss1 >>
- pop_assum (K all_tac) >>
- pop_assum (assume_tac o GSYM) >>
-
- qby_tac 
- ‘!n x. Holds(R,n,x) ==> IN(Pair(n,x),ss1)’
- >-- (first_x_assum match_mp_tac >> once_arw[] >>
-      rw[Pair_def] >> strip_tac (* 2 *)
-      >-- (strip_tac (*2*)>> first_x_assum accept_tac) >>
-      rpt strip_tac (* 2 *)
-      >-- (first_x_assum irule >> first_x_assum accept_tac) >>
-      first_assum (qspecl_then [‘n’,‘x'’] assume_tac) >>
-      first_x_assum drule >> pop_assum strip_assume_tac >> 
-      once_arw[] >>
-      qsuff_tac ‘x0 = x’
-      >-- (strip_tac >> arw[]) >>
-      first_x_assum irule >> first_x_assum accept_tac) >>
- pop_assum mp_tac >> once_arw[] >> rw[Pair_def] >>
- rpt strip_tac >> 
- qby_tac
- ‘!n x.Holds(R,n,x) ==>
-  !x'. Holds(R,n,x') ==> x' = x’
- >-- (rpt strip_tac >> first_assum drule >>
-      first_x_assum drule >> pop_assum strip_assume_tac >>
-      flip_tac >> first_x_assum irule >>
-      first_x_assum accept_tac) >>
- qby_tac
- ‘!n.?x. Holds(R,n,x)’
- >-- (irule ex_ind_l >> rpt strip_tac >--
-     (last_x_assum drule >> qexists_tac ‘Eval(f,x)’ >> arw[]) >>
-     qexists_tac ‘a’ >> arw[]) >>
- qby_tac
- ‘isFun(R)’
- >-- (rw[Fun_expand] >> arw[] >> rpt strip_tac >>
-      first_x_assum drule >> first_x_assum irule >> arw[]) >>
- qexists_tac ‘R’ >> arw[] >>
- drule $ GSYM Eval_def >> flip_tac >> once_arw[] >>
- strip_tac >-- first_x_assum accept_tac >>
- strip_tac >>
- drule Holds_Eval >> 
- first_x_assum (qspecl_then [‘n’] assume_tac) >> 
- last_x_assum irule >> first_x_assum accept_tac
- )
-(form_goal
- “!X a:mem(X) f:X~>X. isFun(f) ==> 
- ?u:N~>X. isFun(u) & Eval(u,O) = a & 
- !n:mem(N).Eval(u,Eval(SUC,n)) = Eval(f,Eval(u,n))”));
+val (Nind_incond,x1) = mk_incond Nind_cl;
+val Nindf_ex = mk_fex Nind_incond x1;
+val Nindf_def = mk_fdef "Nindf" Nindf_ex;
+val Nindf_monotone = mk_monotone Nindf_def;
+val Nind's_def = mk_prim Nindf_def;
+val Ninds_def = mk_LFP (rastt "Nind's(f0:X->X,x0)");
+val Ninds_cond = mk_cond Ninds_def Nind's_def;
+val Ninds_SS = mk_SS Ninds_def Nind's_def;
+val Nind_rules0 = mk_rules Nindf_monotone Ninds_SS Ninds_cond;
+val Nind_cases0 = mk_cases Nindf_monotone Nind_rules0 Ninds_cond;
+val Nind_ind0 = mk_ind Ninds_cond;
+val Nind_ind1 = mk_ind1 Nindf_def Nind_ind0;
+val Nind_ind2 = mk_ind2 Nind_ind1; 
+val Nind_cases1 = mk_case1 Nindf_def Nind_cases0; 
+val Nind_rules1 = mk_rules1 Nindf_def Nind_rules0; 
+val Nind_rules2 = mk_rules2 Nind_rules1; 
+val Nind_rules3 = mk_rules3 Nind_rules2;
 end
 
+val Nind_ind = Nind_ind2 |> store_as "Nind_ind";
+val Nind_cases = Nind_cases1 |> store_as "Nind_cases";
+val Nind_rules = Nind_rules3 |> store_as "Nind_rules";
 
-
-local 
-val ind_l = 
-fVar_Inst 
-[("P",([("n",mem_sort N)],
-“Eval(u1:N~>X,n) = Eval(u2,n)”))]
-N_ind_P
-in
-val Nind_unique = prove_store("Nind_unique",
-e0
-(rpt strip_tac >> 
- irule $ iffRL FUN_EXT >> 
- arw[] >> irule ind_l >> arw[] >> rpt strip_tac >> arw[])
-(form_goal
- “!X a:mem(X) f:X~>X. isFun(f) ==>
-  (!u1:N~>X u2. (isFun(u1) & Eval(u1,O) = a & 
-               (!n:mem(N).Eval(u1,Eval(SUC,n)) = Eval(f,Eval(u1,n))) & 
-               isFun(u2) & Eval(u2,O) = a & 
-               (!n:mem(N).Eval(u2,Eval(SUC,n)) = Eval(f,Eval(u2,n))))==>
-  u1 = u2)”));
-end
-
-
+(* !(x' : mem(X)). x'# = x0 | (?(nx0 : mem(N * X)). F) ==> x'# = x0
+ simp out the F*)
 val Nind_uex = prove_store("Nind_uex",
 e0
-(rpt strip_tac >> uex_tac >>
- drule Nind_ex >> pop_assum strip_assume_tac >>
- qexists_tac ‘u’ >> arw[] >> rpt strip_tac >>
- irule Nind_unique >> 
- arw[] >> strip_tac 
- >-- (qexists_tac ‘f’ >> arw[]) >>
- qexists_tac ‘a’ >> arw[])
-(form_goal
- “!X a:mem(X) f:X~>X. isFun(f) ==>
- ?!u:N~>X. isFun(u) & Eval(u,O) = a & 
- !n:mem(N).Eval(u,Eval(SUC,n)) = Eval(f,Eval(u,n))”));
-
-
-
-val Nind_def = Nind_uex |> spec_all |> undisch
-                        |> uex_expand
-                        |> ex2fsym0 "Nind" ["a","f"]
-                        |> qgen ‘a’
-                        |> disch_all
-                        |> gen_all
-                        |> store_as "Nind_def";
-
-val Nind_property = Nind_def |> spec_all |> undisch |> spec_all
-                        |> conjE1 |> qgen ‘a’
-                        |> disch_all |> gen_all
-                        |> store_as "Nind_property";
-
-val Nind_Fun = Nind_property |> strip_all_and_imp |> conjE1
-                             |> gen_all |> disch_all |> gen_all
-                             |> store_as "Nind_Fun";
-
-
-val Nind_eqns = Nind_property |> strip_all_and_imp |> conjE2
-                             |> gen_all |> disch_all |> gen_all
-                             |> store_as "Nind_Fun";
-
-val SUC_Fun = SUC_isFun; 
-
-val Eval_o_eq0 = prove_store("Eval_o_eq",
-e0
-(rpt strip_tac >>
- qsuff_tac
- ‘Eval(g1, Eval(f1, a)) = Eval(g1 o f1, a) &
-  Eval(g2, Eval(f2, a)) = Eval(g2 o f2, a)’
- >-- (strip_tac >> arw[]) >> strip_tac >> irule o_Eval >>
+(strip_tac >> strip_tac >> strip_tac >> 
+ ind_with N_induct >> strip_tac (* 2 *)
+ >-- (uex_tac >> qexists_tac ‘x0’ >>
+     rw[Nind_rules] >> once_rw[Nind_cases] >> rw[Pair_eq_eq,GSYM Suc_NONZERO] >>
+     rpt strip_tac) >>
+ rpt strip_tac >> uex_tac >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘App(f0,x)’ >>  
+ drule (Nind_rules |> conjE2) >> fs[Pair_def'] >>
+ rpt strip_tac >> drule $ iffLR Nind_cases >>
+ fs[Pair_eq_eq,Suc_NONZERO] >>
+ qsspecl_then [‘nx0’] (x_choosel_then ["n1","x1"] strip_assume_tac) 
+ Pair_has_comp >> fs[Pair_def',Suc_eq_eq] >>
+ qby_tac ‘x1 = x’ 
+ >-- (first_x_assum irule >> arw[]) >> 
  arw[])
-(form_goal
- “!A B f1:A~>B C f2:A~>C D g1:B~>D g2:C~>D.
-  isFun(f1) ==> isFun(f2) ==> isFun(g1) ==> isFun(g2) ==>
-  !a.Eval(g1,Eval(f1,a)) = Eval(g2,Eval(f2,a)) <=> 
-     Eval(g1 o f1,a) = Eval(g2 o f2,a)”));
+(form_goal “!X x0:mem(X) f0:X->X. !n:mem(N).?!x. IN(Pair(n,x),Ninds(f0,x0))”));
 
-val Eval_o_eq = Eval_o_eq0 |> strip_all_and_imp |> gen_all
-                           |> disch “isFun(g2:C~>D)”
-                           |> gen_all
-                           |> disch “isFun(g1:B~>D)”
-                           |> gen_all
-                           |> disch “isFun(f2:A~>C)”
-                           |> gen_all
-                           |> disch “isFun(f1:A~>B)”
-                           |> gen_all
-                           |> store_as "Eval_o_eq";
-
-val Eval_eq_o = GSYM Eval_o_eq |> store_as "Eval_eq_o";
-
-local
-val l = 
-(fVar_Inst [("P",([("d",mem_sort ONE),("x",mem_sort $ mk_set ("A"))],
-“d = dot & x = a:mem(A)”))] (AX1 |> qspecl [‘1’,‘A’])) 
-|> uex_expand
-in
-val El_ex = prove_store("El_ex",
-e0
-(rpt strip_tac >> strip_assume_tac l >>
- qexists_tac ‘R’ >> 
- qby_tac ‘isFun(R)’ >-- (rw[Fun_expand] >> arw[] >>
- rpt strip_tac >-- (qexists_tac ‘a’ >> rw[dot_def]) >> arw[]) >>
- arw[] >> drule $ GSYM Eval_def >> flip_tac >> arw[])
-(form_goal
- “!A a:mem(A).?el:1~>A.isFun(el) & Eval(el,dot) = a”))
-end
+val Nrec_def = P2fun' |> qspecl [‘N’,‘X’] 
+                      |> fVar_sInst_th “P(n:mem(N),x:mem(X))”
+                          “IN(Pair(n,x),Ninds(f0:X->X,x0))”
+                      |> C mp (Nind_uex |> spec_all
+                                        |> qgen ‘n’)
+                      |> qSKOLEM "Nrec" [‘x0’,‘f0’]
+                      |> qgenl [‘X’,‘x0’,‘f0’]
+                      |> store_as "Nrec_def";
 
 
-val El_def = El_ex |> spec_all |> ex2fsym0 "El" ["a"]
-                   |> gen_all
-                   |> store_as "El_def";
 
-
-val Eval_El = prove_store("Eval_El",
+val Nrec_O = prove_store("Nrec_O",
 e0
 (rpt strip_tac >>
- qspecl_then [‘A’,‘a’] strip_assume_tac El_def >> 
- rw[dot_def] >> arw[]
- )
+ qsspecl_then [‘x0’,‘f0’,‘O’] assume_tac Nrec_def >>
+ drule $ iffLR Nind_cases >> fs[Pair_eq_eq,GSYM Suc_NONZERO])
+(form_goal “!X x0 f0:X->X. App(Nrec(x0,f0),O) = x0”));
+
+val App_Nrec_Ninds = prove_store("App_Nrec_Ninds",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >--
+(pop_assum (assume_tac o GSYM) >> arw[Nrec_def]) >>
+qsspecl_then [‘x0’,‘f0’,‘n’] assume_tac Nrec_def >>
+qsspecl_then [‘x0’,‘f0’,‘n’] assume_tac Nind_uex >>
+pop_assum (strip_assume_tac o uex_expand) >>
+qby_tac ‘App(Nrec(x0, f0), n) = x' & x = x'’ 
+>-- (strip_tac >> first_x_assum irule >> arw[]) >>
+arw[])
+(form_goal “!X x0 f0:X->X.!n x. App(Nrec(x0,f0),n) = x <=> IN(Pair(n,x),Ninds(f0,x0))”));
+
+
+val Nrec_Suc = prove_store("Nrec_Suc",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘x0’,‘f0’,‘Suc(n)’] assume_tac Nrec_def >>
+ drule $ iffLR Nind_cases >> fs[Pair_eq_eq,Suc_NONZERO,Suc_eq_eq] >>
+ qsspecl_then [‘nx0’] (x_choosel_then ["n1","x1"] assume_tac) 
+ Pair_has_comp >> fs[Pair_def'] >>
+ qsuff_tac ‘x1 = App(Nrec(x0, f0), n1)’ 
+ >-- (strip_tac >> arw[]) >>
+ flip_tac >> arw[App_Nrec_Ninds])
+(form_goal “!X x0 f0:X->X n. App(Nrec(x0,f0),Suc(n)) = 
+ App(f0,App(Nrec(x0,f0),n))”));
+
+val Nrec_unique = prove_store("Nrec_unique",
+e0
+(rpt strip_tac >> rw[GSYM FUN_EXT] >> ind_with N_induct >>
+ arw[Nrec_O,Nrec_Suc] >> rpt strip_tac >> 
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ rw[GSYM App_App_o,Suc_def] >> arw[])
 (form_goal
- “!A a:mem(A) x. Eval(El(a),x) = a”));
+ “!X x0 f:X->X r:N->X. App(r,O) = x0 & 
+  r o SUC = f o r ==> r = Nrec(x0,f)”));
+
+
+
+val Nrec_Suc_eqn = Nrec_Suc |> rewr_rule[GSYM App_App_o,Suc_def] 
+                            |> spec_all
+                            |> qgen ‘n’
+                            |> mp (FUN_EXT |> qspecl
+                                           [‘N’,‘X’,‘Nrec(x0, f0:X->X) o SUC’,
+                                            ‘f0 o Nrec(x0, f0:X->X)’] 
+                                           |> iffLR) |> qgenl [‘X’,‘x0’,‘f0’]
+                            |> store_as "Nrec_Suc_eqn";
+
+val El_def = 
+    fun_tm_compr (dest_var (rastt "d:mem(1)")) (rastt "a:mem(A)")
+                 |> qSKOLEM "El" [‘a’]
+                 |> allE (rastt "dot")
+                 |> gen_all |> store_as "El_def";
 
 val El_Fun = El_def |> spec_all |> conjE1 |> gen_all
                     |> store_as "El_Fun";
 
 
-val Nind_alt = prove_store("Nind_O",
-e0
-(rpt strip_tac >--
- (drule Nind_def >> arw[]) >-- (drule Nind_def >> arw[]) 
- >-- (drule Nind_def >> irule $ iffRL FUN_EXT >> 
-     first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
-     qby_tac ‘isFun(Nind(a,f) o SUC) & isFun(f o Nind(a, f))’
-     >-- (strip_tac >> irule o_Fun >> arw[SUC_isFun]) >>
-     arw[] >> strip_tac >> irule $ iffRL Eval_eq_o >>
-     arw[SUC_Fun])
- (*irule does not work without strip*) >>
- drule Nind_def >>
- first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
- first_x_assum irule >> arw[] >> 
- strip_tac >> irule $ iffLR Eval_eq_o >>
- arw[SUC_Fun]
- )
-(form_goal
- “!X  f:X~>X. isFun(f) ==>
- !a:mem(X).isFun(Nind(a,f)) & Eval(Nind(a,f),O) = a & 
- Nind(a,f) o SUC = f o Nind(a,f) &
- (!u. (isFun(u) & Eval(u,O) = a & u o SUC = f o u) ==> u = Nind(a,f))”));
-
-
-val is_Nind = Nind_alt |> strip_all_and_imp
-                       |> conjE2
-                       |> conjE2
-                       |> conjE2 |> gen_all
-                       |> disch_all |> gen_all
-                       |> store_as "is_Nind";
 
 val El_eq_eq = prove_store("El_eq_eq",
 e0
-(rpt strip_tac >> dimp_tac >> strip_tac 
- >-- (qby_tac ‘isFun(El(a)) & isFun(El(b))’
-     >-- rw[El_Fun] >> 
-     drule FUN_EXT >> fs[] >> 
-     last_x_assum (qspecl_then [‘dot’] assume_tac) >>
-     fs[El_def]) >> 
- arw[])
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ drule $ iffRL FUN_EXT >>
+ first_x_assum (qspecl_then [‘dot’] assume_tac) >>
+ fs[El_def])
 (form_goal
  “!A a:mem(A) b. El(a) = El(b) <=> a = b”));
 
 
-
-
-val Eval_o_El = prove_store("Eval_o_El",
+val App_o_El = prove_store("App_o_El",
 e0
-(rpt strip_tac >> flip_tac >> irule $ iffRL Eval_o_l >>
- arw[El_Fun] >> rw[El_def])
+(rpt strip_tac >> rw[App_App_o,El_def])
 (form_goal
- “!A B f:A~>B.isFun(f) ==>
-  !a. Eval(f,a) = Eval(f o El(a),dot)”));
+ “!A B f:A->B.
+  !a. App(f,a) = App(f o El(a),dot)”));
 
-val Nind_El = prove_store("Nind_el",
+val Nrec_El = prove_store("Nind_el",
 e0
-(strip_tac >> strip_tac >> strip_tac >>
- drule Nind_def >> strip_tac >>
- first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
- arw[] >> rpt strip_tac (* 3 *)
- >-- irule $ iffRL FUN_EXT >> rpt strip_tac (* 3 *)
-     >-- (irule $ iffRL Eval_o_l >> arw[Eval_El,El_Fun])
-     >-- (irule o_Fun >> arw[El_Fun] (* arw bug that does not use El_Fun *)
-         >> rw[El_Fun]) >>
-     rw[El_Fun]
- >-- (irule $ iffRL FUN_EXT >> rpt strip_tac (*3*)
-     >-- (irule $ iffLR Eval_o_eq >> 
-          arw[SUC_Fun]) 
-     >-- (irule o_Fun >> arw[SUC_Fun]) >>
-     irule o_Fun >> arw[]) >>
- first_x_assum irule >> arw[] >> rpt strip_tac (* 2 *)
- >-- (irule $ iffRL Eval_o_eq >> arw[] >> rw[SUC_Fun]) >>
- drule Eval_o_El >> arw[] >> rw[El_def])
+(rpt strip_tac (* 3 *)
+ >-- rw[GSYM FUN_EXT,App_App_o,dot_def,El_def,Nrec_O]  
+ >-- (rw[GSYM FUN_EXT,App_App_o,dot_def,El_def,Nrec_Suc] >>
+     rw[GSYM App_App_o,Nrec_Suc_eqn]) >>
+ irule Nrec_unique >> arw[] >>
+ rev_drule $ iffRL FUN_EXT >>
+ first_x_assum (qspecl_then [‘dot’] assume_tac) >>
+ fs[App_App_o,El_def])
 (form_goal
- “!X  f:X~>X. isFun(f) ==>
- !a:mem(X).isFun(Nind(a,f)) & Nind(a,f) o El(O) = El(a) & 
- Nind(a,f) o SUC = f o Nind(a,f) &
- (!u. (isFun(u) & u o El(O) = El(a) & u o SUC = f o u) ==> u = Nind(a,f))”));
+ “!X a f:X->X.  Nrec(a,f) o El(O) = El(a) & 
+   Nrec(a,f) o SUC = f o Nrec(a,f) &
+ (!u. (u o El(O) = El(a) & u o SUC = f o u) ==> u = Nrec(a,f))”));
 
 
 
-val Eval_El_mem = prove_store("Eval_El_mem",
+val App_El_mem = prove_store("App_El_mem",
 e0
 (rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
  >-- (irule $iffRL FUN_EXT >> rpt strip_tac (* 3 *)
-     >-- (rw[Eval_El] >> irule $iffRL Eval_o_l >>
-         arw[Eval_El,El_Fun]) 
+     >-- (rw[App_El] >> irule $iffRL App_o_l >>
+         arw[App_El,El_Fun]) 
      >-- (irule o_Fun >> arw[El_Fun]) >>
      rw[El_Fun]) >>
- qby_tac ‘Eval(f o El(a),dot) = Eval(El(b),dot)’ 
+ qby_tac ‘App(f o El(a),dot) = App(El(b),dot)’ 
  >-- arw[] >>
- pop_assum mp_tac >> rw[Eval_El] >> strip_tac >>
- qsuff_tac ‘Eval(f o El(a), dot) = Eval(f,a)’ 
+ pop_assum mp_tac >> rw[App_El] >> strip_tac >>
+ qsuff_tac ‘App(f o El(a), dot) = App(f,a)’ 
  >-- (strip_tac >> arw[] >> fs[]) >>
- irule $ iffRL Eval_o_l >>
+ irule $ iffRL App_o_l >>
  arw[El_def])
 (form_goal
- “!A B f:A~>B. isFun(f) ==> !a b. Eval(f,a) = b <=>
+ “!A B f:A->B.!a b. App(f,a) = b <=>
  f o El(a) = El(b)”));
 
-
-
+val Nrec_O_SUC = prove_store("Nrec_O_SUC",
+e0
+(flip_tac >> irule Nrec_unique >> rw[IdL,IdR,Id_def])
+(form_goal
+ “Nrec(O,SUC) = Id(N)”));
+ 
 val comm_with_SUC_id0 = prove_store("comm_with_SUC_id0",
 e0
-(qspecl_then [‘N’,‘SUC’] strip_assume_tac Nind_def >>
- assume_tac SUC_isFun >> first_x_assum drule >>
- first_x_assum (qspecl_then [‘O’] strip_assume_tac) >> 
- rpt strip_tac >>
- qsuff_tac ‘f = Nind(O,SUC) & id(N) = Nind(O,SUC)’
- >-- (strip_tac >> arw[]) >> 
- strip_tac >> first_x_assum irule
- >-- (arw[] >> strip_tac >> 
-      qby_tac 
-      ‘Eval(f, Eval(SUC, n)) = Eval(f o SUC, n) & 
-       Eval(SUC, Eval(f, n)) = Eval(SUC o f, n)’
-      >-- (strip_tac >> irule o_Eval >> arw[]) >>
-      arw[]) >>
- rw[Eval_id,id_Fun]
- )
+(rpt strip_tac >> rw[GSYM Nrec_O_SUC] >> 
+ irule Nrec_unique >> arw[])
 (form_goal
- “!f:N~>N. isFun(f) ==> Eval(f,O) = O & f o SUC = SUC o f ==> f = id(N)”));
+ “!f:N->N. App(f,O) = O & f o SUC = SUC o f ==> f = Id(N)”));
 
 
 val comm_with_SUC_id = prove_store("comm_with_SUC_id",
 e0
-(strip_tac >> strip_tac >> 
- drule comm_with_SUC_id0 >> drule Eval_El_mem >>
- fs[])
+(rpt strip_tac >> irule comm_with_SUC_id0 >> arw[] >>
+ rev_drule $ iffRL FUN_EXT >> 
+ first_x_assum (qspecl_then [‘dot’] assume_tac) >>
+ fs[App_App_o,El_def])
 (form_goal
- “!f:N~>N. isFun(f) ==> f o El(O) = El(O) & f o SUC = SUC o f ==> f = id(N)”));
+ “!f:N->N. f o El(O) = El(O) & f o SUC = SUC o f ==> f = Id(N)”));
+
+
+val o_assoc = prove_store("o_assoc",
+e0
+(rw[GSYM FUN_EXT,App_App_o])
+(form_goal
+ “!A B f:A->B C g:B->C D h:C->D.
+  (h o g) o f = h o g o f”));
 
 
 val Pa_distr = prove_store("Pa_distr",
 e0
 (rpt strip_tac >> irule is_Pa >> 
- qspecl_then [‘A’,‘X’,‘a1’,‘B’,‘a2’] strip_assume_tac p12_of_Pa >>
- rfs[] >> rw[GSYM o_assoc] >> arw[] >> 
- qspecl_then [‘A’,‘X’,‘a1’,‘B’,‘a2’] strip_assume_tac Pa_Fun >>
- rfs[] >> rpt strip_tac >>
- irule o_Fun >> arw[])
+ rw[p12_of_Pa,GSYM o_assoc])
 (form_goal
-“!A X a1:X ~>A . isFun(a1) ==> !B a2:X~>B.isFun(a2) ==>
-  !X0 x:X0~>X.isFun(x) ==> Pa(a1,a2) o x = 
-Pa(a1 o x,a2 o x) ”));
-
-
-val Pa_distr' = Pa_distr |> strip_all_and_imp |> conj_all_assum
-                         |> disch_all
-                         |> gen_all
-                         |> store_as "Pa_distr'"; 
-
-
-
-
-val p1_Fun = p12_Fun |> spec_all |> conjE1 |> gen_all
-                       |> store_as "p1_Fun";
-
-
-
-val p2_Fun = p12_Fun |> spec_all |> conjE2 |> gen_all
-                       |> store_as "p2_Fun";
+“!A X a1:X ->A B a2:X->B.
+  !X0 x:X0->X. Pa(a1,a2) o x = Pa(a1 o x,a2 o x) ”));
 
 
 val Pa_eq_eq = prove_store("Pa_eq_eq",
@@ -496,24 +230,19 @@ e0
  qsspecl_then [‘f2’,‘g2’] assume_tac p12_of_Pa >> 
  rfs[])
 (form_goal
- “!A X f1:X~>A.isFun(f1) ==> !f2:X~>A.isFun(f2) ==>
-  !B g1:X~>B. isFun(g1) ==> !g2:X~>B. isFun(g2) ==> 
+ “!A X f1:X->A f2:X->A B g1:X->B g2:X->B. 
   (Pa(f1,g1) = Pa(f2,g2) <=> f1 = f2 & g1 = g2)”));
 
 
-
-val Pa_eq_eq' = prove_store("Pa_eq_eq'",
-e0
-(rpt strip_tac >> irule Pa_eq_eq >> arw[])
-(form_goal
- “!A X f1:X~>A f2 B g1:X~>B g2.isFun(f1) & isFun(f2) & isFun(g1) & isFun(g2) ==> 
-  (Pa(f1,g1) = Pa(f2,g2) <=> f1 = f2 & g1 = g2)”));
-
+(*
 
 val Thm1_case1_comm_condition_left = prove_store(
 "Thm1_case1_comm_condition_left",
 e0
-(rpt strip_tac >> qspecl_then [‘N’] assume_tac id_Fun >>
+(rw[Pa_eq_eq]
+
+
+rpt strip_tac >> qspecl_then [‘N’] assume_tac Id_Fun >>
  drule Pa_distr >> first_x_assum rev_drule >>
  qspecl_then [‘N’,‘O’] assume_tac El_Fun >>
  first_x_assum drule >> arw[idL] >>
@@ -526,8 +255,8 @@ e0
      fs[]) >>
  arw[])
 (form_goal
- “!B f:N~>B. isFun(f) ==> !g:1~>B. isFun(g) ==>
- (Pa(id(N),f) o El(O) = Pa(El(O),g) <=> f o El(O) = g)”));
+ “!B f:N->B g:1->B. 
+ (Pa(Id(N),f) o El(O) = Pa(El(O),g) <=> f o El(O) = g)”));
 
 
 val Thm1_case1_comm_condition_right = prove_store(
@@ -588,7 +317,7 @@ val Holds_El = prove_store("Holds_El",
 e0
 (rpt strip_tac >>  
  qspecl_then [‘A’,‘a’] strip_assume_tac El_def >>
- drule Eval_def >> arw[] >> flip_tac >> arw[dot_def])
+ drule App_def >> arw[] >> flip_tac >> arw[dot_def])
 (form_goal
  “!A a:mem(A) d. Holds(El(a),d,a)”));
 
@@ -609,19 +338,19 @@ e0
  arw[] >> drule Dot_def >> 
  first_x_assum (qspecl_then [‘dot’] strip_assume_tac) >>
  strip_tac >> flip_tac >> first_x_assum irule >>
- qexists_tac ‘dot’ >> drule Holds_Eval >> arw[])
+ qexists_tac ‘dot’ >> drule Holds_App >> arw[])
 (form_goal
  “!X f:1~>X. isFun(f) ==> El(Dot(f)) = f”));
+*)
 
-
-
+ 
 val to_P_component = prove_store("to_P_component",
 e0
-(rpt strip_tac >> irule is_Pa >> arw[] >> strip_tac >> irule o_Fun >>
- arw[] >> rw[p12_Fun])
+(rpt strip_tac >> flip_tac >> irule is_Pa >> rw[])
 (form_goal
- “!A B X f:X~>A * B. isFun(f) ==> f = Pa(p1(A,B) o f,p2(A,B) o f)”));
+ “!A B X f:X->A * B.  Pa(p1(A,B) o f,p2(A,B) o f) = f”));
 
+(*
 val is_Nind = Nind_El |> spec_all |> undisch |>spec_all |> conjE2
                       |> conjE2 |> conjE2
                       |> disch_all |> gen_all
@@ -975,107 +704,41 @@ e0
   Tp(f) o El(O) = Tp1(g) & Tp(h o l) o Pa(id(N),Tp(f)) = Tp(f) o SUC)
   ”));
 
+*)
+
+val Thm1_case_1 = prove_store("Thm1_case_1",
+e0
+cheat
+(form_goal
+ “!B g:1->B h:N * B -> B. 
+ ?!f:N->B.  f o El(O) = g & f o SUC = h o Pa(Id(N),f)”));
+
+
 
 
 val Thm1 = prove_store("Thm1",
 e0
-(rpt strip_tac >>
- abbrev_tac “Tp(g:A~>B o p1(A,1)) = g'” >>
- abbrev_tac “Pa(
- Pa(p1(A,N * Exp(A,B)), p1(N,Exp(A,B)) o p2(A,N * Exp(A,B))),
- Ev(A,B) o 
- Pa(p1(A,N * Exp(A,B)), p2(N,Exp(A,B)) o p2(A,N * Exp(A,B)))) = l” >>
- abbrev_tac “Tp(h:(A * N) * B~>B o l:A * N * Exp(A,B) ~> (A * N) * B) = h'” >>
- qspecl_then [‘Exp(A,B)’,‘g'’,‘h'’] assume_tac Thm1_case_1 >> 
- qspecl_then [‘A’,‘1’] assume_tac p12_Fun >>
- qspecl_then [‘A’,‘N * Exp(A,B)’] assume_tac p12_Fun >>
- qspecl_then [‘A * N’] assume_tac id_Fun >>
- assume_tac SUC_Fun >>
- qspecl_then [‘A’,‘N’] assume_tac p12_Fun >>
- qspecl_then [‘N’,‘Exp(A,B)’] assume_tac p12_Fun >>
- qspecl_then [‘A’,‘B’] assume_tac Ev_Fun >>
- qsspecl_then [‘p2(A,N)’,‘SUC’] assume_tac o_Fun >> rfs[] >>
- qsspecl_then [‘p1(A,N)’,‘SUC o p2(A,N)’] assume_tac Pa_Fun >> rfs[] >>
- qspecl_then [‘N’] assume_tac id_Fun >> 
- qsspecl_then [‘p2(A, N * Exp(A, B))’,‘p2(N, Exp(A, B))’] 
- assume_tac o_Fun >> rfs[] >>
- qsspecl_then [‘p1(A, N * Exp(A, B))’,‘p2(N, Exp(A, B)) o
-                 p2(A, N * Exp(A, B))’] assume_tac Pa_Fun >> rfs[] >>
- qsspecl_then [‘Pa(p1(A, N * Exp(A, B)), p2(N, Exp(A, B)) o
-                 p2(A, N * Exp(A, B)))’,‘Ev(A,B)’] assume_tac o_Fun >>
- rfs[] >> 
- qsspecl_then [‘p2(A, N * Exp(A, B))’,‘p1(N, Exp(A, B))’]
- assume_tac o_Fun >> rfs[] >>
- qsspecl_then [‘p1(A, N * Exp(A, B))’,‘p1(N, Exp(A, B)) o p2(A, N * Exp(A, B))’] assume_tac Pa_Fun >> rfs[] >>
- qsspecl_then [‘Pa(p1(A, N * Exp(A, B)), p1(N, Exp(A, B)) o p2(A, N * Exp(A, B)))’,‘Ev(A, B) o
-                Pa(p1(A, N * Exp(A, B)), p2(N, Exp(A, B)) o
-                 p2(A, N * Exp(A, B)))’] assume_tac Pa_Fun >> rfs[] >>
- qsspecl_then [‘l’,‘h’] assume_tac o_Fun >> rfs[] >>
- qsspecl_then [‘h o l’] assume_tac Tp_Fun >> rfs[] >> 
- qsspecl_then [‘p1(A,1)’,‘g’] assume_tac o_Fun >> rfs[] >>
- qsspecl_then [‘g o p1(A,1)’] assume_tac Tp_Fun >> rfs[] >>
- fs[] >>
- qpick_x_assum
- ‘?!f:N~> Exp(A,B).
-   isFun(f) & f o El(O) = g' & f o SUC = h' o Pa(id(N), f)’
- (assume_tac o uex_expand) >>
- pop_assum (x_choose_then "fb" strip_assume_tac) >>
- qabbrev_tac ‘Ev(A,B) o Pa(p1(A,N),fb o p2(A,N)) = f’ >>
- qsspecl_then [‘p2(A,N)’,‘fb’] assume_tac o_Fun >> rfs[] >>
- qsspecl_then [‘p1(A,N)’,‘fb o p2(A,N)’] assume_tac Pa_Fun >> rfs[] >>
- qsspecl_then [‘Pa(p1(A, N), fb o p2(A, N))’,‘Ev(A, B)’] 
- assume_tac o_Fun >> rfs[] >> 
- qsspecl_then [‘f’] assume_tac Tp_Fun >> rfs[] >>
- qsspecl_then [‘id(N)’,‘Tp(f)’] assume_tac Pa_Fun >> rfs[] >>
- qsspecl_then [‘h o l’] assume_tac Tp_Fun >> rfs[] >>
- qby_tac ‘Tp(f) = fb’ >--
- (fconv_tac (rewr_fconv (eq_sym "rel")) >> irule is_Tp >> arw[]) >>
- qexists_tac ‘f’ >> strip_tac >>
- assume_tac Thm1_comm_eq_condition >>
- qsuff_tac
- ‘(isFun(f0) & 
-  Tp(f0) o El(O) = Tp1(g) &
-                   Tp(h o l) o Pa(id(N), Tp(f0)) = Tp(f0) o SUC) <=>
-  f0 = f’ 
- >-- (strip_tac >> dimp_tac >> disch_tac >--
-     (first_x_assum (qsspecl_then [‘f0’,‘g’,‘h’] assume_tac) >>
-     qby_tac ‘isFun(f0) & isFun(h) & isFun(g)’ >-- arw[] >>
-     first_x_assum drule >> first_x_assum drule >>
-     rfs[] >> first_x_assum (irule o iffLR) >> arw[]) >>
-     arw[] >> 
-     first_x_assum (qsspecl_then [‘f’,‘g’,‘h’] assume_tac) >>
-     qby_tac ‘isFun(f) & isFun(h) & isFun(g)’ >-- fs[] >>
-     first_x_assum drule >> first_x_assum drule >> arw[] >>
-     arw[GSYM Tp1_def]) >>  
- qby_tac
- ‘Tp(f) o El(O) = Tp1(g) & 
-  Tp((h o l)) o Pa(id(N), Tp(f)) = Tp(f) o SUC’
- >-- arw[GSYM Tp1_def] >>
- arw[] >> dimp_tac >> strip_tac
- >-- (irule $ iffLR Tp_eq >> arw[] >>
-     first_x_assum irule >> pop_assum (assume_tac o GSYM) >> arw[] >>
-     qpick_x_assum ‘Tp(f0) o El(O) = Tp1(g)’ (assume_tac o GSYM) >>
-     arw[] >> fs[GSYM Tp1_def] >>
-     irule Tp_Fun >> arw[]) >>
- arw[] >> fs[GSYM Tp1_def])
+cheat
 (form_goal
- “!A B g:A~>B h:(A * N) * B ~>B. isFun(g) & isFun(h) ==> 
- ?f:A * N ~>B. !f0.(isFun(f0) &
-   f0 o Pa(p1(A,1),El(O) o p2(A,1)) = g o p1(A,1) & 
-  h o Pa(id(A * N),f0) = f0 o Pa(p1(A,N), SUC o p2(A,N))) <=> f0 = f”));
+ “!A B g:A->B h:(A * N) * B ->B. 
+ ?f:A * N ->B. !f0.
+ (f0 o Pa(p1(A,1),El(O) o p2(A,1)) = g o p1(A,1) & 
+  h o Pa(Id(A * N),f0) = f0 o Pa(p1(A,N), SUC o p2(A,N))) <=> f0 = f”));
 
-val PRE_ex = 
- Thm1_case_1 |> specl (List.map rastt ["N","El(O)","p1(N,N)"])
-             |> undisch
-             |> uex_expand |> disch_all
-             |> rewr_rule[p1_Fun,p1_Fun,El_Fun]
-             |> store_as "PRE_ex";
+val PRE_def0 = 
+    Thm1_case_1 |> specl (List.map rastt ["N","El(O)","p1(N,N)"])
+                |> uex_expand 
+                |> qSKOLEM "PRE" []
+                |> 
 
 val PRE_def0 = PRE_ex |> ex2fsym0 "PRE" []
                      |> store_as "PRE_def0";
 
 
+val Pre_def = qdefine_fsym ("Pre",[‘n:mem(N)’]) ‘App(PRE,n)’ 
+                           |> gen_all |> store_as "Pre_def";
 
+(*
 val PRE_def = prove_store("PRE_def",
 e0
 (assume_tac PRE_def0 >> 
@@ -1084,8 +747,7 @@ e0
  irule p1_of_Pa >> arw[]
  )
 (form_goal
- “isFun(PRE) &
-        PRE o El(O) = El(O) & PRE o SUC = id(N) &
+ “ PRE o El(O) = El(O) & PRE o SUC = id(N) &
  !f:N~>N.
   isFun(f) &
   f o El(O) = El(O) & f o SUC = p1(N, N) o Pa(id(N), f) ==> f = PRE”));
@@ -1094,18 +756,18 @@ val PRE_Fun = PRE_def |> conjE1 |> store_as "PRE_Fun";
 
 val Pre_ex = prove_store("Pre_ex",
 e0
-(strip_tac >> qexists_tac ‘Eval(PRE,n)’ >> rw[])
+(strip_tac >> qexists_tac ‘App(PRE,n)’ >> rw[])
 (form_goal
- “!n. ?pn. Eval(PRE,n) = pn”));
+ “!n. ?pn. App(PRE,n) = pn”));
 
 val Pre_def = Pre_ex |> spec_all |> ex2fsym0 "Pre" ["n"]
                      |> store_as "Pre_def";
 
 val Suc_ex = prove_store("Suc_ex",
 e0
-(strip_tac >> qexists_tac ‘Eval(SUC,n)’ >> rw[])
+(strip_tac >> qexists_tac ‘App(SUC,n)’ >> rw[])
 (form_goal
- “!n.?sn. Eval(SUC,n) = sn”));
+ “!n.?sn. App(SUC,n) = sn”));
 
 val Suc_def = Suc_ex |> spec_all |> ex2fsym0 "Suc" ["n"]
 
@@ -1131,35 +793,28 @@ val Pre_eqn = prove_store("PRE_eqn",
 e0
 (strip_assume_tac PRE_def >> pop_assum (K all_tac) >>
  qby_tac
- ‘Eval(PRE o El(O),dot) = Eval(El(O),dot)’ 
+ ‘App(PRE o El(O),dot) = App(El(O),dot)’ 
  >-- arw[] >> fs[El_def] >>
- qsspecl_then [‘El(O)’,‘PRE’,‘dot’] assume_tac $ GSYM o_Eval >>
+ qsspecl_then [‘El(O)’,‘PRE’,‘dot’] assume_tac $ GSYM o_App >>
  qsspecl_then [‘O’] assume_tac El_Fun >>
  assume_tac PRE_Fun >> fs[] >> fs[El_def] >> arw[GSYM Pre_def] >>
  strip_tac >>
- qby_tac ‘Eval(PRE o SUC,n) = Eval(id(N),n)’ 
+ qby_tac ‘App(PRE o SUC,n) = App(id(N),n)’ 
  >-- arw[] >>
- qsspecl_then [‘SUC’,‘PRE’,‘n’] assume_tac o_Eval >>
+ qsspecl_then [‘SUC’,‘PRE’,‘n’] assume_tac o_App >>
  assume_tac SUC_Fun >> fs[] >> rfs[] >>
- fs[GSYM Suc_def,Eval_id])
+ fs[GSYM Suc_def,App_id])
 (form_goal
  “Pre(O) = O & !n. Pre(Suc(n)) = n”));
+*)
 
 
-local 
-val l = proved_th $
-e0
-(irule o_Fun >> rw[SUC_Fun,p2_Fun])
-(form_goal
- “isFun(SUC o p2(N * N,N))”)
-in
-val ADD_ex = 
- Thm1 |> sspecl (List.map rastt ["id(N)","SUC o p2(N * N,N)"])
-      |> rewr_rule[id_Fun,l]
-      |> store_as "ADD_ex";
-end
+val ADD_def0 = 
+ Thm1 |> sspecl (List.map rastt ["Id(N)","SUC o p2(N * N,N)"])
+      |> qSKOLEM "ADD" []
+      |> store_as "ADD_def0";
         
-
+(*
 val ADD_def0 = ADD_ex |> ex2fsym0 "ADD" []
                       |> store_as "ADD_def0";
 
@@ -1214,51 +869,55 @@ e0
 (form_goal
  “ADD o Pa(id(N),El(O) o To1(N)) = id(N) & 
   ADD o Pa(p1(N,N),SUC o p2(N,N)) = SUC o ADD”));
+*)
 
+val Add_def = qdefine_fsym ("Add",[‘n1:mem(N)’,‘n2:mem(N)’]) ‘App(ADD,Pair(n1,n2))’ |> gen_all |> store_as "Add_def";
+
+(*
 val Add_ex = prove_store("Add_ex",
 e0
-(rpt strip_tac >> qexists_tac ‘Eval(ADD,Pair(m,n))’ >> rw[])
+(rpt strip_tac >> qexists_tac ‘App(ADD,Pair(m,n))’ >> rw[])
 (form_goal
- “!m n. ?amn. Eval(ADD,Pair(m,n)) = amn”));
+ “!m n. ?amn. App(ADD,Pair(m,n)) = amn”));
 
 val Add_def = Add_ex |> spec_all |> ex2fsym0 "Add" ["m","n"] 
                      |> gen_all |> store_as "Add_def";
 
-val Eval_input_eq =prove_store("Eval_input_eq",
+val App_input_eq =prove_store("App_input_eq",
 e0
 (rpt strip_tac >> arw[])
 (form_goal
- “!A B f:A~>B a1 a2.a1 = a2 ==> Eval(f,a1) = Eval(f,a2)”))
+ “!A B f:A~>B a1 a2.a1 = a2 ==> App(f,a1) = App(f,a2)”))
 
-val Eval_Pa_Pair = prove_store("Eval_Pa_Pair",
+val App_Pa_Pair = prove_store("App_Pa_Pair",
 e0
 (rpt strip_tac >>  irule Cross_eq >> rw[Pair_def] >> strip_tac >>
- irule $ iffLR Eval_o_l >> 
+ irule $ iffLR App_o_l >> 
  qsspecl_then [‘f’,‘g’] assume_tac p12_of_Pa >> rfs[] >>
  rw[p12_Fun] >> irule Pa_Fun >> arw[])
 (form_goal
  “!X A f:X~>A B g:X~>B. isFun(f) & isFun(g) ==>
-  !x:mem(X).Eval(Pa(f,g),x) = Pair(Eval(f,x),Eval(g,x))”));
+  !x:mem(X).App(Pa(f,g),x) = Pair(App(f,x),App(g,x))”));
 
 (* (∀n. 0 + n = n) ∧ ∀m n. SUC m + n = SUC (m + n)*)
 val Add_O = prove_store("Add_O",
 e0
 (strip_tac >> fs[GSYM Add_def] >>
  assume_tac ADD_El >>
- qsuff_tac ‘Eval(ADD o Pa(id(N), El(O) o To1(N)),n) = Eval(ADD, Pair(n, O)) & Eval(id(N),n) = n’
+ qsuff_tac ‘App(ADD o Pa(id(N), El(O) o To1(N)),n) = App(ADD, Pair(n, O)) & App(id(N),n) = n’
  >-- (strip_tac >>rfs[]) >>
- rw[Eval_id] >> irule $iffRL Eval_o_l >> rw[ADD_Fun] >>
+ rw[App_id] >> irule $iffRL App_o_l >> rw[ADD_Fun] >>
  qspecl_then [‘N’] assume_tac id_Fun >>
  qspecl_then [‘N’] assume_tac To1_Fun >>
  qsspecl_then [‘To1(N)’,‘El(O)’] assume_tac o_Fun >> rfs[] >>
  qsspecl_then [‘O’] assume_tac El_Fun >> fs[] >>
  qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac Pa_Fun >> rfs[] >>
- irule Eval_input_eq >> 
+ irule App_input_eq >> 
  (*irule with eval_pa does not work, some sort of irule at?*)
- qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac Eval_Pa_Pair >>
- rfs[] >> fs[Eval_id] >>
- rw[Pair_eq_eq] >> irule $ iffRL Eval_o_l >> arw[] >> rw[dot_def] >>
- rw[Eval_El])
+ qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac App_Pa_Pair >>
+ rfs[] >> fs[App_id] >>
+ rw[Pair_eq_eq] >> irule $ iffRL App_o_l >> arw[] >> rw[dot_def] >>
+ rw[App_El])
 (form_goal
  “!n. Add(n,O) = n”));
 
@@ -1269,20 +928,20 @@ val Add_O = prove_store("Add_O",
 e0
 (strip_tac >> fs[GSYM Add_def] >>
  assume_tac ADD_El >>
- qsuff_tac ‘Eval(ADD o Pa(id(N), El(O) o To1(N)),n) = Eval(ADD, Pair(n, O)) & Eval(id(N),n) = n’
+ qsuff_tac ‘App(ADD o Pa(id(N), El(O) o To1(N)),n) = App(ADD, Pair(n, O)) & App(id(N),n) = n’
  >-- (strip_tac >>rfs[]) >>
- rw[Eval_id] >> irule $iffRL Eval_o_l >> rw[ADD_Fun] >>
+ rw[App_id] >> irule $iffRL App_o_l >> rw[ADD_Fun] >>
  qspecl_then [‘N’] assume_tac id_Fun >>
  qspecl_then [‘N’] assume_tac To1_Fun >>
  qsspecl_then [‘To1(N)’,‘El(O)’] assume_tac o_Fun >> rfs[] >>
  qsspecl_then [‘O’] assume_tac El_Fun >> fs[] >>
  qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac Pa_Fun >> rfs[] >>
- irule Eval_input_eq >> 
+ irule App_input_eq >> 
  (*irule with eval_pa does not work, some sort of irule at?*)
- qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac Eval_Pa_Pair >>
- rfs[] >> fs[Eval_id] >>
- rw[Pair_eq_eq] >> irule $ iffRL Eval_o_l >> arw[] >> rw[dot_def] >>
- rw[Eval_El])
+ qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac App_Pa_Pair >>
+ rfs[] >> fs[App_id] >>
+ rw[Pair_eq_eq] >> irule $ iffRL App_o_l >> arw[] >> rw[dot_def] >>
+ rw[App_El])
 (form_goal
  “!n. Add(n,O) = n”));
 
@@ -1291,17 +950,17 @@ val Add_Suc = prove_store("Add_Suc",
 e0
 (rpt strip_tac >> assume_tac ADD_El >> fs[] >> last_x_assum (K all_tac) >>
  rw[GSYM Add_def,GSYM Suc_def] >>
- flip_tac >> irule $ iffLR Eval_o_l >> pop_assum (assume_tac o GSYM) >>
- arw[] >> rw[ADD_Fun,SUC_Fun] >> irule $ iffRL Eval_o_l >> 
+ flip_tac >> irule $ iffLR App_o_l >> pop_assum (assume_tac o GSYM) >>
+ arw[] >> rw[ADD_Fun,SUC_Fun] >> irule $ iffRL App_o_l >> 
  rw[ADD_Fun] >>
  qspecl_then [‘N’,‘N’] assume_tac p12_Fun >>
  qsspecl_then [‘p2(N,N)’,‘SUC’] assume_tac o_Fun >> rfs[] >>
  assume_tac SUC_Fun >> fs[] >>
  qsspecl_then [‘p1(N,N)’,‘SUC o p2(N,N)’] assume_tac Pa_Fun >>
- rfs[] >> irule Eval_input_eq >> 
- qsspecl_then [‘p1(N,N)’,‘SUC o p2(N,N)’] assume_tac Eval_Pa_Pair >>
+ rfs[] >> irule App_input_eq >> 
+ qsspecl_then [‘p1(N,N)’,‘SUC o p2(N,N)’] assume_tac App_Pa_Pair >>
  rfs[] >> rw[Pair_def] >> rw[Pair_eq_eq] >> 
- irule $ iffRL Eval_o_l >> arw[] >> irule Eval_input_eq >>
+ irule $ iffRL App_o_l >> arw[] >> irule App_input_eq >>
  rw[Pair_def])
 (form_goal
  “(!m n.Add(m,Suc(n)) = Suc(Add(m,n)))”));
@@ -1309,19 +968,15 @@ e0
 val Pre_O = conjE1 Pre_eqn |> store_as "Pre_O";
 
 val Pre_Suc = conjE2 Pre_eqn |> store_as "Pre_Suc";
+*)
 
-local
-val l = proved_th $
-e0
-(irule o_Fun >> rw[PRE_def,p2_Fun])
-(form_goal
- “isFun(PRE o p2(N * N,N))”)
-in
+
 val SUB_def0 = Thm1 |> specl
-(List.map rastt ["N","N","id(N)","PRE o p2(N * N,N)"])
-|> rewr_rule[id_Fun,l,idL] |> ex2fsym0 "SUB" [] |> store_as "SUB_def0"
-end
+(List.map rastt ["N","N","Id(N)","PRE o p2(N * N,N)"])
+|> qSKOLEM "SUB" []
+|> store_as "SUB_def0";
 
+(*
 val SUB_def0' = SUB_def0 |> specl [rastt "SUB"] |> rewr_rule[]
 
 val SUB_Fun = SUB_def0' |> conjE1 |> store_as "SUB_Fun";
@@ -1361,13 +1016,17 @@ e0
 (form_goal
  “SUB o Pa(id(N), El(O) o To1(N)) = id(N) &
  PRE o SUB = SUB o Pa(p1(N,N), SUC o p2(N,N))”));
+*)
+
+val Sub_def = qdefine_fsym ("Sub",[‘n1:mem(N)’,‘n2:mem(N)’]) ‘App(SUB,Pair(n1,n2))’ |> gen_all |> store_as "Sub_def";
 
 
+(*
 val Sub_ex = prove_store("Sub_ex",
 e0
-(rpt strip_tac >> qexists_tac ‘Eval(SUB,Pair(m,n))’ >> rw[])
+(rpt strip_tac >> qexists_tac ‘App(SUB,Pair(m,n))’ >> rw[])
 (form_goal
- “!m n.?smn. Eval(SUB,Pair(m,n)) = smn”));
+ “!m n.?smn. App(SUB,Pair(m,n)) = smn”));
 
 val Sub_def = Sub_ex |> spec_all |> ex2fsym0 "Sub" ["m","n"] 
                      |> gen_all |> store_as "Sub_def";
@@ -1377,21 +1036,21 @@ e0
 (strip_tac >> strip_assume_tac SUB_El >>
  pop_assum (K all_tac) >>
  qby_tac
- ‘Eval(SUB o Pa(id(N), El(O) o To1(N)),n) = Eval(id(N),n)’ 
+ ‘App(SUB o Pa(id(N), El(O) o To1(N)),n) = App(id(N),n)’ 
  >-- arw[] >>
- fs[Eval_id] >> fs[GSYM Sub_def] >> 
+ fs[App_id] >> fs[GSYM Sub_def] >> 
  qsuff_tac
- ‘Eval(SUB o Pa(id(N), El(O) o To1(N)), n) = Eval(SUB, Pair(n, O))’ 
+ ‘App(SUB o Pa(id(N), El(O) o To1(N)), n) = App(SUB, Pair(n, O))’ 
  >-- (strip_tac >> fs[]) >>
- irule $ iffRL Eval_o_l >> rw[SUB_Fun] >>
+ irule $ iffRL App_o_l >> rw[SUB_Fun] >>
  qsspecl_then [‘O’] assume_tac El_Fun >> 
  qspecl_then [‘N’] assume_tac To1_Fun >> 
  qsspecl_then [‘To1(N)’,‘El(O)’] assume_tac o_Fun >> rfs[] >>
  qspecl_then [‘N’] assume_tac id_Fun >>
  qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac Pa_Fun >>
- rfs[] >> irule Eval_input_eq >>
- qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac Eval_Pa_Pair >>
- rfs[] >> rw[Pair_eq_eq] >> irule $ iffRL Eval_o_l >>
+ rfs[] >> irule App_input_eq >>
+ qsspecl_then [‘id(N)’,‘El(O) o To1(N)’] assume_tac App_Pa_Pair >>
+ rfs[] >> rw[Pair_eq_eq] >> irule $ iffRL App_o_l >>
  arw[] >> rw[dot_def,El_def]
  )
 (form_goal
@@ -1402,17 +1061,17 @@ val Sub_Suc = prove_store("Sub_Suc",
 e0
 (rpt strip_tac >> strip_assume_tac SUB_El >> last_x_assum (K all_tac) >>
  rw[GSYM Sub_def,GSYM Suc_def,GSYM Pre_def] >> 
- flip_tac >> irule $ iffLR Eval_o_l >> arw[] >>
+ flip_tac >> irule $ iffLR App_o_l >> arw[] >>
  rw[PRE_Fun,SUB_Fun] >> 
- irule $ iffRL Eval_o_l >> rw[SUB_Fun] >>
+ irule $ iffRL App_o_l >> rw[SUB_Fun] >>
  qspecl_then [‘N’,‘N’] assume_tac p12_Fun >>
  assume_tac SUC_Fun >>
  qsspecl_then [‘p2(N,N)’,‘SUC’] assume_tac o_Fun >> rfs[] >>
  qsspecl_then [‘p1(N,N)’,‘SUC o p2(N,N)’] assume_tac Pa_Fun >> rfs[] >>
- irule Eval_input_eq >> 
- qsspecl_then [‘p1(N,N)’,‘SUC o p2(N,N)’] assume_tac Eval_Pa_Pair >> 
- rfs[] >> rw[Pair_eq_eq] >> rw[Pair_def] >> irule $ iffRL Eval_o_l >>
- arw[] >> irule Eval_input_eq >> rw[Pair_def])
+ irule App_input_eq >> 
+ qsspecl_then [‘p1(N,N)’,‘SUC o p2(N,N)’] assume_tac App_Pa_Pair >> 
+ rfs[] >> rw[Pair_eq_eq] >> rw[Pair_def] >> irule $ iffRL App_o_l >>
+ arw[] >> irule App_input_eq >> rw[Pair_def])
 (form_goal
  “!m n. Sub(m,Suc(n)) = Pre(Sub(m,n))”));
 
@@ -1425,15 +1084,18 @@ e0
  “!n. Pre(n) = O <=> (n = O | n = Suc(O))”));
 
 val Pre_eq_O = Pre_O_cases
+*)
 
-val _ = new_pred "Le" [("m",mem_sort N),("n",mem_sort N)]
+val Le_def = qdefine_psym ("Le",[‘m:mem(N)’,‘n:mem(N)’])
+                          ‘Sub(m,n) = O’
+             |> gen_all |> store_as "Le_def";
+
+val Lt_def = qdefine_psym ("Lt",[‘m:mem(N)’,‘n:mem(N)’])
+                          ‘Lt(m,n) & ~(m = n)’
+             |> gen_all |> store_as "Lt_def";
 
 
-val Le_def = store_ax("Le_def",“!m n.Le(m,n) <=> Sub(m,n) = O”);
 
-val _ = new_pred "Lt" [("m",mem_sort N),("n",mem_sort N)]
-
-val Lt_def = store_ax("Lt_def",“!m n.Lt(m,n) <=> (Le(m,n) & ~(m = n))”);
 
 val SUB_EQ_00 = Le_def
 
@@ -1603,9 +1265,9 @@ N_ind_P |> gen_all |> specl [rastt "n:mem(N)"]
 val l'' = 
  fVar_Inst 
 [("P",([("c",mem_sort N)],
- “Le(Suc(n0), Eval(SUC, n1)) & Le(Suc(n0), c) ==>
-               (Sub(Eval(SUC, n1), Suc(n0)) = Sub(c, Suc(n0)) <=>
-                 Eval(SUC, n1) = c)”))] 
+ “Le(Suc(n0), App(SUC, n1)) & Le(Suc(n0), c) ==>
+               (Sub(App(SUC, n1), Suc(n0)) = Sub(c, Suc(n0)) <=>
+                 App(SUC, n1) = c)”))] 
 N_ind_P |> gen_all |> specl [rastt "n:mem(N)",rastt "n':mem(N)"]
 in
 val cancel_Sub = prove_store("cancel_Sub",
@@ -1763,21 +1425,21 @@ val Pre_O_cases = prove_store("Pre_O_cases",
 e0
 (rw[GSYM Pre_def]  >> assume_tac PRE_def >> strip_tac >>
  cases_on “n = O” >-- (arw[] >>
- qsuff_tac ‘ Eval(PRE,O) = Eval(PRE o El(O),dot) &  Eval(El(O),dot) = O’
+ qsuff_tac ‘ App(PRE,O) = App(PRE o El(O),dot) &  App(El(O),dot) = O’
   >-- (rpt strip_tac >> arw[]) >> rw[El_def] >>
-  flip_tac >> irule $ iffRL Eval_o_l >> rw[PRE_Fun,El_Fun,El_def]) >>
+  flip_tac >> irule $ iffRL App_o_l >> rw[PRE_Fun,El_Fun,El_def]) >>
  arw[] >> dimp_tac >> strip_tac (* 2 *)
  >-- (fs[O_xor_SUC] >> 
-     qpick_x_assum ‘Eval(SUC, pn) = n’ (assume_tac o GSYM) >>
+     qpick_x_assum ‘App(SUC, pn) = n’ (assume_tac o GSYM) >>
      fs[] >>
      rw[GSYM Suc_def] >> rw[SUC_eq_eq] >>
-     qsuff_tac ‘Eval(PRE, Eval(SUC, pn)) = pn’ >--
+     qsuff_tac ‘App(PRE, App(SUC, pn)) = pn’ >--
      (strip_tac >> arw[] >>
-     qpick_x_assum ‘Eval(PRE, Eval(SUC, pn)) = O’ (assume_tac o GSYM) >>
-     arw[]) >> irule $ iffLR Eval_o_l >> arw[Eval_id,SUC_Fun,PRE_Fun]) >>
+     qpick_x_assum ‘App(PRE, App(SUC, pn)) = O’ (assume_tac o GSYM) >>
+     arw[]) >> irule $ iffLR App_o_l >> arw[App_id,SUC_Fun,PRE_Fun]) >>
  arw[] >>
- rw[GSYM Suc_def] >> irule $ iffLR Eval_o_l >> 
- arw[Eval_id,SUC_Fun,PRE_Fun])
+ rw[GSYM Suc_def] >> irule $ iffLR App_o_l >> 
+ arw[App_id,SUC_Fun,PRE_Fun])
 (form_goal
 “!n. Pre(n) = O <=> (n = O | n = Suc(O))”));
 
@@ -1961,51 +1623,51 @@ e0
 
 val Mul_ex = prove_store("Mul_ex",
 e0
-(rpt strip_tac >> qexists_tac ‘Eval(MUL,Pair(a,b))’ >> rw[])
-(form_goal “!a b.?ab. Eval(MUL,Pair(a,b)) = ab”));
+(rpt strip_tac >> qexists_tac ‘App(MUL,Pair(a,b))’ >> rw[])
+(form_goal “!a b.?ab. App(MUL,Pair(a,b)) = ab”));
 
 val Mul_def = Mul_ex |> spec_all |> ex2fsym0 "Mul" ["a","b"]
                      |> gen_all |> store_as "Mul_def";
 
-val Eval_Pa2 = Eval_Pa |> sspecl [rastt "id(A)",rastt "g:B~>D"]
+val App_Pa2 = App_Pa |> sspecl [rastt "id(A)",rastt "g:B~>D"]
                        |> rewr_rule[id_Fun,idL]
                        |> undisch 
                        |> gen_all |> disch_all 
                        |> gen_all
-                       |> store_as "Eval_Pa2";
+                       |> store_as "App_Pa2";
 
-val Eval_p1_Pair = prove_store("Eval_p1_Pair",
+val App_p1_Pair = prove_store("App_p1_Pair",
 e0
 (rw[Fst_def,Pair_def'])
 (form_goal
- “!A B a b. Eval(p1(A,B),Pair(a,b)) = a”));
+ “!A B a b. App(p1(A,B),Pair(a,b)) = a”));
 
 
-val Eval_p2_Pair = prove_store("Eval_p2_Pair",
+val App_p2_Pair = prove_store("App_p2_Pair",
 e0
 (rw[Snd_def,Pair_def'])
 (form_goal
- “!A B a b. Eval(p2(A,B),Pair(a,b)) = b”));
+ “!A B a b. App(p2(A,B),Pair(a,b)) = b”));
 
 val Mul_O = prove_store("Mul_O",
 e0
 (strip_tac >> rw[GSYM Mul_def] >> 
  assume_tac MUL_def >>
  qby_tac
- ‘Eval(MUL, Pair(n, O)) = 
-  Eval(MUL o Pa(p1(N, 1), El(O) o p2(N, 1)), 
+ ‘App(MUL, Pair(n, O)) = 
+  App(MUL o Pa(p1(N, 1), El(O) o p2(N, 1)), 
        Pair(n,dot))’ 
- >-- (flip_tac >> irule $ iffRL Eval_o_l >> 
+ >-- (flip_tac >> irule $ iffRL App_o_l >> 
      rw[MUL_Fun] >> 
      qsspecl_then [‘O’] assume_tac El_Fun >>
-     drule Eval_Pa2 >> arw[] >> rw[Eval_p1_Pair] >>
+     drule App_Pa2 >> arw[] >> rw[App_p1_Pair] >>
      strip_tac >--
-     (irule Eval_input_eq >> rw[Pair_eq_eq] >>
-     irule $ iffRL Eval_o_l >> rw[El_Fun,p2_Fun] >>
-     rw[Eval_p2_Pair] >> rw[El_def]) >>
+     (irule App_input_eq >> rw[Pair_eq_eq] >>
+     irule $ iffRL App_o_l >> rw[El_Fun,p2_Fun] >>
+     rw[App_p2_Pair] >> rw[El_def]) >>
      irule Pa_Fun >> rw[p1_Fun] >>
      irule o_Fun >> rw[El_Fun,p2_Fun]) >>
- arw[] >> irule $ iffRL Eval_o_l >> 
+ arw[] >> irule $ iffRL App_o_l >> 
  rw[dot_def,El_def,To1_Fun])
 (form_goal “!n. Mul(n,O) = O”));
 
@@ -2015,17 +1677,17 @@ e0
 (rpt strip_tac >> rw[GSYM Mul_def,GSYM Suc_def] >>
  assume_tac MUL_def >>
  qby_tac
- ‘Eval(MUL, Pair(n, Eval(SUC, n0))) = 
-  Eval(MUL o Pa(p1(N, N), SUC o p2(N, N)),Pair(n,n0))’
- >-- (flip_tac >> irule $ iffRL Eval_o_l >> rw[MUL_Fun] >>
-     strip_tac >-- (irule Eval_input_eq >> 
-     assume_tac SUC_Fun >> drule Eval_Pa2 >> arw[] >>
-     rw[Eval_p1_Pair,Pair_eq_eq] >> irule $ iffRL Eval_o_l >>
-     rw[Eval_p2_Pair,p2_Fun,SUC_Fun]) >>
+ ‘App(MUL, Pair(n, App(SUC, n0))) = 
+  App(MUL o Pa(p1(N, N), SUC o p2(N, N)),Pair(n,n0))’
+ >-- (flip_tac >> irule $ iffRL App_o_l >> rw[MUL_Fun] >>
+     strip_tac >-- (irule App_input_eq >> 
+     assume_tac SUC_Fun >> drule App_Pa2 >> arw[] >>
+     rw[App_p1_Pair,Pair_eq_eq] >> irule $ iffRL App_o_l >>
+     rw[App_p2_Pair,p2_Fun,SUC_Fun]) >>
      irule Pa_Fun >> rw[p1_Fun] >> irule o_Fun >> rw[SUC_Fun,p2_Fun]) >>
  arw[] >> 
  last_x_assum (assume_tac o GSYM) >> arw[] >>
- irule $ iffRL Eval_o_l >> rw[ADD_Fun] >> strip_tac 
+ irule $ iffRL App_o_l >> rw[ADD_Fun] >> strip_tac 
  >-- (qspecl_then [‘N * N’,‘N’] assume_tac p2_Fun >> drule Pa_distr >>
      qby_tac ‘isFun(p1(N,N) o p1(N * N,N))’
      >-- (irule o_Fun >> rw[p1_Fun]) >>
@@ -2033,14 +1695,14 @@ e0
      qby_tac ‘isFun(Pa(id(N * N),MUL))’
      >-- (irule Pa_Fun >> rw[id_Fun,MUL_Fun]) >>
      first_x_assum drule >> arw[] >>
-     rw[GSYM Add_def] >> irule Eval_input_eq >>
+     rw[GSYM Add_def] >> irule App_input_eq >>
      qby_tac ‘isFun(id(N * N)) & isFun(MUL)’
      >-- rw[id_Fun,MUL_Fun] >> drule p2_of_Pa>> arw[] >>
      rw[o_assoc] >>
      drule p1_of_Pa >> arw[] >> rw[idR] >> 
      qby_tac ‘isFun(MUL) & isFun(p1(N,N))’ 
-     >-- rw[MUL_Fun,p1_Fun] >> drule Eval_Pa_Pair >> arw[] >>
-     rw[Eval_p1_Pair]) >>
+     >-- rw[MUL_Fun,p1_Fun] >> drule App_Pa_Pair >> arw[] >>
+     rw[App_p1_Pair]) >>
  irule o_Fun >> strip_tac (* 2 *)
  >-- (irule Pa_Fun >> rw[p2_Fun] >> irule o_Fun >> rw[p1_Fun]) >>
  irule Pa_Fun >> rw[MUL_Fun,id_Fun])
@@ -2687,7 +2349,7 @@ e0
 
 (*
 define the set of lists
-Eval(f:A(set of A~>B functions)~>B(set of A list ~> B list function),a)
+App(f:A(set of A~>B functions)~>B(set of A list ~> B list function),a)
 
 induction recursion
 

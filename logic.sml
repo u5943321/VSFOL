@@ -662,7 +662,8 @@ fun define_fsym (fname,vl) t =
         val _ = new_fun fname (st, vl)
         val ft = mk_fun fname (List.map mk_var vl)
         (*check vl is subset of vars in t*)
-        val inputvset = List.foldr (fn(a,s) => HOLset.add(s,a)) essps vl
+        val inputvset = List.foldr
+                            (fn(a,s) => HOLset.union(s,fvt (mk_var a))) essps vl
         val _ = HOLset.isSubset(fvt t,inputvset) orelse 
                 raise simple_fail "define_fsym.input contains extra variable(s)"
         val f = mk_eq ft t

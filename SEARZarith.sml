@@ -1,23 +1,346 @@
-(*val Fst_ex = prove_store("Fst_ex",
+val ZR_def = 
+AX1 |> qspecl [‘N * N’,‘N * N’] |> uex2ex_rule
+    |> qSKOLEM "ZR" [] |> store_as "ZR_def";
+
+val ZR_ER = prove_store("ZR_ER",
 e0
-(rpt strip_tac >> qexists_tac ‘Eval(p1(A,B),x)’ >> rw[])
-(form_goal
- “!A B x:mem(A * B).?fstx. Eval(p1(A,B),x) = fstx”));
+(cheat)
+(form_goal “ER(ZR)”));
 
- 
-val Snd_ex = prove_store("Snd_ex",
+
+val Sg_ex = prove_store("Sg_ex",
 e0
-(rpt strip_tac >> qexists_tac ‘Eval(p2(A,B),x)’ >> rw[])
+(cheat)
+(form_goal “!A. ?Sg:A-> Pow(A). 
+ !a a'.IN(a',App(Sg,a)) <=> a' = a”));
+
+val Sg_def = Sg_ex |> spec_all |> qSKOLEM"Sg" [‘A’] 
+                   |> gen_all
+                   |> store_as "Sg_def";
+
+
+val Sing_ex = prove_store("Sing_ex",
+e0
+(cheat)
 (form_goal
- “!A B x:mem(A * B).?sndx. Eval(p2(A,B),x) = sndx”));
+ “!A a:mem(A).?sa. sa = App(Sg(A),a)”));
 
-val Fst_def = Fst_ex |> spec_all |> ex2fsym0 "Fst" ["x"]
-val Snd_def = Snd_ex |> spec_all |> ex2fsym0 "Snd" ["x"]
+val Sing_def = qdefine_fsym ("Sing",[‘a:mem(A)’])
+                            ‘App(Sg(A),a:mem(A))’
+                            |> gen_all |> store_as "Sing_def";
 
-val Pair_def' = Pair_def |> rewr_rule[Fst_def,Snd_def]
+
+val Ri_ex = prove_store("Ri_ex",
+e0
+(cheat)
+(form_goal “!A B r:A~>B. ?Ri:Pow(A) -> Pow(B).
+ !s b. IN(b,App(Ri,s)) <=> ?a. IN(a,s) & Holds(r,a,b)”));
+
+val Ri_def = Ri_ex |> spec_all |> qSKOLEM "Ri" [‘r’] 
+                   |> gen_all |> store_as "Ri_def";
+
+(*Relational singleton image*)
+val Rsi_def = qdefine_fsym ("Rsi",[‘r:A~>B’])
+                            ‘Ri(r:A~>B) o Sg(A)’
+                            |> gen_all |> store_as "Rsi_def";
+
+
+val rsi_def = qdefine_fsym ("rsi",[‘r:A~>B’,‘a:mem(A)’])
+                            ‘App(Rsi(r),a)’
+                            |> gen_all |> store_as "rsi_def";
+
+val Z_def = Thm_2_4 |> qspecl [‘Pow(N * N)’]
+                    |> fVar_sInst_th “P(s:mem(Pow(N * N)))”
+                    “?n. s = rsi(ZR,n)”
+                    |> qSKOLEM "Z" []
+                    |> qSKOLEM "iZ" []
+                    |> store_as "Z_def";
+
+val iZ_Inj = Z_def |> conjE1 |> store_as "iZ_Inj"
+                   |> store_as "iZ_Inj";
+
+
+(* (?(n : mem(N * N)). a# = rsi(ZR, n#)) <=>
+ ?n1 n2. ... such a conv, to corresponds to L's lambda ver *)
+(*compare to iN_inNs*)
+val iZ_rsi = prove_store("iZ_rsi",
+e0
+(strip_tac >> strip_assume_tac Z_def >>
+ first_x_assum (qspecl_then [‘App(iZ,z)’] assume_tac) >>
+ (*stupid step, ?(b : mem(Z)). App(iZ, z) = App(iZ, b#)*)
+ qby_tac ‘?b. App(iZ,z) = App(iZ,b)’ 
+ >-- (qexists_tac ‘z’ >> rw[]) >>
+ first_x_assum (drule o iffRL) >>
+ pop_assum strip_assume_tac >>
+ qsspecl_then [‘n’] strip_assume_tac Pair_has_comp >>
+ fs[] >> qexistsl_tac [‘a’,‘b’] >> arw[]
+ )
+(form_goal 
+ “!z:mem(Z).?m n. App(iZ,z) = rsi(ZR,Pair(m,n))”));
+
+val rsi_iZ = prove_store("rsi_iZ",
+e0
+(rpt strip_tac >> strip_assume_tac Z_def >>
+ first_x_assum
+ (qspecl_then [‘rsi(ZR,Pair(m,n))’] assume_tac) >>
+ first_x_assum $ irule o iffLR >>
+ qexists_tac ‘Pair(m,n)’ >> rw[])
+(form_goal 
+ “!m n. ?z. rsi(ZR,Pair(m,n)) = App(iZ,z)”));
+
+(*
+val negrel_def =
+    AX1 |> qspecl [‘Pow(N * N)’,‘Pow(N * N)’]
+        |> fVar_sInst_th
+           “P(s1:mem(Pow(N * N)),s2:mem(Pow(N * N)))”
+           “?a b. s1 = rsi(ZR,Pair(a,b)) & 
+                  s2 = rsi(ZR,Pair(b,a))”
+        |> uex2ex_rule
+        |> qSKOLEM "negrel" []
+        |> store_as "negrel_def";
+
+*)
+
+val respects_def = 
+ qdefine_psym("respects",[‘f:A->B’,‘r:A~>A’])
+ ‘!y z.Holds(r,y,z) ==> App(f,y) = App(f,z)’
+ |> gen_all |> store_as "respects_def";
+
+
+
+val resp_def = 
+ qdefine_psym("resp",[‘f:A->B’,‘r1:A~>A’,‘r2:B~>B’])
+ ‘!y z.Holds(r1,y,z) ==> Holds(r2,App(f:A->B,y),App(f,z))’
+ |> gen_all |> store_as "resp_def";
+
+val resp1_def = 
+ qdefine_psym("resp1",[‘f:A->A’,‘r:A~>A’])
+ ‘!y z.Holds(r,y,z) ==> Holds(r,App(f:A->A,y),App(f,z))’
+ |> gen_all |> store_as "resp1_def";
+
+(*if congruent on rep, then have a relation
+ R:A0~>A0 with unique condition as in Inj_list_R_lemma
+ idea: do not need information about full version at all.
+*)
+
+(*have function (m,n) |-> rsi(ZR,Pair(n,m))
+  respect to ZR, there exists a relation 
+  between the ones that are images??
+  
+  (m,n) |-> rsi(ZR,Pair(n,m)) N * N -> Pow(N * N)
+  (m,n) |-> rsi(ZR,Pair(m,n)) "encode"
+
+the resultant relation will related 
+rsi(ZR,Pair(m,n)) to rsi(ZR,Pair(n,m))
+
+give information that how to embed in the natural way, and another function, there is a relation
+
+given a function on base N * N -> N * N, and a way N * N is enbeded in something else, say A0, have an extension 
+
+A0 ~> A0 which relates pairs where:
+first is the encode of the element from N * N
+the second is the encode of the element after applying the function
 *)
 
 
+(*lift_fun_rel*)
+val Lfr_def =
+    AX1 |> qspecl [‘A0’,‘A0’] |> uex2ex_rule 
+        |> fVar_sInst_th “P(a1:mem(A0),a2:mem(A0))”
+           “?x1 x2. a1 = App(enc:X->A0,x1) &
+                    a2 = App(enc,x2) & App(f,x1) = x2”
+        |> qSKOLEM "Lfr" [‘f’,‘enc’]
+        |> gen_all
+        |> store_as "Lfr_def";
+
+
+
+val negf0_def = fun_tm_compr (dest_var $ rastt "mn:mem(N * N)")
+                         (rastt "Pair(Snd(mn:mem(N * N)),Fst(mn))") |> qSKOLEM "negf0" []
+      |> store_as "negf0_def";
+
+
+
+val addf0_def = proved_th $
+e0
+cheat
+(form_goal “?f:(N * N) * N * N -> N * N. 
+ !x y u v. App(f,Pair(Pair(x,y),Pair(u,v))) = 
+ Pair(Add(x,u),Add(y,v))”)
+|> qSKOLEM "addf0" []
+|> store_as "addf0_def";
+
+val negf0_def1 = 
+    negf0_def |> qspecl [‘Pair(m:mem(N),n:mem(N))’]
+              |> rewr_rule[Pair_def']
+              |> gen_all |> store_as "negf0_def1";
+
+
+(*
+val hasflift_def = qdefine_psym("hasflift",[‘R:A0~>A0’,
+                                            ‘i:A->A0’])
+                   ‘?f:A->A. (!a. Holds(R,App(i,a),App(i o f,a)))’
+*)
+
+
+(*
+if enc respect to r, then related r are sent to same element in A0. need if a1 comes from base X, then there exists a unique
+element come from base and 
+*)
+
+
+
+
+val respects_rel_App_eq = prove_store("respects_rel_App_eq",
+e0
+(rpt strip_tac >> 
+fs[respects_def] >> first_x_assum irule >> arw[])
+(form_goal “!X r:X~>X A0 enc:X->A0. respects(enc,r) ==> 
+ (!x1 x2. Holds(r,x1,x2) ==>
+  !a1 a2. a1 = App(enc,x1) & a2 = App(enc,x2) ==> a1 = a2)”
+));
+
+val rel2_def = proved_th $ 
+e0
+cheat
+(form_goal “!r:A~>A. ?r2:A * A ~> A * A.
+ !x y u v. Holds(r2,Pair(x,y),Pair(u,v)) <=> 
+ Holds(r,x,u) & Holds(r,y,v)
+ ”) |> spec_all |> qSKOLEM "rel2" [‘r’]
+|> gen_all |> store_as "rel2_def";
+
+
+val negf0_resp1 = prove_store("negf0_resp1",
+e0
+(cheat)
+(form_goal “resp1(negf0,ZR)”));
+
+val rsi_eq_ER = prove_store("rsi_eq_ER",
+e0
+(cheat)
+(form_goal “!A r:A~>A.ER(r) ==> 
+ !a1 a2. rsi(r,a1) = rsi(r,a2) <=> Holds(r,a1,a2)”));
+
+val 
+“ER(r:X~>X) & resp1(f:X->X,r) & Inj(i:A->A0) &
+(!x.(?a0. a0 = rsi(r,x)) <=> (?b. a = App(i,b))) ==>
+!a1. ?!a2. Holds(Lfr(f,r),App(i,a1),App(i,a2))”
+(*X is N * N, A0 is Pow(N * N), A is Z*)
+
+
+
+val liftfun_ex = prove_store("liftfun_ex",
+e0
+cheat
+(form_goal “ER(r:A~>A) & resp1(f:A->A,r) & Inj(i:X->Pow(A)) &
+(!s:mem(Pow(A)).
+ (?a:mem(A). s = rsi(r,a)) <=> 
+ (?x. s = App(i,x))) ==>
+ ?f1:X->X. 
+ (!x.Holds(Lfr(f,Rsi(r)),App(i,x),App(i o f1,x)))”));
+
+val liftfun_ex |> rewr_rule[Lfr_def,GSYM rsi_def]
+
+
+
+liftfun_ex |> gen_all |> qspecl [‘(N * N) * N * N’,‘addf0’]
+
+
+“?f1:Z * Z -> Z. 
+ (!z. Holds(Lfr(addf0,rel2(Rsi(r))),App(i,x),App(i o addf0,x)))”
+
+addf0: (N * N) * N * N -> N * N
+
+“Lfr(addf0,Rsi(rel2(r))) = a”
+val addz_char = prove_store("addz_char",
+e0
+()
+(form_goal “App(iZ,z1) = rsi(ZR,Pair(x,y)) & 
+            App(iZ,z2) = rsi(ZR,Pair(u,v)) ==>
+            App()”));
+
+
+
+(*not need to prove char eqn, define it to be so*)
+val neg_lift = prove_store("neg_lift",
+e0
+(strip_tac >> rw[Lfr_def] >>
+qspecl_then [‘z1’] (x_choosel_then ["m","n"] assume_tac)
+iZ_rsi >> 
+qspecl_then [‘n’,‘m’] strip_assume_tac rsi_iZ >>
+uex_tac >> qexists_tac ‘b’ >>
+rpt strip_tac (* 2 *)
+>-- (qexistsl_tac [‘Pair(m,n)’,‘Pair(n,m)’] >> 
+    arw[GSYM rsi_def,negf0_def1]) >>
+assume_tac iZ_Inj >> fs[Inj_def] >>
+first_x_assum irule >> arw[] >>
+qpick_x_assum ‘rsi(ZR, Pair(n, m)) = App(iZ, b)’
+(assume_tac o GSYM) >> arw[] >> 
+qby_tac ‘Holds(ZR,x1,Pair(m,n))’ >-- cheat >>
+qsuff_tac ‘Holds(ZR,x2,Pair(n,m))’ >-- cheat >>
+assume_tac negf0_resp1 >> fs[resp1_def] >>
+qpick_x_assum ‘App(negf0, x1) = x2’ (assume_tac o GSYM) >>
+arw[] >> 
+qby_tac ‘Pair(n, m) = App(negf0, Pair(m,n))’ 
+>-- rw[negf0_def1] >>
+arw[] >> first_x_assum irule >> 
+assume_tac ZR_ER >> drule $ GSYM rsi_eq_ER >> arw[])
+(form_goal
+“!z1. ?!z2. Holds(Lfr(negf0,Rsi(ZR)),App(iZ,z1),App(iZ,z2))”));
+
+val negz_def =
+    Inj_lift_R_lemma |> qsspecl [‘iZ’]
+                     |> C mp iZ_Inj
+                     |> qsspecl [‘Lfr(negf0,Rsi(ZR))’]
+                     |> C mp neg_lift
+                     |> qSKOLEM "negz" []
+                     |> rewr_rule[Lfr_def,GSYM rsi_def]
+                     |> store_as "negz_def";
+
+
+
+
+ 
+val negz_char = prove_store("negz_char",
+e0
+(rpt strip_tac >>
+ strip_assume_tac negz_def >> cheat
+ )
+(form_goal
+ “!z m n.App(iZ,z) = rsi(ZR,Pair(m,n)) ==>
+         App(iZ o negz,z) = rsi(ZR,Pair(n,m))”));
+
+(*to prove
+
+!z. neg (neg z ) = z
+
+that is, the subset which satisfies above is the whole thing
+
+sufficient to 
+
+for every z, its rep is in the set of 
+*)
+
+
+
+val negz_negz = prove_store("negz_negz",
+e0
+(strip_tac >> assume_tac iZ_Inj >> fs[Inj_def] >>
+ first_x_assum irule >> 
+ qsspecl_then [‘z’] strip_assume_tac iZ_rsi >>
+ drule negz_char >> fs[App_App_o] >>
+ drule negz_char >> fs[App_App_o])
+(form_goal “!z. App(negz o negz,z) = z”));
+
+
+
+
+
+
+
+
+
+(***********)
 val ZR_def = 
 fVar_Inst 
 [("P",([("mn",mem_sort $Cross N N),("m'n'",mem_sort $Cross N N)],
@@ -34,14 +357,6 @@ e0
  “Refl(ZR)”));
 
 val Pair_Fst_Snd = Pair_component |> rewr_rule[Fst_def,Snd_def] |> store_as "Pair_Fst_Snd";
-
-(*AQ how to let it realize 
- !(a1 : mem(N * N))  (a2 : mem(N * N)).
-               Add(Fst(a1#), Snd(a2#)) = Add(Fst(a2#), Snd(a1#)) ==>
-               Add(Fst(a2#), Snd(a1#)) = Add(Fst(a1#), Snd(a2#))
-
-analoge of cases on ‘a1’
-*)
 
 (*use add_sub*)
 val ZR_Trans = prove_store("ZR_Trans",
