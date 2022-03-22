@@ -1992,6 +1992,8 @@ e0
  >-- (irule IN_EXT >> arw[]) >> arw[])
 (form_goal “∀A s1 s2. (∀x:mem(A). IN(x,s1) ⇔ IN(x,s2)) ⇔ s1 = s2”));
 
+use "SEARreln.sml";
+
 local
 val inN_cl = 
  “(n = O0 ==> IN(n,inN)) &
@@ -2124,6 +2126,17 @@ e0
  rw[App_App_o,S0_def])
 (form_goal “!n.~(App(SUC,n) = O)”));
 
+val Image_ex = prove_store("Image_ex",
+e0
+(cheat)
+(form_goal “!A B f:A->B. ?im:Pow(A) -> Pow(B). 
+ !a b. IN(b,App(im,a)) <=> ?a. b = App(f,a)”));
+
+
+val Image_def = Image_ex |> spec_all
+                         |> qSKOLEM "Image" [‘f’] 
+                         |> gen_all
+                         |> store_as "Image_def"; 
 
 
 (*a machinary to convert things like O_xor_SUC into N0 form? maybe this:*)
@@ -2181,11 +2194,11 @@ e0
 (*~(?(pn : mem(N)). F)  conv for this*)
 val O_xor_SUC = prove_store("O_xor_SUC",
 e0
-(ind_with N_ind_P >> rw[SUC_NONZERO] >>  
+(ind_with N_ind_P >> rw[GSYM SUC_NONZERO] >>  
  strip_tac >-- (ccontra_tac >>
  pop_assum strip_assume_tac) >>
- rpt strip_tac >> qexists_tac ‘n’ >> rw[])
-(form_goal “!n. ~(n = O) <=> ?pn.App(SUC,pn) = n”));
+ rpt strip_tac >>  rw[SUC_NONZERO] >> qexists_tac ‘n’ >> rw[])
+(form_goal “!n. ~(n = O) <=> ?pn.n = App(SUC,pn)”));
 
 
 

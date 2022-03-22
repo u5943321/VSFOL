@@ -60,6 +60,7 @@ val iZ_Inj = Z_def |> conjE1 |> store_as "iZ_Inj"
                    |> store_as "iZ_Inj";
 
 
+
 (* (?(n : mem(N * N)). a# = rsi(ZR, n#)) <=>
  ?n1 n2. ... such a conv, to corresponds to L's lambda ver *)
 (*compare to iN_inNs*)
@@ -100,6 +101,20 @@ val negrel_def =
         |> store_as "negrel_def";
 
 *)
+
+
+val main = prove_store("main",
+e0
+cheat
+(form_goal
+“!A B f:A->B r1:A~>A r2:B~>B
+ Q1 Q2 i1:Q1->Pow(A) i2:Q2->Pow(B). 
+ ER(r1) & ER(r2) & resp(f,r1,r2) &
+ (!sa. (?q1. sa = App(i1,q1)) <=> (?a. sa = rsi(r1,a))) & 
+ (!sb. (?q2. sb = App(i2,q2)) <=> (?b. sb = rsi(r2,b))) ==>
+ ?qf: Q1-> Q2.
+ !q1:mem(Q1). Holds(rext(f,r1,r2),App(i1,q1),App(i2 o qf,q1)) ”));
+
 
 val respects_def = 
  qdefine_psym("respects",[‘f:A->B’,‘r:A~>A’])

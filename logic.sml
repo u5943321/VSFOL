@@ -684,7 +684,27 @@ fun define_psym (pname,vl) f =
     in mk_thm (ct,[],fm)
     end
 
-(*once proved existence of input terms can make sure the term of current sort exists, can have antecedent in th*)
+(*once proved existence of input terms can make sure the term of current sort exists, can have antecedent in th
+
+eth: {A,B,f:A->B},[] |- ?a:st(H).T
+fname: "fun"
+vl  [‘f:A->B’]
+th {A,B,f:A->B,g:K->M} |- ?a:st(H). P(a)
+
+f:1->0 |- ?
+
+{A,B,f:A->B,g:K->M} |- ?!a:st(H). P(a,f,g)
+
+
+
+A * B isPr(p1,p2)
+
+|- !(A : set)  (B : set).
+        (!(x : mem(A#)). ?(y : mem(B#)). P(x#, y#)) ==>
+        ?(f : fun(A#, B#)). !(a : mem(A#)). P(a#, App(f#, a#)): thm
+
+*)
+
 fun SKOLEM eth fname vl th = 
     let val asm = ant th
         val c = concl th

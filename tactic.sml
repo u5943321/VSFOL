@@ -137,6 +137,14 @@ fun match_mp_tac th (ct:cont,asl:form list,w) =
     end
 
 
+fun stripn_forall n f = 
+    if n = 0 then ([],f) else 
+    let val (vl,b0) = stripn_forall (n - 1) f
+        val (v,b) = dest_forall b0
+    in (vl @ [v],b)
+    end
+
+(*
 fun ind_with th (ct,asl,w) = 
     let 
         val th1 = undisch th
@@ -150,7 +158,38 @@ fun ind_with th (ct,asl,w) =
         val th2 = fVar_Inst_th (P,(qvs,gcon)) th
     in match_mp_tac th2 (ct,asl,w)
     end
+*)
 
+fun ind_with th (ct,asl,w) = 
+    let 
+        val th1 = undisch th
+        val (conc,bvs) = strip_forall (concl th1)
+        val (ante,con) = dest_imp conc
+                         handle _ => (TRUE,conc)
+        val (P,args) = dest_fvar con
+        val (qvs,b) = stripn_forall (length args) w
+        val (gante,gcon) = dest_imp b
+                           handle _ => (TRUE,b)
+        val th2 = fVar_Inst_th (P,(qvs,gcon)) th
+    in match_mp_tac th2 (ct,asl,w)
+    end
+
+
+fun ind_with th (ct,asl,w) = 
+    let 
+        val th1 = undisch th
+        val (conc,bvs) = strip_forall (concl th1)
+        val (ante,con) = dest_imp conc
+                         handle _ => (TRUE,conc)
+        val (P,args) = dest_fvar con
+        val (qvs,b) = stripn_forall (length args) w
+        val (gante,gcon) = dest_imp b
+                           handle _ => (TRUE,b)
+        (*use to treat !n. IN(n,inNs) ==> ..., so take the concl*)
+        val th2 = fVar_Inst_th (P,(qvs,gcon)) th
+    in match_mp_tac th2 (ct,asl,w)
+       handle _ => match_mp_tac (fVar_Inst_th (P,(qvs,b)) th) (ct,asl,w)
+    end
 
 
 
