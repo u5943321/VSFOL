@@ -703,6 +703,13 @@ A * B isPr(p1,p2)
         (!(x : mem(A#)). ?(y : mem(B#)). P(x#, y#)) ==>
         ?(f : fun(A#, B#)). !(a : mem(A#)). P(a#, App(f#, a#)): thm
 
+
+!A B. ?AB. isPr(AB,A,B)
+
+A 
+
+without axiom of choice, function symbols can only abbrev existing actual function applid
+
 *)
 
 fun SKOLEM eth fname vl th = 

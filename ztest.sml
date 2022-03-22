@@ -1,14 +1,117 @@
+
+
 val ZR_def = 
 AX1 |> qspecl [‘N * N’,‘N * N’] |> uex2ex_rule
     |> fVar_sInst_th “P(mn:mem(N * N),m'n':mem(N * N))”
        “Add(Fst(mn:mem(N * N)),Snd(m'n':mem(N * N))) = 
         Add(Fst(m'n'),Snd(mn))”
-    |> qSKOLEM "ZR" [] |> store_as "ZR_def";
+    |> qSKOLEM "ZR" [] 
+    |> qspecl [‘Pair(x:mem(N),y:mem(N))’,
+               ‘Pair(u:mem(N),v:mem(N))’] 
+    |> qgenl [‘x’,‘y’,‘u’,‘v’]  
+    |> rewr_rule[Pair_def']
+    |> store_as "ZR_def";
 
+
+strip_quants
+
+val f = “!a:mem(N * N). P(a)”
+
+fun dest_cross t = 
+    case view_term t of 
+        vFun("*",_,[A,B])=> (A,B)
+      | _ => raise simple_fail "dest_cross.not a cross";
+               
+
+fun mk_Pair a b = mk_fun "Pair" [a,b]
+
+
+fun forall_cross_fconv f = 
+    let val (pv as (n,s),b) = dest_forall f 
+        val pset = s |> dest_sort |> #2  |> hd
+        val (A,B) = dest_cross pset 
+        val pt = mk_var pv
+        val eth = Pair_has_comp |> specl [A,B,pt]
+        val (cv1 as (cn1,cs1),b1) = dest_exists (concl eth) 
+        val (cv2 as (cn2,cs2),b2) = dest_exists b1
+        val ct1 = mk_var cv1
+        val ct2 = mk_var cv2
+        val pair = mk_Pair ct1 ct2 
+        val b' = substf (pv,pair) b
+        val new = mk_forall cn1 cs1 (mk_forall cn2 cs2 b')
+        val l2r = f |> assume |> allE pair 
+                    |> simple_genl [cv1,cv2]
+                    |> disch f
+        val eth1 = b1 |> assume 
+        val r2l = new |> assume |> specl [ct1,ct2]
+                      |> rewr_rule[GSYM $ assume b2]
+                      |> existsE cv2 eth1 
+                      |> existsE cv1 eth
+                      |> allI pv
+                      |> disch new
+    in dimpI l2r r2l 
+    end
+
+val f = “?a:mem(A * B).P(a)”
+
+fun exists_cross_fconv f = 
+    let val (pv as (n,s),b) = dest_exists f 
+        val pset = s |> dest_sort |> #2  |> hd
+        val (A,B) = dest_cross pset 
+        val pt = mk_var pv
+        val eth = Pair_has_comp |> specl [A,B,pt]
+        val (cv1 as (cn1,cs1),b1) = dest_exists (concl eth) 
+        val (cv2 as (cn2,cs2),b2) = dest_exists b1
+        val ct1 = mk_var cv1
+        val ct2 = mk_var cv2
+        val pair = mk_Pair ct1 ct2 
+        val b' = substf (pv,pair) b
+        val new0 = mk_exists cn2 cs2 b'
+        val new = mk_exists cn1 cs1 new0
+        val l2r = b |> assume |> rewr_rule[assume b2]
+                    |> existsI cv2 ct2 b'
+                    |> existsI cv1 ct1 new0
+                    |> existsE cv2 (assume b1)
+                    |> existsE cv1 eth
+                    |> existsE pv (assume f)
+                    |> disch f
+        val r2l = b'|> assume 
+                    |> existsI pv pair b
+                    |> existsE cv2 (assume new0)
+                    |> existsE cv1 (assume new)
+                    |> disch new
+    in dimpI l2r r2l
+    end
+                    |> existsI cv2 ct2 b'
+                    |> existsI cv1 ct1 new0
+                    |> existsE cv2 (assume b1)
+                    |> existsE cv1 eth
+                    |> existsE pv (assume f)
+                    |> disch f
+
+val (a,s) = cv1;
+val t = ct1 ;
+val f = b1;
+val (G,A,C) = dest_thm 
+(b |> assume |> rewr_rule[assume b2]
+                    |> existsI cv2 ct2 b')
+f |> assume |> allE pair 
+                    |> simple_genl [cv1,cv2]
+                    |> disch f
+        val eth1 = b1 |> assume 
+        val r2l = new |> assume |> specl [ct1,ct2]
+                      |> rewr_rule[GSYM $ assume b2]
+                      |> existsE cv2 eth1 
+                      |> existsE cv1 eth
+                      |> allI pv
+                      |> disch new
+    in dimpI l2r r2l 
+    end
 
 val ZR_Refl = prove_store("ZR_Refl",
 e0
-(rw[Refl_def,ZR_def])
+(rw[Refl_def,ZR_def] >> fconv_tac forall_cross_fconv >>
+ rw[ZR_def])
 (form_goal
  “Refl(ZR)”));
 
