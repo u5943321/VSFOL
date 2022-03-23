@@ -294,7 +294,6 @@ fun sub_fconv c fc =
                  uex_fconv fc,
                  pred_fconv c])
 
-(*TODO: uex_fconv*)
 
 
 
