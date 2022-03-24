@@ -58,7 +58,8 @@ val Del_def = IN_def_P |> qspecl [‘X’]
 
 val Del_Ins = prove_store("Del_Ins",
 e0
-(rpt strip_tac >> irule IN_EXT >> rw[GSYM Ins_property,GSYM Del_property] >>
+(rpt strip_tac >> irule IN_EXT >> 
+ arw[Ins_def,Del_def] >>
  rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >> ccontra_tac >> fs[])
 (form_goal “!X x0:mem(X) xs0. (~IN(x0,xs0)) ==> Del(Ins(x0,xs0),x0) =xs0”));
 
@@ -67,212 +68,57 @@ e0
 
 val Ins_absorb = prove_store("Ins_absorb",
 e0
-(rpt strip_tac >> irule IN_EXT >> rw[GSYM Ins_property] >>
+(rpt strip_tac >> irule IN_EXT >> rw[Ins_def] >>
  rpt strip_tac >> dimp_tac >> strip_tac >> arw[])
 (form_goal “!X x0:mem(X) xs0. IN(x0,xs0) ==> Ins(x0,xs0) =xs0”));
 
 
-val Empty_ex = 
-fVar_Inst 
-[("P",([("x",mem_sort (mk_set "X"))],
-“F”))] 
-(IN_def_P_expand |> qspecl [‘X’]) |> gen_all
-|> store_as "Empty_ex";
-
-val Empty_def = Empty_ex |> spec_all |> ex2fsym0 "Empty" ["X"] 
-                         |> gen_all |> store_as "Empty_def";
-
-val Empty_property = Empty_def |> spec_all |> conjE1 |> GSYM 
-                               |> gen_all |> store_as "Empty_property";
+val Fin_def = qdefine_psym("Fin",[‘A:mem(Pow(X))’]) ‘IN(A,FIs(X))’
+                          |> gen_all |> store_as "Fin_def"; 
 
 
-val cFins_ex = 
-fVar_Inst 
-[("P",([("xss",mem_sort $ Pow $Pow (mk_set "X"))],
-“IN(Empty(X),xss) & !xs0. IN(xs0,xss) ==> !x0. IN(Ins(x0,xs0),xss)”))] 
-(IN_def_P_expand |> qspecl [‘Pow(Pow(X))’]) |> gen_all
-|> store_as "cFins_ex";
-
-val cFins_def =  cFins_ex |> spec_all |> ex2fsym0 "cFins" ["X"]
-                       |> gen_all
-                       |> store_as "cFins_def";
-
-val cFins_property = cFins_def |> spec_all |> conjE1
-                             |> gen_all |> store_as "cFins_property";   
-
-val Fin_lemma = 
-fVar_Inst 
-[("P",([("xs",mem_sort $ Pow (mk_set "X"))],
-“IN(xs,Eval(BI(Pow(X)),cFins(X)))”))]
-(Thm_2_4 |> qspecl [‘Pow(X)’]) |> conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all BI_property) 
-|>conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all $ GSYM cFins_property) 
-|> ex2fsym0 "Fins" ["X"] |> ex2fsym0 "FI" ["X"]
-
-
-val Fin_lemma' = Fin_lemma |> conjE2 |> iffRL
-                       |> allE (rastt "Eval(FI(X),b)")
-                       |> C mp
-                       (existsI ("b'",mem_sort (rastt "Fins(X)")) (rastt "b:mem(Fins(X))")
-                                “Eval(FI(X), b) = Eval(FI(X), b')”
-                                (refl (rastt "Eval(FI(X), b)")))
-                       |> strip_all_and_imp
-                       |> gen_all
-                       |> disch_all
-                       |> gen_all
-
-
-val _ = new_pred "Fin" [("A",mem_sort $ Pow (mk_set "X"))]
-
-val Fin_def = store_ax("Fin_def",
-“!X A:mem(Pow(X)). Fin(A) <=> ?b:mem(Fins(X)). A = Eval(FI(X),b)”)
-
-val Fin_property = prove_store("Fin_property",
-e0
-(rw[Fin_def] >> once_rw[GSYM Fin_lemma] >> rpt strip_tac >> 
- first_assum irule >> first_assum irule >> arw[])
-(form_goal
- “!X. Fin(Empty(X)) & !A:mem(Pow(X)). Fin(A) ==> !x. Fin(Ins(x,A))”));
-
-val Fin_ind = prove_store("Fin_ind",
-e0
-(strip_tac >> strip_tac >> disch_tac >> drule Fin_lemma' >>
- rw[Fin_def] >> rpt strip_tac >> arw[])
-(form_goal
- “!X ss. (IN(Empty(X),ss) & 
-  !xs0. IN(xs0,ss) ==> !x0. IN(Ins(x0,xs0),ss)) ==>
-  !A. Fin(A) ==> IN(A,ss)”));
 
 
 local
-val l0 = 
-(IN_def_P_expand |> qspecl [‘Pow(X)’]) 
+val Cd_cl = 
+ “(xsn = Pair(Empty(X),O) ==> IN(xsn,Cds)) &
+  (!xsn0 x. IN(xsn0,Cds) & ~(IN(x,Fst(xsn0))) & 
+            xsn = Pair(Ins(x,Fst(xsn0)),Suc(Snd(xsn0))) ==> IN(xsn,Cds))”
 in
-val Fin_ind_P = prove_store("Fin_ind_P",
-e0
-(rpt strip_tac >> strip_assume_tac l0 >> pop_assum (K all_tac) >>
- qsuff_tac ‘IN(A,s)’
- >-- (strip_tac >> first_assum (qspecl_then [‘A’] assume_tac) >>
-      accept_tac (dimp_mp_r2l (assume “P(A:mem(Pow(X))) <=> IN(A, s)”)
-                              (assume “IN(A:mem(Pow(X)), s)”))) >>
- irule Fin_ind >> strip_tac (* 2 *)
- >-- first_assum accept_tac >>
- strip_tac >-- (first_assum (irule o iffLR) >> first_assum accept_tac) >>
- rpt strip_tac >> first_assum (irule o iffLR) >> 
- qsuff_tac ‘!x0. P(Ins(x0,xs0))’
- >-- (strip_tac >> first_assum (qspecl_then [‘x0’] accept_tac)) >>
- first_assum irule >> first_assum (irule o iffRL) >>
- first_assum accept_tac)
-(form_goal
- “!X.(P(Empty(X)) & !xs0:mem(Pow(X)). P(xs0) ==> !x0. P(Ins(x0,xs0))) ==> 
-  !A:mem(Pow(X)). Fin(A) ==> P(A)”));
+val (Cd_incond,x1) = mk_incond Cd_cl;
+val Cdf_ex = mk_fex Cd_incond x1;
+val Cdf_def = mk_fdef "Cdf" Cdf_ex;
+val Cdf_monotone = mk_monotone Cdf_def;
+val Cd's_def = mk_prim Cdf_def;
+val Cds_def = mk_LFP (rastt "Cd's(X)");
+val Cds_cond = mk_cond Cds_def Cd's_def;
+val Cds_SS = mk_SS Cds_def Cd's_def;
+val Cd_rules0 = mk_rules Cdf_monotone Cds_SS Cds_cond;
+val Cd_cases0 = mk_cases Cdf_monotone Cd_rules0 Cds_cond;
+val Cd_ind0 = mk_ind Cds_cond;
+val Cd_ind1 = mk_ind1 Cdf_def Cd_ind0;
+val Cd_ind2 = mk_ind2 Cd_ind1;
+val Cd_cases1 = mk_case1 Cdf_def Cd_cases0;
+val Cd_rules1 = mk_rules1 Cdf_def Cd_rules0;
+val Cd_rules2 = mk_rules2 Cd_rules1;
+val Cd_rules3 = mk_rules3 Cd_rules2;
 end
 
-(*hascard(0,Empty(X)) &
- !n xs. hascard(n,xs) ==> !x. x\notin xs ==> hascard(Suc(n),Ins(x,xs))*)
+val Cd_ind = Cd_ind2 |> store_as "Cd_ind";
+val Cd_cases = Cd_cases1 |> store_as "Cd_cases";
+val Cd_rules = Cd_rules3 |> store_as "Cd_rules";
 
-val BIGINTER_ex = prove_store("BIGINTER_ex",
+(*Card rel*)
+val Cdr_def = qdefine_psym("Cdr",[‘xs:mem(Pow(X))’,‘n:mem(N)’])
+‘IN(Pair(xs,n),Cds(X))’ |> qgenl[‘X’,‘xs’,‘n’] 
+|> store_as "Cdr_def";
+
+
+val Cdr_Empty = prove_store("Cdr_Empty",
 e0
-(rpt strip_tac >> qexists_tac ‘Eval(BI(A),sss)’ >> rw[])
+(rw[Cdr_def,Cd_rules])
 (form_goal
- “!A sss:mem(Pow(Pow(A))). ?isss.Eval(BI(A),sss) = isss”))
-
-
-val BIGINTER_def = BIGINTER_ex |> spec_all |> ex2fsym0 "BIGINTER" ["sss"]
-                               |> store_as "BIGINTER_def";
-
-val IN_BIGINTER = BI_def |> rewr_rule[BIGINTER_def] |> spec_all |> conjE2 |> gen_all
-                         |> store_as "IN_BIGINTER";
-
-
-(*
-local
-val lemma = 
- fVar_Inst 
-[("P",([("A",mem_sort$ Pow $ Cross N $Pow (mk_set "X"))],
-“IN(Pair(O,Empty(X)),A) &
- (!n xs.IN(Pair(n,xs),A) ==> 
-  !x0. (~(IN(x0,xs))) ==>IN(Pair(Suc(n),Ins(x0,xs)),A))”))] 
-(IN_def_P_expand |> qspecl [‘Pow(N * Pow(X))’]) 
-(*set of subsets contains hascard sets*)
-val As_def = lemma |> ex2fsym0 "As" ["X"] |> conjE1 
-                   |> gen_all |> GSYM
-val U_ex_lemma = fVar_Inst 
-[("P",([("nxs",mem_sort $ Cross N $Pow (mk_set "X"))],
-“IN(nxs,BIGINTER(As(X)))”))]
-(Thm_2_4 |> qspecl [‘N * Pow(X)’]) 
-|> conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all IN_BIGINTER)
-|> conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all As_def)
-val U_i_def = U_ex_lemma |> ex2fsym0 "U" ["X"] |>ex2fsym0 "i" ["X"]
-val IN_U = U_i_def |> conjE2 |> gen_all |> 
-conv_rule $ basic_once_fconv no_conv (rewr_fconv (eq_sym "mem"))
-|> GSYM
-val rel_ex_lemma = 
-fVar_Inst 
-[("P",([("n",mem_sort N),("xs",mem_sort $Pow (mk_set "X"))],
-“?r.Eval(i(X):U(X)~> N * Pow(X),r) = Pair(n,xs)”))]
-(AX1 |> qspecl [‘N’,‘Pow(X)’]) |> uex_expand |> ex2fsym0 "hasCard" ["X"]
-|> conjE1
-|> conv_rule $ basic_once_fconv no_conv (rewr_fconv (spec_all IN_U))
-*)
-
-
-
-
-
-
-
-
-val lemma = 
- fVar_Inst 
-[("P",([("A",mem_sort$ Pow $ Cross (Pow (mk_set "X")) N)],
-“IN(Pair(Empty(X),O),A) &
- (!xs n.IN(Pair(xs,n),A) ==> 
-  !x0. (~(IN(x0,xs))) ==>IN(Pair(Ins(x0,xs),Suc(n)),A))”))] 
-(IN_def_P_expand |> qspecl [‘Pow(Pow(X) * N)’]) 
-(*set of subsets contains hascard sets*)
-val As_def = lemma |> ex2fsym0 "As" ["X"] |> conjE1 
-                   |> gen_all |> GSYM
-val U_ex_lemma = fVar_Inst 
-[("P",([("nxs",mem_sort $ Cross (Pow (mk_set "X")) N)],
-“IN(nxs,BIGINTER(As(X)))”))]
-(Thm_2_4 |> qspecl [‘Pow(X) * N’]) 
-|> conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all IN_BIGINTER)
-|> conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all As_def)
-val U_i_def = U_ex_lemma |> ex2fsym0 "U" ["X"] |>ex2fsym0 "i" ["X"]
-val IN_U = U_i_def |> conjE2 |> gen_all |> 
-conv_rule $ basic_once_fconv no_conv (rewr_fconv (eq_sym "mem"))
-|> GSYM
-val Card_lemma = 
-fVar_Inst 
-[("P",([("xs",mem_sort $Pow (mk_set "X")),("n",mem_sort N)],
-“?r.Eval(i(X):U(X)~> Pow(X) * N,r) = Pair(xs,n)”))]
-(AX1 |> qspecl [‘Pow(X)’,‘N’]) |> uex_expand |> ex2fsym0 "Card" ["X"]
-|> conjE1
-|> conv_rule $ basic_once_fconv no_conv (rewr_fconv (spec_all IN_U))
-val _ = new_pred "hasCard" [("xs",mem_sort $Pow (mk_set "X")),("n",mem_sort N)]
-val hasCard_def = store_ax("hasCard_def",
-“!X xs:mem(Pow(X)) n.hasCard(xs,n) <=> Holds(Card(X),xs,n)”)
-
-val Card_def' = Card_lemma |> rewr_rule[GSYM hasCard_def]
-
-
-val Fin_ind_card = 
-fVar_Inst 
-[("P",([("xs",mem_sort $ Pow (mk_set "X"))],
-“?!n.hasCard(xs:mem(Pow(X)),n)”))]
-(Fin_ind_P |> qspecl [‘X’])
-
-val hasCard_Empty = prove_store("hasCard_property",
-e0
-(rw[Card_def'] >> rpt strip_tac)
-(form_goal
- “!X.hasCard(Empty(X),O)”));
+ “!X.Cdr(Empty(X),O)”));
 
 val hasCard_Ins = prove_store("hasCard_Ins",
 e0
