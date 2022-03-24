@@ -737,7 +737,7 @@ e0
  Quo(r1,i1) & Quo(r2,i2) ==>
  ?!qf: Q1-> Q2.
  !q1:mem(Q1). Holds(rext(f,r1,r2),App(i1,q1),App(i2 o qf,q1)) ”))
-*))
+*)
 
 
 val Inj_Quo_Z = prove_store("Inj_Quo_Z",
@@ -749,14 +749,28 @@ e0
 
 val addf0_resp = prove_store("addf0_resp",
 e0
-(cheat)
+(rw[resp_def,prrel_def] >> rpt strip_tac >>
+ qsspecl_then [‘z’] (x_choosel_then ["ab","cd"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘ab’] (x_choosel_then ["a","b"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘cd’] (x_choosel_then ["c","d"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘y’] (x_choosel_then ["xy","uv"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘xy’] (x_choosel_then ["x1","y1"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘uv’] (x_choosel_then ["u","v"] assume_tac) Pair_has_comp >>
+ fs[addf0_def,prrel_def,ZR_def] >> 
+ qspecl_then [‘u’,‘x1’] assume_tac Add_comm >> arw[] >>
+ rw[GSYM Add_assoc] >>
+ qspecl_then [‘x1’,‘b’,‘d’] assume_tac Add_assoc >> arw[] >>
+ qspecl_then [‘a’,‘y1’,‘d’] assume_tac (GSYM Add_assoc) >> arw[] >>
+ qspecl_then [‘Add(y1,d)’,‘a’] assume_tac Add_comm >> arw[] >>
+ qspecl_then [‘d’,‘y1’] assume_tac Add_comm >> arw[] >>
+ arw[Add_assoc] >> cheat (*tedious*))
 (form_goal “resp(addf0, prrel(ZR, ZR), ZR)”));
 
 val addz_conds = proved_th $
 e0
 (assume_tac Inj_Quo_Z >> assume_tac ZR_ER >> arw[] >> rpt strip_tac (* 4 *)
  >-- (irule prrel_ER_ER >> arw[])
- >-- cheat (*hard one*)
+ >-- rw[addf0_resp] (*hard one*)
  >-- irule ipow2_Inj_Inj >> arw[] >> cheat (* *) >>
  irule Quo_cong >> arw[])
 (form_goal
@@ -1414,17 +1428,14 @@ e0
  (qspecl_then [‘Add(n1, d)’,‘Add(a, n2)’,
                 ‘Add(n2, c)’,‘Add(b, n1)’] assume_tac) Le_Add >> rfs[] >>
  fs[Add_assoc] >>
+(*
  qby_tac ‘Add(Add(Add(n1, d), a), n2)  = Add(Add(Add(n1, n2), a), d)’
  qspecl_then [‘d’,‘n1’] assume_tac Add_comm >> fs[] >>
  qspecl_then [‘a’,‘Add(d,n1)’] assume_tac Add_comm >> fs[] >> 
  qspecl_then [‘a’,‘Add(d,n1)’] assume_tac Add_comm >> fs[] >> 
- fs[GSYM Add_assoc]
- qsspecl_then [‘Add(b, n1)’,‘Add(n2, c)’] assume_tac Add_comm
-
-qexists_tac ‘Add(n1,n2)’ >> strip_tac (* 2 *)
- >-- last_x_assum irule 
-
- rw[Le_def] >> cheat (*should easy  prove equal*))
+ fs[GSYM Add_assoc] >>
+ qsspecl_then [‘Add(b, n1)’,‘Add(n2, c)’] assume_tac Add_comm >>*)
+ cheat)
 (form_goal “Trans(LEz)”));
 
 
@@ -1475,6 +1486,8 @@ e0
  Lez(Mulz(z1,z3),Mulz(z2,z3))”));
 
 
+(*
+
 A r:A ~eq~>A 
 Q >---i---> P(A)
 Thm_2_4
@@ -1512,3 +1525,4 @@ iscolist(s) <=>
 
 !e:set of pairs. e in X ==> e = [] | ?h e0. e = e0 :: h0 &
                             e0 in X
+*)
