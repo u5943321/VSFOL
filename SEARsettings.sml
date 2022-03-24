@@ -1587,6 +1587,7 @@ e0
  ?f:A->B. !a:mem(A) b:mem(B). App(f,a) = b <=> P(a,b)”));
 
 
+
 val P2fun' = prove_store("P2fun'",
 e0
 (rpt strip_tac >> drule P2fun >>
@@ -1596,6 +1597,19 @@ e0
 (form_goal “!A B. (!x:mem(A). ?!y:mem(B). P(x,y)) ==>
  ?f:A->B. !a:mem(A). P(a, App(f,a))”));
 
+val P2fun_uex = prove_store("P2fun_uex",
+e0
+(rpt strip_tac >> drule P2fun' >> pop_assum strip_assume_tac >>
+uex_tac >> qexists_tac ‘f’ >> arw[] >> rpt strip_tac >>
+rw[GSYM FUN_EXT] >> strip_tac >>
+last_x_assum (qspecl_then [‘a’] assume_tac) >>
+pop_assum (assume_tac o uex_expand) >>
+pop_assum strip_assume_tac >> 
+qsuff_tac ‘App(f',a) = y & App(f,a) = y’ 
+>-- (strip_tac >> arw[]) >>
+strip_tac >> first_x_assum irule >> arw[])
+(form_goal “!A B. (!x:mem(A). ?!y:mem(B). P(x,y)) ==>
+ ?!f:A->B. !a:mem(A). P(a, App(f,a))”));
 (*apply only first arg*)
 
 
