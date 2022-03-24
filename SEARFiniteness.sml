@@ -1,68 +1,60 @@
 
-(*
-
-!xs n. Card xs n ==> !x\in xs ==> Card (xs DELETE x)  (n - 1)
-
-!x. x\notin xs ==> Card( x INSERT xs) (n + 1)
-
-
-Card: Pow(X) ~> N
-
-can have a Card: Pow(X) ~> N that map every infinite set to 0
+val Ins_def = IN_def_P |> qspecl [‘X’]
+                       |> fVar_sInst_th “P(x:mem(X))”
+                       “x:mem(X) = x0 | IN(x,s0)”
+                       |> uex2ex_rule
+                       |> qSKOLEM "Ins" [‘x0’,‘s0’]
+                       |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
+                       |> store_as "Ins_def";
 
 
-define a choice function that 
+val Empty_def = IN_def_P |> qspecl [‘X’]
+                         |> fVar_sInst_th “P(x:mem(X))” “F”
+                         |> uex2ex_rule
+                         |> qSKOLEM "Empty" [‘X’]
+                         |> rewr_rule[]
+                         |> gen_all |> store_as "Empty_def";
 
 
+local
+val FI_cl = 
+ “(xs = Empty(X) ==> IN(xs,FIs)) &
+  (!xs0 x. IN(xs0,FIs) & xs = Ins(x,xs0) ==> IN(xs,FIs))”
+in
+val (FI_incond,x1) = mk_incond FI_cl;
+val FIf_ex = mk_fex FI_incond x1;
+val FIf_def = mk_fdef "FIf" FIf_ex;
+val FIf_monotone = mk_monotone FIf_def;
+val FI's_def = mk_prim FIf_def;
+val FIs_def = mk_LFP (rastt "FI's(X)");
+val FIs_cond = mk_cond FIs_def FI's_def;
+val FIs_SS = mk_SS FIs_def FI's_def;
+val FI_rules0 = mk_rules FIf_monotone FIs_SS FIs_cond;
+val FI_cases0 = mk_cases FIf_monotone FI_rules0 FIs_cond;
+val FI_ind0 = mk_ind FIs_cond;
+val FI_ind1 = mk_ind1 FIf_def FI_ind0;
+val FI_ind2 = mk_ind2 FI_ind1;
+val FI_cases1 = mk_case1 FIf_def FI_cases0;
+val FI_rules1 = mk_rules1 FIf_def FI_rules0;
+val FI_rules2 = mk_rules2 FI_rules1;
+val FI_rules3 = mk_rules3 FI_rules2;
+end
 
-CHOICE: Pow(A)~>A.
-
-
-
-“@a.”
-
-Card: Fin(X) ~> N
-
-*)
-
-
-val Ins_ex = 
-fVar_Inst 
-[("P",([("x",mem_sort (mk_set "X"))],
-“x:mem(X) = x0 | IN(x,s0)”))] 
-(IN_def_P_expand |> qspecl [‘X’]) |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
-|> store_as "Ins_ex";
-
-
-
-
-
-val Del_ex = 
-fVar_Inst 
-[("P",([("x",mem_sort (mk_set "X"))],
-“IN(x,s0) & (~(x:mem(X) = x0))”))] 
-(IN_def_P_expand |> qspecl [‘X’]) |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
-|> store_as "Del_ex";
-
-
-val Ins_def = Ins_ex |> spec_all |> ex2fsym0 "Ins" ["x0","s0"]
-                     |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
-                     |> store_as "Ins_def";
+val FI_ind = FI_ind2 |> store_as "FI_ind";
+val FI_cases = FI_cases1 |> store_as "FI_cases";
+val FI_rules = FI_rules3 |> store_as "FI_rules";
 
 
 
-val Del_def = Del_ex |> spec_all |> ex2fsym0 "Del" ["s0","x0"]
-                     |> qgen ‘x0’ |> qgen ‘s0’ |> qgen ‘X’
-                     |> store_as "Del_def";
-
-val Ins_property = Ins_def |> spec_all |> conjE1
-                           |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
-                           |> store_as "Ins_property";
 
 
-val Del_property = Del_def |> spec_all |> conjE1
-                           |> qgen ‘x0’ |> qgen ‘s0’ |> qgen ‘X’
-                           |> store_as "Del_property";
+val Del_def = IN_def_P |> qspecl [‘X’]
+                       |> fVar_sInst_th “P(x:mem(X))”
+                          “IN(x,s0) & (~(x:mem(X) = x0))” 
+                       |> uex2ex_rule
+                       |> qSKOLEM "Del" [‘s0’,‘x0’]
+                       |> qgen ‘x0’ |> qgen ‘s0’ |> qgen ‘X’
+                       |> store_as "Del_def";
 
 val Del_Ins = prove_store("Del_Ins",
 e0
