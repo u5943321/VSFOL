@@ -22,7 +22,7 @@ fun dest_cross t =
 
 fun mk_Pair a b = mk_fun "Pair" [a,b]
 
-
+(*
 fun forall_cross_fconv f = 
     let val (pv as (n,s),b) = dest_forall f 
         val pset = s |> dest_sort |> #2  |> hd
@@ -51,8 +51,9 @@ fun forall_cross_fconv f =
 
 
 
-val f = “∀b':mem(N * N).P(a:mem(N),b:mem(N),b')”;
+val f = “∀b':mem(N * N).P(a:mem(N),b:mem(N),b')”; 
 val f = “∀a1 a2 a3. Holds(ZR,a1,a2) & Holds(ZR,z2,z3)”;
+*)
 
 fun forall_cross_fconv f = 
     let val (pv as (n,s),b) = dest_forall f 
@@ -85,6 +86,17 @@ fun forall_cross_fconv f =
     in dimpI l2r r2l 
     end
 
+(*
+pred_fconv ((try_conv (rewr_conv (GSYM $ assume “b' = Pair(a':mem(N), b'':mem(N))”))))
+ “P(a:mem(N), b:mem(N), Pair(a':mem(N), b'':mem(N)))”
+
+ (redepth_fconv no_conv exists_cross_fconv)
+ val f = “∃a:mem(A) b:mem(A* B).P(a,b)”
+val f = “∃b:mem(A* B).P(a,b)”
+exists_cross_fconv “∃b:mem(A* B).P(a:mem(A),b)”
+ 
+ “∃a:mem(A) b b':mem(A * B) b'':mem(A  * B). P(a,b,b',b'')”
+
 
 fun exists_cross_fconv f = 
     let val (pv as (n,s),b) = dest_exists f 
@@ -101,6 +113,45 @@ fun exists_cross_fconv f =
         val new0 = mk_exists cn2 cs2 b'
         val new = mk_exists cn1 cs1 new0
         val l2r = b |> assume |> rewr_rule[assume b2]
+                    |> existsI cv2 ct2 b'
+                    |> existsI cv1 ct1 new0
+                    |> existsE cv2 (assume b1)
+                    |> existsE cv1 eth
+                    |> existsE pv (assume f)
+                    |> disch f
+        val r2l = b'|> assume 
+                    |> existsI pv pair b
+                    |> existsE cv2 (assume new0)
+                    |> existsE cv1 (assume new)
+                    |> disch new
+    in dimpI l2r r2l
+    end
+
+
+ val f = “∃b:mem(A* B).P(a:mem(A),b)”;
+*)
+ 
+fun exists_cross_fconv f = 
+    let val (pv as (n,s),b) = dest_exists f 
+        val pset = s |> dest_sort |> #2  |> hd
+        val (A,B) = dest_cross pset 
+        val pt = mk_var pv
+        val eth = Pair_has_comp |> specl [A,B,pt]
+        val (ocv1 as (ocn1,ocs1),ob1) = dest_exists (concl eth) 
+        val (ocv2 as (ocn2,ocs2),ob2) = dest_exists ob1
+        val avoids = fvf b
+        val ct1 = pvariantt avoids (mk_var ocv1)
+        val ct2 = pvariantt avoids (mk_var ocv2)
+        val (cv1 as (cn1,cs1)) = dest_var ct1
+        val (cv2 as (cn2,cs2)) = dest_var ct2
+        val b1 = substf (ocv1,ct1) ob1
+        val b2 = substf (ocv2,ct2) (substf (ocv1,ct1) ob2)
+        val pair = mk_Pair ct1 ct2 
+        val b' = substf (pv,pair) b
+        val new0 = (mk_exists cn2 cs2 b')
+        val new = mk_exists cn1 cs1 (mk_exists cn2 cs2 b')
+        val l2r = b |> assume 
+                    |> conv_rule (basic_fconv (rewr_conv (assume b2)) no_fconv)
                     |> existsI cv2 ct2 b'
                     |> existsI cv1 ct1 new0
                     |> existsE cv2 (assume b1)
@@ -681,15 +732,156 @@ e0
  !q1:mem(Q1). Holds(rext(f,r1,r2),App(i1,q1),App(i2 o qf,q1)) ”))
 
 
+val Inj_Quo_Z = prove_store("Inj_Quo_Z",
+e0
+(rw[GSYM Inj_Quo,iZ_Inj] >>
+ rw[GSYM Z_def])
+(form_goal “Inj(iZ) & Quo(ZR, iZ)”));
+
+
+val addz_conds = proved_th $
+e0
+(assume_tac Inj_Quo_Z >> assume_tac ZR_ER >> arw[] >> rpt strip_tac (* 4 *)
+ >-- (irule prrel_ER_ER >> arw[])
+ >-- cheat (*hard one*)
+ >-- irule ipow2_Inj_Inj >> arw[] >> cheat (* *) >>
+ irule Quo_cong >> arw[])
+(form_goal
+“ER(prrel(ZR, ZR)) &
+      ER(ZR) &
+      resp(addf0, prrel(ZR, ZR), ZR) &
+      Inj(ipow2(iZ, iZ)) &
+      Inj(iZ) & Quo(prrel(ZR, ZR), ipow2(iZ, iZ)) & Quo(ZR, iZ)”)
+
+(*
+ (redepth_fconv no_conv exists_cross_fconv)
+ “∃a:mem(A) b:mem(B) b':mem(A * B) b'':mem(A  * B). P(a,b,b',b'')”
+*)
+
+
 val main_addz = 
 Quo_fun |> qspecl [‘(N * N) * (N * N)’,‘N * N’,
                 ‘addf0’,
                 ‘prrel(ZR,ZR)’,‘ZR’,
                 ‘Z * Z’,‘Z’,
                 ‘ipow2(iZ,iZ)’,‘iZ’]
+        |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+        |> C mp addz_conds
+        |> qSKOLEM "addz" []
+        |> qspecl [‘z1:mem(Z)’,‘z2:mem(Z)’]
+        |> rewr_rule[rext_def,App_App_o,GSYM IN_EXT_iff,IN_rsi] 
 
 
 
+
+(*CANNOT GET ALL forall_cross_fconv expanded...
+  BUT ANYWAY GET UGLY VAR NAMES...
+  NEED TO RENAME BY HAND anyway,
+  therefore doing it by hand as follows...
+*)
+
+
+(*TODO: let genvar not add "'" but add numbers *)
+val main_addz1 = proved_th $
+e0
+(strip_assume_tac main_addz >>
+ qsspecl_then [‘b’] (x_choosel_then ["b1","b2"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘a’] (x_choosel_then ["a12","a34"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘a12’] (x_choosel_then ["a1","a2"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘a34’] (x_choosel_then ["a3","a4"] assume_tac) Pair_has_comp >>
+ once_arw[] >> qexistsl_tac [‘a1’,‘a2’,‘a3’,‘a4’,‘b1’,‘b2’] >>
+ arw[] >>
+ qsuff_tac ‘Pair(Pair(a1, a2), Pair(a3, a4))  = a & Pair(b1,b2) = b’ 
+ >-- (qpick_x_assum ‘App(addf0, a) = b’ mp_tac >>
+      pop_assum_list (K all_tac) >> rpt strip_tac >> arw[]) >> 
+ arw[])
+(form_goal
+ “?a1 a2 a3 a4 b1 b2.
+     (!x1 x2 x3 x4.
+            IN(Pair(Pair(x1,x2),Pair(x3,x4)), 
+               App(ipow2(iZ, iZ), Pair(z1, z2))) <=>
+            Holds(prrel(ZR, ZR), Pair(Pair(a1,a2),Pair(a3,a4)), Pair(Pair(x1,x2),Pair(x3,x4)))) &
+        (!n1 n2.
+            IN(Pair(n1,n2), App(iZ, App(addz, Pair(z1, z2)))) <=> 
+            Holds(ZR, Pair(b1,b2), Pair(n1,n2))) &
+        App(addf0, Pair(Pair(a1,a2),Pair(a3,a4))) = Pair(b1,b2)”)
+|> rewr_rule[ipow2_def,prrel_def,GSYM IN_rsi]
+
+
+(*may need con rw for simplifying main_addz'*)
+val iZ_nonempty = prove_store("iZ_nonempty",
+e0
+(strip_tac >> strip_assume_tac Z_def >> 
+ qsuff_tac ‘∃n. App(iZ,z) = rsi(ZR,n)’ 
+ >-- (strip_tac >> arw[] >> qexists_tac ‘n’ >> irule ER_rsi_nonempty >>
+     rw[ZR_ER]) >>
+ first_x_assum (irule o iffRL) >> qexists_tac ‘z’ >> rw[])
+(form_goal “∀z. ∃ab. IN(ab,App(iZ,z))”));
+
+val main_addz2 = proved_th $
+e0
+(strip_assume_tac main_addz1 >>
+ qexistsl_tac [‘a1’,‘a2’,‘a3’,‘a4’,‘b1’,‘b2’] >>
+ qby_tac ‘App(iZ,z1) = rsi(ZR,Pair(a1,a2)) & App(iZ,z2) = rsi(ZR,Pair(a3,a4))’ 
+ >-- (irule Pow_conj_eq >> rw[iZ_nonempty] >> 
+     depth_fconv_tac no_conv forall_cross_fconv >> arw[]) >>
+ arw[] >> rw[GSYM IN_EXT_iff] >> fconv_tac forall_cross_fconv >> arw[])
+(form_goal
+ “∃a1 a2 a3 a4 b1 b2.
+  App(iZ,z1) = rsi(ZR,Pair(a1,a2)) & App(iZ,z2) = rsi(ZR,Pair(a3,a4)) &
+  App(iZ,App(addz,Pair(z1,z2))) = rsi(ZR,Pair(b1,b2)) &
+  App(addf0, Pair(Pair(a1, a2), Pair(a3, a4))) = Pair(b1, b2)”)
+
+
+val main_addz3 = main_addz2 |> rewr_rule[addf0_def] 
+                            |> store_as "main_addz3";
+
+
+
+val Inj_Quo_rep = prove_store("Inj_Quo_rep",
+e0
+(fs[Quo_def] >> rpt strip_tac >>
+ first_x_assum (irule o iffLR) >> uex_tac >>
+ qexists_tac ‘q’ >> rw[] >> fs[Inj_def] >> rpt strip_tac >>
+ first_x_assum irule >> arw[])
+(form_goal “∀A r:A~>A Q i:Q->Pow(A). Inj(i) & Quo(r,i) ⇒
+ ∀q.∃a. App(i,q) = rsi(r,a)”));
+
+val Z_has_rep = prove_store("Z_has_rep",
+e0
+(assume_tac Inj_Quo_Z >> drule Inj_Quo_rep >>
+ pop_assum (assume_tac o (conv_rule (depth_fconv no_conv exists_cross_fconv)))>>
+ arw[] )
+(form_goal “∀z. ∃n1 n2. App(iZ,z) = rsi(ZR,Pair(n1,n2))”));
+
+
+val Addz_def = qdefine_fsym ("Addz",[‘z1:mem(Z)’,‘z2:mem(Z)’])
+                            ‘App(addz,Pair(z1,z2))’
+                            |> gen_all |> store_as "Addz_def";
+
+val Repz_def = qdefine_fsym ("Repz",[‘z:mem(Z)’])
+                            ‘App(,Pair(z1,z2))’
+                            |> gen_all |> store_as "Addz_def";
+
+
+val Addz_char0 = main_addz3 |> rewr_rule[GSYM Addz_def]
+                            |> gen_all
+                            |> store_as "Addz_char0";
+
+val Addz_char = prove_store("Addz_char",
+e0
+()
+(form_goal
+ “∀z1 a1 a2.
+  App(iZ,z1) = rsi(ZR,Pair(a1,a2)) ⇒
+  ∀z2 a3 a4. 
+  App(iZ,z2) = rsi(ZR,Pair(a3,a4)) ⇒
+  App(iZ, Addz(z1,))”));
+
+val Sing_def = qdefine_fsym ("Sing",[‘a:mem(A)’])
+                            ‘App(Sg(A),a:mem(A))’
+                            |> gen_all |> store_as "Sing_def";
+main_add
 
 val addz_ex = prove_store("addz_ex",
 e0
