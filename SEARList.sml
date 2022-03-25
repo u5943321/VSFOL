@@ -1,412 +1,352 @@
 
+local
+val isL_cl = 
+ “(ls = Empty(N * X) ==> IN(ls,isLs)) &
+  (!ls0 x. IN(ls0,isLs) & 
+           ls = Ins(Pair(Card(ls0),x),ls0) ==> IN(ls,isLs))”
+in
+val (isL_incond,x1) = mk_incond isL_cl;
+val isLf_ex = mk_fex isL_incond x1;
+val isLf_def = mk_fdef "isLf" isLf_ex;
+val isLf_monotone = mk_monotone isLf_def;
+val isL's_def = mk_prim isLf_def;
+val isLs_def = mk_LFP (rastt "isL's(X)");
+val isLs_cond = mk_cond isLs_def isL's_def;
+val isLs_SS = mk_SS isLs_def isL's_def;
+val isL_rules0 = mk_rules isLf_monotone isLs_SS isLs_cond;
+val isL_cases0 = mk_cases isLf_monotone isL_rules0 isLs_cond;
+val isL_ind0 = mk_ind isLs_cond;
+val isL_ind1 = mk_ind1 isLf_def isL_ind0;
+val isL_ind2 = mk_ind2 isL_ind1;
+val isL_cases1 = mk_case1 isLf_def isL_cases0;
+val isL_rules1 = mk_rules1 isLf_def isL_rules0;
+val isL_rules2 = mk_rules2 isL_rules1;
+val isL_rules3 = mk_rules3 isL_rules2;
+end
 
-
-(*
-
-[1,2]
-
-
-{(0,1),(1,2)}
-
-
-[2,1]
-
-
-{(0,2),(1,1)}
-
-
-N -> (A + 1)
-
-
-eq_psym
-
-
-a = c & b = d
----------
-P(a,b) <=> P(c,d)
-
-
-
-
-fun eq_Pred p  = 
-
-
-
-?P
+val isL_ind = isL_ind2 |> store_as "isL_ind";
+val isL_cases = isL_cases1 |> store_as "isL_cases";
+val isL_rules = isL_rules3 |> store_as "isL_rules";
 
 
 
 
-()
 
-*)
+val List_def = Thm_2_4 |> qspecl [‘Pow(N * X)’] 
+                    |> fVar_sInst_th 
+                       “P(a:mem(Pow(N * X)))” 
+                       “IN(a:mem(Pow(N * X)),isLs(X))”
+                    |> qSKOLEM "List" [‘X’] 
+                    |> qSKOLEM "iL" [‘X’]
+                    |> gen_all
 
-
-(*exists a set of "sets of sets of  pairs (n,a)"
-  (each member of such set is a subset of Pow(N * A), so each such set is  an element of Pow(Pow(N * A)))
-  which satisfies the condition that
-  {} is in the set, and ... *)
-
-val lemma = 
-fVar_Inst 
-[("P",([("sets",mem_sort$ Pow $ Pow $ Cross N (mk_set "A"))],
-“IN(Empty(N * A),sets:mem(Pow(Pow(N * A)))) & 
- !l. IN(l,sets) ==> !a:mem(A).IN(Ins(Pair(CARD(l),a),l),sets)”))] 
-(IN_def_P_expand |> qspecl [‘Pow(Pow(N * A))’]) 
-
-(*make Ins Pair as Cons0 *)
-
-(*set of subsets of that contains the set of lists*)
-val As_def = lemma |> ex2fsym0 "As" ["A"] |> conjE1 
-                   |> gen_all |> GSYM
+val iL_Inj = List_def |> spec_all 
+                      |> conjE1 |> gen_all
+                      |> store_as "iL_Inj"; 
 
 
+val isL_def = qdefine_psym("isL",[‘l:mem(Pow(N * X))’]) 
+                          ‘IN(l,isLs(X))’
+                          |> gen_all |> store_as "isL_def"; 
 
-val List_ex_lemma = fVar_Inst 
-[("P",([("ls",mem_sort $ Pow $ Cross N (mk_set "A"))],
-“IN(ls,BIGINTER(As(A)))”))]
-(Thm_2_4 |> qspecl [‘(Pow(N * A))’]) 
-|> conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all IN_BIGINTER)
-|> conv_rule $ once_depth_fconv no_conv 
-$ rewr_fconv (spec_all As_def)
-
-
-
-(*f:A->B. is inj, then ?g:B->A. g o f = id(A).
-  
-have this function. 
-
-
-*)
-
-val List_LI_def = List_ex_lemma |> ex2fsym0 "List" ["A"] |>ex2fsym0 "LI" ["A"]
-
-val LI_Inj = conjE1 List_LI_def |> gen_all |> store_as "LI_Inj";
-
-val LI_Fun = LI_Inj |> rewr_rule[Inj_def] |> spec_all |> conjE1
-                    |> gen_all |> store_as "LI_Fun";
-
-
-val IN_List = List_LI_def |> conjE2 |> gen_all |> 
-conv_rule $ basic_once_fconv no_conv (rewr_fconv (eq_sym "mem"))
-|> GSYM
-
-
-val List_ind0 = IN_List |> allE (rastt "A") |>  allE (rastt "Eval(LI(A),b)")
-                       |> dimp_mp_l2r
-                       (existsI ("b'",mem_sort (rastt "List(A)")) 
-                                (rastt "b:mem(List(A))")
-                                “Eval(LI(A), b') = Eval(LI(A), b)”
-                                (refl (rastt "Eval(LI(A), b)")))
-                       |> strip_all_and_imp
-                       |> gen_all
-                       |> disch_all
-                       |> gen_all
-
-
-val isList_Empty = prove_store("isList_Empty",
+val isL_induct = prove_store("isL_induct",
 e0
-(strip_tac >> rw[IN_List] >>
- rpt strip_tac >> arw[])
-(form_goal
- “!A. ?e. Eval(LI(A),e) = Empty(N * A)”));
-
-val Nil_def = isList_Empty |> spec_all |> ex2fsym0 "Nil" ["A"]
-                           |> gen_all
-                           |> store_as "Nil_def";
-
-val isList_cons = prove_store("isList_cons",
-e0
-(rw[IN_List] >> rpt strip_tac >>
- first_assum irule >> last_x_assum irule >> arw[])
-(form_goal
- “!A l. (?l0.Eval(LI(A),l0) = l) ==> !a.?al.Eval(LI(A),al) = Ins(Pair(CARD(l),a),l)”));
-
-(*set of list, takes a list, gives a ser of pairs*)
-
-val sof_ex = prove_store("sof_ex",
-e0
-(rpt strip_tac >> qexists_tac ‘Eval(LI(A),l)’ >> rw[])
-(form_goal
- “!A l. ?ss. Eval(LI(A),l) = ss”));
+(rw[isL_def] >> strip_tac >>
+ x_choose_then "s" (assume_tac o conjE1) 
+ (IN_def_P_expand |> qspecl [‘Pow(N * X)’]) >>
+ arw[isL_ind])
+(form_goal 
+ “!X.P(Empty(N * X)) & 
+  (!ls0 x:mem(X). P(ls0) ==>
+    P(Ins(Pair(Card(ls0),x),ls0))) ==> 
+  !l:mem(Pow(N * X)). isL(l) ==> P(l)”));
  
-val sof_def = sof_ex |> spec_all |> ex2fsym0 "sof" ["l"]
-                     |> gen_all |> store_as "sof_def"; 
 
-val Inj_eq = Inj_def |> iffLR |> spec_all |> undisch |> conjE2
-                     |> disch_all |> gen_all
-                     |> store_as "Inj_eq";
 
-local
-val l = 
-fVar_Inst 
-[("P",([("a0l0",mem_sort $ Cross (mk_set "A") (rastt "List(A)")),
-        ("l",mem_sort (rastt "List(A)"))],
-“Ins(Pair(CARD(sof(Snd(a0l0))), Fst(a0l0:mem(A * List(A)))),sof(Snd(a0l0))) = sof(l)”))]
-(AX1 |> qspecl [‘A * List(A)’,‘List(A)’])
-|> uex_expand  
-in
-val Cons_ex = prove_store("Cons_ex",
+val isL_Empty = prove_store("isL_Empty",
 e0
-(strip_tac >> strip_assume_tac l >>
- pop_assum (K all_tac) >> qexists_tac ‘R’ >>
- arw[Pair_def'] >> rw[Fun_expand] >>
- arw[] >> rpt strip_tac (* 2 *)
- >-- (assume_tac isList_cons >>
-     fs[sof_def] >> 
-     pop_assum (qsspecl_then [‘sof(Snd(a))’] assume_tac) >>
-     qby_tac
-     ‘(?l0 : mem(List(A)). sof(l0) = sof(Snd(a)))’ 
-     >-- (qexists_tac ‘Snd(a)’ >> rw[]) >>
-     first_x_assum drule >> 
-     first_x_assum (qspecl_then [‘Fst(a)’] assume_tac) >>
-     pop_assum strip_assume_tac >> qexists_tac ‘al’ >> arw[]) >>
- irule Inj_eq >> 
- qexistsl_tac [‘Pow(N * A)’,‘LI(A)’] >> 
- rw[LI_Inj] >> rw[sof_def] >>
- pop_assum_list (map_every (assume_tac o GSYM)) >> arw[])
+(rw[isL_def,isL_rules])
 (form_goal
- “!A. ?cons:A * List(A) -> List(A).
-  isFun(cons) & 
-  (!a0 l0 l. Holds(cons,Pair(a0,l0),l) <=> 
-  Ins(Pair(CARD(sof(l0)), a0),sof(l0)) = sof(l))”));
-end
+ “!X. isL(Empty(N * X))”)); 
 
-val Cons_def = Cons_ex |> spec_all |> ex2fsym0 "Cons" ["A"]
-                       |> gen_all |> store_as "Cons_def";
+val isL_Ins = isL_rules |> spec_all |> conjE2 
+                        |> rewr_rule[GSYM isL_def]
+                        |> spec_all |> undisch 
+                        |> gen_all |> disch_all
+                        |> gen_all |> store_as "isL_Ins";
 
-
-val CONS_ex = prove_store("CONS_ex",
+val Repl_def = qdefine_fsym ("Repl",[‘l:mem(List(X))’])
+                            ‘App(iL(X),l)’
+                            |> gen_all |> store_as "Repl_def";
+ 
+val Nil_def = proved_th $
 e0
-(rpt strip_tac >> qexists_tac ‘Eval(Cons(A),Pair(a0,l0))’ >> rw[])
+(strip_tac >> uex_tac >>
+ qspecl_then [‘X’] strip_assume_tac List_def >>
+ first_assum (qspecl_then [‘Empty(N * X)’] assume_tac) >>
+ fs[isL_Empty,GSYM isL_def] >>
+ qexists_tac ‘b’ >> arw[Repl_def] >>
+ fs[Inj_def])
+(form_goal “!X. ?!l.Repl(l) = Empty(N * X)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "Nil" [‘X’] |> gen_all
+|> store_as "Nil_def";
+
+val cons0_def = 
+    qdefine_fsym ("cons0",[‘x:mem(X)’,‘l:mem(Pow(N * X))’])
+    ‘Ins(Pair(Card(l),x:mem(X)),l)’
+
+    
+val cons1_def =
+    fun_tm_compr (dest_var (rastt "xl:mem(X * Pow(N * X))"))
+    (rastt "cons0(Fst(xl:mem(X * Pow(N * X))),Snd(xl))")
+    |> qSKOLEM "cons1" [‘X’]
+    |> qspecl [‘Pair(x:mem(X),l:mem(Pow(N * X)))’] 
+    |> rewr_rule[Pair_def',cons0_def] 
+
+
+(*Parallel product arrow*)
+val Prla_def = 
+    qdefine_fsym ("Prla",[‘f:A->B’,‘g:C->D’])
+    ‘Pa(f o p1(A,C),g o p2(A,C))’
+    |> gen_all |> store_as "Prla_def";
+
+val Prla_Inj = prove_store("Prla_Inj",
+e0
+(rpt strip_tac >> fs[Inj_def,Prla_def] >> 
+ fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
+ rw[App_Pa,Pair_eq_eq,App_App_o,p12_of_Pair] >>
+ rpt strip_tac >> first_assum irule >> arw[])
+(form_goal “!A B f:A->B. Inj(f) ==>
+ !C D g:C->D. Inj(g) ==>
+ Inj(Prla(f,g))”));
+
+
+val Id_Inj = prove_store("Id_Inj",
+e0
+(rw[Inj_def,Id_def])
 (form_goal
- “!A a0 l0. ?l.Eval(Cons(A),Pair(a0,l0)) = l”));
+ “!X. Inj(Id(X))”));
 
-val CONS_def = CONS_ex |> spec_all |> ex2fsym0 "CONS" ["a0","l0"]
-                       |> gen_all |> store_as "CONS_def";
-
-val Eval_Cons = prove_store("Eval_Cons",
+(*iL_isL should be automated*)
+val iL_isL = prove_store("iL_isL",
 e0
-(rpt strip_tac >>
- assume_tac Cons_def >> 
- first_x_assum (qspecl_then [‘A’] strip_assume_tac) >>
- drule $ GSYM Eval_def >> flip_tac >>
- arw[] >> lflip_tac >> rw[])
-(form_goal
- “!A a0 l0 l. Eval(Cons(A), Pair(a0,l0)) = l <=> 
-  Ins(Pair(CARD(sof(l0)),a0),sof(l0)) = sof(l)”));
+(rpt strip_tac >> 
+ rw[isL_def] >> 
+ qspecl_then [‘X’] assume_tac List_def >>
+ fs[] >> qexists_tac ‘l’ >> rw[])
+(form_goal “!X l. isL(App(iL(X),l))”)); 
 
-val Cons_eqn = prove_store("Cons_eqn",
+val isL_Repl = List_def |> spec_all |> conjE2
+                        |> rewr_rule[GSYM isL_def,
+                                     GSYM Repl_def] 
+                        |> gen_all 
+                        |> store_as "isL_Repl";
+
+val lift_cond2 = proved_th $
 e0
-(rpt strip_tac >>
- qsspecl_then [‘a0’,‘l0’,‘Eval(Cons(A), Pair(a0,l0))’] assume_tac
- Eval_Cons >> fs[])
-(form_goal
- “!A a0 l0. Ins(Pair(CARD(sof(l0)),a0),sof(l0)) = sof(Eval(Cons(A), Pair(a0,l0)))”));
-
-val CONS_eqn = Cons_eqn |> rewr_rule[CONS_def]
-                        |> store_as "CONS_eqn";
-
-val sof_Nil = Nil_def |> rewr_rule[sof_def] |> store_as "sof_Nil";
-
-val CONS_NOTNIL = prove_store("CONS_NOTNIL",
-e0
-(rpt strip_tac >> ccontra_tac >>
- qby_tac ‘sof(CONS(a,l)) = sof(Nil(A))’ >-- arw[] >>
- fs[GSYM CONS_eqn,sof_Nil,Ins_NONEMPTY])
-(form_goal
- “!A a l. ~(CONS(a,l) = Nil(A))”));
-
-val sof_eq_eq = prove_store("sof_eq_eq",
-e0
-(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
- fs[GSYM sof_def] >> irule Inj_eq >>
- qexistsl_tac [‘Pow(N * A)’,‘LI(A)’] >> arw[LI_Inj] )
-(form_goal
- “!A l1:mem(List(A)) l2.sof(l1) = sof(l2) <=> l1 = l2”));
-
-local
-val l = 
- fVar_Inst 
-[("P",([("nas",mem_sort$ Pow $ Cross N (mk_set "A"))],
-“?l:mem(List(A)). P(l) & sof(l) = nas”))] 
-(IN_def_P_expand |> qspecl [‘Pow(N * A)’]) 
-in
-val List_ind = prove_store("List_ind",
-e0
-(assume_tac List_ind0 >>
+(fconv_tac forall_cross_fconv >>
+ rw[Prla_def,App_App_o,App_Pa,
+    p12_of_Pair,Id_def,cons1_def] >>
  rpt strip_tac >>
- qby_tac
- ‘?ss. !nas. IN(nas,ss) <=> ?l:mem(List(A)). P(l) & sof(l) = nas’
- >-- (strip_assume_tac l >> pop_assum (K all_tac) >>
-     qexists_tac ‘s’ >> strip_tac >> pop_assum (assume_tac o GSYM) >>
-     first_x_assum (qspecl_then [‘nas’] accept_tac)) >>
+ qsspecl_then [‘b’] assume_tac iL_isL >>
+ drule isL_Ins >> rw[GSYM Repl_def,GSYM isL_Repl] >>
+ fs[Repl_def])
+(form_goal
+ “!xl1:mem(X * List(X)).?l2.
+ App(cons1(X) o Prla(Id(X),iL(X)),xl1) = App(iL(X),l2)”)
+
+
+val lift_cond2' = proved_th $
+e0
+(assume_tac lift_cond2 >> strip_tac >> uex_tac >>
+ first_x_assum (qspecl_then [‘xl1’] strip_assume_tac) >>
+ qexists_tac ‘l2’ >> arw[] >> assume_tac iL_Inj >>
+ fs[Inj_def] >> rpt strip_tac >> first_x_assum irule >> arw[])
+(form_goal
+ “!xl1:mem(X * List(X)).?!l2.
+ App(cons1(X) o Prla(Id(X),iL(X)),xl1) = App(iL(X),l2)”)
+
+val CONS_def = P2fun |> qspecl [‘X * List(X)’,‘List(X)’]
+                     |> fVar_sInst_th 
+                        “P(xl1:mem(X * List(X)),
+                           l2:mem(List(X)))”
+                        “App(cons1(X) o Prla(Id(X),iL(X)),xl1) = App(iL(X),l2)”
+                                                                                   |> C mp lift_cond2'
+                     |> qSKOLEM "CONS" [‘X’] 
+                     |> qspecl 
+                     [‘Pair(x:mem(X),l:mem(List(X)))’,
+                      ‘App(CONS(X),Pair(x:mem(X),l:mem(List(X))))’]
+                     |> rewr_rule[App_App_o,Prla_def,App_Pa,
+                                  p12_of_Pair,Id_def,
+                                  cons1_def,GSYM Repl_def]
+                     |> gen_all
+                     |> store_as "CONS_def"; 
+
+
+val Cons_def = 
+    qdefine_fsym ("Cons",[‘x:mem(X)’,‘l:mem(List(X))’])
+    ‘App(CONS(X),Pair(x,l))’ 
+    |> gen_all |> store_as "Cons_def";
+
+val Repl_Cons = CONS_def |> rewr_rule[GSYM Cons_def]
+                         |> GSYM
+                         |> store_as "Repl_Cons";
+
+val Inj_eq_eq = prove_store("Inj_eq_eq",
+e0
+(rpt strip_tac >> fs[Inj_def] >> dimp_tac >>
+ rpt strip_tac >> arw[] >>
+ first_x_assum irule >> arw[])
+(form_goal “!X Y i:X->Y. Inj(i) ==>
+ (!x1 x2. App(i,x1) = App(i,x2) <=> x1 =  x2)”));
+
+(*should automate*)
+val Repl_eq_eq = prove_store("Repl_eq_eq",
+e0
+(rpt strip_tac >> rw[Repl_def] >> irule Inj_eq_eq >>
+ rw[iL_Inj])
+(form_goal “!X l1:mem(List(X)) l2.
+ Repl(l1) = Repl(l2) <=> l1 = l2”));
+
+
+
+
+val Cons_NONNIL = prove_store("Cons_NONNIL",
+e0
+(rw[GSYM Repl_eq_eq,Nil_def,Repl_Cons,Ins_NONEMPTY])
+(form_goal
+ “!X x l. ~(Cons(x,l) = Nil(X))”));
+
+
+val Repl_Empty_uex = prove_store("Repl_Empty_uex",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[Nil_def] >>
+ rw[GSYM Repl_eq_eq] >> arw[Nil_def])
+(form_goal
+ “!X l. Repl(l) = Empty(N * X) <=> l = Nil(X)”));
+
+
+
+val List_induct = prove_store("List_induct",
+e0
+(strip_tac >> disch_tac >>
+ qsuff_tac ‘!nxs:mem(Pow(N * X)). isL(nxs) ==> isL(nxs) &
+ (!l. Repl(l) = nxs ==> P(l))’
+ >-- (strip_tac >>
+     qby_tac ‘!nxs:mem(Pow(N * X)). isL(nxs) ==>
+                      (!l. Repl(l) = nxs ==> P(l))’ 
+     >-- (rpt strip_tac >> first_x_assum drule >>
+          rfs[] >> first_x_assum irule >> arw[]) >>
+     strip_tac >> first_x_assum irule >>
+     qexists_tac ‘Repl(l)’ >> rw[isL_Repl] >>
+     qexists_tac ‘l’ >> rw[]) >>
+ ind_with (isL_induct |> qspecl [‘X’]) >>
+ rw[isL_Empty] >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >>
+     qsuff_tac ‘l = Nil(X)’ >-- (strip_tac >> arw[]) >>
+     irule $ iffLR Repl_Empty_uex >> arw[]) >>
+ rpt gen_tac >> disch_tac >>
  pop_assum strip_assume_tac >>
- qsuff_tac
- ‘!b. IN(Eval(LI(A),b),ss)’
- >-- (rpt strip_tac >> 
-     first_x_assum (qspecl_then [‘l’] assume_tac) >>
-     first_x_assum $ drule o iffLR >>
-     pop_assum strip_assume_tac >>
-     pop_assum mp_tac >> once_rw[sof_def] >> once_rw[sof_eq_eq] >>
-     strip_tac >> 
-     assume_tac (EQ_fVar "P" [assume “l' = l:mem(List(A))”]) >>
-     first_x_assum $ irule o iffLR >> 
-     first_x_assum accept_tac) >>
- (*first_x_assum irule gives err wrong concl*)
- last_x_assum irule >> rpt strip_tac (* 2 *)
- >-- (first_assum $ drule o iffLR >> pop_assum strip_assume_tac >>
-     last_assum drule >> 
-     first_assum $ irule o iffRL >>
-     qexists_tac ‘CONS(a,l'')’ >> strip_tac
-     >-- first_assum (qspecl_then [‘a’] accept_tac) >>
-     qsuff_tac
-     ‘sof(CONS(a, l'')) = Ins(Pair(CARD(sof(l'')), a), sof(l''))’
-     >-- (qpick_x_assum ‘sof(l'') = l'’ (mp_tac o GSYM) >>
-         pop_assum_list (map_every (K all_tac)) >> rpt strip_tac >>
-         arw[]) >>
-     once_rw[CONS_eqn]  >> rw[]) >>
- first_assum $ irule o iffRL >>
- qexists_tac ‘Nil(A)’ >> strip_tac 
- >-- first_assum accept_tac >>
- once_rw[GSYM Nil_def] >> rw[sof_def]
- )
-(form_goal
- “!A. P(Nil(A)) & 
-      (!l:mem(List(A)). P(l) ==> !a. P(CONS(a,l))) ==>
-     !l:mem(List(A)).P(l) ”));
-end
-
-
-
-
-local 
-val l = 
- fVar_Inst 
-[("P",([("l",mem_sort (rastt "List(A)"))],
-“Fin(sof(l:mem(List(A))))”))] 
-(List_ind |> qspecl [‘A’]) 
-in
-val LI_Fin = prove_store("LI_Fin",
-e0
-(strip_tac >> match_mp_tac l >>
- rw[sof_Nil,Fin_Empty] >> rpt strip_tac >>
- rw[GSYM CONS_eqn] >> drule Fin_Ins >> arw[])
-(form_goal
- “!A l:mem(List(A)). Fin(sof(l))”));
-end
-
-
-local
-val l = 
- fVar_Inst 
-[("P",([("l",mem_sort (rastt "List(A)"))],
-“!n a:mem(A). IN(Pair(n,a),sof(l)) ==> Lt(n,CARD(sof(l)))”))] 
-(List_ind |> qspecl [‘A’])
-in
-val isList_CARD_NOTIN0 = prove_store("isList_CARD_NOTIN0",
-e0
-(strip_tac >> strip_tac >> strip_tac >> strip_tac >> match_mp_tac l >>
- rpt strip_tac (* 2 *)
- >-- fs[sof_Nil,Empty_property] >>
- fs[GSYM CONS_eqn,IN_Ins] (* 2 *)
- >-- (fs[Pair_eq_eq] >> 
-     qby_tac ‘~IN(Pair(CARD(sof(l')), a'),sof(l'))’ 
-     >-- (ccontra_tac >> first_x_assum drule  >>
-         fs[Lt_def]) >>
-     qsspecl_then [‘l'’] assume_tac LI_Fin >>
-     drule CARD_Ins >> first_x_assum drule >> 
-     arw[] >> rw[Lt_Suc]) >>
- first_x_assum drule >> 
- cases_on “IN(Pair(CARD(sof(l')), a':mem(A)),sof(l'))” 
- >-- (drule Ins_absorb >> arw[]) >>
- qsspecl_then [‘l'’] assume_tac LI_Fin >>
- drule CARD_Ins >> first_x_assum drule >> arw[] >>
- irule Lt_trans >>
- qexists_tac ‘CARD(sof(l'))’ >> arw[Lt_Suc])
-(form_goal
- “!A l n a:mem(A). IN(Pair(n,a),sof(l)) ==> Lt(n,CARD(sof(l)))”));
-end
-
-
-val Cons_Inj = prove_store("Cons_Inj",
-e0
-(strip_tac >> rw[Inj_def,Cons_def] >> 
+ qby_tac ‘isL(Ins(Pair(Card(ls0), x), ls0))’ 
+ >-- (irule isL_Ins >> arw[]) >> arw[] >>
  rpt strip_tac >>
+ qby_tac ‘?l0. Repl(l0) = ls0’ 
+ >-- (fs[isL_Repl] >> qexists_tac ‘b’ >> rw[]) >>
+ pop_assum strip_assume_tac >>
+ first_x_assum drule >>
+ qsuff_tac ‘l = Cons(x,l0)’ 
+ >-- (strip_tac  >> last_x_assum strip_assume_tac >>
+      arw[] >> first_x_assum irule >> arw[]) >>
+ rw[GSYM Repl_eq_eq] >> arw[Repl_Cons])
+(form_goal
+ “!X. P(Nil(X)) & 
+      (!l:mem(List(X)). P(l) ==> !x. P(Cons(x,l))) ==>
+     !l:mem(List(X)).P(l) ”));
+
+val Fin_Repl = prove_store("Fin_Repl",
+e0
+(strip_tac >> ind_with (List_induct |> qspecl [‘X’]) >>
+ rw[Nil_def,Fin_Empty,Repl_Cons] >>
+ rpt strip_tac >> drule Fin_Ins >> arw[])
+(form_goal
+ “!X l:mem(List(X)). Fin(Repl(l))”));
+
+val isL_Card_NOTIN0 = prove_store("isL_Card_NOTIN0",
+e0
+(strip_tac >> ind_with (List_induct |> qspecl [‘X’]) >>
+ rw[Nil_def,Empty_def,Repl_Cons,Ins_def,Pair_eq_eq] >>
+ rpt strip_tac (* 2 *)
+ >-- (arw[] >> qsspecl_then [‘l’] assume_tac Fin_Repl >>
+     drule Card_Ins >> 
+     qby_tac ‘~(IN(Pair(Card(Repl(l)),x), Repl(l)))’ 
+     >-- (ccontra_tac >> first_x_assum drule >>
+          fs[Lt_def]) >>
+     first_x_assum drule >> arw[Lt_Suc]) >>
+ first_assum drule >>
+ irule Lt_trans >>
+ qexists_tac ‘Card(Repl(l))’ >> arw[] >>
+ qsspecl_then [‘l’] assume_tac Fin_Repl >>
+ drule Card_Ins >> 
+ qby_tac ‘~(IN(Pair(Card(Repl(l)),x), Repl(l)))’(* repeated *)
+ >-- (ccontra_tac >> first_x_assum drule >>
+                  fs[Lt_def]) >>
+ first_x_assum drule >>
+ arw[Lt_Suc])
+(form_goal
+ “!X l n x:mem(X). IN(Pair(n,x),Repl(l)) ==> 
+              Lt(n,Card(Repl(l)))”));
+
+
+
+val CONS_Inj = prove_store("CONS_Inj",
+e0
+(strip_tac >> rw[Inj_def,CONS_def] >> rpt strip_tac >>
  qsspecl_then [‘x1’]
  (x_choosel_then ["a1","l1"] assume_tac) Pair_has_comp >>
  qsspecl_then [‘x2’] 
  (x_choosel_then ["a2","l2"] assume_tac) Pair_has_comp >>
- fs[] >> fs[CONS_def] >> 
- qby_tac
- ‘sof(CONS(a1, l1)) = sof(CONS(a2, l2))’
- >-- arw[] >>
- fs[GSYM CONS_eqn] >>
+ fs[] >> fs[GSYM Repl_eq_eq,GSYM CONS_def] >> 
  qsuff_tac
- ‘Pair(CARD(sof(l1)), a1) = Pair(CARD(sof(l2)), a2) & 
-  sof(l1) = sof(l2)’
- >-- (rw[Pair_eq_eq,sof_eq_eq] >> rpt strip_tac >> arw[]) >>
- irule Ins_eq_eq >>
- arw[] >>
+ ‘Pair(Card(Repl(l1)), a1) = Pair(Card(Repl(l2)), a2) & 
+  Repl(l1) = Repl(l2)’
+ >-- (rw[Pair_eq_eq,Repl_eq_eq] >> rpt strip_tac >> arw[]) >>
+ irule Ins_eq_eq >> arw[] >>
  qby_tac
- ‘~IN(Pair(CARD(sof(l1)), a1), sof(l1))’
- >-- (ccontra_tac >> drule isList_CARD_NOTIN0 >> fs[Lt_def]) >>
- qby_tac
- ‘~IN(Pair(CARD(sof(l2)), a2), sof(l2))’
- >-- (ccontra_tac >> drule isList_CARD_NOTIN0 >> fs[Lt_def]) >>
- arw[] >>
- qby_tac ‘CARD(sof(l2)) = CARD(sof(l1))’ 
- >-- (drule $ GSYM Del_Ins >> rev_drule $ GSYM Del_Ins >>  
-     once_arw[] >> pop_assum (K all_tac) >>
-     pop_assum (K all_tac) >>
-     qsspecl_then [‘l2’] assume_tac LI_Fin >>
-     drule CARD_Ins >>
-     first_x_assum drule >> 
-     drule Fin_Ins >>
-     first_x_assum (qspecl_then [‘Pair(CARD(sof(l2)), a2)’] assume_tac)>>
-     drule CARD_Del >>
-     first_x_assum (qspecl_then [‘Pair(CARD(sof(l2)), a2)’] assume_tac) >>
-     pop_assum mp_tac >> rw[IN_Ins] >>
-     strip_tac >> 
-     qsuff_tac
-     ‘Pre(CARD(Ins(Pair(CARD(sof(l2)), a2), sof(l2)))) = 
-      CARD(Del(Ins(Pair(CARD(sof(l1)), a1), sof(l1)),
-                 Pair(CARD(sof(l1)), a1)))’
-     >-- (strip_tac >> arw[]) >>
-     pop_assum (K all_tac) >> pop_assum (K all_tac) >>
-     pop_assum (K all_tac) >> pop_assum (K all_tac) >>
-     qsspecl_then [‘l1’] assume_tac LI_Fin >>
-     drule CARD_Ins >> 
-     first_x_assum drule >>
-     drule Fin_Ins >>
-     first_x_assum (qspecl_then [‘Pair(CARD(sof(l1)), a1)’] assume_tac)>>
-     drule CARD_Del >>
-     first_x_assum (qspecl_then [‘Pair(CARD(sof(l1)), a1)’] assume_tac) >>
-     pop_assum mp_tac >> rw[IN_Ins] >>
-     strip_tac >> once_arw[] >>
-     qpick_x_assum
-     ‘Ins(Pair(CARD(sof(l1)), a1), sof(l1)) =
-               Ins(Pair(CARD(sof(l2)), a2), sof(l2))’ mp_tac >>
-     pop_assum_list (map_every (K all_tac)) >>
-     strip_tac >> arw[]) >>
+ ‘~IN(Pair(Card(Repl(l1)), a1), Repl(l1)) & 
+  ~IN(Pair(Card(Repl(l2)), a2), Repl(l2))’
+ >-- (strip_tac >> ccontra_tac >> drule isL_Card_NOTIN0 >>
+      fs[Lt_def]) >> arw[] >> 
+ pop_assum strip_assume_tac >>
+ qby_tac ‘Card(Repl(l2)) = Card(Repl(l1))’ 
+ >-- (ccontra_tac >>
+      qsuff_tac
+      ‘~(Card(Ins(Pair(Card(Repl(l1)), a1), Repl(l1))) =
+         Card(Ins(Pair(Card(Repl(l2)), a2), Repl(l2))))’
+      >-- rfs[] >>
+      qby_tac
+      ‘Card(Ins(Pair(Card(Repl(l1)), a1), Repl(l1))) = 
+       Suc(Card(Repl(l1))) & 
+       Card(Ins(Pair(Card(Repl(l2)), a2), Repl(l2))) = 
+       Suc(Card(Repl(l2)))’
+      >-- (strip_tac >> irule Card_Ins >> arw[Fin_Repl]) >>
+      arw[Suc_eq_eq] >> flip_tac >> arw[]) >>
  strip_tac (* 2 *)
- >-- (pop_assum (assume_tac o GSYM) >> arw[] >>
-     ccontra_tac >> drule isList_CARD_NOTIN0 >> fs[Lt_def]) >>
- arw[] >> ccontra_tac >> drule isList_CARD_NOTIN0 >> fs[Lt_def]
- )
+ >-- (arw[] >>
+     ccontra_tac >> drule isL_Card_NOTIN0 >> fs[Lt_def]) >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ ccontra_tac >> drule isL_Card_NOTIN0 >> fs[Lt_def])
 (form_goal
- “!A. isInj(Cons(A))”));
+ “!X. Inj(CONS(X))”));
 
 
-val CONS_eq_eq = prove_store("CONS_eq_eq",
+val Cons_eq_eq = prove_store("Cons_eq_eq",
 e0
-(rw[GSYM CONS_def] >> rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
- irule $ iffLR Pair_eq_eq >>
- irule Inj_eq >>
- qexistsl_tac [‘List(A)’,‘Cons(A)’] >> arw[Cons_Inj])
+(rpt strip_tac >> dimp_tac >> disch_tac >> arw[] >>
+ fs[Cons_def] >> assume_tac CONS_Inj >>
+ fs[Inj_def] >>
+ first_x_assum drule >> fs[Pair_eq_eq])
 (form_goal
- “!A a1:mem(A) l1 a2 l2.CONS(a1,l1) = CONS(a2,l2) <=> (a1 = a2 & l1 = l2)”));
+ “!X x1:mem(X) l1 x2 l2.Cons(x1,l1) = Cons(x2,l2) <=> (x1 = x2 & l1 = l2)”));
 
 
 
