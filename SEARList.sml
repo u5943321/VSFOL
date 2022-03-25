@@ -350,24 +350,29 @@ e0
 
 
 
-
-local
-val l = 
- fVar_Inst 
-[("P",([("l",mem_sort (rastt "List(A)"))],
-“l = Nil(A) | ?a0 l0. l = CONS(a0, l0)”))] 
-(List_ind |> qspecl [‘A’])
-in
-val CONS_or_Nil = prove_store("CONS_or_Nil",
+val Cons_or_Nil = prove_store("Cons_or_Nil",
 e0
-(strip_tac >> irule l >> rw[] >>
- rpt strip_tac >--
- (rw[CONS_NOTNIL] >> qexistsl_tac [‘a’,‘l’] >> rw[]) >>
- rw[CONS_NOTNIL] >> 
- qexistsl_tac [‘a’,‘l’] >> arw[])
+(strip_tac >> ind_with (List_induct |> qspecl [‘X’]) >>
+ rw[Cons_NONNIL] >> rpt strip_tac >>
+ (qexistsl_tac [‘x’,‘l’] >> rw[]))
 (form_goal
- “!A l:mem(List(A)). l = Nil(A) | ?a0 l0. l = CONS(a0,l0)”));
+ “!X l:mem(List(X)). l = Nil(X) | ?x0 l0. l = Cons(x0,l0)”));
 end
+
+
+
+val Cons_xor_Nil = prove_store("Cons_xor_Nil",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (qsspecl_then [‘l’] strip_assume_tac Cons_or_Nil >>
+ qexistsl_tac [‘x0’,‘l0’] >> arw[]) >>
+ arw[Cons_NONNIL])
+(form_goal
+ “!X l:mem(List(X)). ~(l = Nil(X))<=> ?x0 l0. l = Cons(x0,l0)”));
+
+
+
+
 
 local
 val l = 
@@ -387,6 +392,39 @@ e0
   !a. Eval(f1,CONS(a,l)) = Eval(f2,CONS(a,l))) ==> f1 = f2”));
 end
 
+
+
+local
+val Lind_cl = 
+ “(p = Pair(Nil(X),a0:mem(A)) ==> IN(p,Lind)) &
+  (!p0:mem(List(X) * A) x:mem(X).
+   IN(p0,Lind) & 
+        p = Pair(Cons(x,Fst(p0)),
+            App(f0:X * A ->A,Pair(x,Snd(p0))))
+    ==> IN(p,Lind))”
+in
+val (Lind_incond,x1) = mk_incond Lind_cl;
+val Lindf_ex = mk_fex Lind_incond x1;
+val Lindf_def = mk_fdef "Lindf" Lindf_ex;
+val Lindf_monotone = mk_monotone Lindf_def;
+val Lind's_def = mk_prim Lindf_def;
+val Linds_def = mk_LFP (rastt "Lind's(a0:mem(A),f0:X * A->A)");
+val Linds_cond = mk_cond Linds_def Lind's_def;
+val Linds_SS = mk_SS Linds_def Lind's_def;
+val Lind_rules0 = mk_rules Lindf_monotone Linds_SS Linds_cond;
+val Lind_cases0 = mk_cases Lindf_monotone Lind_rules0 Linds_cond;
+val Lind_ind0 = mk_ind Linds_cond;
+val Lind_ind1 = mk_ind1 Lindf_def Lind_ind0;
+val Lind_ind2 = mk_ind2 Lind_ind1; 
+val Lind_cases1 = mk_case1 Lindf_def Lind_cases0; 
+val Lind_rules1 = mk_rules1 Lindf_def Lind_rules0; 
+val Lind_rules2 = mk_rules2 Lind_rules1; 
+val Lind_rules3 = mk_rules3 Lind_rules2;
+end
+
+val Lind_ind = Lind_ind2 |> store_as "Lind_ind";
+val Lind_cases = Lind_cases1 |> store_as "Lind_cases";
+val Lind_rules = Lind_rules3 |> store_as "Lind_rules";
 
 
 val cRf_def = 
