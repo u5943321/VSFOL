@@ -108,10 +108,69 @@ val Cd_ind = Cd_ind2 |> store_as "Cd_ind";
 val Cd_cases = Cd_cases1 |> store_as "Cd_cases";
 val Cd_rules = Cd_rules3 |> store_as "Cd_rules";
 
+
+
+val Cds_ind = prove_store("Cds_ind",
+e0
+(rpt gen_tac >> disch_tac >>
+ qsuff_tac
+ ‘!xsn. IN(xsn,Cds(X)) ==> IN(xsn,ss)’
+ >-- (fconv_tac (depth_fconv no_conv forall_cross_fconv) >> rw[]) >>
+ match_mp_tac Cd_ind (* irule does not work *) >>
+ fconv_tac (depth_fconv no_conv forall_cross_fconv) >> 
+ rw[Pair_def'] >> arw[]
+ )
+(form_goal 
+ “!X ss.IN(Pair(Empty(X),O),ss) & 
+ (!xs0 n0 x. IN(Pair(xs0,n0),ss)  & ~(IN(x,xs0)) ==> 
+  IN(Pair(Ins(x,xs0),Suc(n0)),ss)) ==> 
+ !xs n. IN(Pair(xs,n),Cds(X)) ==> IN(Pair(xs,n),ss)”));
+
+
+val Cd_induct0 = prove_store("Cd_induct0",
+e0
+(strip_tac >>
+ x_choose_then "s" (assume_tac o conjE1) 
+ (IN_def_P_expand |> qspecl [‘Pow(X) * N’]) >>
+ arw[Cds_ind])
+(form_goal 
+ “!X.P(Pair(Empty(X),O)) & 
+ (!xs0 n0 x:mem(X). P(Pair(xs0,n0)) & ~(IN(x,xs0)) ==> 
+  P(Pair(Ins(x,xs0),Suc(n0)))) ==> 
+ !xs n. IN(Pair(xs,n),Cds(X)) ==> P(Pair(xs,n))”));
+
+
+val Cd_induct = prove_store("Cd_induct",
+e0
+(strip_tac >> assume_tac (Cd_induct0 |> qspecl [‘X’] 
+            |> fVar_sInst_th “P(xsn:mem(Pow(X) * N))”
+               “P(Fst(xsn:mem(Pow(X) * N)),Snd(xsn))”
+            |> rewr_rule[Pair_def']) >> arw[])
+(form_goal 
+ “!X.P(Empty(X),O) & 
+ (!xs0 n0 x:mem(X). P(xs0,n0) & ~(IN(x,xs0)) ==> 
+  P(Ins(x,xs0),Suc(n0))) ==> 
+ !xs n. IN(Pair(xs,n),Cds(X)) ==> P(xs,n)”));
+ 
+val Fin_induct = prove_store("Fin_induct",
+e0
+(rw[Fin_def] >> strip_tac >>
+ x_choose_then "s" (assume_tac o conjE1) 
+ (IN_def_P_expand |> qspecl [‘Pow(X)’]) >>
+ arw[FI_ind])
+(form_goal 
+ “!X.P(Empty(X)) & 
+ (!xs0:mem(Pow(X)) x. P(xs0) ==> P(Ins(x,xs0))) ==> 
+ !xs:mem(Pow(X)). Fin(xs) ==> P(xs)”));
+ 
+
 (*Card rel*)
 val Cdr_def = qdefine_psym("Cdr",[‘xs:mem(Pow(X))’,‘n:mem(N)’])
 ‘IN(Pair(xs,n),Cds(X))’ |> qgenl[‘X’,‘xs’,‘n’] 
 |> store_as "Cdr_def";
+
+val Cdr_induct = Cd_induct |> rewr_rule[GSYM Cdr_def]
+                           |> store_as "Cdr_induct";
 
 
 val Cdr_Empty = prove_store("Cdr_Empty",
@@ -120,287 +179,175 @@ e0
 (form_goal
  “!X.Cdr(Empty(X),O)”));
 
-val hasCard_Ins = prove_store("hasCard_Ins",
-e0
-(rw[Card_def'] >> rpt strip_tac >>
- first_assum irule >> arw[] >> first_assum irule >> arw[])
-(form_goal
- “!X xs:mem(Pow(X)) n.hasCard(xs,n) ==>
-  !x0. (~(IN(x0,xs))) ==> hasCard(Ins(x0,xs),Suc(n))”));
-
+val Cdr_Ins = Cd_rules |> conjE2 |> spec_all |> undisch |> gen_all |> disch_all
+                       |> gen_all
+                       |> qspecl [‘X’,‘Pair(xs0:mem(Pow(X)),n:mem(N))’]
+                       |> rewr_rule[GSYM Cdr_def,Pair_def']
+                       |> gen_all
+                       |> store_as "Cdr_Ins";
 
 
 
 val Ins_NONEMPTY = prove_store("Ins_NONEMPTY",
 e0
-(rpt strip_tac >> ccontra_tac >>
- qby_tac
- ‘!x. IN(x,Ins(x0,xs)) <=> IN(x,Empty(X))’ >-- arw[] >>
- fs[Empty_property,GSYM Ins_property] >>
- first_x_assum (qspecl_then [‘x0’] assume_tac) >> fs[])
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,Ins_def,Empty_def] >>
+ ccontra_tac >> first_x_assum (qspecl_then [‘x0’] assume_tac) >> fs[])
 (form_goal
  “!X x0 xs:mem(Pow(X)).~(Ins(x0,xs) = Empty(X))”));
 
 val IN_Ins_SND = prove_store("IN_Ins_SND",
 e0
-(rw[GSYM Ins_property] >> rpt strip_tac)
+(rw[Ins_def] >> rpt strip_tac)
 (form_goal “!X x0 xs0:mem(Pow(X)) x. IN(x, Ins(x0, xs0)) & (~(x = x0)) ==> IN(x,xs0)”));
 
-local
-val l = 
-fVar_Inst 
-[("P",([("xsns",mem_sort $ Cross (Pow $ mk_set "X") N)],
-“hasCard(Fst(xsns),Snd(xsns)) & 
- ~(Fst(xsns) = Empty(X) & Snd(xsns) = n)”))] 
-(IN_def_P_expand |> qspecl [‘(Pow(X) * N)’])
-in 
-val Card_Empty_unique = prove_store("Card_Empty_unique",
+val Cdr_Empty_unique = prove_store("Cdr_Empty_unique",
 e0
-(rpt strip_tac >> ccontra_tac >>
- qsuff_tac
- ‘?ss. IN(Pair(Empty(X),O),ss) &
-  (!xs n. IN(Pair(xs,n),ss) ==>
-   !x0. (~IN(x0,xs)) ==> IN(Pair(Ins(x0,xs),Suc(n)),ss)) &
-  ~(IN(Pair(Empty(X),n),ss))’
- >-- (fs[Card_def'] >>
-     ccontra_tac >> pop_assum strip_assume_tac >>
-     qsuff_tac ‘IN(Pair(Empty(X), n), ss)’ >-- arw[] >>
-     first_assum irule >> arw[]) >>
- strip_assume_tac l >> pop_assum (K all_tac) >>
- pop_assum (assume_tac o GSYM) >> qexists_tac ‘s’ >>
- once_arw[] >>
- rw[Pair_def'] >> rw[hasCard_Empty] >> strip_tac 
- >-- (flip_tac >> first_assum accept_tac) >>
- strip_tac >> strip_tac >>  (*do not know why does not work if not strip,
- maybe know, how to fix?
-*)
- arw[] >>
- rw[Pair_def'] >> rpt strip_tac >--
- (irule hasCard_Ins >> arw[]) >> 
- qsuff_tac
- ‘~(Ins(x0,xs) = Empty(X))’ >-- (strip_tac >> arw[]) >>
- rw[Ins_NONEMPTY]
- )
+(rw[Cdr_def] >> once_rw[Cd_cases] >> rpt strip_tac >>
+ fs[Pair_eq_eq,GSYM Ins_NONEMPTY])
 (form_goal
- “!X n.hasCard(Empty(X),n) ==> n = O”));
-end
+ “!X n.Cdr(Empty(X),n) ==> n = O”));
 
 
-val hasCard_ind = prove_store("hasCard_ind",
-e0
-(once_rw[Card_def'] >> rpt strip_tac >>
- first_assum irule >> arw[])
-(form_goal
-“!X ss. IN(Pair(Empty(X),O),ss) & 
-      (!xs n. IN(Pair(xs,n),ss) ==>
-       !x0. (~IN(x0,xs)) ==> IN(Pair(Ins(x0,xs),Suc(n)),ss)) ==>
-      !xs n.hasCard(xs,n) ==> IN(Pair(xs,n),ss) ”));
+
 
 val Del_Ins_SWAP = prove_store("Del_Ins_SWAP",
 e0
-(rpt strip_tac >> irule IN_EXT >> rw[GSYM Ins_property,GSYM Del_property] >>
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,Ins_def,Del_def] >>
  rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[])
 (form_goal
  “!X x0 x:mem(X).(~(x0 = x)) ==> !xs.Del(Ins(x0, xs), x) = Ins(x0,Del(xs,x))”));
 
 
+val Cdr_Ins = 
+Cd_cases |> qspecl [‘Pair(Ins(x0:mem(X),xs0),n:mem(N))’]
+|> rewr_rule[Pair_eq_eq,Ins_NONEMPTY] 
+|> conv_rule (basic_fconv no_conv exists_cross_fconv)
+|> rewr_rule[Pair_def',GSYM Cdr_def]
+|> gen_all |> store_as "Cdr_Ins";
+
+val Cdr_Empty = Cd_rules |> conjE1 |> gen_all |> rewr_rule[GSYM Cdr_def] 
+                         |> store_as "Cdr_Empty";
 
 
-local
-val l = 
-fVar_Inst 
-[("P",([("xsns",mem_sort $ Cross (Pow $ mk_set "X") N)],
-“hasCard(Fst(xsns),Snd(xsns)) & !x0:mem(X) xs0. Fst(xsns) = Ins(x0,xs0) ==> ?n0. Snd(xsns) = Suc(n0)”))] 
-(IN_def_P_expand |> qspecl [‘(Pow(X) * N)’])
-in
-val hasCard_Ins_Suc = prove_store("hasCard_Ins_Suc",
+val Cdr_Del = prove_store("Cdr_Del",
 e0
-(strip_tac >> strip_assume_tac l >> pop_assum (K all_tac) >>
- qsuff_tac ‘!xs n.hasCard(xs,n) ==> IN(Pair(xs,n),s)’ 
- >-- (pop_assum (assume_tac o GSYM) >> arw[Pair_def']) >>
- strip_tac >> strip_tac >> match_mp_tac hasCard_ind >>
- pop_assum (assume_tac o GSYM) >> arw[] >> rw[Pair_def'] >> 
- rw[hasCard_Empty] >> rpt strip_tac (* 3 *)
- >-- (qby_tac ‘IN(x0,Ins(x0,xs0))’ >-- fs[GSYM Ins_property] >>
-     qpick_x_assum ‘Empty(X) = Ins(x0, xs0)’ (assume_tac o GSYM) >>
-     fs[Empty_property]) 
- >-- (drule hasCard_Ins >> first_assum drule >> arw[]) >>
- qexists_tac ‘n'’ >> rw[])
+(strip_tac >> ind_with (Cdr_induct |> qspecl [‘X’]) >>
+ rw[Cdr_Empty,Empty_def] >> rpt strip_tac (* 2 *)
+ >-- (irule $ iffRL Cdr_Ins >>
+     qexistsl_tac [‘xs0’,‘n0’,‘x’] >> arw[]) >>
+ rw[Pre_Suc] >>
+ qcases ‘x' = x’ >> fs[] (* 2 *)
+ >-- (drule Del_Ins >> arw[]) >>
+ qby_tac ‘IN(x',xs0)’ >-- (irule IN_Ins_SND >> qexists_tac ‘x’ >> arw[]) >>
+ first_x_assum drule >> 
+ qcases ‘n0 = O’ 
+ >-- (fs[] >> qsuff_tac ‘xs0 = Empty(X)’ >-- (strip_tac >> fs[Empty_def]) >>
+      qpick_x_assum ‘Cdr(xs0, O)’ mp_tac >>
+      rw[Cdr_def] >> once_rw[Cd_cases] >> rw[Pair_eq_eq,GSYM Suc_NONZERO] >>
+      rpt strip_tac) >>
+ fs[O_xor_Suc] >> fs[Pre_Suc] >> 
+ qby_tac ‘Del(Ins(x, xs0), x') = Ins(x, Del(xs0,x'))’
+ >-- (irule Del_Ins_SWAP >> ccontra_tac >> fs[]) >>
+ arw[] >> irule $ iffRL Cdr_Ins >> 
+ qexistsl_tac [‘Del(xs0, x')’,‘pn’,‘x’] >> arw[Del_def])
 (form_goal
- “!X xs:mem(Pow(X)) n. hasCard(xs,n) ==> hasCard(xs,n) & !x0 xs0. xs = Ins(x0,xs0) ==> ?n0. n = Suc(n0)”));
-end
-
-local
-val l = 
-fVar_Inst 
-[("P",([("xsns",mem_sort $ Cross (Pow $ mk_set "X") N)],
-“hasCard(Fst(xsns),Snd(xsns)) & !x. IN(x:mem(X),Fst(xsns)) ==> hasCard(Del(Fst(xsns),x),Pre(Snd(xsns)))”))] 
-(IN_def_P_expand |> qspecl [‘(Pow(X) * N)’])
-in
-val hasCard_Del = prove_store("hasCard_Del",
-e0
-(strip_tac >> strip_assume_tac l >> pop_assum (K all_tac) >>
- qsuff_tac ‘!xs n.hasCard(xs,n) ==> IN(Pair(xs,n),s)’  >--
- (rpt strip_tac >> first_x_assum drule >> 
-  first_x_assum (qspecl_then [‘Pair(xs,n)’] assume_tac) >> 
-  pop_assum (assume_tac o GSYM) >> fs[] >> fs[Pair_def'] >> first_x_assum drule >>
-  arw[]) >>
- strip_tac >> strip_tac >>
- match_mp_tac hasCard_ind >> (*
- qby_tac 
- ‘!xs n. (!x.IN(x,xs) ==> hasCard(Del(xs,x),Pre(n))) <=> IN(Pair(xs,n),s)’
- >-- (rpt strip_tac >> pop_assum (assume_tac o GSYM) >> arw[] >>
-     rw[Pair_def']) >>*)
- pop_assum (assume_tac o GSYM) >> arw[] >> rpt strip_tac (* 2 *)
- >-- fs[Pair_def',hasCard_Empty] >-- fs[Empty_property,Pair_def'] >--
- (fs[Pair_def'] >> drule hasCard_Ins >> first_x_assum drule >> arw[]) >>
- fs[Pair_def'] >>
- cases_on “x:mem(X) = x0” >--
- (fs[] >> drule Del_Ins >> arw[Pre_Suc]) >> 
- qby_tac ‘IN(x,xs')’ >-- (irule IN_Ins_SND >> qexists_tac ‘x0’ >> arw[]) >>
- first_x_assum drule >>  
- qpick_x_assum ‘~(x = x0)’ (assume_tac o GSYM) >>
- drule Del_Ins_SWAP >> arw[] >> drule hasCard_Ins >> 
- qby_tac ‘~(IN(x0,Del(xs',x)))’ >--
- (rw[GSYM Del_property] >> arw[]) >>
- first_x_assum drule >> rw[Pre_Suc] >>
- cases_on “n' = O”
- >-- (fs[] >>
-     drule Ins_absorb >>
-     qby_tac ‘hasCard(Ins(x, xs'), O)’ >-- arw[] >>
-     drule hasCard_Ins_Suc >> pop_assum strip_assume_tac >>
-     first_x_assum (qspecl_then [‘x’,‘xs'’] assume_tac) >> fs[GSYM Suc_NONZERO])>>
- fs[O_xor_Suc] >> fs[] >>
- fs[Pre_Suc])
-(form_goal
- “!X xs:mem(Pow(X)) n.hasCard(xs,n) ==> hasCard(xs,n) & 
-  !x. IN(x,xs) ==> hasCard(Del(xs,x),Pre(n))”));
-end
-
-
-
-
-
+ “!X xs:mem(Pow(X)) n.Cdr(xs,n) ==> 
+  Cdr(xs,n) & !x. IN(x,xs) ==> Cdr(Del(xs,x),Pre(n))”));
 
 
 val Fin_Card = prove_store("Card_Fun",
 e0
-(rw[Fun_expand,Card_lemma] >> strip_tac >> match_mp_tac Fin_ind_card >>
- strip_tac >--
- (uex_tac >> qexists_tac ‘O’ >> rw[hasCard_Empty] >> rpt strip_tac >> drule Card_Empty_unique >> arw[]) >>
- rpt strip_tac >> pop_assum (strip_assume_tac o uex_expand) >> uex_tac >>
- cases_on “IN(x0,xs0:mem(Pow(X)))” 
- >-- (qexists_tac ‘n’ >> 
-     qby_tac ‘Ins(x0,xs0) = xs0’ 
-     >-- (irule Ins_absorb >> arw[]) >> arw[]) >>    
- qexists_tac ‘Suc(n)’ >> drule hasCard_Ins >> first_x_assum drule >> arw[] >>
- rpt strip_tac >> 
- drule hasCard_Del >>
- fs[] >>
- qby_tac ‘IN(x0, Ins(x0, xs0))’ >-- fs[GSYM Ins_property] >>
- first_x_assum drule >> drule Del_Ins >> fs[] >> first_x_assum drule >>
- qpick_x_assum ‘hasCard(Ins(x0, xs0), n')’ (assume_tac o GSYM) >>
- drule hasCard_Ins_Suc >> fs[] >>
- first_x_assum (qspecl_then [‘x0’,‘xs0’] assume_tac) >> fs[] >>
- fs[] >> fs[Pre_Suc])
+(strip_tac >> ind_with (Fin_induct |> qspecl [‘X’]) >> rpt strip_tac (* 2 *)
+ >-- (uex_tac >> qexists_tac ‘O’ >> rw[Cdr_Empty,Cdr_Empty_unique]) >>
+ pop_assum (strip_assume_tac o uex_expand) >> uex_tac >>
+ qcases ‘IN(x,xs0)’ 
+ >-- (drule Ins_absorb >> arw[] >> qexists_tac ‘n’ >> arw[]) >>
+ qexists_tac ‘Suc(n)’ >> rpt strip_tac (* 2 *)
+ >-- (irule $ iffRL Cdr_Ins >> qexistsl_tac [‘xs0’,‘n’,‘x’] >> arw[]) >>
+ drule Cdr_Del >> fs[] >>
+ first_x_assum (qspecl_then [‘x’] assume_tac) >>
+ fs[Ins_def] >> drule Del_Ins >> fs[] >>
+ first_x_assum drule >> pop_assum (assume_tac o GSYM) >> arw[] >>
+ qsuff_tac ‘~(n' = O)’ >-- (rw[O_xor_Suc] >> strip_tac >> arw[Pre_Suc]) >>
+ rw[O_xor_Suc] >> qpick_x_assum ‘Cdr(Ins(x, xs0), n')’ mp_tac >>
+ strip_tac >> drule $ iffLR Cdr_Ins >> pop_assum strip_assume_tac >>
+ qexists_tac ‘b’ >> arw[])
 (form_goal
- “!X xs:mem(Pow(X)).Fin(xs) ==> ?!n.hasCard(xs,n)”));
+ “!X xs:mem(Pow(X)).Fin(xs) ==> ?!n.Cdr(xs,n)”));
 
+val CARD_def = 
+    AX1 |> qspecl [‘Pow(X)’,‘N’] 
+        |> fVar_sInst_th “P(xs:mem(Pow(X)), n:mem(N))”
+           “(Fin(xs:mem(Pow(X))) & Cdr(xs,n)) | (~Fin(xs) & n = O)”
+        |> uex2ex_rule
+        |> qSKOLEM "CARD" [‘X’]
+        |> gen_all |> store_as "CARD_def";
 
-
-
-val Card_def = 
- fVar_Inst 
-[("P",([("xs",mem_sort $ Pow (mk_set "X")),
-        ("n",mem_sort N)],
-“(Fin(xs:mem(Pow(X))) & hasCard(xs,n)) | (~Fin(xs) & n = O)”))]
-(AX1 |> qspecl [‘Pow(X)’,‘N’]) 
-|> uex_expand |> ex2fsym0 "Card" ["X"] |> conjE1
-|> gen_all 
-|> store_as "Card_def";
-
-val Card_Fun = prove_store("Card_Fun",
+val CARD_unique = proved_th $
 e0
-(rw[Fun_expand,Card_def] >> rpt strip_tac (* 3 *)
- >-- (cases_on “Fin(a:mem(Pow(X)))” (* 2 *)
-     >-- (drule Fin_Card >> 
-         pop_assum (strip_assume_tac o uex_expand) >>
-         qexists_tac ‘n’ >> arw[]) >>
-     qexists_tac ‘O’ >> arw[])
- >-- (drule Fin_Card >> pop_assum (strip_assume_tac o uex_expand)>>
-     first_assum rev_drule >> arw[] >> flip_tac >>
-     first_assum irule >> arw[]) >>
- arw[])
-(form_goal 
- “!X. isFun(Card(X))”));
+(rpt strip_tac >> rw[CARD_def] >> 
+ qcases ‘Fin(xs)’ 
+ >-- (drule Fin_Card >> pop_assum (strip_assume_tac o uex_expand) >>
+      uex_tac >> qexists_tac ‘n’ >> arw[]) >>
+ uex_tac >> qexists_tac ‘O’ >> arw[])
+(form_goal “!X xs:mem(Pow(X)). ?!n. Holds(CARD(X),xs,n)”)
  
-val CARD_ex = prove_store("CARD_ex",
-e0
-(rpt strip_tac >> qexists_tac ‘Eval(Card(X),xs)’ >> rw[])
-(form_goal
- “!X xs:mem(Pow(X)). ?cxs. Eval(Card(X),xs) = cxs”));
-
-val CARD_def = CARD_ex |> spec_all |> ex2fsym0 "CARD" ["xs"]
-                       |> gen_all |> store_as "CARD_def"; 
-
  
-val Fin_Empty= Fin_property |> spec_all |> conjE1
-                            |> gen_all |> store_as "Fin_Empty";
+val Cd0_def = P2fun |> qspecl [‘Pow(X)’,‘N’] 
+                 |> fVar_sInst_th “P(x:mem(Pow(X)),y:mem(N))”
+                    “Holds(CARD(X),x,y)” 
+                 |> C mp (CARD_unique |> qspecl [‘X’]) 
+                 |> qSKOLEM "Cd0" [‘X’] |> gen_all |> store_as "Cd0_def";
 
-val Fin_Ins = Fin_property |> spec_all |> conjE2
-                            |> gen_all |> store_as "Fin_Ins";
+
+val Card_def = qdefine_fsym ("Card",[‘xs:mem(Pow(X))’])
+                            ‘App(Cd0(X),xs)’
+                            |> gen_all |> store_as "Card_def";
 
 val Del_Empty = prove_store("Del_Empty",
 e0
-(rpt strip_tac >> match_mp_tac IN_EXT >>
-  rw[GSYM Del_property,Empty_property])
+(rw[GSYM IN_EXT_iff,Del_def,Empty_def])
 (form_goal
  “!X x. Del(Empty(X),x) = Empty(X)”));
-
-val IN_Ins =  GSYM Ins_property |> store_as "IN_Ins";
 
 val Ins_eq_eq = prove_store("Ins_eq_eq",
 e0
 (rpt strip_tac >-- (ccontra_tac >>
  qsuff_tac ‘~(IN(a2,Ins(a2,s2)))’
- >-- rw[GSYM Ins_property] >>
+ >-- rw[Ins_def] >>
  qsuff_tac ‘~(IN(a2,Ins(a1,s1)))’
  >-- arw[] >>
- rw[IN_Ins] >> arw[] >> flip_tac >> first_x_assum accept_tac) >>
+ arw[Ins_def] >> flip_tac >> first_x_assum accept_tac) >>
  irule IN_EXT >> strip_tac >> dimp_tac >> strip_tac (* 2 *)
- >-- (qby_tac ‘IN(x,Ins(a1,s1))’ >-- arw[IN_Ins] >> rfs[] >>
-      fs[IN_Ins] >> pop_assum (assume_tac o GSYM) >> fs[]) >>
+ >-- (qby_tac ‘IN(x,Ins(a1,s1))’ >-- arw[Ins_def] >> rfs[] >>
+      fs[Ins_def] >> pop_assum (assume_tac o GSYM) >> fs[]) >>
  qpick_x_assum ‘Ins(a1, s1) = Ins(a2, s2)’ (assume_tac o GSYM) >>
- qby_tac ‘IN(x,Ins(a2,s2))’ >-- arw[IN_Ins] >>
- rfs[] >> fs[IN_Ins] >> pop_assum (assume_tac o GSYM) >> fs[]
- )
+ qby_tac ‘IN(x,Ins(a2,s2))’ >-- arw[Ins_def] >>
+ rfs[] >> fs[Ins_def] >> pop_assum (assume_tac o GSYM) >> fs[])
 (form_goal
  “!A a1:mem(A) s1 a2 s2. ~(IN(a1,s1)) & ~(IN(a2,s2)) & ~(IN(a1,s2)) & ~(IN(a2,s1)) & 
  Ins(a1,s1) = Ins(a2,s2) ==> a1 = a2 & s1 = s2”));
 
+val Fin_Empty = FI_rules |> conjE1 |> rewr_rule[GSYM Fin_def] 
+                         |> gen_all |> store_as "Fin_Empty";
 
-local
-val l = fVar_Inst 
-[("P",([("xs",mem_sort $ Pow (mk_set "X"))],
-“Fin(xs) & !x. Fin(Del(xs,x:mem(X)))”))]
-(Fin_ind_P |> qspecl [‘X’])
-in
+val Fin_Ins = FI_rules |> conjE2 |> rewr_rule[GSYM Fin_def]
+                       |> spec_all |> undisch |> gen_all |> disch_all 
+                       |> gen_all |> store_as "Fin_Ins";
+
 val Fin_Del0 = prove_store("Fin_Del",
 e0
-(strip_tac >> strip_tac >> match_mp_tac l >>
- rw[Del_Empty,Fin_Empty] >> rpt strip_tac >--
- (drule Fin_Ins >> arw[]) >>
- cases_on “x = x0:mem(X)” 
- >-- (arw[] >> cases_on “IN(x0:mem(X),xs0)”
-      >-- (drule Ins_absorb >> arw[]) >>
-      drule Del_Ins >> arw[]) >>
- pop_assum (assume_tac o GSYM) >>
- drule Del_Ins_SWAP >> arw[]>> 
- last_x_assum (qspecl_then [‘x’] assume_tac) >>
- drule Fin_Ins >> arw[])
+(strip_tac >> ind_with (Fin_induct |> qspecl [‘X’]) >> 
+ rw[Fin_Empty,Del_Empty] >> rpt strip_tac (* 2 *)
+ >-- (drule Fin_Ins >> arw[]) >>
+ qcases ‘x = x'’ (* 2 *)
+ >-- (arw[] >> qcases ‘IN(x',xs0)’ (* 2 *)
+     >-- (drule Ins_absorb >> arw[]) >>
+     drule Del_Ins >> arw[]) >>
+ drule Del_Ins_SWAP >> arw[] >>
+ irule Fin_Ins >> arw[])
 (form_goal
  “!X xs:mem(Pow(X)).Fin(xs) ==> Fin(xs) &  !x. Fin(Del(xs,x)) ”));
-end
 
 val Fin_Del = prove_store("Fin_Del",
 e0
@@ -409,95 +356,53 @@ e0
 
 val Card_Fin = prove_store("Card_Fin",
 e0
-(rpt strip_tac >> rw[GSYM CARD_def] >> assume_tac Card_def >>
- first_x_assum (qspecl_then [‘X’,‘xs’,‘n’] assume_tac) >>
- rfs[] >> pop_assum (assume_tac o GSYM)>> arw[] >>
- qspecl_then [‘X’] assume_tac Card_Fun >>
- drule Eval_def >> arw[] >> lflip_tac >> rw[])
+(rpt strip_tac >> arw[Card_def,Cd0_def,CARD_def])
 (form_goal
  “!X xs:mem(Pow(X)). Fin(xs) ==>
-  (!n. CARD(xs) = n <=> hasCard(xs,n))”));
+  (!n. Card(xs) = n <=> Cdr(xs,n))”));
 
 
-val CARD_Empty = prove_store("CARD_Empty",
+val Card_Empty = prove_store("Card_Empty",
 e0
-(assume_tac Fin_Empty >> strip_tac >>
- first_x_assum $ qspecl_then [‘X’] assume_tac >>
- drule Card_Fin >> arw[] >> rw[hasCard_Empty])
+(strip_tac >> qspecl_then [‘X’] assume_tac Fin_Empty >>
+ drule Card_Fin >> arw[Cdr_Empty])
 (form_goal
- “!X. CARD(Empty(X)) = O”));
+ “!X. Card(Empty(X)) = O”));
 
-val CARD_Ins = prove_store("CARD_Ins",
+
+val Cdr_Card = prove_store("Cdr_Card",
+e0
+(rpt strip_tac >> drule Card_Fin >>
+ pop_assum (assume_tac o GSYM) >> arw[])
+(form_goal “!X xs:mem(Pow(X)). Fin(xs) ==> 
+ Cdr(xs, Card(xs))”));
+
+
+val Card_Ins = prove_store("Card_Ins",
 e0
 (rpt strip_tac >> drule Fin_Ins >>
  first_x_assum (qspecl_then [‘x’] assume_tac) >>
- drule Card_Fin >> arw[] >> irule hasCard_Ins >>
- arw[] >> rev_drule $ GSYM Card_Fin >> arw[])
+ drule Card_Fin >> arw[] >> irule $ iffRL Cdr_Ins >>
+ qexistsl_tac [‘xs’,‘Card(xs)’,‘x’] >> arw[] >>
+ (* Cdr(xs, Card(xs))*)
+ rw[Card_def] >> 
+ qsspecl_then [‘xs’,‘App(Cd0(X), xs)’] assume_tac Cd0_def >>
+ fs[] >> fs[CARD_def])
 (form_goal
  “!X xs:mem(Pow(X)). 
-  Fin(xs) ==> !x.~(IN(x,xs)) ==> CARD(Ins(x,xs)) = Suc(CARD(xs))”));
+  Fin(xs) ==> !x.~(IN(x,xs)) ==> Card(Ins(x,xs)) = Suc(Card(xs))”));
 
-val hasCard_Del' = hasCard_Del |> strip_all_and_imp 
-                               |> conjE2 |> disch_all 
-                               |> gen_all
-                               |> store_as "hasCard_Del'";
 
-val CARD_Del = prove_store("CARD_Del",
+
+val Card_Del = prove_store("Card_Del",
 e0
 (rpt strip_tac >> drule Fin_Del >> 
  first_x_assum (qspecl_then [‘x’] assume_tac) >>
  drule Card_Fin >> arw[] >>
- irule hasCard_Del' >> arw[] >>
- rev_drule Card_Fin >> pop_assum (assume_tac o GSYM) >> arw[])
+ irule (Cdr_Del |> spec_all |> undisch |> conjE2 |> disch_all |> gen_all) >>
+ arw[] >> irule Cdr_Card >> arw[])
 (form_goal
  “!X xs:mem(Pow(X)). Fin(xs) ==> 
-  !x. IN(x,xs) ==> CARD(Del(xs,x)) = Pre(CARD(xs))”));
+  !x. IN(x,xs) ==> Card(Del(xs,x)) = Pre(Card(xs))”));
  
 
-
-(*
-
- Card_def' |> spec_all |> iffRL
-
-val hasCard_Ins_pre = prove_store("hasCard_Ins_pre",
-e0
-(rw[Card_def'] >>
- rpt strip_tac (* 2 *)
- >-- (first_assum irule >> arw[]) >>
- 
-
-
- >-- first_assum accept_tac >> 
- first_assum irule
- )
-(form_goal
- “!X xs:mem(Pow(X)) n. hasCard(xs,n) ==> hasCard(xs,n) & 
-  (!x0 xs0 n0. (~IN(x0,xs0)) & xs = Ins(x0,xs0) & n = Suc(n0) ==> hasCard(xs0,n0))”));
-
-val Fin_Card = prove_store("Card_Fun",
-e0
-(rw[Fun_expand,Card_lemma] >> strip_tac >> match_mp_tac Fin_ind_card >>
- strip_tac >-- cheat >>
- rpt strip_tac >> )
-(form_goal
- “!X xs:mem(Pow(X)).Fin(xs) ==> ?!n.hasCard(xs,n)”));
-
-
-val rel_ex_lemma = 
-fVar_Inst 
-[("P",([("n",mem_sort N),("xs",mem_sort $Pow (mk_set "X"))],
-“?r.Eval(u0:U~> N * Pow(X),r) = Pair(n,xs)”))]
-(AX1 |> qspecl [‘N’,‘Pow(X)’]) |> uex_expand
-val hasCard_ex = prove_store("hasCard_ex",
-e0
-()
-(form_goal
- “!X. ?hc. IN(Pair(O,Empty(X)),hc) & 
- !x0. ”));
-
-
-
-(*union is finite <=> A and B are finite*)
-
-end
-*)
