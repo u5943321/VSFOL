@@ -1,156 +1,15 @@
-
-
-(*
-fun mk_foralls nsl f = 
-    case nsl of 
-        [] => f
-      | (h as (n,s)) :: t =>
-        mk_forall n s (mk_foralls t f)
-
-fun define_pred f = 
-    let val fvs = fvf f
-        val _ = HOLset.isEmpty fvs orelse 
-                raise simple_fail
-                      "formula has unexpected free variables"
-        val (body,bvs) = strip_forall f 
-        val (l,r) = dest_dimp body 
-        val (P,args) = dest_fvar l 
-        val _ = List.all is_var args orelse raise simple_fail"input arguments is not a variable list"
-        val _ = HOLset.isSubset (fvf r,fvf l) 
-                orelse raise simple_fail"unexpected free variable on RHS"
-        val _ = new_pred P (List.map dest_var args)
-        val l' = mk_pred P args
-        val f' = mk_foralls bvs (mk_dimp l' r)
-    in mk_thm(essps,[],f')
-    end 
-
-*)
-
-
-(*
-fun sspecl tl th = 
-    let val (b,vs) = strip_forall $ concl th
-        val ars = List.filter (fn (n,s) => not (on_ground o fst o dest_sort o snd $ (n,s))) vs
-        val env = match_tl essps (List.map mk_var ars) tl emptyvd
-        val tl' = List.map (inst_term env) (List.map mk_var vs)
-    in specl tl' th
-    end
-
-
-fun sspecl_then tl (ttac: thm_tactic): thm_tactic = 
-    fn th => ttac (sspecl tl th)
-
-val qsspecl_then = qterml_tcl sspecl_then
-
-*)
-
-
-
-(*
-fun store_as name th = 
-let val _ = store_thm(name, th)
-in th
-end
-
-*)
-
-(*
-local
-fun delete'(set,mem) = HOLset.delete(set,mem) handle _ => set
-in
-fun filter_cont ct = 
-    HOLset.foldr 
-        (fn (ns,set) => 
-            case HOLset.find 
-                     (fn (vn,vs) => HOLset.member(fvs vs,ns)) set of 
-                SOME _ => delete'(set,ns)
-              | NONE => set) ct ct
-end
-
-fun ex2fsym fsym strl th = 
-    let val th' = spec_all th
-        val (ct,asl) = (cont th',ant th')
-        val (hyp,conc) = dest_imp (concl th')
-        val inputvars0 = filter_cont (cont th') 
-        val inputvars = List.foldr (fn (s,e) => HOLset.add(e,s)) essps 
-                                   (List.map (dest_var o (parse_term_with_cont ct)) strl)
-        val _ = HOLset.isSubset(inputvars0,inputvars) orelse 
-                raise simple_fail "there are necessary input variables missing"
-        val inputvl = List.map (parse_term_with_cont ct) strl
-        val ((n,s),b) = dest_exists conc
-        val _ = new_fun fsym (s,List.map dest_var inputvl)
-        val fterm = mk_fun fsym inputvl
-        val b' = substf ((n,s),fterm) b
-    in mk_thm (ct,asl,mk_imp hyp b')
-    end
-
-*)
-
-
-
-
-fun uex_ex f = 
-    let val th0 = iffLR $ uex_def f |> undisch
-        val c0 = concl th0
-        val ((n,s),b) = dest_exists c0
-        val th1 = assume b |> conjE1 
-        val th2 = existsI (n,s) (mk_var(n,s)) (concl th1) th1
-        val th3 = existsE (n,s) th0 th2
-    in disch f th3
-    end
-
-fun uex2ex_rule th = mp (uex_ex $concl th) th
-fun uex_expand th = rewr_rule [uex_def $ concl th] th
-
-
-
 val _ = new_sort "ob" [] 
-val _ = new_sort "ar" [("A",mk_sort "ob" []),("B",mk_sort "ob" [])]
-val _ = EqSorts := "ar" :: (!EqSorts)
+val _ = new_sort "ar" [("A",mk_sort "ob" []),("B",mk_sort "ob" [])];
+val _ = EqSorts := "ar" :: (!EqSorts);
+val _ = new_sort_infix "ar" "->";
 val ob_sort = mk_sort "ob" [];
 fun ar_sort A B = mk_sort "ar" [A,B];
 
-val _ = new_fun "1" (mk_sort "ob" [],[]);
-val ONE = mk_fun "1" [];
-val _ = new_fun "To1" (mk_sort "ar" [mk_var ("A",ob_sort),ONE],[("A",ob_sort)]);
-val _ = new_fun "0" (mk_sort "ob" [],[]);
-val ZERO = mk_fun "0" [];
-val _ = new_fun "From0" (mk_sort "ar" [ZERO,mk_var ("A",ob_sort)],[("A",ob_sort)]);
-
-
-val _ = new_fun "*" (ob_sort,[("A",ob_sort),("B",ob_sort)]);
-fun Po A B = mk_fun "*" [A,B];
-val _ = new_fun "+" (ob_sort,[("A",ob_sort),("B",ob_sort)]);
-fun coPo A B = mk_fun "+" [A,B];
-val _ = new_fun "Exp" (ob_sort,[("A",ob_sort),("B",ob_sort)]);
-fun Exp A B = mk_fun "Exp" [A,B];
 
 fun mk_ob name = mk_var (name,ob_sort);
 fun mk_ar name dom cod = mk_var (name,ar_sort dom cod);
-val _ = new_fun "Pa" (ar_sort (mk_ob "X") (Po (mk_ob "A") (mk_ob "B")),
- [("f",ar_sort (mk_ob "X") (mk_ob "A")),("g",ar_sort (mk_ob "X") (mk_ob "B"))]);
-
-val _ = new_fun "o" (mk_sort "ar" [mk_var("A",mk_sort "ob" []),mk_var("C",mk_sort "ob" [])],[("f",mk_sort "ar" [mk_var("B",mk_sort "ob" []),mk_var("C",mk_sort "ob" [])]),("g",mk_sort "ar" [mk_var("A",mk_sort "ob" []),mk_var("B",mk_sort "ob" [])])])
 
 
-val _ = new_fun "id" 
-       (mk_sort "ar" [mk_var("A",mk_sort "ob" []),mk_var("A",mk_sort "ob" [])],
-        [("A",mk_sort "ob" [])])
-
-val _ = new_sort_infix "ar" "->"
-
-
-(*
-fun new_ax f = 
-    let
-        val _ = HOLset.equal(fvf f,essps) orelse
-                raise simple_fail"formula has free variables"
-    in
-        mk_thm(essps,[],f)
-    end
- 
-fun store_ax (name,f) = store_as name (new_ax f)
-*)
 
 val idL = store_ax("idL", “!B A f:B->A. id(A) o f = f”);
 
@@ -159,7 +18,7 @@ val idR = store_ax("idR",“!A B f:A->B. f o id(A) = f”);
 val o_assoc = store_ax("o_assoc",“!A.!B.!f: A -> B.!C.!g:B -> C.!D.!h: C -> D.(h o g) o f = h o g o f”);
 
 
-val is1_def = define_pred
+val is1_def = qdefine_pred
 “!ONE. is1(ONE) <=> !X.?!f:X->ONE.T”
 
 (*

@@ -233,14 +233,20 @@ fun rdimp_fconv fc f =
 fun forall_fconv fc f = 
     case view_form f of
         (vQ("!",n,s,b)) => 
-        forall_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
-      | _ => raise ERR ("forall_fconv.not an all",[],[],[f])
-
-fun exists_fconv fc f = 
-    case view_form f of
-        (vQ("?",n,s,b)) => 
-         exists_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
-      | _ => raise ERR ("exists_fconv.not an all",[],[],[f])
+        let val th0 = fc (subst_bound (mk_var(n,s)) b)
+        in forall_iff (n,s) th0
+           handle _ =>
+                  let val (n',_) = dest_var 
+                                  (pvariantt (cont th0) 
+                                             (mk_var(n,s))) 
+                      val f' = rename_bound n' f 
+                      val ((n',s'),b') = dest_forall f'
+                      val th1 = fc (subst_bound (mk_var(n',s')) b')
+                  in
+                      forall_iff (n',s') th1
+                  end
+        end
+      | _ => raise ERR ("forall_fconv.not a forall",[],[],[f])
  
 fun exists_fconv fc f = 
     case view_form f of
@@ -263,8 +269,20 @@ fun exists_fconv fc f =
 fun uex_fconv fc f = 
     case view_form f of
         (vQ("?!",n,s,b)) => 
-        uex_iff (n,s) $ fc (subst_bound (mk_var(n,s)) b)
-      | _ => raise ERR ("uex_fconv.not an all",[],[],[f])
+        let val th0 = fc (subst_bound (mk_var(n,s)) b)
+        in uex_iff (n,s) th0
+           handle _ =>
+                  let val (n',_) = dest_var 
+                                  (pvariantt (cont th0) 
+                                             (mk_var(n,s))) 
+                      val f' = rename_bound n' f 
+                      val ((n',s'),b') = dest_uex f'
+                      val th1 = fc (subst_bound (mk_var(n',s')) b')
+                  in
+                      uex_iff (n',s') th1
+                  end
+        end
+      | _ => raise ERR ("uex_fconv.not an uex",[],[],[f])
 
 
 (*

@@ -1,7 +1,6 @@
 use "master.ML";
-use "net'.sml";
-(* use "fVar_Inst.sml"; *)
 use "SEARsettings.sml";  
 use "SEARNarith.sml";
+use "ztest.sml";
 use "SEARFiniteness.sml";
-use "SEARZarith.sml";
+use "SEARList.sml";

@@ -357,7 +357,7 @@ e0
  (qexistsl_tac [‘x’,‘l’] >> rw[]))
 (form_goal
  “!X l:mem(List(X)). l = Nil(X) | ?x0 l0. l = Cons(x0,l0)”));
-end
+
 
 
 
@@ -372,25 +372,6 @@ e0
 
 
 
-
-
-local
-val l = 
- fVar_Inst 
-[("P",([("l",mem_sort (rastt "List(A)"))],
-“Eval(f1:List(A) ->X, l) = Eval(f2, l)”))] 
-(List_ind |> qspecl [‘A’])
-in
-val from_List_eq = prove_store("from_List_eq",
-e0
-(rpt strip_tac >> irule $ iffRL FUN_EXT >> arw[] >>
- irule l >> arw[])
-(form_goal
- “!A X f1:List(A) ->X f2. isFun(f1) & isFun(f2) &
- Eval(f1, Nil(A)) = Eval(f2,Nil(A)) &
- (!l. Eval(f1,l) = Eval(f2,l) ==> 
-  !a. Eval(f1,CONS(a,l)) = Eval(f2,CONS(a,l))) ==> f1 = f2”));
-end
 
 
 

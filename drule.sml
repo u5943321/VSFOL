@@ -1180,7 +1180,7 @@ fun uex_iff (n,s) th =
         val ueQdef = uex_def ueQ
         val QR = snd o dest_dimp o concl $ ueQdef
         val (_,QRb) = dest_exists QR
-        val (n',s') = dest_var (pvariantt G (mk_var(n,s)))
+        val (n',s') = dest_var (pvariantt G (mk_var(n^"'",s)))
         val dimp0 = imp_iff 
                    (inst_thm (mk_inst [((n,s),mk_var(n',s'))] []) th)
                    (frefl (mk_eq (mk_var(n',s')) (mk_var(n,s))))
