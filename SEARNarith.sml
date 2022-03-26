@@ -1585,6 +1585,29 @@ e0
 (form_goal “!m n p. Mul(p,Sub(m,n)) = Sub(Mul(p,m),Mul(p,n))”));
 
 
+val LESS_ADD_NONZERO = prove_store("LESS_ADD_NONZERO",
+e0
+(strip_tac >> ind_with N_induct >> rw[] >>
+rpt strip_tac >> cases_on “n = O” 
+ >-- arw[Add_Suc,Add_O,Lt_Suc] >>
+ first_x_assum drule >>
+ rw[Add_Suc] >> irule Lt_trans >>
+ qexists_tac ‘Add(m,n)’ >> arw[Lt_Suc])
+(form_goal
+ “!m n. ~(n = O) ==> Lt(m,Add(m,n))”));
+
+
+val SUB_LESS = prove_store("SUB_LESS",
+e0
+(rpt strip_tac >>
+ drule Le_Add_ex >> pop_assum (strip_assume_tac o GSYM)>>
+ arw[] >>
+ rw[Add_Sub] >> 
+ irule LESS_ADD_NONZERO >> fs[Lt_def] >> flip_tac >> arw[])
+(form_goal
+ “!m n. Lt(O,n) & Le(n,m) ==> Lt(Sub(m,n),m)”));
+ 
+
 (*
 define the set of lists
 App(f:A(set of A~>B functions)~>B(set of A list ~> B list function),a)
