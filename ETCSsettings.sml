@@ -1338,12 +1338,11 @@ e0
 val coEq_of_equal_post_inv = prove_store(
 "coEq_of_equal_post_inv",
 e0
-(rpt strip_tac >> 
- qby_tac ‘iscoEq(f, f, e) & id(B) o f = id(B) o f’
- >-- arw[] >>
- drule coEqa_def >> 
- qexists_tac ‘coEqa(f,f,e,id(B))’ >> 
- pop_assum (assume_tac o GSYM) >> arw[])
+(rpt strip_tac >> drule $ iffLR iscoEq_def >>
+ pop_assum strip_assume_tac >>
+ first_x_assum (qsspecl_then [‘id(B)’] assume_tac) >> fs[] >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘x0’ >> arw[])
 (form_goal
  “!A B f:A->B cE e:B->cE. iscoEq(f,f,e) ==>
   ?e':cE->B. e' o e = id(B)”));
@@ -1395,7 +1394,7 @@ e0
  first_x_assum irule >> arw[o_assoc])
 (form_goal “!A B f:A->B C m:B->C. Mono(m o f) ==> Mono(f)”)
 );
-
+ 
 
 val o_Epi_imp_Epi = prove_store("o_Epi_imp_Epi",
 e0
@@ -1412,36 +1411,10 @@ e0
  qby_tac ‘~(is0(I0))’ >--
  (ccontra_tac >> 
   qsuff_tac ‘is0(A)’ >-- fs[] >>
-  match_mp_tac to_zero_zero (* TODO: find out why match mp can do but irule cannot *) >>
+  match_mp_tac to_zero_zero  >>
   qexistsl_tac [‘I0’,‘h o q’] >> arw[]) >>
  strip_tac (* 2 *) >--
- (qsuff_tac ‘Epi(h o q)’ >-- 
-  (strip_tac >> drule o_Epi_imp_Epi >> arw[]) >>
-  rw[Epi_def] >> rpt strip_tac >>
- drule Mono_no_zero_post_inv >> first_x_assum drule >>
- pop_assum (x_choose_then "qi" assume_tac) >>
- qby_tac ‘?w.w o k' = coPa(h' o qi,g o qi)’ >--
- (irule $ iffRL via_coEq_iff >>
-  qexistsl_tac [‘A’,‘i1(B, B) o f’,‘i2(B, B) o f’] >>
-  arw[i12_of_coPa,GSYM o_assoc] >> 
-  qsuff_tac
-  ‘(h' o qi) o q' o h o q = h' o (qi o q') o h o q &
-   (g o qi) o q' o h o q = g o (qi o q') o h o q’
-  >--(strip_tac >> rfs[idL]) >>
-  rw[o_assoc]) >>
- pop_assum strip_assume_tac >>
- qsuff_tac
- ‘coPa(h' o qi,g o qi) o i1(B,B) o q' = h' &
- coPa(h' o qi,g o qi) o i2(B,B) o q' = g &
- coPa(h' o qi,g o qi) o i1(B,B) o q' = 
- coPa(h' o qi,g o qi) o i2(B,B) o q'’ >--
- (strip_tac >> rfs[]) >> rpt strip_tac (* 3 *) >--
- (arw[i1_of_coPa,GSYM o_assoc] >> arw[o_assoc,idR]) >--
- (arw[i2_of_coPa,GSYM o_assoc] >> arw[o_assoc,idR]) >>
- pop_assum (assume_tac o GSYM) >> once_arw[] >>
- rw[o_assoc] >> rev_drule Eq_equality >>
- fs[o_assoc]) >>
- qsuff_tac ‘Mono(q' o h)’
+ (qsuff_tac ‘Mono(q' o h)’
  >-- (strip_tac >> match_mp_tac o_Mono_imp_Mono >>
       qexistsl_tac [‘B’,‘q'’] >> arw[]) >>
  qby_tac ‘?t.q o t = id(I')’ >--
@@ -1467,7 +1440,33 @@ e0
  >-- (arw[p1_of_Pa] >> arw[GSYM o_assoc,idL])
  >-- (arw[p2_of_Pa] >> arw[GSYM o_assoc,idL]) >>
  pop_assum (assume_tac o GSYM) >> arw[] >>
- drule coEq_equality >> fs[GSYM o_assoc])
+ drule coEq_equality >> fs[GSYM o_assoc]) >>
+(qsuff_tac ‘Epi(h o q)’ >-- 
+  (strip_tac >> drule o_Epi_imp_Epi >> arw[]) >>
+  rw[Epi_def] >> rpt strip_tac >>
+ drule Mono_no_zero_post_inv >> first_x_assum drule >>
+ pop_assum (x_choose_then "qi" assume_tac) >>
+ qby_tac ‘?w.w o k' = coPa(h' o qi,g o qi)’ >--
+ (irule $ iffRL via_coEq_iff >>
+  qexistsl_tac [‘A’,‘i1(B, B) o f’,‘i2(B, B) o f’] >>
+  arw[i12_of_coPa,GSYM o_assoc] >> 
+  qsuff_tac
+  ‘(h' o qi) o q' o h o q = h' o (qi o q') o h o q &
+   (g o qi) o q' o h o q = g o (qi o q') o h o q’
+  >--(strip_tac >> rfs[idL]) >>
+  rw[o_assoc]) >>
+ pop_assum strip_assume_tac >>
+ qsuff_tac
+ ‘coPa(h' o qi,g o qi) o i1(B,B) o q' = h' &
+ coPa(h' o qi,g o qi) o i2(B,B) o q' = g &
+ coPa(h' o qi,g o qi) o i1(B,B) o q' = 
+ coPa(h' o qi,g o qi) o i2(B,B) o q'’ >--
+ (strip_tac >> rfs[]) >> rpt strip_tac (* 3 *) >--
+ (arw[i1_of_coPa,GSYM o_assoc] >> arw[o_assoc,idR]) >--
+ (arw[i2_of_coPa,GSYM o_assoc] >> arw[o_assoc,idR]) >>
+ pop_assum (assume_tac o GSYM) >> once_arw[] >>
+ rw[o_assoc] >> rev_drule Eq_equality >>
+ fs[o_assoc]))
 (form_goal
  “!A B f:A->B. ~(is0(A)) ==>
  !R' k':B + B ->R'. iscoEq(i1(B,B) o f, i2(B,B) o f,k') ==>
@@ -1490,55 +1489,50 @@ e0
 
 val Eqa_def_alt = prove_store("Eqa_def_alt",
 e0
-(rpt strip_tac >> drule Eq_def_imp >> first_x_assum drule >>
+(rpt strip_tac >> drule $ iffLR isEq_def >>
  pop_assum strip_assume_tac >>
- dimp_tac >> strip_tac (* 2 *) >--
- (first_x_assum irule >> flip_tac >> 
- first_x_assum accept_tac) >>
- once_arw[] >> rw[] )
+ first_x_assum rev_drule >> pop_assum (strip_assume_tac o uex_expand) >> 
+ qexists_tac ‘a0’ >> arw[] >>
+ strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (first_x_assum irule >> arw[]) >>
+ arw[])
 (form_goal
  “!A B f:A->B g:A->B E e:E->A.
  isEq(f,g,e) ==>
- !X a:X->A. f o a = g o a ==> 
- !a0:X->E. e o a0 = a <=> a0 = Eqa(f,g,e,a) ”));
+ !X a:X->A. f o a = g o a ==> ?eqa.
+ !a0:X->E. e o a0 = a <=> a0 = eqa ”));
 
 
 val coEqa_def_alt = prove_store("coEqa_def_alt",
 e0
-(rpt strip_tac >> drule coEq_def_imp >> 
- first_x_assum drule >>
+(rpt strip_tac >> drule $ iffLR iscoEq_def >>
  pop_assum strip_assume_tac >>
- dimp_tac >> strip_tac (* 2 *) >--
- (first_x_assum irule >> flip_tac >> 
- first_x_assum accept_tac) >>
- once_arw[] >> rw[] )
+ first_x_assum rev_drule >> pop_assum (strip_assume_tac o uex_expand) >> 
+ qexists_tac ‘x0’ >> arw[] >>
+ strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (first_x_assum irule >> arw[]) >>
+ arw[])
 (form_goal
  “!A B f:A->B g:A->B cE ce:B->cE.
  iscoEq(f,g,ce) ==>
- !X x:B->X. x o f = x o g ==> 
- !x0:cE->X. x0 o ce = x <=> x0 = coEqa(f,g,ce,x) ”));
+ !X x:B->X. x o f = x o g ==> ?cea.
+ !x0:cE->X. x0 o ce = x <=> x0 = cea ”));
 
 val Thm3_h_exists = prove_store("Thm3_h_exists",
 e0
 (rpt strip_tac >> match_mp_tac unique_h_lemma >>
- qexistsl_tac
- [‘Eqa(k' o i1(B,B),k' o i2(B,B),q',f)’,
-  ‘coEqa(p1(A,A) o k,p2(A,A) o k,q,
-        Eqa(k' o i1(B,B),k' o i2(B,B),q',f))’] >>
- rpt strip_tac 
- >-- (rev_drule Eqa_def_alt >>
-      first_x_assum irule >>
-      rev_drule coEq_equality >> fs[o_assoc]) >>
- drule coEqa_def_alt >> first_x_assum irule >>
- drule Eq_equality >>
- rev_drule Eqa_Mono >> fs[Mono_def] >>
- first_x_assum irule >>
- qsuff_tac
- ‘q' o Eqa((k' o i1(B, B)), (k' o i2(B, B)), q', f) = f’ 
- >-- (strip_tac >> arw[GSYM o_assoc]) >>
- rev_drule Eqa_def_alt >> 
- first_x_assum (qspecl_then [‘A’,‘f’] assume_tac) >> 
- rev_drule coEq_equality >> fs[o_assoc])
+ rev_drule Eqa_def_alt >>
+ rev_drule coEq_equality >> fs[o_assoc] >>
+ first_x_assum drule >> pop_assum strip_assume_tac >>
+ drule coEqa_def_alt >> drule Eq_equality >>
+ fs[o_assoc] >> 
+ first_x_assum (qsspecl_then [‘eqa’] assume_tac) >>
+ qby_tac ‘eqa o p1(A, A) o k = eqa o p2(A, A) o k’
+ >-- (rev_drule Eqa_Mono >> fs[Mono_def] >>
+     last_x_assum (qspecl_then [‘eqa’] assume_tac) >> fs[] >>
+     first_x_assum irule >> arw[GSYM o_assoc] >> arw[o_assoc]) >>
+ first_x_assum drule >> pop_assum strip_assume_tac >>
+ qexistsl_tac [‘eqa’,‘cea’]  >> arw[])
 (form_goal 
 “!A B f:A->B.
  !R' k':B + B->R'. iscoEq(i1(B,B) o f,i2(B,B) o f,k') ==>
@@ -1673,16 +1667,20 @@ e0
   (assume_tac o GSYM) >> once_arw[] >>
   rw[o_assoc] >> once_rw[one_to_one_id] >> rw[idR]) >>
  arw[]>> arw[GSYM o_assoc] >> arw[o_assoc]) >>
- qexists_tac ‘q o Eqa(s0,i2t,k,Pa(x,j))’ >>
+ drule $ iffLR isEq_def >>
+ pop_assum strip_assume_tac >> 
+ first_x_assum (qsspecl_then [‘Pa(x,j)’] assume_tac) >>
+ qby_tac ‘s0 o Pa(x, j) = i2t o Pa(x, j)’
+ >-- (fs[] >>
+     qpick_x_assum ‘i2(1, 1) o To1(X * J) = i2t’ 
+     (assume_tac o GSYM) >> arw[o_assoc,one_to_one_id,idR]) >>
+ first_x_assum drule >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘q o a0’ >>
  qpick_x_assum ‘p1(X, J) o k = a o q’ (assume_tac o GSYM) >>
  arw[GSYM o_assoc] >> 
- qby_tac ‘k o Eqa(s0, i2t, k, Pa(x, j)) = Pa(x,j)’
- >-- (flip_tac >> irule Eqa_eqn >> arw[] >>
-      qpick_x_assum ‘i2(1, 1) o To1(X * J) = i2t’
-      (assume_tac o GSYM) >> arw[o_assoc] >> 
-      once_rw[one_to_one_id] >> rw[idR]) >>
- arw[o_assoc,p1_of_Pa]
- )
+ qpick_x_assum ‘Pa(x, j) = k o a0’ (assume_tac o GSYM) >>
+ arw[o_assoc,p1_of_Pa])
 (form_goal
  “!J X ss:J-> Exp(X,1+1).
   ?U a:U->X. Mono(a) & 
@@ -1959,6 +1957,7 @@ e0
  !phi0.Tp(phi o p1(X,1)) = phi0 ==>
    a2 o phi0 = (j0 o To1 (Exp(X,1+1))) o phi0”));
 
+val isEq_def |> iffLR |> 
 
 val Thm5_Epi_ex_xp = prove_store(
 "Thm5_Epi_ex_xp",
@@ -1967,8 +1966,11 @@ e0
  assume_tac (Thm5_Epi_ex_xp_a2phi0 |> strip_all_and_imp) >>
  qby_tac
  ‘?phi0':1->L. u o phi0' = Tp(phi o p1(X,1))’
- >-- (qexists_tac ‘Eqa(a2,j0 o To1(Exp(X,1+1)),u,phi0)’ >>
-      arw[] >> flip_tac >> irule Eqa_eqn >> arw[]) >>
+ >-- (irule (isEq_def |> iffLR |> strip_all_and_imp 
+                      |> conjE2 |> strip_all_and_imp
+                      |> uex2ex_rule |> GSYM
+                      |> gen_disch_all) >>
+     qexistsl_tac [‘Exp(A,2)’,‘a2’,‘j0 o To1(Exp(X, 2))’] >> arw[]) >>
  pop_assum strip_assume_tac >>
  qby_tac
  ‘ub o Pa(b, phi0') = 
@@ -1994,9 +1996,11 @@ e0
       first_x_assum accept_tac) >>
  qby_tac
  ‘?bp0:1->E.k o bp0 = Pa(b,phi0')’ 
- >-- (qexists_tac 
-      ‘Eqa(ub,i2(1,1) o To1(X * L),k,Pa(b, phi0'))’ >>
-      flip_tac >> irule Eqa_eqn >> arw[]) >>
+ >-- (irule (isEq_def |> iffLR |> strip_all_and_imp 
+                      |> conjE2 |> strip_all_and_imp
+                      |> uex2ex_rule |> GSYM
+                      |> gen_disch_all) >>
+      qexistsl_tac [‘2’,‘ub’,‘i2(1, 1) o To1(X * L)’] >> arw[]) >> 
  pop_assum strip_assume_tac >>
  qexists_tac ‘bp0’ >> irule to_P_eq >>
  rw[p12_of_Pa] >> rw[GSYM o_assoc,p12_of_Pa] >>
