@@ -114,6 +114,9 @@ fun find_th str =
     Binarymap.foldr (fn (thname,th,l0) => if String.isSubstring str thname then 
                                               (thname,th) :: l0 else l0)  [] (!ThmDB)
       
+fun find_exact_th str = 
+    (Binarymap.peek(!ThmDB,str))
+
 fun prove_store (n,g0) = 
     let 
         val th = proved_th g0

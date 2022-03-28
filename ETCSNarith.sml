@@ -1,62 +1,5 @@
 
-val INV_SUC_EQ = prove_store("INV_SUC_EQ",
-e0
-(assume_tac Thm2_2 >> fs[Mono_def] >> 
- rpt strip_tac >> dimp_tac >> strip_tac >--
- (first_x_assum irule >> arw[]) >>
- arw[])
-(form_goal 
-“!m n:1->N. SUC o m = SUC o n <=> m = n”));
-(*SUC_EQ_IFF_EQ is just INV_SUC_EQ*)
 
-
-
-
-val SoE_lemma_2_5_5 = proved_th $
-e0
-(rw[iscoPr_def] >> rpt strip_tac >>
- uex_tac >> 
- qexists_tac 
- ‘p2(N,X) o Nind(Pa(O, f), Pa(SUC, g) o p1(N,X))’ >>
- rw[o_assoc,Nind_def,p12_of_Pa] >>
- rw[GSYM o_assoc,p12_of_Pa] >> rw[o_assoc] >>
- qby_tac ‘p1(N, X) o Nind(Pa(O, f), Pa(SUC, g) o p1(N, X)) = 
- id(N)’ >-- 
- (irule comm_with_SUC_id >>
-  rw[Nind_def,o_assoc,p1_of_Pa] >> 
-  rw[GSYM o_assoc,p1_of_Pa]) >> 
- arw[idR] >> 
- qsuff_tac 
- ‘!fg:N->X. fg o O = f:1->X & fg o SUC = g ==>
-   Pa(id(N),fg) = Nind(Pa(O, f), Pa(SUC, g) o p1(N,X))’
- >-- (strip_tac >> strip_tac >> disch_tac >>
-     first_assum drule >> 
-     qby_tac 
-     ‘p2(N,X) o Pa(id(N), fg') = 
-      p2(N,X) o Nind(Pa(O, f), Pa(SUC, g) o p1(N, X))’
-     >-- arw[] >> fs[p2_of_Pa]) >>
- rpt strip_tac >> 
- assume_tac Nind_def >>
- first_assum (qspecl_then [‘N * X’,‘Pa(SUC, g) o p1(N, X)’,‘Pa(O, f)’] strip_assume_tac) >>
- first_assum irule >> rw[o_assoc,p12_of_Pa,Pa_distr,idR] >>
- rw[Pa_eq_eq] >> arw[idL])
-(form_goal “iscoPr(O,SUC)”);
-
-
-
-val O_xor_SUC = prove_store("O_xor_SUC",
-e0
-(strip_tac >> assume_tac SoE_lemma_2_5_5 >>
- drule copr_disjoint >>
- first_x_assum (qspecl_then [‘n’] assume_tac) >>
- pop_assum (assume_tac o GSYM) >> arw[] >>
- cases_on “n = O” >> arw[] >>
- ccontra_tac >> fs[] >> pop_assum mp_tac >>
- rw[] >> once_rw[one_to_one_id] >>
- arw[idR] >> qexists_tac ‘id(1)’ >> rw[]
- )
-(form_goal
-“!n:1->N. ~(n = O) <=> ?n0:1->N. n = SUC o n0”));
 
 
 val PRED_O_cases = prove_store("PRED_O_cases",
@@ -85,7 +28,7 @@ e0
 “!n:1->N. PRE o n = O <=> (n = O | n = SUC o O)”));
 
 
-
+(*
 val NE_ex = prove_store("NE_ex",
 e0
 (rpt strip_tac >> 
@@ -93,150 +36,37 @@ e0
  first_x_assum accept_tac)
 (form_goal
 “?NE ne:NE -> N * N. Mono(ne) & Iso(coPa(Diag(N),ne))”));
+*)
+
 
 val SUB_def = Thm1 |> specl
 (List.map rastt ["N","N","id(N)","PRE o p2(N * N,N)"])
-|> uex_expand |> ex2fsym0 "SUB" [] |> rewr_rule[idL]
+|> uex_expand |> qSKOLEM "SUB" [] |> rewr_rule[idL,o_assoc,p12_of_Pa]
 |> store_as "SUB_def";
 
 val SUB_eqn = SUB_def |> conjE1 |> store_as "SUB_eqn";
 
-val Suc_ex = prove_store("Suc_ex",
-e0
-(rpt strip_tac >> qexists_tac ‘SUC o n’ >> rw[])
-(form_goal “!X n:X->N.?sn. SUC o n = sn”));
 
-val Suc_def = Suc_ex |> spec_all |> ex2fsym0 "Suc" ["n"]
-                     |> gen_all
-                     |> store_as "Suc_def";
-
-
-val Suc_ex = prove_store("Suc_ex",
-e0
-(rpt strip_tac >> qexists_tac ‘SUC o n’ >> rw[])
-(form_goal “!X n:X->N.?sn. SUC o n = sn”));
-
-val Suc_def = Suc_ex |> spec_all |> ex2fsym0 "Suc" ["n"]
-                     |> gen_all
-                     |> store_as "Suc_def";
-
-
-val Sub_ex = prove_store("Sub_ex",
-e0
-(rpt strip_tac >> qexists_tac ‘SUB o Pa(n1,n2)’ >> rw[])
-(form_goal “!X n1:X->N n2:X->N.?sn12. SUB o Pa(n1,n2) = sn12”));
-
-val Sub_def = Sub_ex |> spec_all 
-                     |> ex2fsym0 "Sub" ["n1","n2"]
-                     |> gen_all
-                     |> store_as "Sub_def";
+val Sub_def = qdefine_fsym("Sub",[‘n1:X->N’,‘n2:X->N’]) ‘SUB o Pa(n1,n2)’ 
+|> gen_all |> store_as "Sub_def";
 
 val Sub_property = SUB_def |> rewr_rule[Sub_def]
                            |> store_as "Sub_property"
 
 
-(*TODO: automatic this:
- val it =
-   A(u : ar(1, N))(pred : ar(N, 1 + 1))(a : ar(A, N))(At1 : ar(A, 1))
-   1.isPb(pred, TRUE, a, At1)
-   2.!(u : ar(1, N)). (?(a' : ar(1, A)). a o a'# = u#) <=> pred o u# = TRUE
-   ----------------------------------------------------------------------
-   (?(a' : ar(1, A)). u = a o a'#) <=> pred o u = TRUE
-*)
-
-val ind_principle = prove_store("ind_principle",
-e0
-(rpt strip_tac >> 
- qspecl_then [‘N’,‘1+1’,‘pred’,‘1’,‘TRUE’] 
- (x_choosel_then ["A","a","At1"] assume_tac) isPb_ex >>
- drule Pb_fac_iff_1 >> 
- qby_tac ‘!u. (?a':1->A. u = a o a') <=> pred o u = TRUE’
- >-- (strip_tac >> 
-     (pop_assum (assume_tac o GSYM)) >> arw[] >>
-     fconv_tac 
-     (rand_fconv no_conv 
-                 $ basic_once_fconv no_conv (rewr_fconv (eq_sym "ar"))) >> arw[]) >>
- qby_tac ‘Mono(a)’
- >-- (drule Pb_Mono_Mono >> first_x_assum irule >>
-      once_rw[from_one_Mono]) >>
- qby_tac ‘pred = TRUE o To1(N) <=> Iso(a)’ >-- 
- (dimp_tac >> strip_tac >--
-  (irule Thm2_3' >> arw[] >> drule $ iffLR isPb_expand >>
-  pop_assum strip_assume_tac >> rw[o_assoc] >>
-  once_rw[one_to_one_id] >> rw[idR]) >>
-  fs[Iso_def] >> irule FUN_EXT >> strip_tac >>
-  rw[o_assoc] >> once_rw[one_to_one_id] >> rw[idR] >>
-  drule $ iffLR isPb_def >> pop_assum strip_assume_tac >>
-  qby_tac 
-  ‘pred o (a o f') o a' = TRUE o At1 o f' o a'’
-  >-- (rw[GSYM o_assoc] >> arw[]) >>
-  rfs[idL] >> once_rw[one_to_one_id] >> rw[idR]) >>
-  fs[True_def] >>
-  dimp_tac >> strip_tac (* 2 *) >--
-  (fs[Iso_def] >> drule $ iffLR isPb_def >> 
-   pop_assum strip_assume_tac >> 
-   qby_tac 
-   ‘!n0:1->N. pred o (a o f') o n0 = TRUE o At1 o f' o n0’
-   >-- (strip_tac >> arw[GSYM o_assoc]) >>
-   rpt strip_tac (* 2 *)
-   >-- (first_x_assum (qspecl_then [‘O’] assume_tac) >> 
-       rfs[idL] >> once_rw[one_to_one_id] >> rw[idR]) >>
-   first_x_assum (qspecl_then [‘SUC o n’] assume_tac) >> 
-  rfs[idL] >> once_rw[one_to_one_id] >> rw[idR]) >>
- irule Thm2_3' >> arw[])
-(form_goal
-“!pred:N->1 + 1. pred = True(N) <=>
- (pred o O = TRUE & 
-  (!n:1->N. pred o n = TRUE ==> pred o SUC o n = TRUE))”));
 
 
-val ind_principle_elements = prove_store
-("ind_principle_elements",
-e0
-(rpt strip_tac >> 
- qspecl_then [‘pred’] assume_tac ind_principle >> 
- pop_assum (assume_tac o GSYM) >> arw[] >>
- dimp_tac >> rpt strip_tac (* 2 *)
- >-- (irule FUN_EXT >> rpt strip_tac >> 
-      rw[GSYM True_def,o_assoc] >>
-      once_rw[one_to_one_id] >> rw[idR] >> arw[]) >>
- arw[GSYM True_def] >> rw[o_assoc] >> once_rw[one_to_one_id] >> rw[idR])
-(form_goal
-“!pred:N->1+1. (!n.pred o n = TRUE) <=>
- (pred o O = TRUE & (!n:1->N. pred o n = TRUE ==> pred o SUC o n = TRUE))”));
-
-
-
-
-val equality_ind = prove_store("equality_ind",
-e0
-(rpt strip_tac >> once_rw[GSYM Char_Diag] >>  fs[TRUE_def] >>
- qspecl_then [‘Char(Diag(A)) o Pa(f o (Pa(x o To1(N),id(N))), g o (Pa(y o To1(N),id(N))))’] mp_tac ind_principle_elements >>
- rw[o_assoc,Pa_distr] >> once_rw[one_to_one_id] >>
- rw[idL,idR])
-(form_goal 
-“!X A f:X*N->A Y g:Y*N->A.
- !x:1->X y:1->Y.(!n.f o Pa(x,n) = g o Pa(y,n)) <=>
- f o Pa(x,O) = g o Pa(y,O) & 
- !n0:1->N. f o Pa(x,n0) = g o Pa(y,n0) ==> 
- f o Pa(x,SUC o n0) = g o Pa(y,SUC o n0)”));
-
-
-(*ind_one_component*)
-
-val INDUCT_one_component = prove_store("INDUCT_one_component",
-e0
-(rpt strip_tac >> rw[equality_ind])
-(form_goal
-“!f:N * N->N g:N * N->N.
- !n0.(!n.f o Pa(n0,n) = g o Pa(n0,n)) <=>
- f o Pa(n0,O) = g o Pa(n0,O) & 
- !n:1->N. f o Pa(n0,n) = g o Pa(n0,n) ==> 
- f o Pa(n0,SUC o n) = g o Pa(n0,SUC o n)”));
 
 val SUB = mk_fun "SUB" [];
 val N = mk_fun "N" []
 val O = mk_fun "O" []
+
+val LE_def = define_fsym("LE",[])
+(form2IL [dest_var $ rastt "n1:1->N",dest_var $ rastt "n2:1->N"]
+“Sub(n1,n2) = O”) |> store_as "LE_def";
+
+
+
 
 val LEo_def = isPb_ex |> specl [Po N N,N,SUB,ONE,O] 
                        |> ex2fsym0 "LEo" []
@@ -549,8 +379,32 @@ e0
 
 
 
-(*add_def0*)
-val ADD_def0 = ADD_ex |> ex2fsym0 "ADD" [] |> store_as "ADD_def0";
+val PRE_def = 
+    Thm1_case_1 |> specl (List.map rastt ["N","O","p1(N,N)"])
+                |> uex2ex_rule
+                |> qSKOLEM "PRE" [] |> rewr_rule[p12_of_Pa]
+                |> store_as "PRE_def";
+
+val Pre_def = qdefine_fsym ("Pre",[‘n:X->N’]) ‘PRE o n’ 
+                           |> gen_all |> store_as "Pre_def";
+
+
+val Pre_eqn = prove_store("Pre_eqn",
+e0
+(strip_assume_tac PRE_def >> arw[Pre_def,Suc_def,GSYM o_assoc,idL])
+(form_goal
+ “Pre(O) = O & !X n:X->N. Pre(Suc(n)) = n”));
+
+
+val ADD_def = Thm1 |> qsspecl [‘id(N)’,‘SUC o p2(N * N,N)’]
+                   |> uex2ex_rule |> qSKOLEM "ADD" []
+                   |> rewr_rule[idL,o_assoc,p12_of_Pa]
+                   |> store_as "ADD_def";
+
+
+val Add_def = qdefine_fsym ("Add",[‘n1:X->N’,‘n2:X->N’]) ‘ADD o Pa(n1,n2)’ 
+|> gen_all |> store_as "Add_def";
+
 
 
 val ADD = mk_fun "ADD" [] 

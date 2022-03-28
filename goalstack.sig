@@ -22,4 +22,5 @@ sig
     val ppgstk: gstk -> ('a, unit) smpp.t
     val store_as: string -> thm -> thm
     val store_ax: string * form -> thm
+    val find_exact_th: string -> thm option
 end
