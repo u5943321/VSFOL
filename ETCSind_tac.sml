@@ -88,16 +88,41 @@ Same as Mul, Add, and for unary:
 Suc(n) |-> Suc o Pa1(n) (:= Suc o n)
 
 *)
+fun inserts d l = List.foldr (fn ((a,b),d) => Binarymap.insert(d,a,b)) d l
 
 
+
+val psym2IL0 = inserts (Binarymap.mkDict String.compare)
+[("IN",(rastt "In(X)",
+        [("x",ar_sort (mk_ob "A") (mk_ob "X")),
+         ("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)"))]))]
+
+
+(*Ins(x0:1->X,s0:1->Exp(X,2)) |-> INS(X) o Pa(x0,s0) *)
 val fsym2IL0 = inserts (Binarymap.mkDict String.compare)
-[("Sub",mk_fun "SUB" []),("Suc",mk_fun "SUC" []),
- ("Add",mk_fun "ADD" []),("Sub",mk_fun "SUB" [])]
+[("Ins",(rastt "INS(X)",[("x",ar_sort (mk_ob "A") (mk_ob "X")),
+         ("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)"))]))]
 
 val fsym2IL = ref fsym2IL0
 
+(*
 fun new_fsym2IL (fsym,fterm) = 
 fsym2IL := Binarymap.insert(!fsym2IL,fsym,fterm)
+*)
+
+fun new_fsym2IL (fsym,(ft,args)) = 
+fsym2IL := Binarymap.insert(!fsym2IL,fsym,(ft,args))
+
+
+fun new_fsym2IL1 (fsym,fterm) = 
+fsym2IL := Binarymap.insert(!fsym2IL,fsym,(fterm,[]))
+
+
+fun corres_fterm (ft,args) tl = 
+    if args = [] then ft else
+    let val env = match_tl essps (List.map mk_var args) tl emptyvd
+    in inst_term env ft
+    end
 
 fun term2IL bvs t =
     let val doms = List.map (cod o snd) bvs
@@ -109,14 +134,18 @@ fun term2IL bvs t =
             if not $ mem (n,s) bvs then 
                binop_t "o" t (unop_t "To1" (Pol doms))
             else mk_pj tn (pos (n,s) bvs) doms
+          | vFun("o",s,[f,t]) =>
+            mk_o f (term2IL bvs t)
           | vFun(f,s,tl) => 
-            if length tl = 0 then binop_t "o" t (unop_t "To1" (Pol doms))
+            if length tl = 0 orelse 
+               List.exists (fn t => sort_of t = ob_sort) tl 
+                           (*due to polymorphic costant*)
+            then binop_t "o" t (unop_t "To1" (Pol doms))
             else
                 let val args = List.map (term2IL bvs) tl
                 in
                 case Binarymap.peek(!fsym2IL,f) of 
-                    SOME fterm =>  binop_t "o" fterm (Pal args)
-                    (*(rewr_conv (spec_all th) t0) |> concl |> dest_eq |> #2*)
+                    SOME finfo =>  binop_t "o" (corres_fterm finfo tl) (Pal args)
                   | NONE => mk_fun f args
                 end
           | _ => raise simple_fail "bound variables should not be here"
@@ -131,11 +160,11 @@ val truth = mk_fun "TRUE" []
 fun mk_pred_ap pt args = (mk_o pt (Pal args))
 
 
-fun inserts d l = List.foldr (fn ((a,b),d) => Binarymap.insert(d,a,b)) d l
+
 
 
 val psym2IL0 = inserts (Binarymap.mkDict String.compare)
-[("IN",(rastt "Mem(X)",
+[("IN",(rastt "In(X)",
         [("x",ar_sort (mk_ob "A") (mk_ob "X")),
          ("xs",ar_sort (mk_ob "A") (rastt "Exp(X,1+1)"))]))]
 (*

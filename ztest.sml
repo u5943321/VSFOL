@@ -786,6 +786,15 @@ e0
 (*
  (redepth_fconv no_conv exists_cross_fconv)
  “∃a:mem(A) b:mem(B) b':mem(A * B) b'':mem(A  * B). P(a,b,b',b'')”
+
+ispositive: 
+
+(N * N) -> Bool
+
+Z -> bool
+
+<= 
+define relations
 *)
 
 
@@ -1485,6 +1494,11 @@ e0
 (form_goal “!z1 z2 z3. Lez(z1,z2) & Lez(Oz,z3)==> 
  Lez(Mulz(z1,z3),Mulz(z2,z3))”));
 
+(*
+?a b c . f(a,b,c) = f(d,e,f) & ...
+
+
+*)
 
 (*
 

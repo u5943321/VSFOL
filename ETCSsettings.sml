@@ -951,9 +951,6 @@ e0
 (form_goal
  “!A B. Pa(p1(A,B),p2(A,B)) = id(A * B)”));
 
-val flip_tac = 
-fconv_tac (rewr_fconv (eq_sym "ar"));
-
 val Thm1_comm_eq_right = prove_store("Thm1_comm_eq_right",
 e0
 (rpt strip_tac >>
@@ -1127,6 +1124,16 @@ e0
 (form_goal
  “~(coPa(i1(1,1),i2(1,1)) = coPa(i2(1,1),i1(1,1)))”))
 
+val PRE_def = 
+ Thm1_case_1 |> specl (List.map rastt ["N","O","p1(N,N)"])
+             |> uex_expand |> rewr_rule[p1_of_Pa]
+             |> qSKOLEM "PRE" []
+             |> conjE1
+             |> store_as "PRE_def";
+
+val Pre_def = qdefine_fsym("Pre",[‘n:1->N’]) ‘PRE o n’
+|> gen_all |> store_as "Pre_def";
+
 val Thm2_1 = prove_store("Thm2_1",
 e0
 (strip_tac >> ccontra_tac >>
@@ -1145,7 +1152,7 @@ e0
  rpt strip_tac >> irule FUN_EXT >> strip_tac >> 
  qby_tac ‘SUC o O = O’ >--
  (qby_tac ‘PRE o SUC o n = PRE o O’ >-- arw[] >>
-  assume_tac $ conjE1 PRE_def >> 
+  assume_tac PRE_def >> 
   fs[GSYM o_assoc] >> fs[idL]) >>
  qspecl_then [‘X’,‘t’,‘a’] (strip_assume_tac o conjE1) 
  Nrec_def >>
@@ -3908,8 +3915,8 @@ fun Pow A = Exp A two
 fun Tp0 f = mk_fun "Tp0" [f]
 
 
-val Mem_def = qdefine_fsym("Mem",[‘X’]) ‘Ev(X,1+1)’ 
-|> gen_all |> store_as "Mem_def";
+val In_def = qdefine_fsym("In",[‘X’]) ‘Ev(X,1+1)’ 
+|> gen_all |> store_as "In_def";
 
 
 
@@ -3917,26 +3924,28 @@ val _ = new_pred "IN" [("a",ar_sort (mk_ob "X") (mk_ob "A")),
                        ("as",ar_sort (mk_ob "X") (Exp (mk_ob "A") two))]
 
 val IN_def = qdefine_psym("IN",[‘a:X->A’,‘ss:X->Exp(A,1+1)’])
-‘Mem(A) o Pa(a,ss) = True(X)’ |> gen_all |> store_as "IN_def";
+‘In(A) o Pa(a,ss) = True(X)’ |> gen_all |> store_as "IN_def";
 
 
 val IN_def1 = prove_store("IN_def1",
 e0
 (rw[True1TRUE,IN_def])
 (form_goal “!A a:1->A ss:1->Exp(A,1+1). 
- IN(a,ss) <=> Mem(A) o Pa(a,ss) = TRUE”));
+ IN(a,ss) <=> In(A) o Pa(a,ss) = TRUE”));
 
 
 
-val IN_EXT = prove_store("IN_EXT",
+val IN_EXT0 = prove_store("IN_EXT0",
 e0
-(rw[IN_def,Mem_def] >> rpt strip_tac >> dimp_tac >>
+(rw[IN_def,In_def] >> rpt strip_tac >> dimp_tac >>
  rpt strip_tac >> arw[] >> irule Ev_eq_eq >> 
  fs[True1TRUE,pred_ext] >> irule FUN_EXT >>
  rpt strip_tac >> rw[Pa_distr,o_assoc] >>
  once_rw[one_to_one_id] >> rw[idR] >> arw[])
 (form_goal “!X s1:1-> Exp(X,1+1) s2.
  s1 = s2 <=> (!x.IN(x,s1) <=> IN(x,s2))”));
+
+val IN_EXT = GSYM IN_EXT0
 
 val Sing_def = qdefine_fsym("Sing",[‘A’]) ‘Tp(Char(Diag(A)))’
 |> gen_all |> store_as "Sing_def";
@@ -3965,9 +3974,9 @@ e0
 val Sing_Mono = prove_store("Sing_Mono",
 e0
 (strip_tac >> rw[Mono_def] >> rpt strip_tac >>
- qby_tac ‘Mem(B) o Pa(p1(B,B),Sing(B) o p2(B,B))
+ qby_tac ‘In(B) o Pa(p1(B,B),Sing(B) o p2(B,B))
           = Eq(B)’
- >-- rw[Mem_def,Sing_def,Eq_def,
+ >-- rw[In_def,Sing_def,Eq_def,
         Ev_of_Tp] >> 
  qby_tac ‘Eq(B) o Pa(p1(B,X),g o p2(B,X)) = 
           Eq(B) o Pa(p1(B,X),h o p2(B,X))’
@@ -3991,13 +4000,13 @@ e0
 
 
 
-val Mem_Sing = prove_store("Mem_Sing",
+val In_Sing = prove_store("In_Sing",
 e0
-(rw[Mem_def,Sing_def] >>
+(rw[In_def,Sing_def] >>
  rw[Ev_of_Tp_el] >> rw[Char_Diag,TRUE_def] >>
  rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[])
 (form_goal
- “!B b0:1->B b. Mem(B) o Pa(b,Sing(B) o b0) = TRUE<=>
+ “!B b0:1->B b. In(B) o Pa(b,Sing(B) o b0) = TRUE<=>
  b0 = b ”));
 
 val Rel_U_fac = prove_store("Rel_U_fac",
@@ -4007,10 +4016,10 @@ e0
  first_x_assum (qsspecl_then [‘xb’] assume_tac) >>
  pop_assum (strip_assume_tac o uex_expand) >>
  qexists_tac ‘b’ >> 
- once_rw[IN_EXT] >>
+ once_rw[GSYM IN_EXT] >>
  rw[IN_def,True1TRUE] >>
- rw[Mem_Sing] >> 
- rw[Mem_def] >>
+ rw[In_Sing] >> 
+ rw[In_def] >>
  last_x_assum (assume_tac o GSYM) >> arw[] >>
  rw[Ev_of_Tp_el] >>
  strip_tac >> dimp_tac >> strip_tac >--
@@ -4029,9 +4038,9 @@ e0
  qexists_tac ‘h’ >>
  rpt strip_tac >> 
  qby_tac
- ‘Mem(B) o Pa(b,Sing(B) o h o a) = Mem(B) o Pa(b,Tp(R) o a)’
+ ‘In(B) o Pa(b,Sing(B) o h o a) = In(B) o Pa(b,Tp(R) o a)’
  >-- arw[GSYM o_assoc] >>
- fs[Mem_def,Sing_def,Ev_of_Tp_el] >> 
+ fs[In_def,Sing_def,Ev_of_Tp_el] >> 
  pop_assum (assume_tac o GSYM) >> arw[] >>
  rw[Char_Diag,TRUE_def] >> rflip_tac >> rw[]
  )
@@ -4157,3 +4166,89 @@ val p22_def = qdefine_fsym("p22",[‘A’,‘B’]) ‘p2(A,B)’
 
 val p11_def = qdefine_fsym("p11",[‘A’]) ‘id(A)’
                           |> gen_all 
+
+
+val IN_def = qdefine_psym ("IN",[‘a:1->A’,‘ss:1-> Exp(A, 1+1)’])
+             ‘In(A) o Pa(a,ss) = TRUE’ 
+             |> gen_all |> store_as "IN_def";
+
+
+ 
+val SS_def = qdefine_psym ("SS",[‘P1:1->Exp(A,1+1)’,‘P2:1->Exp(A,1+1)’])
+                          ‘(∀a. IN(a,P1) ⇒ IN(a,P2))’
+                          |> gen_all 
+                          |> store_as "SS_def";
+
+
+
+val SS_Trans = prove_store("SS_Trans",
+e0
+(rw[SS_def] >> rpt strip_tac >> first_x_assum irule >>
+ first_x_assum irule >> arw[])
+(form_goal 
+ “∀A P1:1->Exp(A,1+1) P2. SS(P1,P2) ⇒ ∀P3. SS(P2,P3) ⇒ SS(P1,P3)”));
+
+val SS_SS_eq = prove_store("SS_SS_eq",
+e0
+(rpt strip_tac >> irule $ iffLR IN_EXT >> fs[SS_def] >> 
+ strip_tac >> dimp_tac >> strip_tac >> 
+ first_x_assum irule >> arw[])
+(form_goal “∀A p1:1->Exp(A,1+1) p2. SS(p1,p2) ∧ SS(p2,p1) ⇒
+ p1 = p2”));
+
+
+val Empty_def = proved_th $
+e0
+(cheat)
+(form_goal “!X. ?!s. !x:1->X. ~IN(x,s)”)
+|> qspecl [‘X’]
+|> uex2ex_rule
+|> qSKOLEM "Empty" [‘X’]
+|> rewr_rule[]
+|> gen_all |> store_as "Empty_def";
+
+
+
+val BIGINTER_ex = prove_store("BIGINTER_ex",
+e0
+(cheat)
+(form_goal
+ “!A. ?!BI:Exp(Exp(A,1+1),1+1) -> Exp(A,1+1). 
+  !sss a:1->A. IN(a,BI o sss) <=>
+  !ss.IN(ss,sss) ==> IN(a,ss)”));
+ 
+
+val BI_def = BIGINTER_ex |> spec_all |> uex2ex_rule 
+                         |> qSKOLEM "BI" [‘A’]
+                         |> gen_all
+                         |> store_as "BI_def"; 
+
+
+val BIGINTER_def = qdefine_fsym("BIGINTER",[‘sss:1->Exp(Exp(A,1+1),1+1)’])
+‘BI(A) o sss’ |> gen_all |> store_as "BIGINTER_def";
+
+
+val IN_BIGINTER = BI_def |> rewr_rule[GSYM BIGINTER_def] 
+                         |> store_as "IN_BIGINTER";
+
+
+val IN_def_P_ex = pred_subset_ex
+
+
+
+
+val INS_def = proved_th $
+e0
+(cheat)
+(form_goal “!X.?!INS:X * Exp(X,1+1) -> Exp(X,1 + 1).
+ !xs x0 x. IN(x,INS o Pa(x0,xs)) <=> x = x0 | IN(x,xs)”)
+|> spec_all |> uex2ex_rule
+|> qSKOLEM "INS" [‘X’]
+|> gen_all
+|> store_as "Ins_def";
+
+
+
+val Ins_def = qdefine_fsym("Ins",[‘x0:1->X’,‘s0:1-> Exp(X,1+1)’])
+‘INS(X) o Pa(x0,s0)’ |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
+|> store_as "Ins_def";

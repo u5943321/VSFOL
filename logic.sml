@@ -739,6 +739,46 @@ fun SKOLEM eth fname vl th =
 
 
 
+(*
 
+[v1,...,vn] |- ?a:srt(v1,...,vn);. T
+
+
+[v1,...,vn,...,v_{n + m}], A1,...An |- ?!_{R}a. P(a)
+
+
+input 3: a theorem on R.
+
+output
+
+[v1,...,vn,...,v_{n + m}], A1,...An 
+|- P(f(filtered{v1,...,v_{n + m}})) &
+   (f() is up to R)
+
+[A,B,f:A->B]
+
+
+?a. P(a) & !a'. P(a') ==> R(a,a')
+
+
+SKOLEM
+
+
+
+f:A->B
+
+f'(a:1->A) = b:1->B
+
+f o a:1->B
+
+ordinals in SEAR
+
+existence of a function takes an ordinal, and gives the least ordinal of strictly greater card.
+
+csucc(α) = sup{β | β is in bijection with a and β is also an aordinal}
+
+Exists a type of 
+
+*)
 
 end

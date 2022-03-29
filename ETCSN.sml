@@ -1,4 +1,4 @@
-
+use "ETCSind_tac.sml";
  
 val to_P_component = prove_store("to_P_component",
 e0
@@ -18,16 +18,11 @@ e0
  “Tp((Ev(A, B) o Pa(p1(A, X), f o p2(A, X)))) = f”));
 
 
-val PRE_def = 
- Thm1_case_1 |> specl (List.map rastt ["N","O","p1(N,N)"])
-             |> uex_expand |> rewr_rule[p1_of_Pa]
-             |> qSKOLEM "PRE" []
-             |> conjE1
-             |> store_as "PRE_def";
 
 
-val Pre_def = qdefine_fsym("Pre",[‘n:1->N’]) ‘PRE o n’
-|> gen_all |> store_as "Pre_def";
+val Suc_def = qdefine_fsym("Suc",[‘n:X->N’]) ‘SUC o n’
+|> gen_all |> store_as "Suc_def";
+
 
 
 
@@ -37,10 +32,6 @@ e0
 (strip_assume_tac PRE_def >> arw[Pre_def,Suc_def,GSYM o_assoc,idL])
 (form_goal
  “Pre(O) = O & !n. Pre(Suc(n)) = n”));
-
-
-val Suc_def = qdefine_fsym("Suc",[‘n:X->N’]) ‘SUC o n’
-|> gen_all |> store_as "Suc_def";
 
 
 val INV_SUC_EQ = prove_store("INV_SUC_EQ",
@@ -67,6 +58,7 @@ val ADD_def =
 
 val Add_def = qdefine_fsym ("Add",[‘n1:1->N’,‘n2:1->N’]) ‘ADD o Pa(n1,n2)’ |> gen_all |> store_as "Add_def";
 
+val _ = new_fsym2IL1 ("Add",mk_fun "ADD" [])
 
 val App_input_eq =prove_store("App_input_eq",
 e0
@@ -124,6 +116,9 @@ e0
 
 
 val Sub_def = qdefine_fsym ("Sub",[‘n1:1->N’,‘n2:1->N’]) ‘SUB o Pa(n1,n2)’ |> gen_all |> store_as "Sub_def";
+
+val _ = new_fsym2IL1 ("Suc",mk_fun "SUC" [])
+val _ = new_fsym2IL1 ("Sub",mk_fun "SUB" [])
 
 val Sub_O = prove_store("Sub_O",
 e0
@@ -443,6 +438,7 @@ val LE_def = define_fsym("LE",[])
 (form2IL [dest_var $ rastt "n1:1->N",dest_var $ rastt "n2:1->N"]
 “Sub(n1,n2) = O”) |> store_as "LE_def";
 
+val _ = new_psym2IL ("Le",(mk_fun "LE" [],[]))
 
 val LT_def = define_fsym("LT",[])
 (form2IL [dest_var $ rastt "n1:1->N",dest_var $ rastt "n2:1->N"]
@@ -450,7 +446,7 @@ val LT_def = define_fsym("LT",[])
 
 val _ = new_psym2IL ("Lt",(mk_fun "LT" [],[]))
 
-val _ = new_psym2IL ("Le",(mk_fun "LE" [],[]))
+
 
 val LE_Le = prove_store("LE_Le",
 e0
@@ -697,7 +693,7 @@ val MUL_def0 = Thm1 |> qspecl [‘N’,‘N’,‘O o To1(N)’,
 
 val Mul_def = qdefine_fsym ("Mul",[‘n1:1->N’,‘n2:1->N’]) ‘MUL o Pa(n1,n2)’ |> gen_all |> store_as "Mul_def";
 
-val _ = new_fsym2IL ("Mul",mk_fun "MUL" []);
+val _ = new_fsym2IL1 ("Mul",mk_fun "MUL" []);
 
 val Mul_O = prove_store("Mul_O",
 e0
@@ -745,7 +741,7 @@ val Add_comm' = GSYM Add_comm |> store_as "Add_comm'";
 (*Add_assoc slow, and the one with three layers slow*)
 val Add_assoc = prove_store("Add_assoc",
 e0
-(IL_tac >-- (IL_ex_tac >> 
+(IL_tac >-- (IL_ex_tac >> strip_tac >>
 rw[Eq_property_TRUE,o_assoc,Pa_distr,one_to_one_id,idR,idL,Mul_def,Suc_def,All_def,p32_def,p33_def,p31_def,p12_of_Pa,Add_def]) >>
  ind_with0 N_induct >> rw[Add_O,Add_Suc,Add_Suc1,Add_O2] >>
  rpt strip_tac >>arw[])
