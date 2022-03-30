@@ -898,7 +898,7 @@ e0
 
 
 val Holds_def =
- qdefine_psym("Holds",[‘R:A * A -> 1+1’,‘a:1->A’,‘b:1->A’])
+ qdefine_psym("Holds",[‘R:A * B -> 1+1’,‘a:1->A’,‘b:1->B’])
 ‘R o Pa(a,b) = TRUE’ |> gen_all |> store_as "Holds_def";
 
 val SYM_def = qdefine_psym("SYM",[‘R:A * A -> 1+1’])
@@ -1296,3 +1296,4 @@ val PRE_def0 = Nind_def |> specl [rastt "N * N"]
 
 
 
+val _ = new_fsym2IL1 ("Pre",mk_fun "PRE" [])

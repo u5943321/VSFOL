@@ -238,7 +238,7 @@ fun EX f =
 fun UE f = 
     let val d = dom (sort_of f)
         val (X,Y) = dest_cross d
-    in mk_o (mk_fun "UE" [X]) (Tp f)
+    in mk_o (mk_fun "E1" [X]) (Tp f)
     end 
 
 

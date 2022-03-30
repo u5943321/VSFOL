@@ -73,7 +73,6 @@ use "ETCSreln.sml";
 (*Rel2Ar is the thing corresponds to P2fun*)
 
 val _ = new_fsym2IL("Fst",(rastt "p1(A,B)",[dest_var (rastt "ab:X->A * B")]));
-val _ = new_fsym2IL("Snd",(rastt "p2(A,B)",[dest_var (rastt "ab:X->A * B")]));
 
 val _ = new_fsym2IL("Snd",(rastt "p2(A,B)",[dest_var (rastt "ab:X->A * B")]));
 
@@ -208,6 +207,8 @@ val Del_def = qdefine_fsym("Del",[‘s0:1-> Exp(X,1+1)’,‘x0:1->X’])
 val Ins_def1 = INS_def |> rewr_rule[GSYM Ins_def] |> store_as "Ins_def1";
 val Del_def1 = DEL_def |> rewr_rule[GSYM Del_def] |> store_as "Del_def1";
 
+
+val _ = new_fsym2IL("Del",(rastt "DEL(X)",[dest_var (rastt "s0:A->Exp(X,1+1)"),dest_var (rastt "x0:A->X")]));
 
 val Del_Ins = prove_store("Del_Ins",
 e0
@@ -358,6 +359,51 @@ val Cd_rules = Cd_rules3 |> store_as "Cd_rules";
 
 
 
+fun dest_cross t = 
+    case view_term t of 
+        vFun("*",_,[A,B])=> (A,B)
+      | _ => raise simple_fail "dest_cross.not a cross";
+               
+
+fun mk_Pair a b = mk_fun "Pa" [a,b] 
+
+val Pair_has_comp = has_components |> qspecl [‘1’]
+
+fun forall_cross_fconv f = 
+    let val (pv as (n,s),b) = dest_forall f 
+        val pset = s |> dest_sort |> #2  |> el 2
+        val (A,B) = dest_cross pset 
+        val pt = mk_var pv
+        val eth = Pair_has_comp |> specl [A,B,pt]
+        val (ocv1 as (ocn1,ocs1),ob1) = dest_exists (concl eth) 
+        val (ocv2 as (ocn2,ocs2),ob2) = dest_exists ob1
+        val avoids = fvf b
+        val ct1 = pvariantt avoids (mk_var ocv1)
+        val ct2 = pvariantt avoids (mk_var ocv2)
+        val (cv1 as (cn1,cs1)) = dest_var ct1
+        val (cv2 as (cn2,cs2)) = dest_var ct2
+        val b1 = substf (ocv1,ct1) ob1
+        val b2 = substf (ocv2,ct2) (substf (ocv1,ct1) ob2)
+        val pair = mk_Pair ct1 ct2 
+        val b' = substf (pv,pair) b
+        val new = mk_forall cn1 cs1 (mk_forall cn2 cs2 b')
+        val l2r = f |> assume |> allE pair 
+                    |> simple_genl [cv1,cv2]
+                    |> disch f
+        val eth1 = b1 |> assume 
+        val r2l = new |> assume |> specl [ct1,ct2]
+                      |> rewr_rule[GSYM $ assume b2]
+                      |> existsE cv2 eth1 
+                      |> existsE cv1 eth
+                      |> allI pv
+                      |> disch new
+    in dimpI l2r r2l 
+    end
+
+val Pair_def' = Pa_def |> rewr_rule[GSYM Fst_def,GSYM Snd_def]
+                       |> spec_all |> conjE1 |> gen_all
+                       |> store_as "Pair_def'";
+
 val Cds_ind = prove_store("Cds_ind",
 e0
 (rpt gen_tac >> disch_tac >>
@@ -369,25 +415,24 @@ e0
  rw[Pair_def'] >> arw[]
  )
 (form_goal 
- “!X ss.IN(Pair(Empty(X),O),ss) & 
- (!xs0 n0 x. IN(Pair(xs0,n0),ss)  & ~(IN(x,xs0)) ==> 
-  IN(Pair(Ins(x,xs0),Suc(n0)),ss)) ==> 
- !xs n. IN(Pair(xs,n),Cds(X)) ==> IN(Pair(xs,n),ss)”));
+ “!X ss.IN(Pa(Empty(X),O),ss) & 
+ (!xs0 n0 x. IN(Pa(xs0,n0),ss)  & ~(IN(x,xs0)) ==> 
+  IN(Pa(Ins(x,xs0),Suc(n0)),ss)) ==> 
+ !xs n. IN(Pa(xs,n),Cds(X)) ==> IN(Pa(xs,n),ss)”));
 
 
 val Cd_induct0 = prove_store("Cd_induct0",
 e0
-(strip_tac >>
- x_choose_then "s" (assume_tac o conjE1) 
- (IN_def_P_expand |> qspecl [‘Pow(X) * N’]) >>
- arw[Cds_ind])
+(rpt strip_tac >>
+ qsspecl_then [‘Tp1(P)’] assume_tac Cds_ind >>
+ fs[IN_Tp1] >> first_x_assum irule >> arw[])
 (form_goal 
- “!X.P(Pair(Empty(X),O)) & 
- (!xs0 n0 x:mem(X). P(Pair(xs0,n0)) & ~(IN(x,xs0)) ==> 
-  P(Pair(Ins(x,xs0),Suc(n0)))) ==> 
- !xs n. IN(Pair(xs,n),Cds(X)) ==> P(Pair(xs,n))”));
+ “!X P .P o Pa(Empty(X),O) = TRUE & 
+ (!xs0 n0 x:1->X. P o Pa(xs0,n0) = TRUE & ~(IN(x,xs0)) ==> 
+  P o Pa(Ins(x,xs0),Suc(n0)) = TRUE) ==> 
+ !xs n. IN(Pa(xs,n),Cds(X)) ==> P o Pa(xs,n) = TRUE ”));
 
-
+(*
 val Cd_induct = prove_store("Cd_induct",
 e0
 (strip_tac >> assume_tac (Cd_induct0 |> qspecl [‘X’] 
@@ -399,25 +444,27 @@ e0
  (!xs0 n0 x:mem(X). P(xs0,n0) & ~(IN(x,xs0)) ==> 
   P(Ins(x,xs0),Suc(n0))) ==> 
  !xs n. IN(Pair(xs,n),Cds(X)) ==> P(xs,n)”));
- 
+*) 
+
+
+
 val Fin_induct = prove_store("Fin_induct",
 e0
-(rw[Fin_def] >> strip_tac >>
- x_choose_then "s" (assume_tac o conjE1) 
- (IN_def_P_expand |> qspecl [‘Pow(X)’]) >>
- arw[FI_ind])
+(rw[Fin_def] >> rpt strip_tac >>
+ qsspecl_then [‘Tp1(P)’] assume_tac FI_ind >>
+ fs[IN_Tp1] >> first_x_assum irule >> arw[])
 (form_goal 
- “!X.P(Empty(X)) & 
- (!xs0:mem(Pow(X)) x. P(xs0) ==> P(Ins(x,xs0))) ==> 
- !xs:mem(Pow(X)). Fin(xs) ==> P(xs)”));
+ “!X P. P o Empty(X) = TRUE & 
+ (!xs0 x:1->X. P o xs0 = TRUE ==> P o Ins(x,xs0) = TRUE) ==> 
+ !xs. Fin(xs) ==> P o xs = TRUE”));
  
 
 (*Card rel*)
-val Cdr_def = qdefine_psym("Cdr",[‘xs:mem(Pow(X))’,‘n:mem(N)’])
-‘IN(Pair(xs,n),Cds(X))’ |> qgenl[‘X’,‘xs’,‘n’] 
+val Cdr_def = qdefine_psym("Cdr",[‘xs:1->Exp(X,1+1)’,‘n:1->N’])
+‘IN(Pa(xs,n),Cds(X))’ |> qgenl[‘X’,‘xs’,‘n’] 
 |> store_as "Cdr_def";
 
-val Cdr_induct = Cd_induct |> rewr_rule[GSYM Cdr_def]
+val Cdr_induct = Cd_induct0 |> rewr_rule[GSYM Cdr_def]
                            |> store_as "Cdr_induct";
 
 
@@ -429,7 +476,7 @@ e0
 
 val Cdr_Ins = Cd_rules |> conjE2 |> spec_all |> undisch |> gen_all |> disch_all
                        |> gen_all
-                       |> qspecl [‘X’,‘Pair(xs0:mem(Pow(X)),n:mem(N))’]
+                       |> qspecl [‘X’,‘Pa(xs0: 1->Exp(X,1+1),n:1->N)’]
                        |> rewr_rule[GSYM Cdr_def,Pair_def']
                        |> gen_all
                        |> store_as "Cdr_Ins";
@@ -438,20 +485,20 @@ val Cdr_Ins = Cd_rules |> conjE2 |> spec_all |> undisch |> gen_all |> disch_all
 
 val Ins_NONEMPTY = prove_store("Ins_NONEMPTY",
 e0
-(rpt strip_tac >> rw[GSYM IN_EXT_iff,Ins_def,Empty_def] >>
+(rpt strip_tac >> rw[GSYM IN_EXT,Ins_def1,Empty_def] >>
  ccontra_tac >> first_x_assum (qspecl_then [‘x0’] assume_tac) >> fs[])
 (form_goal
- “!X x0 xs:mem(Pow(X)).~(Ins(x0,xs) = Empty(X))”));
+ “!X x0 xs:1-> Exp(X,1+1).~(Ins(x0,xs) = Empty(X))”));
 
 val IN_Ins_SND = prove_store("IN_Ins_SND",
 e0
-(rw[Ins_def] >> rpt strip_tac)
-(form_goal “!X x0 xs0:mem(Pow(X)) x. IN(x, Ins(x0, xs0)) & (~(x = x0)) ==> IN(x,xs0)”));
+(rw[Ins_def1] >> rpt strip_tac)
+(form_goal “!X x0 xs0:1->Exp(X,1+1) x. IN(x, Ins(x0, xs0)) & (~(x = x0)) ==> IN(x,xs0)”));
 
 val Cdr_Empty_unique = prove_store("Cdr_Empty_unique",
 e0
 (rw[Cdr_def] >> once_rw[Cd_cases] >> rpt strip_tac >>
- fs[Pair_eq_eq,GSYM Ins_NONEMPTY])
+ fs[Pa_eq_eq,GSYM Ins_NONEMPTY])
 (form_goal
  “!X n.Cdr(Empty(X),n) ==> n = O”));
 
@@ -460,16 +507,51 @@ e0
 
 val Del_Ins_SWAP = prove_store("Del_Ins_SWAP",
 e0
-(rpt strip_tac >> rw[GSYM IN_EXT_iff,Ins_def,Del_def] >>
+(rpt strip_tac >> rw[GSYM IN_EXT,Ins_def1,Del_def1] >>
  rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[])
 (form_goal
- “!X x0 x:mem(X).(~(x0 = x)) ==> !xs.Del(Ins(x0, xs), x) = Ins(x0,Del(xs,x))”));
+ “!X x0 x:1->X.(~(x0 = x)) ==> !xs.Del(Ins(x0, xs), x) = Ins(x0,Del(xs,x))”));
 
+
+fun exists_cross_fconv f = 
+    let val (pv as (n,s),b) = dest_exists f 
+        val pset = s |> dest_sort |> #2  |> el 2
+        val (A,B) = dest_cross pset 
+        val pt = mk_var pv
+        val eth = Pair_has_comp |> specl [A,B,pt]
+        val (ocv1 as (ocn1,ocs1),ob1) = dest_exists (concl eth) 
+        val (ocv2 as (ocn2,ocs2),ob2) = dest_exists ob1
+        val avoids = fvf b
+        val ct1 = pvariantt avoids (mk_var ocv1)
+        val ct2 = pvariantt avoids (mk_var ocv2)
+        val (cv1 as (cn1,cs1)) = dest_var ct1
+        val (cv2 as (cn2,cs2)) = dest_var ct2
+        val b1 = substf (ocv1,ct1) ob1
+        val b2 = substf (ocv2,ct2) (substf (ocv1,ct1) ob2)
+        val pair = mk_Pair ct1 ct2 
+        val b' = substf (pv,pair) b
+        val new0 = (mk_exists cn2 cs2 b')
+        val new = mk_exists cn1 cs1 (mk_exists cn2 cs2 b')
+        val l2r = b |> assume 
+                    |> conv_rule (basic_fconv (rewr_conv (assume b2)) no_fconv)
+                    |> existsI cv2 ct2 b'
+                    |> existsI cv1 ct1 new0
+                    |> existsE cv2 (assume b1)
+                    |> existsE cv1 eth
+                    |> existsE pv (assume f)
+                    |> disch f
+        val r2l = b'|> assume 
+                    |> existsI pv pair b
+                    |> existsE cv2 (assume new0)
+                    |> existsE cv1 (assume new)
+                    |> disch new
+    in dimpI l2r r2l
+    end
 
 val Cdr_Ins = 
-Cd_cases |> qspecl [‘Pair(Ins(x0:mem(X),xs0),n:mem(N))’]
-|> rewr_rule[Pair_eq_eq,Ins_NONEMPTY] 
-|> conv_rule (basic_fconv no_conv exists_cross_fconv)
+Cd_cases |> qspecl [‘Pa(Ins(x0:1->X,xs0),n:1->N)’]
+|> rewr_rule[Pa_eq_eq,Ins_NONEMPTY] 
+|> conv_rule (depth_fconv no_conv exists_cross_fconv)
 |> rewr_rule[Pair_def',GSYM Cdr_def]
 |> gen_all |> store_as "Cdr_Ins";
 
@@ -477,9 +559,26 @@ val Cdr_Empty = Cd_rules |> conjE1 |> gen_all |> rewr_rule[GSYM Cdr_def]
                          |> store_as "Cdr_Empty";
 
 
+fun ind_with1 th = 
+ pop_assum strip_assume_tac >>
+ arw[] >> match_mp_tac th >>
+ pop_assum (assume_tac o GSYM) >> arw[]
+
+val Cdr_Del_IL = proved_th $
+e0
+(exists_tac $ qform2IL [‘xs:1->Exp(X,1+1)’,‘n:1->N’] ‘Cdr(xs,n) & !x. IN(x,xs) ==> Cdr(Del(xs,x),Pre(n))’ >>
+ rw[o_assoc,Pa_distr,CONJ_def,All_def,IMP_def] >>
+ once_rw[p31_def,p32_def,p33_def] >> rw[p12_of_Pa,Pa_distr,o_assoc] >>
+ rw[Cdr_Tp0_Cds] >> rw[Del_def,Pre_def,IN_def])
+(form_goal “?P. !xs:1->Exp(X,1+1) n. (Cdr(xs,n) & !x. IN(x,xs) ==> Cdr(Del(xs,x),Pre(n))) <=> P o Pa(xs,n) = TRUE ”)
+
+
+
+
 val Cdr_Del = prove_store("Cdr_Del",
 e0
-(strip_tac >> ind_with (Cdr_induct |> qspecl [‘X’]) >>
+(strip_tac >> assume_tac Cdr_Del_IL >>
+ ind_with1 (Cdr_induct |> qspecl [‘X’]) >>
  rw[Cdr_Empty,Empty_def] >> rpt strip_tac (* 2 *)
  >-- (irule $ iffRL Cdr_Ins >>
      qexistsl_tac [‘xs0’,‘n0’,‘x’] >> arw[]) >>
@@ -491,21 +590,45 @@ e0
  qcases ‘n0 = O’ 
  >-- (fs[] >> qsuff_tac ‘xs0 = Empty(X)’ >-- (strip_tac >> fs[Empty_def]) >>
       qpick_x_assum ‘Cdr(xs0, O)’ mp_tac >>
-      rw[Cdr_def] >> once_rw[Cd_cases] >> rw[Pair_eq_eq,GSYM Suc_NONZERO] >>
+      rw[Cdr_def] >> once_rw[Cd_cases] >> rw[Pa_eq_eq,GSYM Suc_NONZERO] >>
       rpt strip_tac) >>
  fs[O_xor_Suc] >> fs[Pre_Suc] >> 
  qby_tac ‘Del(Ins(x, xs0), x') = Ins(x, Del(xs0,x'))’
  >-- (irule Del_Ins_SWAP >> ccontra_tac >> fs[]) >>
  arw[] >> irule $ iffRL Cdr_Ins >> 
- qexistsl_tac [‘Del(xs0, x')’,‘pn’,‘x’] >> arw[Del_def])
+ qexistsl_tac [‘Del(xs0, x')’,‘n0'’,‘x’] >> arw[Del_def1])
 (form_goal
- “!X xs:mem(Pow(X)) n.Cdr(xs,n) ==> 
+ “!X xs:1->Exp(X,1+1) n.Cdr(xs,n) ==> 
   Cdr(xs,n) & !x. IN(x,xs) ==> Cdr(Del(xs,x),Pre(n))”));
 
+val Cdr_Tp0_Cds = proved_th $
+e0
+(rw[Cdr_def] >> rpt strip_tac >>
+ qsuff_tac ‘IN(Pa(xs, n), Tp1(Tp0(Cds(X)))) <=> Tp0(Cds(X)) o Pa(xs, n) = TRUE’
+ >-- rw[Tp1_Tp0_inv] >>
+ rw[IN_Tp1])
+(form_goal “!xs n:1->N. Cdr(xs,n) <=> Tp0(Cds(X)) o Pa(xs,n) = TRUE”)
+
+val _ = new_psym2IL("Cdr",(rastt "Tp0(Cds(X))",List.map (dest_var o rastt) ["xs:A->Exp(X,1+1)","n:A->N"]))
+
+val E1_def1 = prove_store ("E1_def1",
+e0
+(rpt strip_tac >> rw[E1_def] >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (uex_tac >> qexists_tac ‘x’ >> arw[]) >>
+ pop_assum (assume_tac o uex_expand) >> arw[])
+(form_goal “!X Y pxy:X * Y->1+1 y. E1(X) o Tp(pxy) o y = TRUE <=> 
+ ?!x. pxy o Pa(x,y) = TRUE”));
+
+val Fin_Card_IL = proved_th $
+e0
+(exists_tac $ qform2IL [‘xs:1->Exp(X,1+1)’] ‘?!n.Cdr(xs,n)’ >>
+ rw[E1_def1,o_assoc,p12_of_Pa,Pa_distr,Cdr_Tp0_Cds])
+(form_goal “?P. !xs:1->Exp(X,1+1). P o xs = TRUE <=> ?!n.Cdr(xs,n)”)
 
 val Fin_Card = prove_store("Card_Fun",
 e0
-(strip_tac >> ind_with (Fin_induct |> qspecl [‘X’]) >> rpt strip_tac (* 2 *)
+(strip_tac >> assume_tac (GSYM Fin_Card_IL) >>
+ ind_with1 Fin_induct >> rpt strip_tac (* 2 *)
  >-- (uex_tac >> qexists_tac ‘O’ >> rw[Cdr_Empty,Cdr_Empty_unique]) >>
  pop_assum (strip_assume_tac o uex_expand) >> uex_tac >>
  qcases ‘IN(x,xs0)’ 
@@ -514,22 +637,40 @@ e0
  >-- (irule $ iffRL Cdr_Ins >> qexistsl_tac [‘xs0’,‘n’,‘x’] >> arw[]) >>
  drule Cdr_Del >> fs[] >>
  first_x_assum (qspecl_then [‘x’] assume_tac) >>
- fs[Ins_def] >> drule Del_Ins >> fs[] >>
+ fs[Ins_def1] >> drule Del_Ins >> fs[] >>
  first_x_assum drule >> pop_assum (assume_tac o GSYM) >> arw[] >>
  qsuff_tac ‘~(n' = O)’ >-- (rw[O_xor_Suc] >> strip_tac >> arw[Pre_Suc]) >>
  rw[O_xor_Suc] >> qpick_x_assum ‘Cdr(Ins(x, xs0), n')’ mp_tac >>
  strip_tac >> drule $ iffLR Cdr_Ins >> pop_assum strip_assume_tac >>
  qexists_tac ‘b’ >> arw[])
 (form_goal
- “!X xs:mem(Pow(X)).Fin(xs) ==> ?!n.Cdr(xs,n)”));
+ “!X xs:1->Exp(X,1+1).Fin(xs) ==> ?!n.Cdr(xs,n)”));
 
-val CARD_def = 
-    AX1 |> qspecl [‘Pow(X)’,‘N’] 
-        |> fVar_sInst_th “P(xs:mem(Pow(X)), n:mem(N))”
-           “(Fin(xs:mem(Pow(X))) & Cdr(xs,n)) | (~Fin(xs) & n = O)”
-        |> uex2ex_rule
-        |> qSKOLEM "CARD" [‘X’]
-        |> gen_all |> store_as "CARD_def";
+
+val Fin_Tp0_FIs = proved_th $
+e0
+(rw[Fin_def] >> rpt strip_tac >>
+ qsuff_tac ‘IN(xs, Tp1(Tp0(FIs(X)))) <=> Tp0(FIs(X)) o xs = TRUE’
+ >-- rw[Tp1_Tp0_inv] >>
+ rw[IN_Tp1])
+(form_goal “!xs. Fin(xs) <=> Tp0(FIs(X)) o xs = TRUE”)
+
+val _ = new_psym2IL("Fin",(rastt "Tp0(FIs(X))",List.map (dest_var o rastt) ["xs:A->Exp(X,1+1)"]))
+
+
+val CARD_def0 = define_fsym("CARD",[("X",ob_sort)])
+    (qform2IL [‘xs:1->Exp(X,1+1)’,‘n:1->N’]
+    ‘(Fin(xs) & Cdr(xs,n)) | (~Fin(xs) & n = O)’) |> gen_all
+    |> store_as "CARD_def0";
+
+val CARD_def = prove_store("CARD_def",
+e0
+(rpt strip_tac >> rw[Holds_def,CARD_def0] >>
+ rw[o_assoc,DISJ_def,Pa_distr,p12_of_Pa,CONJ_def,NEG_def',Eq_property_TRUE] >>
+ rw[Fin_Tp0_FIs,Cdr_Tp0_Cds,one_to_one_id,idR])
+(form_goal “!xs:1->Exp(X,1+1) n. Holds(CARD(X),xs,n) <=> 
+ (Fin(xs) & Cdr(xs,n)) | (~Fin(xs) & n = O)”));
+
 
 val CARD_unique = proved_th $
 e0
@@ -538,23 +679,24 @@ e0
  >-- (drule Fin_Card >> pop_assum (strip_assume_tac o uex_expand) >>
       uex_tac >> qexists_tac ‘n’ >> arw[]) >>
  uex_tac >> qexists_tac ‘O’ >> arw[])
-(form_goal “!X xs:mem(Pow(X)). ?!n. Holds(CARD(X),xs,n)”)
+(form_goal “!X xs:1-> Exp(X,1+1). ?!n. Holds(CARD(X),xs,n)”)
  
- 
-val Cd0_def = P2fun |> qspecl [‘Pow(X)’,‘N’] 
-                 |> fVar_sInst_th “P(x:mem(Pow(X)),y:mem(N))”
-                    “Holds(CARD(X),x,y)” 
-                 |> C mp (CARD_unique |> qspecl [‘X’]) 
-                 |> qSKOLEM "Cd0" [‘X’] |> gen_all |> store_as "Cd0_def";
+val P2fun = Rel2Ar' |> rewr_rule[GSYM Holds_def] |> store_as "P2fun";
 
 
-val Card_def = qdefine_fsym ("Card",[‘xs:mem(Pow(X))’])
-                            ‘App(Cd0(X),xs)’
+val Cd0_def = P2fun |> qsspecl [‘CARD(X)’]
+                    |> C mp (CARD_unique |> qspecl [‘X’]) 
+                    |> qSKOLEM "Cd0" [‘X’]
+                    |> gen_all |> store_as "Cd0_def";
+
+
+val Card_def = qdefine_fsym ("Card",[‘xs:1->Exp(X,1+1)’])
+                            ‘Cd0(X) o xs’
                             |> gen_all |> store_as "Card_def";
 
 val Del_Empty = prove_store("Del_Empty",
 e0
-(rw[GSYM IN_EXT_iff,Del_def,Empty_def])
+(rw[GSYM IN_EXT,Del_def1,Empty_def])
 (form_goal
  “!X x. Del(Empty(X),x) = Empty(X)”));
 
@@ -562,18 +704,18 @@ val Ins_eq_eq = prove_store("Ins_eq_eq",
 e0
 (rpt strip_tac >-- (ccontra_tac >>
  qsuff_tac ‘~(IN(a2,Ins(a2,s2)))’
- >-- rw[Ins_def] >>
+ >-- rw[Ins_def1] >>
  qsuff_tac ‘~(IN(a2,Ins(a1,s1)))’
  >-- arw[] >>
- arw[Ins_def] >> flip_tac >> first_x_assum accept_tac) >>
- irule IN_EXT >> strip_tac >> dimp_tac >> strip_tac (* 2 *)
- >-- (qby_tac ‘IN(x,Ins(a1,s1))’ >-- arw[Ins_def] >> rfs[] >>
-      fs[Ins_def] >> pop_assum (assume_tac o GSYM) >> fs[]) >>
+ arw[Ins_def1] >> flip_tac >> first_x_assum accept_tac) >>
+ irule $ iffLR IN_EXT >> strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (qby_tac ‘IN(x,Ins(a1,s1))’ >-- arw[Ins_def1] >> rfs[] >>
+      fs[Ins_def1] >> pop_assum (assume_tac o GSYM) >> fs[]) >>
  qpick_x_assum ‘Ins(a1, s1) = Ins(a2, s2)’ (assume_tac o GSYM) >>
- qby_tac ‘IN(x,Ins(a2,s2))’ >-- arw[Ins_def] >>
- rfs[] >> fs[Ins_def] >> pop_assum (assume_tac o GSYM) >> fs[])
+ qby_tac ‘IN(x,Ins(a2,s2))’ >-- arw[Ins_def1] >>
+ rfs[] >> fs[Ins_def1] >> pop_assum (assume_tac o GSYM) >> fs[])
 (form_goal
- “!A a1:mem(A) s1 a2 s2. ~(IN(a1,s1)) & ~(IN(a2,s2)) & ~(IN(a1,s2)) & ~(IN(a2,s1)) & 
+ “!A a1:1->A s1 a2 s2. ~(IN(a1,s1)) & ~(IN(a2,s2)) & ~(IN(a1,s2)) & ~(IN(a2,s1)) & 
  Ins(a1,s1) = Ins(a2,s2) ==> a1 = a2 & s1 = s2”));
 
 val Fin_Empty = FI_rules |> conjE1 |> rewr_rule[GSYM Fin_def] 
@@ -583,9 +725,17 @@ val Fin_Ins = FI_rules |> conjE2 |> rewr_rule[GSYM Fin_def]
                        |> spec_all |> undisch |> gen_all |> disch_all 
                        |> gen_all |> store_as "Fin_Ins";
 
+val Fin_Del0_IL = proved_th $
+e0
+(exists_tac $ qform2IL [‘xs:1->Exp(X,1+1)’] ‘Fin(xs) & !x. Fin(Del(xs,x))’ >>
+ rw[CONJ_def,o_assoc,Pa_distr,p12_of_Pa,idL,All_def] >>
+ rw[Fin_Tp0_FIs,Del_def])
+(form_goal “?P.!xs:1->Exp(X,1+1). (Fin(xs) &  !x. Fin(Del(xs,x))) <=> P o xs = TRUE”)
+
 val Fin_Del0 = prove_store("Fin_Del",
 e0
-(strip_tac >> ind_with (Fin_induct |> qspecl [‘X’]) >> 
+(strip_tac >> 
+ assume_tac Fin_Del0_IL >> ind_with1 (Fin_induct |> qspecl [‘X’]) >> 
  rw[Fin_Empty,Del_Empty] >> rpt strip_tac (* 2 *)
  >-- (drule Fin_Ins >> arw[]) >>
  qcases ‘x = x'’ (* 2 *)
@@ -595,18 +745,18 @@ e0
  drule Del_Ins_SWAP >> arw[] >>
  irule Fin_Ins >> arw[])
 (form_goal
- “!X xs:mem(Pow(X)).Fin(xs) ==> Fin(xs) &  !x. Fin(Del(xs,x)) ”));
-
+ “!X xs:1->Exp(X,1+1).Fin(xs) ==> Fin(xs) &  !x. Fin(Del(xs,x)) ”));
+ 
 val Fin_Del = prove_store("Fin_Del",
 e0
 (rpt strip_tac >> drule Fin_Del0 >> arw[])
-(form_goal “!X xs:mem(Pow(X)).Fin(xs) ==> !x. Fin(Del(xs,x))”));
+(form_goal “!X xs:1->Exp(X,1+1).Fin(xs) ==> !x. Fin(Del(xs,x))”));
 
 val Card_Fin = prove_store("Card_Fin",
 e0
 (rpt strip_tac >> arw[Card_def,Cd0_def,CARD_def])
 (form_goal
- “!X xs:mem(Pow(X)). Fin(xs) ==>
+ “!X xs:1->Exp(X,1+1). Fin(xs) ==>
   (!n. Card(xs) = n <=> Cdr(xs,n))”));
 
 
@@ -622,7 +772,7 @@ val Cdr_Card = prove_store("Cdr_Card",
 e0
 (rpt strip_tac >> drule Card_Fin >>
  pop_assum (assume_tac o GSYM) >> arw[])
-(form_goal “!X xs:mem(Pow(X)). Fin(xs) ==> 
+(form_goal “!X xs:1-> Exp(X,1+1). Fin(xs) ==> 
  Cdr(xs, Card(xs))”));
 
 
@@ -634,10 +784,10 @@ e0
  qexistsl_tac [‘xs’,‘Card(xs)’,‘x’] >> arw[] >>
  (* Cdr(xs, Card(xs))*)
  rw[Card_def] >> 
- qsspecl_then [‘xs’,‘App(Cd0(X), xs)’] assume_tac Cd0_def >>
+ qsspecl_then [‘xs’,‘Cd0(X) o xs’] assume_tac Cd0_def >>
  fs[] >> fs[CARD_def])
 (form_goal
- “!X xs:mem(Pow(X)). 
+ “!X xs:1-> Exp(X,1+1). 
   Fin(xs) ==> !x.~(IN(x,xs)) ==> Card(Ins(x,xs)) = Suc(Card(xs))”));
 
 
@@ -650,7 +800,7 @@ e0
  irule (Cdr_Del |> spec_all |> undisch |> conjE2 |> disch_all |> gen_all) >>
  arw[] >> irule Cdr_Card >> arw[])
 (form_goal
- “!X xs:mem(Pow(X)). Fin(xs) ==> 
+ “!X xs:1->Exp(X,1+1). Fin(xs) ==> 
   !x. IN(x,xs) ==> Card(Del(xs,x)) = Pre(Card(xs))”));
  
 
