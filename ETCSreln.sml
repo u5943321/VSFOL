@@ -170,7 +170,8 @@ fun mk_prim fdef =
 
 fun mk_LFP primtm = 
     let val bigintertm = mk_fun "BIGINTER" [primtm]
-        val defname = primtm |> dest_fun |> #1 |> explode |> rev |> tl |> tl
+        val defname = primtm |> dest_fun |> #1 |> explode |> rev 
+                             |> List.tl |> List.tl
                              |> rev |> implode
         val st = sort_of bigintertm
         val LFPname = defname^"s"

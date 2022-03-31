@@ -464,6 +464,9 @@ val Cdr_def = qdefine_psym("Cdr",[‘xs:1->Exp(X,1+1)’,‘n:1->N’])
 ‘IN(Pa(xs,n),Cds(X))’ |> qgenl[‘X’,‘xs’,‘n’] 
 |> store_as "Cdr_def";
 
+
+val _ = new_psym2IL("Cdr",(rastt "Tp0(Cds(X))",List.map (dest_var o rastt) ["xs:A->Exp(X,1+1)","n:A->N"]))
+
 val Cdr_induct = Cd_induct0 |> rewr_rule[GSYM Cdr_def]
                            |> store_as "Cdr_induct";
 
@@ -608,8 +611,6 @@ e0
  >-- rw[Tp1_Tp0_inv] >>
  rw[IN_Tp1])
 (form_goal “!xs n:1->N. Cdr(xs,n) <=> Tp0(Cds(X)) o Pa(xs,n) = TRUE”)
-
-val _ = new_psym2IL("Cdr",(rastt "Tp0(Cds(X))",List.map (dest_var o rastt) ["xs:A->Exp(X,1+1)","n:A->N"]))
 
 val E1_def1 = prove_store ("E1_def1",
 e0

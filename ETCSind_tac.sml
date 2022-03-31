@@ -124,6 +124,7 @@ fun corres_fterm (ft,args) tl =
     in inst_term env ft
     end
 
+(*
 fun term2IL bvs t =
     let val doms = List.map (cod o snd) bvs
         val tn = length doms
@@ -150,6 +151,39 @@ fun term2IL bvs t =
                 end
           | _ => raise simple_fail "bound variables should not be here"
     end;  
+*)
+
+
+fun term2IL bvs t =
+    let val doms = List.map (cod o snd) bvs
+        val tn = length doms
+        val vdom = el tn doms
+    in
+        case view_term t of 
+            vVar(n,s) => 
+            if not $ mem (n,s) bvs then 
+               binop_t "o" t (unop_t "To1" (Pol doms))
+            else mk_pj tn (pos (n,s) bvs) doms
+          | vFun("o",s,[f,t]) =>
+            mk_o f (term2IL bvs t)
+          | vFun(f,s,tl) => 
+            let val tlvs = fvtl tl
+                val freevars = 
+                    List.foldr (fn (a,b) => HOLset.add(b,a)) essps bvs
+                val common = HOLset.intersection(tlvs,freevars)
+            in
+            if HOLset.equal(common,essps) 
+            then binop_t "o" t (unop_t "To1" (Pol doms))
+            else
+                let val args = List.map (term2IL bvs) tl
+                in
+                case Binarymap.peek(!fsym2IL,f) of 
+                    SOME finfo =>  binop_t "o" (corres_fterm finfo tl) (Pal args)
+                  | NONE => mk_fun f args
+                end
+            end
+          | _ => raise simple_fail "bound variables should not be here"
+    end
 
 
 

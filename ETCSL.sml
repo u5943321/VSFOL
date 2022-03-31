@@ -674,7 +674,19 @@ val Cdr_def = qdefine_psym("Cdr",[‘xs:1->Exp(X,1+1)’,‘n:1->N’])
 (*exactly same proof as Nind_uex*)
 
 (* qform2IL [‘l:1-> List(X)’]
- ‘(?!a:1->A. IN(Pa(l, a), Linds(a0, f0)))’ cannot build*)
+ ‘(?!a:1->A. IN(Pa(l, a), Linds(a0, f0)))’ 
+ term2IL [dest_var o rastt $ "a:1->A"] 
+val t = (rastt "f0:X * A ->A")
+
+val (n,s) = dest_var t
+
+val bvs = [dest_var o rastt $ "a:1->A"] 
+val t = (rastt "Linds(a0:1->A, f0:X * A->A)")
+val (f,s,tl) = dest_fun t
+
+Linds(a0, f0)
+
+cannot build*)
 val Lind_uex = prove_store("Lind_uex",
 e0
 (strip_tac >> strip_tac >> strip_tac >> strip_tac >>
