@@ -3890,6 +3890,31 @@ e0
  p55(A,B,C,D,E) o Pa5(f,g,h,j,k) = k”));
 
 
+val p61_def = qdefine_fsym("p61",[‘A’,‘B’,‘C’,‘D’,‘E’,‘F’]) ‘p1(A,B * C * D * E * F)’ 
+                          |> gen_all 
+
+val p62_def = qdefine_fsym("p62",[‘A’,‘B’,‘C’,‘D’,‘E’,‘F’])
+                          ‘p1(B,C * D * E * F) o p2(A,B * C * D * E * F)’ 
+                          |> gen_all 
+
+val p63_def = qdefine_fsym("p63",[‘A’,‘B’,‘C’,‘D’,‘E’,‘F’]) 
+                          ‘p1(C,D * E * F) o p2(B,C * D * E * F) o p2(A,B * C * D * E * F)’ 
+                          |> gen_all 
+
+val p64_def = qdefine_fsym("p64",[‘A’,‘B’,‘C’,‘D’,‘E’,‘F’]) 
+                          ‘p1(D,E * F) o p2(C,D * E * F) o p2(B,C * D * E * F) o p2(A,B * C * D * E * F)’ 
+                          |> gen_all 
+
+
+val p65_def = qdefine_fsym("p65",[‘A’,‘B’,‘C’,‘D’,‘E’,‘F’]) 
+                          ‘p1(E,F) o p2(D,E * F) o p2(C, D * E * F) o p2(B,C * D * E * F) o p2(A,B * C * D * E * F)’ 
+                          |> gen_all 
+
+
+val p66_def = qdefine_fsym("p66",[‘A’,‘B’,‘C’,‘D’,‘E’,‘F’]) 
+                          ‘p2(E,F) o p2(D,E * F) o p2(C, D * E * F) o p2(B,C * D * E * F) o p2(A,B * C * D * E * F)’ 
+                          |> gen_all 
+
 val Tp0_INJ = prove_store("Tp0_INJ",
 e0
 (rpt strip_tac >> dimp_tac >> strip_tac >-- 

@@ -1,47 +1,32 @@
 
+(*ZR is the relation (N * N) * N * N -> 2*)
+val ZR_def0 = define_fsym("ZR",[])
+(qform2IL [‘mn:1->N * N’,‘m'n':1-> N * N’]
+‘Add(Fst(mn),Snd(m'n')) = Add(Fst(m'n'),Snd(mn))’)
 
-val ZR_def = 
-AX1 |> qspecl [‘N * N’,‘N * N’] |> uex2ex_rule
-    |> fVar_sInst_th “P(mn:mem(N * N),m'n':mem(N * N))”
-       “Add(Fst(mn:mem(N * N)),Snd(m'n':mem(N * N))) = 
-        Add(Fst(m'n'),Snd(mn))”
-    |> qSKOLEM "ZR" [] 
-    |> qspecl [‘Pair(x:mem(N),y:mem(N))’,
-               ‘Pair(u:mem(N),v:mem(N))’] 
-    |> qgenl [‘x’,‘y’,‘u’,‘v’]  
-    |> rewr_rule[Pair_def']
-    |> store_as "ZR_def";
-
-
-
-fun dest_cross t = 
-    case view_term t of 
-        vFun("*",_,[A,B])=> (A,B)
-      | _ => raise simple_fail "dest_cross.not a cross";
-               
-
-fun mk_Pair a b = mk_fun "Pair" [a,b]
-
-
-(*depth_fconv no_conv forall_cross_fconv “!a:mem(N * N) b:mem(N * N). P(a,b)”
-not doing the desired thing *)
-
-
-val ZR_Refl = prove_store("ZR_Refl",
+val ZR_def = prove_store("ZR_def",
 e0
-(rw[Refl_def,ZR_def] >> fconv_tac forall_cross_fconv >>
+(rpt strip_tac >> rw[Holds_def,ZR_def0] >>
+ rw[o_assoc,Pa_distr,p12_of_Pa,Eq_property_TRUE,Add_def])
+(form_goal
+ “!x:1->N y u v.Holds(ZR,Pa(x,y),Pa(u,v)) <=> 
+  Add(x,v) = Add(u,y)”));
+
+val ZR_REFL = prove_store("ZR_REFL",
+e0
+(rw[REFL_def,ZR_def] >> fconv_tac forall_cross_fconv >>
  rw[ZR_def])
 (form_goal
- “Refl(ZR)”));
+ “REFL(ZR)”));
 
 
 fun basic_fconv_tac c fc = fconv_tac $ basic_fconv c fc
 fun depth_fconv_tac c fc = fconv_tac $ depth_fconv c fc
 
 (*use add_sub*)
-val ZR_Trans = prove_store("ZR_Trans",
+val ZR_TRANS = prove_store("ZR_TRANS",
 e0
-(rw[Trans_def] >> depth_fconv_tac no_conv forall_cross_fconv >>
+(rw[TRANS_def] >> depth_fconv_tac no_conv forall_cross_fconv >>
  rw[ZR_def] >> 
  qsuff_tac
  ‘!a1 b1 a2 b2 a3 b3.
@@ -64,100 +49,115 @@ e0
  qspecl_then [‘b3’,‘b1’] assume_tac Add_comm >>
  once_arw[] >> rw[])
 (form_goal
- “Trans(ZR)”));
+ “TRANS(ZR)”));
 
  
-val ZR_Sym = prove_store("ZR_Sym",
+val ZR_SYM = prove_store("ZR_SYM",
 e0
-(rw[Sym_def] >> depth_fconv_tac no_conv forall_cross_fconv >>
+(rw[SYM_def] >> depth_fconv_tac no_conv forall_cross_fconv >>
  rw[ZR_def] >>  rpt strip_tac >> arw[])
 (form_goal
- “Sym(ZR)”));
+ “SYM(ZR)”));
 
+val ER_def = qdefine_psym("ER",[‘R:A * A->1+1’])
+‘REFL(R) & SYM(R) & TRANS(R)’ |> gen_all |> store_as "ER_def";
 
 val ZR_ER = prove_store("ZR_ER",
 e0
-(rw[ER_def,ZR_Sym,ZR_Refl,ZR_Trans])
+(rw[ER_def,ZR_SYM,ZR_REFL,ZR_TRANS])
 (form_goal “ER(ZR)”));
 
-
-
-val Sg_def = P2fun'|> qspecl [‘A’,‘Pow(A)’] 
-                   |> fVar_sInst_th “P(a:mem(A),s:mem(Pow(A)))”
-                      “!a0. IN(a0,s) <=> a0 = a:mem(A)”
-                   |> C mp 
-                      (IN_def_P |> spec_all
-                                |> fVar_sInst_th “P(a0:mem(A))”
-                                   “a0 = a:mem(A)”
-                                |> qgen ‘a’)
-                   |> qSKOLEM "Sg" [‘A’] |> gen_all
-                   |> store_as "Sg_def";
-
-val Sing_def = qdefine_fsym ("Sing",[‘a:mem(A)’])
-                            ‘App(Sg(A),a:mem(A))’
-                            |> gen_all |> store_as "Sing_def";
-
-
-val Ri_def = P2fun'|> qspecl [‘Pow(A)’,‘Pow(B)’] 
-                   |> fVar_sInst_th “P(sa:mem(Pow(A)),sb:mem(Pow(B)))”
-                      “!b. IN(b,sb) <=> ∃a. IN(a,sa) & Holds(r:A~>B,a,b)”
-                   |> C mp 
-                      (IN_def_P |> qspecl [‘B’]
-                                |> fVar_sInst_th “P(b:mem(B))”
-                                   “∃a. IN(a,sa) & Holds(r:A~>B,a,b)”
-                                |> qgen ‘sa’)
-                   |> qSKOLEM "Ri" [‘r’] |> gen_all
-                   |> qspecl [‘A’,‘B’,‘r:A~>B’,‘s:mem(Pow(A))’]
-                   |> qgenl [‘A’,‘B’,‘r’,‘s’]
-                   |> store_as "Ri_def";
-
-
-
-
 (*Relational singleton image*)
-val Rsi_def = qdefine_fsym ("Rsi",[‘r:A~>B’])
-                            ‘Ri(r:A~>B) o Sg(A)’
-                            |> gen_all |> store_as "Rsi_def";
+val Rsi_uex = proved_th $
+e0
+(rpt strip_tac >>
+ qsuff_tac ‘?s:1->Exp(B,1+1).
+ (!b.IN(b,s) <=> Holds(R,a,b))’
+ >-- (strip_tac >> uex_tac >> 
+     qexists_tac ‘s’ >> arw[] >> rpt strip_tac >> 
+     irule $ iffLR IN_EXT >> arw[]) >>
+ rw[Holds_def] >> 
+ exists_tac 
+(Tp1 (qform2IL [‘b:1->B’] ‘R o Pa(a:1->A,b:1->B) = TRUE’)) >>
+ rw[IN_Tp1] >> rw[Eq_property_TRUE,o_assoc,Pa_distr,one_to_one_id,idR,idL])
+(form_goal “!A B R:A * B ->1+1 a:1->A.?!s:1->Exp(B,1+1).
+ (!b.IN(b,s) <=> Holds(R,a,b))”)
+|> rewr_rule[Holds_def]
+|> spec_all |> qgen ‘a’
+
+val Rsi_def = 
+P2fun |> qspecl [‘A’,‘Exp(B,1+1)’]
+|> specl[qform2IL [‘a:1->A’,‘s:1->Exp(B,1+1)’]
+   ‘!b.IN(b,s) <=> R o Pa(a,b) = TRUE’]
+|> rewr_rule[Holds_def,All_def,o_assoc,p12_of_Pa,Pa_distr,
+    IFF_def,p31_def,p32_def,p33_def,one_to_one_id,idL,idR,
+    Eq_property_TRUE]
+|> rewr_rule[GSYM IN_def]
+|> C mp Rsi_uex
+|> rewr_rule[GSYM Holds_def]
+|> qSKOLEM "Rsi" [‘R’]
+|> qspecl [‘a:1->A’,‘Rsi(R:A * B->1+1) o a:1->A’] 
+|> rewr_rule[]
+|> gen_all |> store_as "Rsi_def";
 
 
-val rsi_def = qdefine_fsym ("rsi",[‘r:A~>B’,‘a:mem(A)’])
-                            ‘App(Rsi(r),a)’
+val rsi_def = qdefine_fsym ("rsi",[‘r:A *B -> 1+1’,‘a:1->A’])
+                            ‘Rsi(r) o a’
                             |> gen_all |> store_as "rsi_def";
 
 val IN_rsi = prove_store("IN_rsi",
 e0
-(rw[rsi_def,Rsi_def,Ri_def,App_App_o,Sg_def] >>
- rpt strip_tac >> dimp_tac >> strip_tac >> rfs[] >>
- qexists_tac ‘a1’ >> arw[])
-(form_goal “∀A r:A~>A a1 a2. IN(a2,rsi(r,a1)) ⇔ Holds(r,a1,a2) ”));
+(rw[rsi_def,Rsi_def])
+(form_goal “∀A r:A * A -> 1+1 a1 a2. IN(a2,rsi(r,a1)) ⇔ Holds(r,a1,a2) ”));
 
 
 val ER_Holds = prove_store("ER_Holds",
 e0
 (rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
- >-- (first_x_assum (qspecl_then [‘a2’] assume_tac) >> fs[ER_def,Refl_def]) >>
- dimp_tac >> strip_tac >> fs[ER_def,Sym_def,Trans_def] (* 2 *)
+ >-- (first_x_assum (qspecl_then [‘a2’] assume_tac) >> fs[ER_def,REFL_def]) >>
+ dimp_tac >> strip_tac >> fs[ER_def,SYM_def,TRANS_def] (* 2 *)
  >-- (first_x_assum irule >> qexists_tac ‘a1’ >> arw[] >> first_x_assum irule >>
      arw[]) >>
  first_x_assum irule >> qexists_tac ‘a2’ >> arw[])
-(form_goal “∀A r:A~>A. ER(r) ⇒ ∀a1 a2. 
+(form_goal “∀A r:A * A -> 1+1. ER(r) ⇒ ∀a1 a2. 
  ((∀x.Holds(r,a1,x) ⇔ Holds(r,a2,x)) ⇔ Holds(r,a1,a2))”));
  
 val rsi_eq_ER = prove_store("rsi_eq_ER",
 e0
-(rw[GSYM IN_EXT_iff,IN_rsi] >> 
+(rw[GSYM IN_EXT,IN_rsi] >> 
  rpt strip_tac >> drule ER_Holds >> arw[])
-(form_goal “!A r:A~>A.ER(r) ==> 
+(form_goal “!A r:A * A-> 1+1.ER(r) ==> 
  !a1 a2. rsi(r,a1) = rsi(r,a2) <=> Holds(r,a1,a2)”));
 
+val Thm_2_4 = prove_store("Thm_2_4",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘p’] strip_assume_tac pred_subset_ex' >>
+ qexistsl_tac [‘A'’,‘ss’] >> fs[Inj_Mono,GSYM True1TRUE])
+(form_goal 
+ “!A p:A->1+1.?B i:B->A. Inj(i) & 
+  !a:1->A. p o a = TRUE <=> ?b. a = i o b”));
+
+val _ = new_fsym2IL("rsi",(rastt "Rsi(R:A * B-> 1+1)",
+List.map (dest_var o rastt) ["r:A * B -> 1+1","a:X->A"]))
 
 
-val Z_def = Thm_2_4 |> qspecl [‘Pow(N * N)’]
-                    |> fVar_sInst_th “P(s:mem(Pow(N * N)))”
-                    “?n. s = rsi(ZR,n)”
-                    |> qSKOLEM "Z" []
-                    |> qSKOLEM "iZ" []
-                    |> store_as "Z_def";
+(*
+val _ = new_fsym2IL("rsi",(rastt "Rsi(R:A * B-> 1+1)",
+List.map (dest_var o rastt) ["r:A * B -> 1+1","a:X->A"]))
+
+term2IL [dest_var (rastt "n:1->N")]
+ (rastt " rsi(ZR,n:1->N)") cannot build, may require more complex dict
+
+*)
+
+val Z_def = Thm_2_4 |> qspecl [‘Exp(N * N,1+1)’]
+                    |> specl[qform2IL [‘s:1->Exp(N * N,1+1)’]
+                    ‘?n. s = Rsi(ZR) o n’]
+|> rewr_rule[o_assoc,Pa_distr,p12_of_Pa,Ex_def,Eq_property_TRUE,GSYM rsi_def]
+|> qSKOLEM "Z" []
+|> qSKOLEM "iZ" []
+|> store_as "Z_def";
 
 val iZ_Inj = Z_def |> conjE1 |> store_as "iZ_Inj"
                    |> store_as "iZ_Inj";
@@ -174,79 +174,111 @@ val iZ_eq_eq = iZ_Inj |> rewr_rule[Inj_def]
 val iZ_rsi = prove_store("iZ_rsi",
 e0
 (strip_tac >> strip_assume_tac Z_def >>
- first_x_assum (qspecl_then [‘App(iZ,z)’] assume_tac) >>
+ first_x_assum (qspecl_then [‘iZ o z’] assume_tac) >>
  (*stupid step, ?(b : mem(Z)). App(iZ, z) = App(iZ, b#)*)
- qby_tac ‘?b. App(iZ,z) = App(iZ,b)’ 
+ qby_tac ‘?b. iZ o z = iZ o b’ 
  >-- (qexists_tac ‘z’ >> rw[]) >>
  first_x_assum (drule o iffRL) >>
  pop_assum strip_assume_tac >>
- qsspecl_then [‘n’] strip_assume_tac Pair_has_comp >>
+ qsspecl_then [‘x’] strip_assume_tac Pair_has_comp >>
  fs[] >> qexistsl_tac [‘a’,‘b’] >> arw[])
 (form_goal 
- “!z:mem(Z).?m n. App(iZ,z) = rsi(ZR,Pair(m,n))”));
+ “!z:1->Z.?m n. iZ o z = rsi(ZR,Pa(m,n))”));
 
 val rsi_iZ = prove_store("rsi_iZ",
 e0
 (rpt strip_tac >> strip_assume_tac Z_def >>
  first_x_assum
- (qspecl_then [‘rsi(ZR,Pair(m,n))’] assume_tac) >>
+ (qspecl_then [‘rsi(ZR,Pa(m,n))’] assume_tac) >>
  first_x_assum $ irule o iffLR >>
- qexists_tac ‘Pair(m,n)’ >> rw[])
+ qexists_tac ‘Pa(m,n)’ >> rw[])
 (form_goal 
- “!m n. ?z. rsi(ZR,Pair(m,n)) = App(iZ,z)”));
+ “!m n. ?z. rsi(ZR,Pa(m,n)) = iZ o z”));
 
 
 val resp_def = 
- qdefine_psym("resp",[‘f:A->B’,‘r1:A~>A’,‘r2:B~>B’])
- ‘!y z.Holds(r1,y,z) ==> Holds(r2,App(f:A->B,y),App(f,z))’
+ qdefine_psym("resp",[‘f:A->B’,‘r1:A * A-> 1+1’,‘r2:B * B-> 1+1’])
+ ‘!y z.Holds(r1,y,z) ==> Holds(r2,f:A->B o y,f o z)’
  |> gen_all |> store_as "resp_def";
 
 
-val rext_def = AX1 |> qspecl [‘Pow(A)’,‘Pow(B)’] 
-                   |> fVar_sInst_th “P(sa:mem(Pow(A)),sb:mem(Pow(B)))”
-                      “?a b.sa = rsi(r1:A~>A,a) & sb = rsi(r2:B~>B,b) & 
-                            App(f,a) = b”
-                   |> uex2ex_rule
-                   |> qSKOLEM "rext" [‘f’,‘r1’,‘r2’]
-                   |> gen_all |> store_as "rext_def";                       
+val rext_def0 = define_fsym("rext",
+List.map (dest_var o rastt) 
+["f:A->B","r1:A*A->1+1","r2:B * B -> 1+1"])
+(qform2IL [‘sa:1->Exp(A,1+1)’,‘sb:1->Exp(B,1+1)’]
+‘?a b.
+ sa = Rsi(r1:A * A->1+1) o a & 
+ sb = Rsi(r2:B * B->1+1) o b & 
+ f o a = b’) |> gen_all |> store_as "rext_def";   
+
+                    
+val rext_def1 = prove_store("rext_def1",
+e0
+(rpt strip_tac >> rw[Holds_def,rext_def0] >>
+ once_rw[p41_def,p42_def,p43_def,p44_def] >>
+ rw[Ex_def,CONJ_def,Pa_distr,p12_of_Pa,o_assoc,
+    Eq_property_TRUE])
+(form_goal 
+ “!A r1:A * A->1+1 B f:A->B r2.
+  !sa sb. Holds(rext(f,r1,r2),sa,sb) <=>
+ ?a b.
+ sa = Rsi(r1) o a & sb = Rsi(r2) o b & 
+ f o a = b ”));
+
+val rext_def = rext_def1 |> rewr_rule[GSYM rsi_def]
+                         |> store_as "rext_def";
+
+val prrel_def0 = define_fsym("prrel",
+List.map (dest_var o rastt) 
+["r1:A * A->1+1","r2:B * B-> 1+1"]) 
+(qform2IL [‘ab1:1->A * B’,‘ab2:1->A* B’]
+‘r1 o Pa(Fst(ab1),Fst(ab2)) = TRUE &
+ r2 o Pa(Snd(ab1),Snd(ab2)) = TRUE’)
 
 
-val prrel_def = AX1 |> qspecl [‘A * B’,‘A * B’]
-                    |> fVar_sInst_th “P(ab1:mem(A * B),ab2:mem(A * B))”
-                       “Holds(r1:A~>A,Fst(ab1),Fst(ab2)) &
-                        Holds(r2:B~>B,Snd(ab1),Snd(ab2))”
-                    |> uex2ex_rule |> qSKOLEM "prrel" [‘r1’,‘r2’]
-                    |> qspecl [‘Pair(a1:mem(A),b1:mem(B))’,
-                               ‘Pair(a2:mem(A),b2:mem(B))’]
-                    |> rewr_rule[Pair_def']
-                    |> qgenl [‘A’,‘r1’,‘B’,‘r2’,‘a1’,‘b1’,‘a2’,‘b2’]
-                    |> store_as "prrel_def";
+(*if not strip, then very very very slow prrel_def.*)
+
+val prrel_def = prove_store("prrel_def",
+e0
+(rpt strip_tac >> rw[Holds_def,prrel_def0,Eq_property_TRUE,p12_of_Pa,o_assoc,CONJ_def,
+Pa_distr,one_to_one_id,idL,idR]
+ )
+(form_goal
+ “!A r1 B r2 a1:1->A b1:1->B a2:1->A b2.
+  Holds(prrel(r1,r2),Pa(a1,b1),Pa(a2,b2)) <=> 
+  Holds(r1,a1,a2) & Holds(r2,b1,b2)”));
 
 
-(*
-we really want to check only resp, not biresp, so 
-  App(Image(f#), rsi(r1#, a#)) = rsi(r2#, App(f#, a#)) 
-is wrong, it is only:
-  App(Image(f#), rsi(r1#, a#)) ⊆ rsi(r2#, App(f#, a#)):
- Larry is not claiming it as well, Larry is using Abs_Integ o Image(f), which is only one direction of the implication
-
-*)
-
-
-
+val P2fun' = prove_store("P2fun'",
+e0
+(rpt strip_tac >> drule P2fun >>
+ pop_assum strip_assume_tac >>
+ uex_tac >> qexists_tac ‘f’ >> 
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ rpt strip_tac >>
+ irule FUN_EXT >> arw[])
+(form_goal 
+ “!A B R:A*B->1+1.
+  (!x:1->A.?!y:1->B. Holds(R,x,y)) ==>
+  ?!f:A->B. !x:1->A.
+  Holds(R,x,f o x)”));
 
 val main = prove_store("main",
 e0
 (rpt strip_tac >> assume_tac 
  (P2fun' |> qspecl [‘Q1’,‘Q2’] 
-        |> fVar_sInst_th “P(q1:mem(Q1),q2:mem(Q2))”
-           “Holds(rext(f:A->B, r1, r2), 
-                      App(i1:Q1->Pow(A), q1), 
-                      App(i2:Q2->Pow(B), q2))”) >>
- rw[App_App_o] >> first_x_assum irule >>
+        |> specl
+[qform2IL [‘q1:1->Q1’,‘q2:1->Q2’]
+‘rext(f:A->B, r1:A * A->1+1, r2:B*B->1+1) o 
+ Pa(i1:Q1->Exp(A,1+1) o q1, i2 o q2) = TRUE’]) >>
+ pop_assum mp_tac >>
+ rw[Holds_def,Eq_property_TRUE,Pa_distr,p12_of_Pa,o_assoc] >>
+ rw[one_to_one_id,idR] >> rw[GSYM Holds_def] >>
+ rpt strip_tac >>
+ first_x_assum irule >> 
  strip_tac >> 
- qby_tac
- ‘!sb.(?!q2. sb = App(i2,q2)) <=> 
+ qby_tac (*a bit slow here*)
+ ‘!sb.(?!q2. sb = i2 o q2) <=> 
        ?b. sb = rsi(r2,b)’ >-- 
  (strip_tac >> dimp_tac >> disch_tac 
  >-- (pop_assum (assume_tac o uex2ex_rule) >> 
@@ -256,117 +288,175 @@ e0
  rpt strip_tac >> fs[Inj_def] >> first_x_assum irule >> arw[])
  (* easy by injection*)>>
  fs[resp_def] >>
- first_x_assum (qspecl_then [‘App(i1,x)’] assume_tac) >>
- qby_tac ‘?a. App(i1,x) = rsi(r1,a)’ >-- 
+ first_x_assum (qspecl_then [‘i1 o x’] assume_tac) >>
+ qby_tac ‘?a. i1 o x = rsi(r1,a)’ >-- 
  (first_x_assum (irule o iffLR) >> qexists_tac ‘x’ >> rw[]) >>
  (*should be auto*)
  pop_assum strip_assume_tac >> 
- first_x_assum (qspecl_then [‘App(Rsi(r2) o f,a)’] 
- assume_tac) >> fs[GSYM rsi_def,App_App_o] >>
+ first_x_assum (qspecl_then [‘Rsi(r2) o f o a’] 
+ assume_tac) >> fs[GSYM rsi_def] >>
  qby_tac
- ‘?!q2:mem(Q2). rsi(r2, App(f, a)) = App(i2, q2)’
- >-- (first_x_assum (irule o iffRL) >> qexists_tac ‘App(f,a)’ >> rw[]) >>
- qsuff_tac ‘!q2:mem(Q2). 
-  rsi(r2, App(f, a)) = App(i2, q2) <=> 
-  Holds(rext(f, r1, r2), rsi(r1, a), App(i2, q2))’
+ ‘?!q2:1->Q2. rsi(r2, f o a) = i2 o q2’
+ >-- (first_x_assum (irule o iffRL) >> qexists_tac ‘f o a’ >> rw[]) >>
+ qsuff_tac ‘!q2:1->Q2. 
+  rsi(r2, f o a) = i2 o q2 <=> 
+  Holds(rext(f, r1, r2), rsi(r1, a),i2 o q2)’
  >-- (strip_tac >> pop_assum (assume_tac o GSYM) >> arw[]) >>
  rw[rext_def] >> strip_tac >> dimp_tac >> strip_tac (* 2 *)
- >-- (qexistsl_tac [‘a’,‘App(f,a)’] >> arw[]) >> 
- qsuff_tac ‘?b. App(i2, q2) = rsi(r2, b) & 
- Holds(r2,b,App(f, a))’ >-- 
+ >-- (qexistsl_tac [‘a’,‘f o a’] >> arw[]) >> 
+ qsuff_tac ‘?b. i2 o q2 = rsi(r2, b) & 
+ Holds(r2,b,f o a)’ >-- 
  (strip_tac >> 
- qpick_x_assum ‘App(i2, q2) = rsi(r2, b')’
+ qpick_x_assum ‘i2 o q2 = rsi(r2, b')’
  (assume_tac o GSYM) >> arw[] >>
  drule rsi_eq_ER >> arw[] >>
  rev_drule rsi_eq_ER >> fs[] >> last_x_assum drule >>
  rfs[]) >>
  qexists_tac ‘b’ >> arw[] >> pop_assum (assume_tac o GSYM) >>
  arw[] >> first_x_assum irule >> 
- rev_drule rsi_eq_ER >> fs[ER_def,Sym_def] >> 
+ rev_drule rsi_eq_ER >> fs[ER_def,SYM_def] >> 
  first_x_assum irule >> arw[])
 (form_goal
-“!A B f:A->B r1:A~>A r2:B~>B
- Q1 Q2 i1:Q1->Pow(A) i2:Q2->Pow(B). 
+“!A B f:A->B r1:A*A->1+1 r2:B*B->1+1
+ Q1 Q2 i1:Q1->Exp(A,1+1) i2:Q2->Exp(B,1+1). 
  ER(r1) & ER(r2) & resp(f,r1,r2) & Inj(i1) & Inj(i2) &
- (!sa. (?q1. sa = App(i1,q1)) <=> (?a. sa = rsi(r1,a))) & 
- (!sb. (?q2. sb = App(i2,q2)) <=> (?b. sb = rsi(r2,b))) ==>
- ?qf: Q1-> Q2.
- !q1:mem(Q1). Holds(rext(f,r1,r2),App(i1,q1),App(i2 o qf,q1)) ”));
+ (!sa. (?q1. sa = i1 o q1) <=> (?a. sa = rsi(r1,a))) & 
+ (!sb. (?q2. sb = i2 o q2) <=> (?b. sb = rsi(r2,b))) ==>
+ ?!qf: Q1-> Q2.
+ !q1:1->Q1. Holds(rext(f,r1,r2),i1 o q1,i2 o qf o q1) ”));
 
 
 
 (* Pow(A) * Pow(A) -> Pow(A * A) not have in general. *)
 
-val ipow2_def = P2fun' |> qspecl [‘Q1 * Q2’,‘Pow(A * B)’] 
-                     |> fVar_sInst_th “P(aqbq:mem(Q1 * Q2),s:mem(Pow(A * B)))”
-                        “!a1 a2.IN(Pair(a1,a2),s:mem(Pow(A * B))) <=> 
-                         IN(a1,App(i1:Q1-> Pow(A),Fst(aqbq))) & 
-                         IN(a2,App(i2:Q2-> Pow(B),Snd(aqbq)))”
-                     |> C mp 
-                     (IN_def_P |> qspecl [‘A * B’] 
+
+val ipow2IL_def =
+define_fsym("ipow2IL",List.map (dest_var o rastt)
+["i1:Q1->Exp(A,1+1)","i2:Q2->Exp(B,1+1)"])
+(qform2IL [‘aqbq:1->Q1*Q2’,‘s:1->Exp(A*B,1+1)’]
+ ‘!a1 a2.IN(Pa(a1,a2),s) <=> 
+  IN(a1,i1:Q1-> Exp(A,1+1) o Fst(aqbq)) & 
+  IN(a2,i2:Q2-> Exp(B,1+1) o Snd(aqbq))’)
+
+val ipow2_IL = 
+proved_th $
+e0
+(rw[ipow2IL_def] >>
+ rpt strip_tac >>
+ rw[Holds_def] >>
+ rw[o_assoc,All_def,IFF_def,CONJ_def,Pa_distr] >>
+ once_rw[p41_def,p42_def,p43_def,p44_def] >>
+ rw[Pa_distr,o_assoc,p12_of_Pa] >>
+ rw[IN_def,Fst_def,Snd_def])
+(form_goal
+ “!aqbq:1->Q1*Q2 s:1->Exp(A*B,1+1).
+ Holds(ipow2IL(i1:Q1->Exp(A,1+1),i2:Q2->Exp(B,1+1)),
+ aqbq,s) <=>
+ !a1 a2.IN(Pa(a1,a2),s) <=> 
+  IN(a1,i1:Q1-> Exp(A,1+1) o Fst(aqbq)) & 
+  IN(a2,i2:Q2-> Exp(B,1+1) o Snd(aqbq))
+ ”)
+
+val IN_def_P = prove_store("IN_def_P",
+e0
+(rpt strip_tac >> uex_tac >>
+ qsspecl_then [‘P’] strip_assume_tac IN_def_P_ex >>
+ qexists_tac ‘s’>> arw[] >>
+ rpt strip_tac >> rw[GSYM IN_EXT] >>
+ arw[])
+(form_goal
+ “!A P:A->1+1.?!s:1->Exp(A,1+1).
+  (!a:1->A. P o a = TRUE <=> IN(a,s))”));
+
+
+|> qspecl [‘A * B’] 
                                |> fVar_sInst_th “P(ab:mem(A * B))”
                                “IN(Fst(ab),App(i1:Q1->Pow(A),Fst(aqbq))) & 
                                IN(Snd(ab),App(i2:Q2->Pow(B),Snd(aqbq)))”
-                               |> conv_rule (depth_fconv no_conv 
-                                                         forall_cross_fconv)
-                               |> rewr_rule[Pair_def']
-                               |> qgen ‘aqbq’)
-                     |> qSKOLEM "ipow2" [‘i1’,‘i2’]
-                     |> conv_rule (depth_fconv no_conv forall_cross_fconv)
-                     |> rewr_rule[Pair_def']
-                     |> qspecl [‘aq:mem(Q1)’,‘bq:mem(Q2)’,
-                                ‘a:mem(A)’,‘b:mem(B)’] 
-                     |> gen_all |> store_as "ipow2_def";
 
-(*
-val ipow2_ex = prove_store("ipow2_ex",
+val ipow2IL1_def =
+define_fsym("ipow2IL1",List.map (dest_var o rastt)
+["i1:Q1->Exp(A,1+1)","i2:Q2->Exp(B,1+1)",
+ "aqbq:1-> Q1*Q2"])
+(qform2IL [‘ab:1->A*B’]
+ ‘IN(Fst(ab),i1:Q1-> Exp(A,1+1) o Fst(aqbq:1->Q1*Q2)) & 
+  IN(Snd(ab),i2:Q2-> Exp(B,1+1) o Snd(aqbq))’)
+
+val ipow2_IL1 = 
+proved_th $
 e0
-(rpt strip_tac >> irule l >> rpt strip_tac >>
- uex_tac)
-(form_goal “!i1:Q1-> Pow(A) i2:Q2 -> Pow(B). 
- ?i: Q1 * Q2 -> Pow(A * B).
- !aq bq.
-  !a1 a2.IN(Pair(a1,a2),App(i,Pair(aq,bq))) <=> 
-         IN(a1,App(i1,aq)) & IN(a2,App(i2,bq))”));
-end
+(rw[ipow2IL1_def] >>
+ rpt strip_tac >>
+ rw[o_assoc,All_def,IFF_def,CONJ_def,Pa_distr] >>
+ rw[Pa_distr,o_assoc,p12_of_Pa,one_to_one_id,idL,idR] >>
+ rw[IN_def,Fst_def,Snd_def])
+(form_goal
+ “!ab:1->A*B.
+ ipow2IL1(i1:Q1->Exp(A,1+1),i2:Q2->Exp(B,1+1),
+ aqbq) o ab = TRUE <=>
+ IN(Fst(ab),i1:Q1-> Exp(A,1+1) o Fst(aqbq:1->Q1*Q2)) & 
+  IN(Snd(ab),i2:Q2-> Exp(B,1+1) o Snd(aqbq))
+ ”)
 
-val ipow2_def = ipow2_ex |> spec_all 
-                         |> qSKOLEM "ipow2" [‘i1’,‘i2’]
-                         |> gen_all
-*)
- 
+
+val ipow2_def = 
+P2fun' |> qspecl [‘Q1 * Q2’,‘Exp(A * B,1+1)’,‘ipow2IL(i1:Q1->Exp(A,1+1),i2:Q2->Exp(B,1+1))’]
+|> rewr_rule[ipow2_IL]
+|> C mp
+   (IN_def_P 
+    |> qspecl [‘A * B’,
+       ‘ipow2IL1(i1:Q1->Exp(A,1+1),i2:Q2->Exp(B,1+1),
+                aqbq:1->Q1*Q2)’]
+    |> rewr_rule[ipow2_IL1]
+    |> conv_rule (depth_fconv no_conv 
+                                                         forall_cross_fconv)
+    |> rewr_rule[Pair_def']
+    |> qgen ‘aqbq’ |> GSYM)
+|> uex2ex_rule
+|> qSKOLEM "ipow2" [‘i1’,‘i2’]
+|> conv_rule (depth_fconv no_conv forall_cross_fconv)
+|> rewr_rule[Pair_def']
+|> qspecl [‘aq:1->Q1’,‘bq:1->Q2’,
+            ‘a:1->A’,‘b:1->B’] 
+|> gen_all |> store_as "ipow2_def";
+
 local 
 val l = P2fun' |> qspecl [‘(N * N) * N * N’,‘N * N’]
-       |> fVar_sInst_th “P(xyuv:mem((N * N) * N * N),ab:mem(N * N))”
-                        “ab  = Pair(Add(Fst(Fst(xyuv)),Fst(Snd(xyuv))),
-                                   Add(Snd(Fst(xyuv)),Snd(Snd(xyuv))))”
-       |> conv_rule (depth_fconv no_conv forall_cross_fconv) 
-       |> conv_rule (basic_fconv no_conv forall_cross_fconv) 
-       |> rewr_rule[Pair_def']
+|> specl[qform2IL [‘xyuv:1-> (N * N) * N * N’,‘ab:1->N * N’]
+   ‘ab  = Pa(Add(Fst(Fst(xyuv)),Fst(Snd(xyuv))),
+             Add(Snd(Fst(xyuv)),Snd(Snd(xyuv))))’]
+|> conv_rule (depth_fconv no_conv forall_cross_fconv) 
+|> conv_rule (basic_fconv no_conv forall_cross_fconv)
+|> rewr_rule[Holds_def,o_assoc]
+|> rewr_rule[Eq_property_TRUE,o_assoc,Pa_distr,p12_of_Pa]
+|> rewr_rule[GSYM Add_def]
 in    
 val addf0_def = proved_th $
 e0
 (irule l >> rpt strip_tac >> uex_tac >>
- qexists_tac ‘Pair(Add(a', a), Add(b, b''))’ >> rw[])
-(form_goal “?f:(N * N) * N * N -> N * N. 
- !x y u v. App(f,Pair(Pair(x,y),Pair(u,v))) = 
- Pair(Add(x,u),Add(y,v))”)
+ qexists_tac ‘Pa(Add(a', a), Add(b, b''))’ >> rw[])
+(form_goal “?!f:(N * N) * N * N -> N * N. 
+ !x y u v. f o Pa(Pa(x,y),Pa(u,v)) = 
+ Pa(Add(x,u),Add(y,v))”)
+|> uex2ex_rule
 |> qSKOLEM "addf0" []
 |> store_as "addf0_def";
 end
+
+(*addf0 does not need unique since no free variable, is this axiom of choice regarding FOL expressions?,addf0 slow*)
 
 
 
 val prrel_ER_ER = prove_store("prrel_ER_ER",
 e0
-(rpt strip_tac >> fs[ER_def,Sym_def,Trans_def,Refl_def] >> 
+(rpt strip_tac >> fs[ER_def,SYM_def,TRANS_def,REFL_def] >> 
  depth_fconv_tac no_conv forall_cross_fconv >> once_rw[prrel_def] >>
  rpt strip_tac >> arw[] (* 4 *)
  >-- (last_x_assum drule >> arw[]) 
  >-- (first_x_assum drule >> arw[])
  >-- (first_x_assum irule >> qexists_tac ‘a'’ >> arw[]) >>
  first_x_assum irule >> qexists_tac ‘b'’ >> arw[])
-(form_goal “∀A r1:A~>A B r2:B~>B. ER(r1) & ER(r2) ⇒ ER(prrel(r1,r2))”));
+(form_goal “∀A r1:A * A->1+1 B r2:B*B->1+1. ER(r1) & ER(r2) ⇒ ER(prrel(r1,r2))”));
 
 
 val forall_cross_tac =  depth_fconv_tac no_conv forall_cross_fconv;
@@ -375,7 +465,8 @@ val forall_cross_tac =  depth_fconv_tac no_conv forall_cross_fconv;
 val Pow_conj_eq0 = prove_store("Pow_conj_eq0",
 e0
 (rpt strip_tac >>
-rw[GSYM IN_EXT_iff] >> strip_tac >> cases_on “IN(x,s1:mem(Pow(A)))”
+rw[GSYM IN_EXT] >> strip_tac >> 
+cases_on “IN(x,s1:1->Exp(A,1+1))”
 >-- (arw[] >> 
     qsuff_tac ‘IN(x,s3) & IN(b0,s4)’ 
     >-- (strip_tac >> arw[]) >>
@@ -387,7 +478,7 @@ qby_tac ‘IN(b0,s4)’
      first_x_assum (irule o iffLR) >> arw[]) >>
 first_x_assum (qspecl_then [‘x’,‘b0’] assume_tac) >>
 rfs[])
-(form_goal “∀A B s1:mem(Pow(A)) s2:mem(Pow(B)) s3 s4 a0 b0. IN(a0,s1) & IN(b0,s2) ⇒  (∀a b. IN(a,s1) & IN(b,s2) ⇔ IN(a,s3) & IN(b,s4)) ⇒
+(form_goal “∀A B s1:1->Exp(A,1+1) s2:1->Exp(B,1+1) s3 s4 a0 b0. IN(a0,s1) & IN(b0,s2) ⇒  (∀a b. IN(a,s1) & IN(b,s2) ⇔ IN(a,s3) & IN(b,s4)) ⇒
  s1 = s3”) );
 
 val Pow_conj_eq = prove_store("Pow_conj_eq",
@@ -404,56 +495,30 @@ e0
       first_x_assum (irule o iffLR) >> arw[]) >>
  qsuff_tac ‘IN(b, s1) & IN(a,s2)’ >-- (strip_tac >> arw[]) >>
  first_x_assum (irule o iffRL) >> arw[])
-(form_goal “∀A B s1:mem(Pow(A)) s2:mem(Pow(B)) s3 s4 a0 b0. IN(a0,s1) & IN(b0,s2) ⇒  (∀a b. IN(a,s1) & IN(b,s2) ⇔ IN(a,s3) & IN(b,s4)) ⇒
+(form_goal “∀A B s1:1->Exp(A,1+1) s2:1->Exp(B,1+1) s3 s4 a0 b0. IN(a0,s1) & IN(b0,s2) ⇒  (∀a b. IN(a,s1) & IN(b,s2) ⇔ IN(a,s3) & IN(b,s4)) ⇒
  s1 = s3 & s2 = s4”));
 
-
-(*
-e0
-
-(rpt strip_tac >> rw[GSYM IN_EXT_iff] (* 2 *) >> strip_tac >--
- (first_assum (qsspecl_then [‘x’,‘b0’] assume_tac) >> fs[] >>
- cases_on “IN(x:mem(A), s1)” >-- fs[] >>
- arw[] >> ccontra_tac >> rfs[] >> 
- cases_on “IN(a0:mem(A),s3)” (* 2 *) >-- cheat
->-- (first_assum (qsspecl_then [‘a0’,‘b0’] assume_tac) >>
-     qby_tac ‘IN(a0, s3) & IN(b0,s4)’
-     >-- (first_x_assum (irule o iffLR) >> strip_tac >> 
-                        first_x_assum accept_tac) >>
-     BUGBUGBUGBUGBUG!!!!!!!!!!!!!!!!!!!! CANNOT DO THE fs[], can finish the qby. if do the fs, complains
-ERR
-     ("disjE.first disjunct not in the formula list: ", [], [],
-      [Pred ("IN", true, [a0, s3])]) raised
-
-
-     fs[] >> first_x_assum (qspecl_then [‘x’,‘b0’] assume_tac) >> 
-     pop_assum mp_tac >> arw[]rfs[]) >>
-cheat)
-
-(form_goal “∀A B s1:mem(Pow(A)) s2:mem(Pow(B)) s3 s4 a0 b0. IN(a0,s1) & IN(b0,s2) ⇒  (∀a b. IN(a,s1) & IN(b,s2) ⇔ IN(a,s3) & IN(b,s4)) ⇒
- s1 = s3 & s2 = s4”)
-
-*)
 
 val ipow2_Inj_Inj = prove_store("ipow2_Inj_Inj",
 e0
 (rpt strip_tac >> fs[Inj_def] >> 
  depth_fconv_tac no_conv forall_cross_fconv >>
- rw[GSYM IN_EXT_iff] >>
+ rw[GSYM IN_EXT] >>
  forall_cross_tac >> rpt strip_tac >> fs[ipow2_def] >>
- rw[Pair_eq_eq] >> 
- qsuff_tac ‘App(i1,a) = App(i1,a') & App(i2,b) = App(i2,b')’ 
+ rw[Pa_eq_eq] >> 
+ qsuff_tac ‘i1 o a = i1 o a' & i2 o b = i2 o b'’ 
  >-- (rpt strip_tac >> first_x_assum irule >> arw[]) >>
  irule Pow_conj_eq >> arw[])
-(form_goal “∀Q1 A i1:Q1 -> Pow(A) Q2 B i2:Q2->Pow(B). 
- (∀q1. ∃a. IN(a,App(i1,q1))) &
- (∀q2. ∃b. IN(b,App(i2,q2))) & 
+(form_goal “∀Q1 A i1:Q1 -> Exp(A,1+1) Q2 B i2:Q2->Exp(B,1+1). 
+ (∀q1. ∃a. IN(a,i1 o q1)) &
+ (∀q2. ∃b. IN(b,i2 o q2)) & 
  Inj(i1) & Inj(i2) ⇒ Inj(ipow2(i1,i2))”));
 
 
 
-val Quo_def = qdefine_psym ("Quo",[‘r:A~>A’,‘i:Q->Pow(A)’])
-‘!s. (?!q. s = App(i:Q->Pow(A),q)) <=> (?a. s = rsi(r:A~>A,a))’
+val Quo_def = qdefine_psym ("Quo",[‘r:A*A->1+1’,‘i:Q->Exp(A,1+1)’])
+‘!s. (?!q. s =i:Q->Exp(A,1+1) o q) <=> 
+(?a. s = rsi(r:A * A -> 1+1,a))’
 |> gen_all |> store_as "Quo_def";
 
 val Inj_Quo = prove_store("Inj_Quo",
@@ -468,37 +533,37 @@ e0
     qexists_tac ‘q’ >> fs[Inj_def] >> rpt strip_tac >>
     first_x_assum irule >> arw[]) >>
 fs[Quo_def] >> strip_tac >> dimp_tac >> strip_tac (* 2 *)
->-- (qby_tac ‘∃!q.s = App(i,q)’
+>-- (qby_tac ‘∃!q.s = i o q’
     >-- (uex_tac >> qexists_tac ‘q’ >> arw[] >> rpt strip_tac >>
         fs[Inj_def] >> first_x_assum irule >> arw[]) >>
     first_x_assum (drule o iffLR) >> arw[]) >>
-qsuff_tac ‘∃!q. s = App(i,q)’ 
+qsuff_tac ‘∃!q. s = i o q’ 
 >-- (strip_tac >> pop_assum (assume_tac o uex2ex_rule) >> arw[]) >>
 first_x_assum (irule o iffRL) >> qexists_tac ‘a’ >> arw[])
 (form_goal
-“(Inj(i) & !s. (?q. s = App(i:Q->Pow(A),q)) <=> (?a. s = rsi(r:A~>A,a)))
+“(Inj(i) & !s. (?q. s = i:Q->Exp(A,1+1) o q) <=> (?a. s = rsi(r:A*A->1+1,a)))
  ⇔ Inj(i) & Quo(r,i)”));
 
 val ER_rsi_nonempty = prove_store("ER_rsi_nonempty",
 e0
-(rpt strip_tac >> rw[IN_rsi] >> fs[ER_def,Refl_def])
-(form_goal “∀A r:A~>A a:mem(A).ER(r) ⇒ IN(a,rsi(r,a)) ”));
+(rpt strip_tac >> rw[IN_rsi] >> fs[ER_def,REFL_def])
+(form_goal “∀A r:A*A->1+1 a:1->A.ER(r) ⇒ IN(a,rsi(r,a)) ”));
 
 val Quo_cong = prove_store("Quo_cong",
 e0
 (rpt strip_tac >> fs[Quo_def] >> 
  depth_fconv_tac no_conv exists_cross_fconv >>
- rw[GSYM IN_EXT_iff] >>
+ rw[GSYM IN_EXT] >>
  depth_fconv_tac no_conv forall_cross_fconv >> 
  rw[IN_rsi,prrel_def,ipow2_def] >> strip_tac >> dimp_tac >> strip_tac (* 2 *)
  >-- (qby_tac
-     ‘∀a. ∃!q.rsi(r1,a) = App(i1,q)’
+     ‘∀a. ∃!q.rsi(r1,a) = i1 o q’
      >-- (strip_tac >>
          qby_tac ‘∃a1. rsi(r1,a) = rsi(r1,a1)’ 
          >-- (qexists_tac ‘a’ >> rw[]) >>
          first_x_assum (drule o iffRL) >> arw[]) >>
      qby_tac
-     ‘∀b. ∃!q.rsi(r2,b) = App(i2,q)’
+     ‘∀b. ∃!q.rsi(r2,b) = i2 o q’
      >-- (strip_tac >>
          qby_tac ‘∃b1. rsi(r2,b) = rsi(r2,b1)’ 
          >-- (qexists_tac ‘b’ >> rw[]) >>
@@ -509,20 +574,20 @@ e0
      qsspecl_then [‘q12’] (x_choosel_then ["q1","q2"] assume_tac) 
      Pair_has_comp >> fs[] >>
      rw[ipow2_def] >> rw[GSYM IN_rsi] >>
-     qsuff_tac ‘∃a1 b1. App(i1, q1) = rsi(r1, a1) & App(i2,q2) = rsi(r2, b1)’ 
+     qsuff_tac ‘∃a1 b1. i1 o q1 = rsi(r1, a1) & i2 o q2 = rsi(r2, b1)’ 
      >-- (strip_tac >> qexistsl_tac [‘a1’,‘b1’] >> arw[]) >>
-     qby_tac ‘∃!q. App(i1,q1) = App(i1,q)’ 
+     qby_tac ‘∃!q. i1 o q1 = i1 o q’ 
      >-- (uex_tac >> qexists_tac ‘q1’ >> rw[] >> fs[Inj_def] >>
          rpt strip_tac >> first_x_assum irule >> arw[]) >>
      first_x_assum (drule o iffLR) >> pop_assum strip_assume_tac >>
-     qby_tac ‘∃!q. App(i2,q2) = App(i2,q)’ 
+     qby_tac ‘∃!q.i2 o q2 = i2 o q’ 
      >-- (uex_tac >> qexists_tac ‘q2’ >> rw[] >> fs[Inj_def] >>
          rpt strip_tac >> first_x_assum irule >> arw[]) >>
      first_x_assum (drule o iffLR) >> pop_assum strip_assume_tac >>
      qexistsl_tac [‘a’,‘a'’] >> arw[]) >>
-qsuff_tac ‘∃!q:mem(Q1 * Q2).
+qsuff_tac ‘∃!q:1->Q1 * Q2.
  (∀a1 b1. Holds(r1, a', a1) & Holds(r2, b, b1) ⇔ 
-  IN(Pair(a1, b1), App(ipow2(i1, i2), q)))’
+  IN(Pa(a1, b1), ipow2(i1, i2) o q))’
 >-- (strip_tac >> pop_assum (strip_assume_tac o  uex_expand) >>
     uex_tac >> qexists_tac ‘q’ >> rpt strip_tac >> arw[] >>
     first_x_assum irule >> fs[]) 
@@ -537,24 +602,24 @@ qby_tac ‘∃b1. rsi(r2,b) = rsi(r2,b1)’
 first_x_assum (drule o iffRL) >> 
 pop_assum (assume_tac o uex_expand) >>
 pop_assum (x_choose_then "q2" strip_assume_tac) >>
-uex_tac >> qexists_tac ‘Pair(q1,q2)’ >> 
+uex_tac >> qexists_tac ‘Pa(q1,q2)’ >> 
 depth_fconv_tac no_conv forall_cross_fconv >>
-rw[ipow2_def,GSYM IN_rsi,Pair_eq_eq] >>
-qsuff_tac ‘rsi(r1, a') = App(i1, q1) & rsi(r2, b) = App(i2, q2)’
+rw[ipow2_def,GSYM IN_rsi,Pa_eq_eq] >>
+qsuff_tac ‘rsi(r1, a') = i1 o q1 & rsi(r2, b) = i2 o q2’
 >-- (strip_tac >> arw[] >> rpt gen_tac >> disch_tac >>
-    qsuff_tac ‘App(i1, q1) = App(i1, a) & 
-               App(i2, q2) = App(i2, b')’ 
+    qsuff_tac ‘i1 o q1 = i1 o a & 
+               i2 o q2 = i2 o b'’ 
     >-- (rpt strip_tac >> fs[Inj_def] >> first_x_assum irule >> arw[]) >>
     irule Pow_conj_eq >>
     arw[] >> strip_tac (* 2 *)
     >-- (qexists_tac ‘b’ >> 
-        qpick_x_assum ‘rsi(r2, b) = App(i2, q2)’ (assume_tac o GSYM) >>
+        qpick_x_assum ‘rsi(r2, b) = i2 o q2’ (assume_tac o GSYM) >>
         arw[] >> irule ER_rsi_nonempty >> arw[]) >>
     qexists_tac ‘a'’ >> 
-    qpick_x_assum ‘rsi(r1, a') = App(i1, q1)’ (assume_tac o GSYM) >>
+    qpick_x_assum ‘rsi(r1, a') = i1 o q1’ (assume_tac o GSYM) >>
     arw[] >> irule ER_rsi_nonempty >> arw[]) >>
 arw[])
-(form_goal “∀A r1:A~>A Q1 i1:Q1-> Pow(A) B r2:B~>B Q2 i2:Q2 -> Pow(B). 
+(form_goal “∀A r1:A*A-> 1+1 Q1 i1:Q1-> Exp(A,1+1) B r2:B*B->1+1 Q2 i2:Q2 -> Exp(B,1+1). 
  ER(r1) & ER(r2) & Inj(i1) & Inj(i2) &
  Quo(r1,i1) & Quo(r2,i2) ⇒
  Quo(prrel(r1,r2),ipow2(i1,i2))”));
@@ -571,29 +636,13 @@ e0
  >-- arw[] >>
  drule (iffRL Inj_Quo) >> arw[])
 (form_goal
-“!A B f:A->B r1:A~>A r2:B~>B
- Q1 Q2 i1:Q1->Pow(A) i2:Q2->Pow(B). 
- ER(r1) & ER(r2) & resp(f,r1,r2) & Inj(i1) & Inj(i2) &
- Quo(r1,i1) & Quo(r2,i2) ==>
- ?qf: Q1-> Q2.
- !q1:mem(Q1). Holds(rext(f,r1,r2),App(i1,q1),App(i2 o qf,q1)) ”))
-
-
-
-
-(*
-
-val Quo_fun_uex = prove_store("Quo_fun",
-e0
-(easy to prove unique since the "main" uses P2fun', can use unique P2fun_uex)
-(form_goal
-“!A B f:A->B r1:A~>A r2:B~>B
- Q1 Q2 i1:Q1->Pow(A) i2:Q2->Pow(B). 
+“!A B f:A->B r1:A*A->1+1 r2:B*B->1+1
+ Q1 Q2 i1:Q1->Exp(A,1+1) i2:Q2->Exp(B,1+1). 
  ER(r1) & ER(r2) & resp(f,r1,r2) & Inj(i1) & Inj(i2) &
  Quo(r1,i1) & Quo(r2,i2) ==>
  ?!qf: Q1-> Q2.
- !q1:mem(Q1). Holds(rext(f,r1,r2),App(i1,q1),App(i2 o qf,q1)) ”))
-*)
+ !q1:1->Q1. Holds(rext(f,r1,r2),i1 o q1,i2 o qf o q1) ”))
+
 
 
 val Inj_Quo_Z = prove_store("Inj_Quo_Z",
@@ -639,20 +688,6 @@ e0
 
 
 
-(*
- (redepth_fconv no_conv exists_cross_fconv)
- “∃a:mem(A) b:mem(B) b':mem(A * B) b'':mem(A  * B). P(a,b,b',b'')”
-
-ispositive: 
-
-(N * N) -> Bool
-
-Z -> bool
-
-<= 
-define relations
-*)
-
 
 val main_addz = 
 Quo_fun |> qspecl [‘(N * N) * (N * N)’,‘N * N’,
@@ -662,21 +697,12 @@ Quo_fun |> qspecl [‘(N * N) * (N * N)’,‘N * N’,
                 ‘ipow2(iZ,iZ)’,‘iZ’]
         |> conv_rule (depth_fconv no_conv forall_cross_fconv)
         |> C mp addz_conds
+        |> uex2ex_rule
         |> qSKOLEM "addz" []
-        |> qspecl [‘z1:mem(Z)’,‘z2:mem(Z)’]
-        |> rewr_rule[rext_def,App_App_o,GSYM IN_EXT_iff,IN_rsi] 
+        |> qspecl [‘z1:1->Z’,‘z2:1->Z’]
+        |> rewr_rule[rext_def,GSYM IN_EXT,IN_rsi] 
 
 
-
-
-(*CANNOT GET ALL forall_cross_fconv expanded...
-  BUT ANYWAY GET UGLY VAR NAMES...
-  NEED TO RENAME BY HAND anyway,
-  therefore doing it by hand as follows...
-*)
-
-
-(*TODO: let genvar not add "'" but add numbers *)
 val main_addz1 = proved_th $
 e0
 (strip_assume_tac main_addz >>
@@ -686,20 +712,20 @@ e0
  qsspecl_then [‘a34’] (x_choosel_then ["a3","a4"] assume_tac) Pair_has_comp >>
  once_arw[] >> qexistsl_tac [‘a1’,‘a2’,‘a3’,‘a4’,‘b1’,‘b2’] >>
  arw[] >>
- qsuff_tac ‘Pair(Pair(a1, a2), Pair(a3, a4))  = a & Pair(b1,b2) = b’ 
- >-- (qpick_x_assum ‘App(addf0, a) = b’ mp_tac >>
+ qsuff_tac ‘Pa(Pa(a1, a2), Pa(a3, a4))  = a & Pa(b1,b2) = b’ 
+ >-- (qpick_x_assum ‘addf0 o  a = b’ mp_tac >>
       pop_assum_list (K all_tac) >> rpt strip_tac >> arw[]) >> 
  arw[])
 (form_goal
  “?a1 a2 a3 a4 b1 b2.
      (!x1 x2 x3 x4.
-            IN(Pair(Pair(x1,x2),Pair(x3,x4)), 
-               App(ipow2(iZ, iZ), Pair(z1, z2))) <=>
-            Holds(prrel(ZR, ZR), Pair(Pair(a1,a2),Pair(a3,a4)), Pair(Pair(x1,x2),Pair(x3,x4)))) &
+            IN(Pa(Pa(x1,x2),Pa(x3,x4)), 
+               ipow2(iZ, iZ) o Pa(z1, z2)) <=>
+            Holds(prrel(ZR, ZR), Pa(Pa(a1,a2),Pa(a3,a4)), Pa(Pa(x1,x2),Pa(x3,x4)))) &
         (!n1 n2.
-            IN(Pair(n1,n2), App(iZ, App(addz, Pair(z1, z2)))) <=> 
-            Holds(ZR, Pair(b1,b2), Pair(n1,n2))) &
-        App(addf0, Pair(Pair(a1,a2),Pair(a3,a4))) = Pair(b1,b2)”)
+            IN(Pa(n1,n2), iZ o addz o Pa(z1, z2)) <=> 
+            Holds(ZR, Pa(b1,b2), Pa(n1,n2))) &
+        addf0 o Pa(Pa(a1,a2),Pa(a3,a4)) = Pa(b1,b2)”)
 |> rewr_rule[ipow2_def,prrel_def,GSYM IN_rsi]
 
 
@@ -707,25 +733,25 @@ e0
 val iZ_nonempty = prove_store("iZ_nonempty",
 e0
 (strip_tac >> strip_assume_tac Z_def >> 
- qsuff_tac ‘∃n. App(iZ,z) = rsi(ZR,n)’ 
+ qsuff_tac ‘∃n. iZ o z = rsi(ZR,n)’ 
  >-- (strip_tac >> arw[] >> qexists_tac ‘n’ >> irule ER_rsi_nonempty >>
      rw[ZR_ER]) >>
  first_x_assum (irule o iffRL) >> qexists_tac ‘z’ >> rw[])
-(form_goal “∀z. ∃ab. IN(ab,App(iZ,z))”));
+(form_goal “∀z. ∃ab. IN(ab,iZ o z)”));
 
 val main_addz2 = proved_th $
 e0
 (strip_assume_tac main_addz1 >>
  qexistsl_tac [‘a1’,‘a2’,‘a3’,‘a4’,‘b1’,‘b2’] >>
- qby_tac ‘App(iZ,z1) = rsi(ZR,Pair(a1,a2)) & App(iZ,z2) = rsi(ZR,Pair(a3,a4))’ 
+ qby_tac ‘iZ o z1 = rsi(ZR,Pa(a1,a2)) & iZ o z2 = rsi(ZR,Pa(a3,a4))’ 
  >-- (irule Pow_conj_eq >> rw[iZ_nonempty] >> 
      depth_fconv_tac no_conv forall_cross_fconv >> arw[]) >>
- arw[] >> rw[GSYM IN_EXT_iff] >> fconv_tac forall_cross_fconv >> arw[])
+ arw[] >> rw[GSYM IN_EXT] >> fconv_tac forall_cross_fconv >> arw[])
 (form_goal
  “∃a1 a2 a3 a4 b1 b2.
-  App(iZ,z1) = rsi(ZR,Pair(a1,a2)) & App(iZ,z2) = rsi(ZR,Pair(a3,a4)) &
-  App(iZ,App(addz,Pair(z1,z2))) = rsi(ZR,Pair(b1,b2)) &
-  App(addf0, Pair(Pair(a1, a2), Pair(a3, a4))) = Pair(b1, b2)”)
+  iZ o z1 = rsi(ZR,Pa(a1,a2)) & iZ o z2 = rsi(ZR,Pa(a3,a4)) &
+  iZ o addz o Pa(z1,z2) = rsi(ZR,Pa(b1,b2)) &
+  addf0 o Pa(Pa(a1, a2), Pa(a3, a4)) = Pa(b1, b2)”)
 
 
 val main_addz3 = main_addz2 |> rewr_rule[addf0_def] 
@@ -739,34 +765,39 @@ e0
  first_x_assum (irule o iffLR) >> uex_tac >>
  qexists_tac ‘q’ >> rw[] >> fs[Inj_def] >> rpt strip_tac >>
  first_x_assum irule >> arw[])
-(form_goal “∀A r:A~>A Q i:Q->Pow(A). Inj(i) & Quo(r,i) ⇒
- ∀q.∃a. App(i,q) = rsi(r,a)”));
+(form_goal “∀A r:A*A->1+1 Q i:Q->Exp(A,1+1). Inj(i) & Quo(r,i) ⇒
+ ∀q.∃a. i o q = rsi(r,a)”));
 
 val Z_has_rep = prove_store("Z_has_rep",
 e0
 (assume_tac Inj_Quo_Z >> drule Inj_Quo_rep >>
  pop_assum (assume_tac o (conv_rule (depth_fconv no_conv exists_cross_fconv)))>>
  arw[] )
-(form_goal “∀z. ∃n1 n2. App(iZ,z) = rsi(ZR,Pair(n1,n2))”));
+(form_goal “∀z. ∃n1 n2. iZ o z = rsi(ZR,Pa(n1,n2))”));
 
 
-val Addz_def = qdefine_fsym ("Addz",[‘z1:mem(Z)’,‘z2:mem(Z)’])
-                            ‘App(addz,Pair(z1,z2))’
+val Addz_def = qdefine_fsym ("Addz",[‘z1:1->Z’,‘z2:1->Z’])
+                            ‘addz o Pa(z1,z2)’
                             |> gen_all |> store_as "Addz_def";
 
-val Repz_def = qdefine_fsym ("Repz",[‘z:mem(Z)’])
-                            ‘App(iZ,z)’
+val _ = new_fsym2IL1("Addz",rastt "addz")
+
+val Repz_def = qdefine_fsym ("Repz",[‘z:1->Z’])
+                            ‘iZ o z’
                             |> gen_all |> store_as "Repz_def";
 
-
+val _ = new_fsym2IL1("Repz",rastt "iZ")
 
 val Repz_rsi = Z_has_rep |> rewr_rule[GSYM Repz_def] 
                          |> store_as "Repz_rsi";
 
 (*ZR class*)
-val ZC_def = qdefine_fsym ("ZC",[‘ab:mem(N * N)’])
+val ZC_def = qdefine_fsym ("ZC",[‘ab:1->N * N’])
                             ‘rsi(ZR,ab)’
                             |> gen_all |> store_as "ZC_def";
+
+
+
 
 val Repz_ZC = Z_has_rep |> rewr_rule[GSYM Repz_def,GSYM ZC_def] 
                          |> store_as "Repz_ZC";
@@ -788,16 +819,16 @@ e0
  qsspecl_then [‘z1’,‘z2’] strip_assume_tac Addz_char0 >>
  arw[ZC_ZR] >> pop_assum (assume_tac o GSYM) >> arw[] >>
  assume_tac addf0_resp >> fs[resp_def,prrel_def] >>
- first_x_assum (qsspecl_then [‘Pair(Pair(a1',a2'),Pair(a3',a4'))’,
-               ‘Pair(Pair(a1,a2),Pair(a3,a4))’] assume_tac)  >>
+ first_x_assum (qsspecl_then [‘Pa(Pa(a1',a2'),Pa(a3',a4'))’,
+               ‘Pa(Pa(a1,a2),Pa(a3,a4))’] assume_tac)  >>
  fs[addf0_def] >> first_x_assum irule >>
  arw[prrel_def,GSYM ZC_ZR])
 (form_goal
  “∀z1 a1 a2.
-  Repz(z1) = ZC(Pair(a1,a2)) ⇒
+  Repz(z1) = ZC(Pa(a1,a2)) ⇒
   ∀z2 a3 a4. 
-  Repz(z2) = ZC(Pair(a3,a4)) ⇒
-  Repz(Addz(z1,z2)) = ZC(Pair(Add(a1, a3), Add(a2, a4)))”));
+  Repz(z2) = ZC(Pa(a3,a4)) ⇒
+  Repz(Addz(z1,z2)) = ZC(Pa(Add(a1, a3), Add(a2, a4)))”));
 
 val Repz_eq_eq = iZ_eq_eq |> rewr_rule[GSYM Repz_def] |> store_as "Repz_eq_eq";
 
@@ -809,23 +840,18 @@ val Repz_eq_ZR = rsi_eq_ER |> qsspecl [‘ZR’] |> C mp ZR_ER
 
 val eq_ZR = prove_store("eq_ZR",
 e0
-(rpt strip_tac >> assume_tac ZR_Refl >> fs[Refl_def])
+(rpt strip_tac >> assume_tac ZR_REFL >> fs[REFL_def])
 (form_goal
  “!a b. a = b ==> Holds(ZR,a,b)”));
 
 val Addz_comm = prove_store("Addz_comm",
 e0
-((*qby_tac
- ‘∀a b c d. 
-  Holds(ZR,App(addf0,Pair(Pair(a,b),Pair(c,d))),
-           App(addf0,Pair(Pair(c,d),Pair(a,b))))’
- >-- cheat >> do not need it, but an option *)
- rpt strip_tac >> irule Repz_eq_eq >> rpt strip_tac >>
+(rpt strip_tac >> irule Repz_eq_eq >> rpt strip_tac >>
  qsspecl_then [‘z1’] (x_choosel_then ["a","b"] assume_tac) Repz_ZC >>
  qsspecl_then [‘z2’] (x_choosel_then ["c","d"] assume_tac) Repz_ZC >>
- qby_tac ‘Repz(Addz(z1, z2)) = ZC(Pair(Add(a, c), Add(b, d)))’
+ qby_tac ‘Repz(Addz(z1, z2)) = ZC(Pa(Add(a, c), Add(b, d)))’
  >-- (irule Addz_char >> arw[]) >>
- qby_tac ‘Repz(Addz(z2, z1)) = ZC(Pair(Add(c, a), Add(d, b)))’
+ qby_tac ‘Repz(Addz(z2, z1)) = ZC(Pa(Add(c, a), Add(d, b)))’
  >-- (irule Addz_char >> arw[]) >>
  arw[] >> rw[ZC_ZR] >> 
  qsuff_tac ‘Add(a,c) = Add(c,a) & Add(b,d) = Add(d,b)’ 
@@ -836,15 +862,16 @@ e0
 
 
 
-val negf0_def = fun_tm_compr (dest_var $ rastt "mn:mem(N * N)")
-                         (rastt "Pair(Snd(mn:mem(N * N)),Fst(mn))") |> qSKOLEM "negf0" []
-      |> store_as "negf0_def";
+val negf0_def = qdefine_fsym("negf0",[])
+‘Swap(N,N)’ |> gen_all
 
 
-val negf0_def1 = 
-    negf0_def |> qspecl [‘Pair(m:mem(N),n:mem(N))’]
-              |> rewr_rule[Pair_def']
-              |> gen_all |> store_as "negf0_def1";
+
+val negf0_def1 = proved_th $
+e0
+(rw[Swap_Pa,negf0_def])
+(form_goal “!m:1->N n. negf0 o Pa(m,n)= Pa(n,m)”)
+|> store_as "negf0_def1";
 
 
 
@@ -860,13 +887,14 @@ Quo_fun |> qspecl [‘N * N’,‘N * N’,
                 ‘Z’,‘Z’,
                 ‘iZ’,‘iZ’]
         |> rewr_rule[Inj_Quo_Z,ZR_ER,negf0_resp]
+        |> uex2ex_rule
         |> qSKOLEM "negz" []
-        |> qspecl [‘z:mem(Z)’]
-        |> rewr_rule[rext_def,App_App_o,GSYM Repz_def,GSYM ZC_def] 
+        |> qspecl [‘z:1->Z’]
+        |> rewr_rule[rext_def,GSYM Repz_def,GSYM ZC_def] 
 
 
-val Negz_def = qdefine_fsym ("Negz",[‘z:mem(Z)’])
-                            ‘App(negz,z)’
+val Negz_def = qdefine_fsym ("Negz",[‘z:1->Z’])
+                            ‘negz o z’
                             |> gen_all |> store_as "Negz_def";
 
 val main_negz1 = proved_th $ 
@@ -878,7 +906,7 @@ e0
  qexistsl_tac [‘a1’,‘a2’] >> arw[] >>
  fs[negf0_def1])
 (form_goal “?a1 a2.
- Repz(z) = ZC(Pair(a1,a2)) & Repz(App(negz, z)) = ZC(Pair(a2,a1))”)
+ Repz(z) = ZC(Pa(a1,a2)) & Repz(negz o z) = ZC(Pa(a2,a1))”)
 |> rewr_rule[GSYM Negz_def]
 
 val Negz_char = prove_store("Neg_char",
@@ -887,33 +915,51 @@ e0
  strip_assume_tac main_negz1 >> arw[ZC_ZR] >>
  assume_tac negf0_resp >>
  fs[resp_def] >>
- first_x_assum (qsspecl_then [‘Pair(a,b)’,‘Pair(a1,a2)’] assume_tac) >>
- fs[negf0_def,Pair_def'] >>
- assume_tac ZR_ER >> fs[ER_def,Sym_def] >> first_x_assum irule >>
+ first_x_assum (qsspecl_then [‘Pa(a,b)’,‘Pa(a1,a2)’] assume_tac) >>
+ fs[negf0_def1,Pair_def'] >>
+ assume_tac ZR_ER >> fs[ER_def,SYM_def] >> first_x_assum irule >>
  first_x_assum irule >>
- qpick_x_assum ‘ZC(Pair(a1, a2)) = ZC(Pair(a, b))’ (assume_tac o GSYM) >>
+ qpick_x_assum ‘ZC(Pa(a1, a2)) = ZC(Pa(a, b))’ (assume_tac o GSYM) >>
  fs[ZC_ZR])
-(form_goal “!z a b. Repz(z) = ZC(Pair(a,b)) ==>
- Repz(Negz(z)) = ZC(Pair(b,a))”));
+(form_goal “!z a b. Repz(z) = ZC(Pa(a,b)) ==>
+ Repz(Negz(z)) = ZC(Pa(b,a))”));
 
 
 local 
-val l = P2fun' |> qspecl [‘(N * N) * N * N’,‘N * N’]
-       |> fVar_sInst_th “P(abcd:mem((N * N) * N * N),mn:mem(N * N))”
-                        “mn  = Pair(Add(Mul(Fst(Fst(abcd)),Fst(Snd(abcd))),
+val mulf0IL_def = define_fsym("mulf0IL",[])
+(qform2IL [‘abcd:1->(N * N) * N * N’,‘mn:1->N * N’]
+   ‘mn  = Pa(Add(Mul(Fst(Fst(abcd)),Fst(Snd(abcd))),
       Mul(Snd(Fst(abcd)),Snd(Snd(abcd)))),Add(Mul(Fst(Fst(abcd)),Snd(Snd(abcd))),
-      Mul(Snd(Fst(abcd)),Fst(Snd(abcd)))))”
-       |> conv_rule (depth_fconv no_conv forall_cross_fconv) 
-       |> conv_rule (basic_fconv no_conv forall_cross_fconv) 
-       |> rewr_rule[Pair_def']
+      Mul(Snd(Fst(abcd)),Fst(Snd(abcd)))))’)
+val mulf0IL_l =  proved_th $
+e0
+(fconv_tac (basic_fconv no_conv forall_cross_fconv) >>
+ rpt strip_tac >> rw[mulf0IL_def,Holds_def] >>
+ rw[o_assoc,Eq_property_TRUE,Pa_distr,p12_of_Pa] >>
+ rw[Pair_def'] >>
+ rw[Mul_def,Add_def])
+(form_goal
+ “!abcd:1->(N * N) * N * N mn:1->N * N.
+  Holds(mulf0IL,abcd,mn)<=>
+  mn  = Pa(Add(Mul(Fst(Fst(abcd)),Fst(Snd(abcd))),
+      Mul(Snd(Fst(abcd)),Snd(Snd(abcd)))),Add(Mul(Fst(Fst(abcd)),Snd(Snd(abcd))),
+      Mul(Snd(Fst(abcd)),Fst(Snd(abcd)))))”);
+val l =
+ P2fun' |> qspecl [‘(N * N) * N * N’,‘N * N’]
+        |> qspecl [‘mulf0IL’]
+        |> conv_rule (depth_fconv no_conv forall_cross_fconv) 
+        |> conv_rule (basic_fconv no_conv forall_cross_fconv) 
+        |> rewr_rule[mulf0IL_l]
+        |> rewr_rule[Pair_def']
 in    
 val mulf0_def = proved_th $
 e0
 (irule l >> rpt strip_tac >> uex_tac >>
- qexists_tac ‘Pair(Add(Mul(a', a), Mul(b, b'')), Add(Mul(a', b''), Mul(b, a)))’ >> rw[])
-(form_goal “?f:(N * N) * N * N -> N * N. 
- !a b c d. App(f,Pair(Pair(a,b),Pair(c,d))) = 
- Pair(Add(Mul(a,c),Mul(b,d)),Add(Mul(a,d),Mul(b,c)))”)
+ qexists_tac ‘Pa(Add(Mul(a', a), Mul(b, b'')), Add(Mul(a', b''), Mul(b, a)))’ >> rw[])
+(form_goal “?!f:(N * N) * N * N -> N * N. 
+ !a b c d. f o Pa(Pa(a,b),Pa(c,d)) = 
+ Pa(Add(Mul(a,c),Mul(b,d)),Add(Mul(a,d),Mul(b,c)))”)
+|> uex2ex_rule
 |> qSKOLEM "mulf0" []
 |> store_as "mulf0_def";
 end
@@ -932,9 +978,10 @@ Quo_fun |> qspecl [‘(N * N) * (N * N)’,‘N * N’,
                 ‘ipow2(iZ,iZ)’,‘iZ’]
         |> rewr_rule[addz_conds,mulf0_resp]
         |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+        |> uex2ex_rule
         |> qSKOLEM "mulz" []
-        |> qspecl [‘z1:mem(Z)’,‘z2:mem(Z)’]
-        |> rewr_rule[rext_def,App_App_o,GSYM IN_EXT_iff,IN_rsi] 
+        |> qspecl [‘z1:1->Z’,‘z2:1->Z’]
+        |> rewr_rule[rext_def,GSYM IN_EXT,IN_rsi] 
 
 
 
@@ -948,20 +995,20 @@ e0
  qsspecl_then [‘a34’] (x_choosel_then ["a3","a4"] assume_tac) Pair_has_comp >>
  once_arw[] >> qexistsl_tac [‘a1’,‘a2’,‘a3’,‘a4’,‘b1’,‘b2’] >>
  arw[] >>
- qsuff_tac ‘Pair(Pair(a1, a2), Pair(a3, a4))  = a & Pair(b1,b2) = b’ 
- >-- (qpick_x_assum ‘App(mulf0, a) = b’ mp_tac >>
-      pop_assum_list (K all_tac) >> rpt strip_tac >> arw[]) >> 
+ qsuff_tac ‘Pa(Pa(a1, a2), Pa(a3, a4))  = a & Pa(b1,b2) = b’ 
+ >-- (qpick_x_assum ‘mulf0 o a = b’ mp_tac >>
+      pop_assum_list (K all_tac) >> rpt strip_tac >> arw[]) >>
  arw[])
 (form_goal
  “?a1 a2 a3 a4 b1 b2.
      (!x1 x2 x3 x4.
-            IN(Pair(Pair(x1,x2),Pair(x3,x4)), 
-               App(ipow2(iZ, iZ), Pair(z1, z2))) <=>
-            Holds(prrel(ZR, ZR), Pair(Pair(a1,a2),Pair(a3,a4)), Pair(Pair(x1,x2),Pair(x3,x4)))) &
+            IN(Pa(Pa(x1,x2),Pa(x3,x4)), 
+               ipow2(iZ, iZ) o Pa(z1, z2)) <=>
+            Holds(prrel(ZR, ZR), Pa(Pa(a1,a2),Pa(a3,a4)), Pa(Pa(x1,x2),Pa(x3,x4)))) &
         (!n1 n2.
-            IN(Pair(n1,n2), App(iZ, App(mulz, Pair(z1, z2)))) <=> 
-            Holds(ZR, Pair(b1,b2), Pair(n1,n2))) &
-        App(mulf0, Pair(Pair(a1,a2),Pair(a3,a4))) = Pair(b1,b2)”)
+            IN(Pa(n1,n2), iZ o mulz o Pa(z1, z2)) <=> 
+            Holds(ZR, Pa(b1,b2), Pa(n1,n2))) &
+        mulf0 o Pa(Pa(a1,a2),Pa(a3,a4)) = Pa(b1,b2)”)
 |> rewr_rule[ipow2_def,prrel_def,GSYM IN_rsi]
 
 
@@ -970,15 +1017,15 @@ val main_mulz2 = proved_th $
 e0
 (strip_assume_tac main_mulz1 >>
  qexistsl_tac [‘a1’,‘a2’,‘a3’,‘a4’,‘b1’,‘b2’] >>
- qby_tac ‘App(iZ,z1) = rsi(ZR,Pair(a1,a2)) & App(iZ,z2) = rsi(ZR,Pair(a3,a4))’ 
+ qby_tac ‘iZ o z1 = rsi(ZR,Pa(a1,a2)) & iZ o z2 = rsi(ZR,Pa(a3,a4))’ 
  >-- (irule Pow_conj_eq >> rw[iZ_nonempty] >> 
      depth_fconv_tac no_conv forall_cross_fconv >> arw[]) >>
- arw[] >> rw[GSYM IN_EXT_iff] >> fconv_tac forall_cross_fconv >> arw[])
+ arw[] >> rw[GSYM IN_EXT] >> fconv_tac forall_cross_fconv >> arw[])
 (form_goal
  “∃a1 a2 a3 a4 b1 b2.
-  App(iZ,z1) = rsi(ZR,Pair(a1,a2)) & App(iZ,z2) = rsi(ZR,Pair(a3,a4)) &
-  App(iZ,App(mulz,Pair(z1,z2))) = rsi(ZR,Pair(b1,b2)) &
-  App(mulf0, Pair(Pair(a1, a2), Pair(a3, a4))) = Pair(b1, b2)”)
+  iZ o z1 = rsi(ZR,Pa(a1,a2)) & iZ o z2 = rsi(ZR,Pa(a3,a4)) &
+  iZ o mulz o Pa(z1,z2) = rsi(ZR,Pa(b1,b2)) &
+  mulf0 o Pa(Pa(a1, a2), Pa(a3, a4)) = Pa(b1, b2)”)
  
 
 
@@ -988,8 +1035,8 @@ val main_mulz3 = main_mulz2 |> rewr_rule[mulf0_def]
 
 
 
-val Mulz_def = qdefine_fsym ("Mulz",[‘z1:mem(Z)’,‘z2:mem(Z)’])
-                            ‘App(mulz,Pair(z1,z2))’
+val Mulz_def = qdefine_fsym ("Mulz",[‘z1:1->Z’,‘z2:1->Z’])
+                            ‘mulz o Pa(z1,z2)’
                             |> gen_all |> store_as "Mulz_def";
 
 
@@ -1007,34 +1054,31 @@ e0
  qsspecl_then [‘z1’,‘z2’] strip_assume_tac Mulz_char0 >>
  arw[ZC_ZR] >> pop_assum (assume_tac o GSYM) >> arw[] >>
  assume_tac mulf0_resp >> fs[resp_def,prrel_def] >>
- first_x_assum (qsspecl_then [‘Pair(Pair(a1',a2'),Pair(a3',a4'))’,
-               ‘Pair(Pair(a1,a2),Pair(a3,a4))’] assume_tac)  >>
+ first_x_assum (qsspecl_then [‘Pa(Pa(a1',a2'),Pa(a3',a4'))’,
+               ‘Pa(Pa(a1,a2),Pa(a3,a4))’] assume_tac)  >>
  fs[mulf0_def] >> first_x_assum irule >>
  arw[prrel_def,GSYM ZC_ZR])
 (form_goal
  “∀z1 a1 a2.
-  Repz(z1) = ZC(Pair(a1,a2)) ⇒
+  Repz(z1) = ZC(Pa(a1,a2)) ⇒
   ∀z2 a3 a4. 
-  Repz(z2) = ZC(Pair(a3,a4)) ⇒
+  Repz(z2) = ZC(Pa(a3,a4)) ⇒
   Repz(Mulz(z1,z2)) = 
-  ZC(Pair(Add(Mul(a1, a3), Mul(a2, a4)),
+  ZC(Pa(Add(Mul(a1, a3), Mul(a2, a4)),
           Add(Mul(a1, a4), Mul(a2, a3))))”));
 
-(*can obtain an abs function, not from set of eq classes:
-rep :Z -> Pow(N * N) if to N * N, then use choice
-abs: N * N ->Z, if from Pow(N * N), then ill-behaved on non-eqcs.*)
 val ZC_Repz = prove_store("ZC_Repz",
 e0
 (rpt strip_tac >> strip_assume_tac Z_def >>
  fs[GSYM Repz_def,GSYM ZC_def] >> 
- qby_tac ‘?n.  ZC(Pair(a, b)) = ZC(n)’ 
- >-- (qexists_tac ‘Pair(a,b)’ >> rw[]) >>
+ qby_tac ‘?n.  ZC(Pa(a, b)) = ZC(n)’ 
+ >-- (qexists_tac ‘Pa(a,b)’ >> rw[]) >>
  first_x_assum (drule o iffLR) >>
  pop_assum strip_assume_tac >> uex_tac >>
  qexists_tac ‘b'’ >> arw[] >> rpt strip_tac >> irule Repz_eq_eq >>
  arw[])
 (form_goal
- “!a b.?!z. Repz(z) = ZC(Pair(a,b))”));
+ “!a b.?!z. Repz(z) = ZC(Pa(a,b))”));
 
 
 val ZC_Repz' = prove_store("ZC_Repz'",
@@ -1045,30 +1089,36 @@ e0
 (form_goal
  “!ab.?!z. Repz(z) = ZC(ab)”));
 
-val absz_def = P2fun |> qspecl [‘N * N’,‘Z’] 
-                   |> fVar_sInst_th “P(ab:mem(N * N),y:mem(Z))”
-                      “Repz(y) = ZC(ab)”
-                   |> conv_rule (top_depth_fconv no_conv forall_cross_fconv)
-                   |> C mp ZC_Repz
-                   |> qSKOLEM "absz" []
-                   |> store_as "absz_def";
+val _ = new_fsym2IL1("ZC",rastt "Rsi(ZR)")
 
-val Absz_def = qdefine_fsym ("Absz",[‘ab:mem(N * N)’])
-                            ‘App(absz,ab)’
+val absz_def = 
+    P2fun |> qspecl [‘N * N’,‘Z’] 
+          |> specl[qform2IL [‘ab:1->N * N’,‘y:1->Z’]
+                     ‘Repz(y) = ZC(ab)’]
+          |> rewr_rule[Holds_def,Pa_distr,p12_of_Pa,o_assoc,
+                       Eq_property_TRUE,
+                       GSYM Repz_def,GSYM ZC_def,GSYM rsi_def]
+          |> conv_rule (top_depth_fconv no_conv forall_cross_fconv)
+          |> C mp ZC_Repz
+          |> qSKOLEM "absz" []
+          |> store_as "absz_def";
+
+val Absz_def = qdefine_fsym ("Absz",[‘ab:1->N * N’])
+                            ‘absz o ab’
                             |> gen_all |> store_as "Absz_def";
 
 
-val Asz_def = qdefine_fsym ("Asz",[‘a:mem(N)’,‘b:mem(N)’])
-                            ‘Absz(Pair(a,b))’
+val Asz_def = qdefine_fsym ("Asz",[‘a:1->N’,‘b:1->N’])
+                            ‘Absz(Pa(a,b))’
                             |> gen_all |> store_as "Asz_def";
 
 
-val Zc_def = qdefine_fsym ("Zc",[‘a:mem(N)’,‘b:mem(N)’])
-                            ‘ZC(Pair(a,b))’
+val Zc_def = qdefine_fsym ("Zc",[‘a:1->N’,‘b:1->N’])
+                            ‘ZC(Pa(a,b))’
                             |> gen_all |> store_as "Zc_def";
 
 
-val Absz_Repz = absz_def |> qspecl [‘a:mem(N)’,‘b:mem(N)’,‘Absz(Pair(a,b))’]
+val Absz_Repz = absz_def |> qspecl [‘a:1->N’,‘b:1->N’,‘Absz(Pa(a,b))’]
                          |> rewr_rule[GSYM Absz_def]
                          |> gen_all |> store_as "Absz_Repz";
 
@@ -1153,7 +1203,9 @@ e0
  rw[Addz_Asz] >> rpt strip_tac >> rw[Add_assoc])
 (form_goal “!z1 z2 z3. Addz(Addz(z1,z2),z3) = Addz(z1,Addz(z2,z3))”));
 
-(*[a,b]+0Z=[a,b]*)
+
+
+(*
 val casesz = prove_store("casesz",
 e0
 (dimp_tac >> rpt strip_tac (* 2 *)
@@ -1161,19 +1213,18 @@ e0
      arw[]) >>
  arw[])
 (form_goal “(!a b. P(Asz(a,b))) <=> (!z:mem(Z). P(z))”));
+
+maybe not a good choice since need to build IL, better choose Asz by hand, use cases_z instead
+*)
+
 (*not such easy to apply since there maybe many vars, need a conv for this*)
 
-fun casez_tac (ct,asl,w) : goal list * validation = 
-    let val (zv as (zn,zs),b) = dest_forall w
-        val th = casesz |> fVar_sInst_th 
-                         (mk_fvar "P" [mk_var zv]) b
-        val new = th |> concl |> dest_dimp |> #1
-    in ([(ct,asl,new)],fn [th0] => dimp_mp_l2r th0 th)
-    end
-  
+ (*[a,b]+0Z=[a,b]*)
 val Addz_Oz = prove_store("Addz_Oz",
 e0
-(casez_tac >> rw[Oz_def,Addz_Asz,Add_O])
+(strip_tac >>
+ qsspecl_then [‘z’] strip_assume_tac cases_z >>
+arw[Oz_def,Addz_Asz,Add_O])
 (form_goal “!z. Addz(z,Oz) = z”));
 
 val Asz_eq_ZR = prove_store("Asz_eq_ZR",
@@ -1182,13 +1233,15 @@ e0
  strip_tac
  >-- arw[GSYM Asz_Repz]  >>
  irule Repz_eq_eq >> arw[Asz_Repz])
-(form_goal “!a b c d. Asz(a,b) = Asz(c,d) <=> Holds(ZR,Pair(a,b),Pair(c,d))”));
+(form_goal “!a b c d. Asz(a,b) = Asz(c,d) <=> Holds(ZR,Pa(a,b),Pa(c,d))”));
 
 (*[a,b]+(−[a,b])=0Z*)
 
 val Addz_Negz_Oz = prove_store("Addz_Negz_Oz",
 e0
-(casez_tac >> rw[Negz_Asz,Addz_Asz,Oz_def] >> rpt strip_tac >>
+(strip_tac >>
+ qspecl_then [‘z’] strip_assume_tac cases_z >> arw[] >> 
+ rw[Negz_Asz,Addz_Asz,Oz_def] >> rpt strip_tac >>
  rw[Asz_eq_ZR] >> rw[ZR_def,Add_O,Add_O2] >>
  qspecl_then [‘a’,‘b’] assume_tac Add_comm >> arw[])
 (form_goal “!z. Addz(z,Negz(z)) = Oz”));
@@ -1204,7 +1257,7 @@ e0
  >-- cheat >>
  rpt strip_tac >> 
  rw[Mulz_Asz,Asz_eq_ZR,LEFT_DISTR,RIGHT_DISTR,Mul_assoc,GSYM Add_assoc] >>
- irule eq_ZR >> rw[Pair_eq_eq] >> strip_tac (* 2 *)
+ irule eq_ZR >> rw[Pa_eq_eq] >> strip_tac (* 2 *)
  >-- cheat >> 
  cheat (*tedious*) )
 (form_goal “!z1 z2 z3. Mulz(Mulz(z1,z2),z3) = Mulz(z1,Mulz(z2,z3))”));
@@ -1231,8 +1284,9 @@ e0
 
 val Mulz_Ez = prove_store("Mulz_Ez",
 e0
-(casez_tac >> 
- rw[Ez_def,En_def,Mulz_Asz,Mul_RIGHT_1,Mul_LEFT_O,Mul_clauses,
+(strip_tac >>
+ qspecl_then [‘z’] strip_assume_tac cases_z >> 
+ arw[Ez_def,En_def,Mulz_Asz,Mul_RIGHT_1,Mul_LEFT_O,Mul_clauses,
     Add_O,Add_O2])
 (form_goal “!z. Mulz(z,Ez) = z”));
 
@@ -1254,38 +1308,52 @@ e0
 
 (*[a,b]≤[c,d] ⇔ a+d≤b+c (⇔ ⟨a,b⟩≤⟨c,d⟩).*)
 
-val le0_def = qdefine_psym ("le0",[‘ab:mem(N * N)’,‘cd:mem(N * N)’])
+val le0_def = qdefine_psym ("le0",[‘ab:1->N * N’,‘cd:1->N * N’])
 ‘Le(Add(Fst(ab),Snd(cd)),Add(Snd(ab),Fst(cd)))’
 |> gen_all |> conv_rule (depth_fconv no_conv forall_cross_fconv)
 |> rewr_rule[Pair_def'] |> store_as "le0_def"; 
 
 
-val Lez_def = qdefine_psym ("Lez",[‘z1:mem(Z)’,‘z2:mem(Z)’])
+val Lez_def = qdefine_psym ("Lez",[‘z1:1->Z’,‘z2:1->Z’])
 ‘!a b c d.Repz(z1) = Zc(a,b) & Repz(z2) = Zc(c,d) ==>
  Le(Add(a,d),Add(b,c))’ |> gen_all |> store_as "Lez_def";
 
-val LEz_def = AX1 |> qspecl [‘Z’,‘Z’] |> fVar_sInst_th “P(a:mem(Z),b:mem(Z))”
-                  “Lez(a,b)”
-                  |> uex2ex_rule |> qSKOLEM "LEz" []
-                  |> store_as "LEz_def";
+val LEz_def0 = define_fsym("LEz",[])
+(qform2IL [‘z1:1->Z’,‘z2:1->Z’] 
+  ‘!a b c d.Repz(z1) = ZC(Pa(a,b)) & Repz(z2) = ZC(Pa(c,d)) ==>
+ Le(Add(a,d),Add(b,c))’)
 
-val LEz_Refl = prove_store("LEz_Refl",
+
+val LEz_def = prove_store("LEz_def",
 e0
-(rw[Refl_def,LEz_def,Lez_def] >>
+(rpt strip_tac >> rw[Holds_def,Lez_def] >>
+ rw[LEz_def] >>
+ rw[o_assoc,All_def,IMP_def,CONJ_def,Pa_distr] >>
+ rw[Eq_property_TRUE] >>
+ once_rw[p61_def,p62_def,p63_def,p64_def,p65_def,p66_def] >>
+ rw[p12_of_Pa,o_assoc,Pa_distr] >>
+ rw[GSYM rsi_def,GSYM Repz_def,Add_def,LE_Le,Zc_def,ZC_def])
+(form_goal
+ “!z1 z2.Holds(LEz,z1,z2) <=> Lez(z1,z2)”));
+
+
+val LEz_REFL = prove_store("LEz_REFL",
+e0
+(rw[REFL_def,LEz_def,Lez_def] >>
  rpt strip_tac >> 
  qsuff_tac ‘Add(a', d) = Add(b, c)’
  >-- (strip_tac >> arw[Le_refl]) >>
- qsuff_tac ‘Holds(ZR,Pair(a',b),Pair(c,d))’
+ qsuff_tac ‘Holds(ZR,Pa(a',b),Pa(c,d))’
  >-- (rw[ZR_def] >> strip_tac >> arw[] >>
       qspecl_then [‘b’,‘c’] assume_tac Add_comm >> arw[]) >>
  irule $ iffLR ZC_ZR >> fs[Zc_def])
-(form_goal “Refl(LEz)”));
+(form_goal “REFL(LEz)”));
 
 val Repz_Zc = rewr_rule[GSYM Zc_def] Repz_ZC |> store_as "Repz_Zc";
 
-val LEz_Trans = prove_store("LEz_Trans",
+val LEz_TRANS = prove_store("LEz_TRANS",
 e0
-(rw[Trans_def,LEz_def,Lez_def] >>
+(rw[TRANS_def,LEz_def,Lez_def] >>
  rpt strip_tac >> 
  qspecl_then [‘a2’] strip_assume_tac Repz_Zc >>
  first_x_assum (qspecl_then [‘n1’,‘n2’,‘c’,‘d’] assume_tac) >> rfs[] >>
@@ -1301,20 +1369,20 @@ e0
  fs[GSYM Add_assoc] >>
  qsspecl_then [‘Add(b, n1)’,‘Add(n2, c)’] assume_tac Add_comm >>*)
  cheat)
-(form_goal “Trans(LEz)”));
+(form_goal “TRANS(LEz)”));
 
 
-val LEz_Asym = prove_store("LEz_Asym",
+val LEz_ASYM = prove_store("LEz_ASYM",
 e0
-(rw[Asym_def,LEz_def,Lez_def] >>
+(rw[ASYM_def,LEz_def,Lez_def] >>
  rpt strip_tac >> cheat (*should easy  prove equal*))
-(form_goal “Asym(LEz)”));
+(form_goal “ASYM(LEz)”));
 
 
 
 
 
-val Total_def = qdefine_psym("Total",[‘R:A~>A’])
+val Total_def = qdefine_psym("Total",[‘R:A*A->1+1’])
 ‘!a b. Holds(R,a,b) | Holds(R,b,a)’ |> gen_all |> store_as "Total_def";
 
 val LEz_Total = prove_store("LEz_Total",

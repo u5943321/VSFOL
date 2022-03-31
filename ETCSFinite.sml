@@ -567,6 +567,16 @@ fun ind_with1 th =
  arw[] >> match_mp_tac th >>
  pop_assum (assume_tac o GSYM) >> arw[]
 
+
+val Cdr_Tp0_Cds = proved_th $
+e0
+(rw[Cdr_def] >> rpt strip_tac >>
+ qsuff_tac ‘IN(Pa(xs, n), Tp1(Tp0(Cds(X)))) <=> Tp0(Cds(X)) o Pa(xs, n) = TRUE’
+ >-- rw[Tp1_Tp0_inv] >>
+ rw[IN_Tp1])
+(form_goal “!xs n:1->N. Cdr(xs,n) <=> Tp0(Cds(X)) o Pa(xs,n) = TRUE”)
+
+
 val Cdr_Del_IL = proved_th $
 e0
 (exists_tac $ qform2IL [‘xs:1->Exp(X,1+1)’,‘n:1->N’] ‘Cdr(xs,n) & !x. IN(x,xs) ==> Cdr(Del(xs,x),Pre(n))’ >>
@@ -603,14 +613,6 @@ e0
 (form_goal
  “!X xs:1->Exp(X,1+1) n.Cdr(xs,n) ==> 
   Cdr(xs,n) & !x. IN(x,xs) ==> Cdr(Del(xs,x),Pre(n))”));
-
-val Cdr_Tp0_Cds = proved_th $
-e0
-(rw[Cdr_def] >> rpt strip_tac >>
- qsuff_tac ‘IN(Pa(xs, n), Tp1(Tp0(Cds(X)))) <=> Tp0(Cds(X)) o Pa(xs, n) = TRUE’
- >-- rw[Tp1_Tp0_inv] >>
- rw[IN_Tp1])
-(form_goal “!xs n:1->N. Cdr(xs,n) <=> Tp0(Cds(X)) o Pa(xs,n) = TRUE”)
 
 val E1_def1 = prove_store ("E1_def1",
 e0
