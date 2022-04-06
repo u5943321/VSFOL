@@ -369,11 +369,6 @@ e0
   (!a:1->A. P o a = TRUE <=> IN(a,s))”));
 
 
-|> qspecl [‘A * B’] 
-                               |> fVar_sInst_th “P(ab:mem(A * B))”
-                               “IN(Fst(ab),App(i1:Q1->Pow(A),Fst(aqbq))) & 
-                               IN(Snd(ab),App(i2:Q2->Pow(B),Snd(aqbq)))”
-
 val ipow2IL1_def =
 define_fsym("ipow2IL1",List.map (dest_var o rastt)
 ["i1:Q1->Exp(A,1+1)","i2:Q2->Exp(B,1+1)",
@@ -1327,7 +1322,7 @@ val LEz_def0 = define_fsym("LEz",[])
 val LEz_def = prove_store("LEz_def",
 e0
 (rpt strip_tac >> rw[Holds_def,Lez_def] >>
- rw[LEz_def] >>
+ rw[LEz_def0] >>
  rw[o_assoc,All_def,IMP_def,CONJ_def,Pa_distr] >>
  rw[Eq_property_TRUE] >>
  once_rw[p61_def,p62_def,p63_def,p64_def,p65_def,p66_def] >>

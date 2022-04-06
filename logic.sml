@@ -741,6 +741,9 @@ fun SKOLEM eth fname vl th =
 
 (*
 
+what should be the rule if also want it to deal with 
+no free var
+
 [v1,...,vn] |- ?a:srt(v1,...,vn);. T
 
 
