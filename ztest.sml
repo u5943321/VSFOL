@@ -1812,7 +1812,47 @@ val Total_def = qdefine_psym("Total",[‘R:A~>A’])
 
 val Lez_resp0 = prove_store("Lez_resp0",
 e0
-cheat
+(qsuff_tac
+ ‘!a b c d a' b' c' d'. Holds(ZR,Pair(a,b),Pair(a',b')) &
+ Holds(ZR,Pair(c,d),Pair(c',d')) ==> 
+ (Le(Add(a,d),Add(b,c)) <=> Le(Add(a',d'), Add(b',c')))’
+ >-- strip_tac >> arw[] >>
+ rpt strip_tac >> 
+ qsuff_tac 
+ ‘(Le(Add(a, d), Add(b, c)) <=> 
+  Le(Add(Add(a,d),Add(b',d')), Add(Add(b,c),Add(b',d')))) &
+  (Le(Add(Add(a,d),Add(b',d')), Add(Add(b,c),Add(b',d'))) <=> 
+  Le(Add(Add(a',d'),Add(b,d)), Add(Add(b',c'),Add(b,d)))) & 
+  (Le(Add(Add(a',d'),Add(b,d)), Add(Add(b',c'),Add(b,d))) <=> 
+ Le(Add(a',d'), Add(b',c')))’
+ >-- (rpt strip_tac >> arw[]) >> rpt strip_tac (* 3 *)
+ >-- rw[LESS_EQ_MONO_ADD_EQ]
+ >-- (qsuff_tac ‘Add(Add(a, d), Add(b', d')) = 
+                Add(Add(a', d'), Add(b, d)) & 
+                Add(Add(b, c), Add(b', d')) = 
+                Add(Add(b', c'), Add(b, d))’
+     >-- (strip_tac >> arw[]) >> strip_tac (* 2 *)
+     >-- (fs[ZR_def] >> qsspecl_then [‘Add(b',d')’,‘Add(a,d)’] 
+          assume_tac Add_comm >> arw[] >>
+          qsspecl_then [‘d'’,‘b'’] assume_tac Add_comm >> arw[] >>
+          rw[Add_assoc] >>
+          qsuff_tac ‘Add(Add(d', b'), a) = 
+                     Add(Add(a', d'), b)’
+          >-- (strip_tac >> arw[]) >>
+          qsspecl_then [‘d'’,‘a'’] assume_tac Add_comm >> arw[] >>
+          rw[GSYM Add_assoc] >> 
+          qsspecl_then [‘a’,‘b'’] assume_tac Add_comm >> arw[]) >>
+     fs[ZR_def] >>
+     qsspecl_then [‘Add(b',d')’,‘Add(b,c)’] assume_tac Add_comm >>
+     arw[] >> 
+     qsspecl_then [‘c’,‘b’] assume_tac Add_comm >> arw[] >>
+     qsspecl_then [‘d’,‘b’] assume_tac Add_comm >> arw[] >>
+     rw[Add_assoc] >>
+     qsuff_tac ‘Add(Add(b', d'), c) = Add(Add(b', c'), d)’ 
+     >-- (strip_tac >> arw[]) >>
+     rw[GSYM Add_assoc] >>
+     qsspecl_then [‘c’,‘d'’] assume_tac Add_comm >> arw[]) >>
+ rw[LESS_EQ_MONO_ADD_EQ])
 (form_goal “!a b c d e f g h.Holds(ZR,Pair(a,b),Pair(c,d)) & 
  Holds(ZR,Pair(e,f),Pair(g,h)) ==>
  (Le(Add(a,f),Add(b,e)) <=> Le(Add(c,h),Add(d,g)))”));
