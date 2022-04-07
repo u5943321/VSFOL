@@ -559,7 +559,7 @@ e0
  (first_assum (qsspecl_then [‘x’,‘b0’] assume_tac) >> fs[] >>
  cases_on “IN(x:mem(A), s1)” >-- fs[] >>
  arw[] >> ccontra_tac >> rfs[] >> 
- cases_on “IN(a0:mem(A),s3)” (* 2 *) >-- cheat
+ cases_on “IN(a0:mem(A),s3)” (* 2 *) >-- chet
 >-- (first_assum (qsspecl_then [‘a0’,‘b0’] assume_tac) >>
      qby_tac ‘IN(a0, s3) & IN(b0,s4)’
      >-- (first_x_assum (irule o iffLR) >> strip_tac >> 
@@ -572,7 +572,7 @@ ERR
 
      fs[] >> first_x_assum (qspecl_then [‘x’,‘b0’] assume_tac) >> 
      pop_assum mp_tac >> arw[]rfs[]) >>
-cheat)
+chet)
 
 (form_goal “∀A B s1:mem(Pow(A)) s2:mem(Pow(B)) s3 s4 a0 b0. IN(a0,s1) & IN(b0,s2) ⇒  (∀a b. IN(a,s1) & IN(b,s2) ⇔ IN(a,s3) & IN(b,s4)) ⇒
  s1 = s3 & s2 = s4”)
@@ -747,6 +747,18 @@ e0
 (form_goal “Inj(iZ) & Quo(ZR, iZ)”));
 
 
+
+(*may need con rw for simplifying main_addz'*)
+val iZ_nonempty = prove_store("iZ_nonempty",
+e0
+(strip_tac >> strip_assume_tac Z_def >> 
+ qsuff_tac ‘∃n. App(iZ,z) = rsi(ZR,n)’ 
+ >-- (strip_tac >> arw[] >> qexists_tac ‘n’ >> irule ER_rsi_nonempty >>
+     rw[ZR_ER]) >>
+ first_x_assum (irule o iffRL) >> qexists_tac ‘z’ >> rw[])
+(form_goal “∀z. ∃ab. IN(ab,App(iZ,z))”));
+
+ 
 val addf0_resp = prove_store("addf0_resp",
 e0
 (rw[resp_def,prrel_def] >> rpt strip_tac >>
@@ -763,15 +775,23 @@ e0
  qspecl_then [‘a’,‘y1’,‘d’] assume_tac (GSYM Add_assoc) >> arw[] >>
  qspecl_then [‘Add(y1,d)’,‘a’] assume_tac Add_comm >> arw[] >>
  qspecl_then [‘d’,‘y1’] assume_tac Add_comm >> arw[] >>
- arw[Add_assoc] >> cheat (*tedious*))
+ arw[Add_assoc] >> 
+ qspecl_then [‘c’,‘a’] assume_tac Add_comm >> arw[] >>
+ rw[GSYM Add_assoc] >>
+ qsuff_tac ‘Add(v, Add(y1, a)) = Add(a, Add(y1, v))’
+ >-- (strip_tac >> arw[]) >>
+ qsspecl_then [‘Add(y1,v)’,‘a’] assume_tac Add_comm >> arw[] >>
+ rw[Add_assoc] >>
+ qspecl_then [‘y1’,‘v’] assume_tac Add_comm >> arw[])
 (form_goal “resp(addf0, prrel(ZR, ZR), ZR)”));
-
+ 
 val addz_conds = proved_th $
 e0
 (assume_tac Inj_Quo_Z >> assume_tac ZR_ER >> arw[] >> rpt strip_tac (* 4 *)
  >-- (irule prrel_ER_ER >> arw[])
  >-- rw[addf0_resp] (*hard one*)
- >-- irule ipow2_Inj_Inj >> arw[] >> cheat (* *) >>
+ >-- (irule ipow2_Inj_Inj >> arw[] >> 
+     rw[iZ_nonempty]) >>
  irule Quo_cong >> arw[])
 (form_goal
 “ER(prrel(ZR, ZR)) &
@@ -845,17 +865,6 @@ e0
             Holds(ZR, Pair(b1,b2), Pair(n1,n2))) &
         App(addf0, Pair(Pair(a1,a2),Pair(a3,a4))) = Pair(b1,b2)”)
 |> rewr_rule[ipow2_def,prrel_def,GSYM IN_rsi]
-
-
-(*may need con rw for simplifying main_addz'*)
-val iZ_nonempty = prove_store("iZ_nonempty",
-e0
-(strip_tac >> strip_assume_tac Z_def >> 
- qsuff_tac ‘∃n. App(iZ,z) = rsi(ZR,n)’ 
- >-- (strip_tac >> arw[] >> qexists_tac ‘n’ >> irule ER_rsi_nonempty >>
-     rw[ZR_ER]) >>
- first_x_assum (irule o iffRL) >> qexists_tac ‘z’ >> rw[])
-(form_goal “∀z. ∃ab. IN(ab,App(iZ,z))”));
 
 val main_addz2 = proved_th $
 e0
@@ -963,7 +972,7 @@ e0
  ‘∀a b c d. 
   Holds(ZR,App(addf0,Pair(Pair(a,b),Pair(c,d))),
            App(addf0,Pair(Pair(c,d),Pair(a,b))))’
- >-- cheat >> do not need it, but an option *)
+ >-- >> do not need it, but an option *)
  rpt strip_tac >> irule Repz_eq_eq >> rpt strip_tac >>
  qsspecl_then [‘z1’] (x_choosel_then ["a","b"] assume_tac) Repz_ZC >>
  qsspecl_then [‘z2’] (x_choosel_then ["c","d"] assume_tac) Repz_ZC >>
@@ -994,7 +1003,12 @@ val negf0_def1 =
 
 val negf0_resp = prove_store("negf0_resp",
 e0
-(cheat)
+(rw[resp_def] >>
+ fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
+ rw[negf0_def1] >> rpt strip_tac >>
+ fs[ZR_def] >>
+ qspecl_then [‘b’,‘a'’] assume_tac Add_comm >>
+ qspecl_then [‘a’,‘b'’] assume_tac Add_comm >> fs[])
 (form_goal “resp(negf0, ZR, ZR)”));
 
 val main_negz = 
@@ -1063,9 +1077,87 @@ e0
 end
 
 
+(*
+Holds(ZR,Pair(a,b),Pair(p,q)) & 
+Holds(ZR,Pair(c,d),Pair(r,s)) ==> 
+ Holds(ZR,Mulj(Pair(a,b),Pair(c,d)),Mulj(Pair(p,q),Pair(r,s)))
+*)
 val mulf0_resp = prove_store("mulf0_resp",
 e0
-(cheat)
+(rw[resp_def,prrel_def] >>
+ rpt strip_tac >>
+ qsspecl_then [‘z’] (x_choosel_then ["pq","rs"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘pq’] (x_choosel_then ["p","q"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘rs’] (x_choosel_then ["r","s"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘y’] (x_choosel_then ["ab","cd"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘ab’] (x_choosel_then ["a","b"] assume_tac) Pair_has_comp >>
+ qsspecl_then [‘cd’] (x_choosel_then ["c","d"] assume_tac) Pair_has_comp >>
+ fs[mulf0_def,prrel_def,ZR_def] >>
+ abbrev_tac 
+ “Add(Mul(p,c),Add(Mul(q,c),Add(Mul(p,d),Mul(q,d)))) = l” >>
+ qsuff_tac 
+ ‘Add(Add(Add(Mul(a, c), Mul(b, d)), Add(Mul(p, s), Mul(q, r))),l) = 
+  Add(Add(Add(Mul(p, r), Mul(q, s)), Add(Mul(a, d), Mul(b, c))),l)’ 
+ >-- (rw[EQ_MONO_ADD_EQ] >> rpt strip_tac >> arw[]) >>
+ qby_tac
+ ‘Add(Add(Add(Mul(a, c), Mul(b, d)), Add(Mul(p, s), Mul(q, r))), l) =
+  Add(Mul(Add(a,q),c),Add(Mul(Add(b,p),d),Add(Mul(p,Add(c,s)),Mul(q,Add(d,r)))))’
+ >-- (pop_assum mp_tac >> pop_assum_list (map_every (K all_tac)) >>
+     strip_tac>>
+     rw[RIGHT_DISTR,GSYM Add_assoc] >> irule Add_req >>
+     qspecl_then [‘Add(Mul(b, d),
+                 Add(Mul(p, d), Add(Mul(p, Add(c, s)), Mul(q, Add(d, r)))))’,
+                 ‘Mul(q,c)’] assume_tac Add_comm >> 
+     arw[GSYM Add_assoc] >> irule Add_req >>
+     qspecl_then [‘Add(Mul(p, Add(c, s)), Add(Mul(q, Add(d, r)), Mul(q, c)))’,
+                  ‘Mul(p, d)’] assume_tac Add_comm >>
+     arw[] >> qspecl_then [‘s’,‘c’] assume_tac Add_comm >> arw[] >>
+     rw[LEFT_DISTR,GSYM Add_assoc] >> irule Add_req >>
+     qspecl_then [‘Add(Mul(q, d), Add(Mul(q, r), Add(Mul(q, c), Mul(p, d))))’,
+                   ‘Mul(p,c)’] assume_tac Add_comm >> arw[] >>
+     qspecl_then [‘Add(Mul(q, r), Add(Mul(q, c), Mul(p, d)))’,‘Mul(q,d)’]
+     assume_tac Add_comm >> arw[] >> rw[GSYM Add_assoc] >>
+     irule Add_req >> last_x_assum mp_tac >>
+     pop_assum_list (map_every (K all_tac)) >> strip_tac >>
+     pop_assum (assume_tac o GSYM) >> arw[] >>
+     qspecl_then [‘Add(Mul(p, d), Add(Mul(q, d), Mul(p, c)))’,‘Mul(q,c)’]
+     assume_tac Add_comm >> arw[] >>  rw[GSYM Add_assoc] >>
+     rw[Add_middle] >> rw[] >>
+     qspecl_then [‘Add(Mul(p, d), Mul(q, d))’,‘Add(Mul(p, c), Mul(q, c))’]
+     assume_tac Add_comm >> arw[]) >>
+ qby_tac
+ ‘Add(Add(Add(Mul(p, r), Mul(q, s)), Add(Mul(a, d), Mul(b, c))), l) =
+  Add(Mul(Add(b,p),c),Add(Mul(Add(a,q),d),Add(Mul(p,Add(d,r)),Mul(q,Add(c,s)))))’
+ >-- (qpick_x_assum 
+     ‘Add(Mul(p, c), Add(Mul(q, c), Add(Mul(p, d), Mul(q, d)))) = l’ mp_tac >>
+     pop_assum_list (map_every (K all_tac)) >>
+     strip_tac>>
+     qspecl_then [‘Mul(b,c)’,‘Mul(a, d)’] assume_tac Add_comm >> arw[] >>
+     qspecl_then [‘Add(Mul(b, c), Mul(a, d))’,‘Add(Mul(p, r), Mul(q, s))’] 
+     assume_tac Add_comm >> arw[] >> 
+     rw[RIGHT_DISTR] >> rw[GSYM Add_assoc] >> irule Add_req >>
+     qspecl_then [‘Add(Mul(a, d),
+                 Add(Mul(q, d), Add(Mul(p, Add(d, r)), Mul(q, Add(c, s)))))’,
+                 ‘Mul(p, c)’] assume_tac Add_comm >> arw[] >>
+     rw[GSYM Add_assoc] >> irule Add_req >>
+     qspecl_then [‘r’,‘d’] assume_tac Add_comm >> arw[] >> 
+     qspecl_then [‘Add(Mul(p, Add(r, d)), Add(Mul(q, Add(c, s)), Mul(p, c)))’,
+                  ‘Mul(q, d)’] assume_tac Add_comm >> arw[] >>
+     rw[LEFT_DISTR] >> rw[GSYM Add_assoc] >> irule Add_req >>
+     qspecl_then [‘Add(Mul(q, s), Add(Mul(p, c), Mul(q, d)))’,‘Mul(q, c)’]
+     assume_tac Add_comm >> arw[] >>
+     qspecl_then [‘Add(Add(Mul(q, s), Add(Mul(p, c), Mul(q, d))), Mul(q, c))’,
+                  ‘Mul(p, d)’] assume_tac Add_comm >> 
+     arw[] >> rw[GSYM Add_assoc] >> irule Add_req >>
+     last_x_assum mp_tac >>
+     pop_assum_list (map_every (K all_tac)) >> strip_tac >>
+     pop_assum (assume_tac o GSYM) >> arw[] >>
+     irule Add_req >> 
+     qspecl_then [‘Add(Mul(q, c), Mul(p, d))’,‘Mul(q, d)’] assume_tac
+     Add_comm >> arw[] >> rw[Add_assoc]) >>
+ arw[] >>
+ qspecl_then [‘b’,‘p’] assume_tac Add_comm >> arw[] >>
+ qspecl_then [‘d’,‘r’] assume_tac Add_comm >> arw[])
 (form_goal “resp(mulf0, prrel(ZR, ZR), ZR)”));
 
 val main_mulz = 
@@ -1340,17 +1432,40 @@ e0
 
 (*([a, b][c, d])[e, f ] = [a, b]([c, d][e, f ])*)
 
+val Add_leq = prove_store("Add_leq",
+e0
+(rpt strip_tac >> arw[])
+(form_goal “!a1 a2 b. a1 = a2 ==> Add(a1,b) = Add(a2,b)”));
+
+
+val Add_req = prove_store("Add_req",
+e0
+(rpt strip_tac >> arw[])
+(form_goal “!a b1 b2. b1 = b2 ==> Add(a,b1) = Add(a,b2)”));
+
+
+
 val Mulz_assoc = prove_store("Mulz_assoc",
 e0
 (qsuff_tac
  ‘!a b c d e f.Mulz(Mulz(Asz(a,b),Asz(c,d)),Asz(e,f)) = 
   Mulz(Asz(a,b),Mulz(Asz(c,d),Asz(e,f)))’ 
- >-- cheat >>
+ >-- (rpt strip_tac >>
+      qspecl_then [‘z1’] strip_assume_tac cases_z >>
+      qspecl_then [‘z2’] strip_assume_tac cases_z >>
+      qspecl_then [‘z3’] strip_assume_tac cases_z >>
+      fs[]) >>
  rpt strip_tac >> 
  rw[Mulz_Asz,Asz_eq_ZR,LEFT_DISTR,RIGHT_DISTR,Mul_assoc,GSYM Add_assoc] >>
  irule eq_ZR >> rw[Pair_eq_eq] >> strip_tac (* 2 *)
- >-- cheat >> 
- cheat (*tedious*) )
+ >-- (irule Add_req >>  
+     qspecl_then [‘Add(Mul(Mul(a, d), f), Mul(Mul(b, c), f))’,
+                   ‘Mul(Mul(b, d), e)’] assume_tac Add_comm >>
+     arw[] >> rw[Add_assoc]) >>
+ irule Add_req >>
+ qspecl_then [‘Add(Mul(Mul(a, d), e), Mul(Mul(b, c), e))’,
+              ‘Mul(Mul(b, d), f)’] assume_tac Add_comm >>
+ arw[] >> rw[Add_assoc])
 (form_goal “!z1 z2 z3. Mulz(Mulz(z1,z2),z3) = Mulz(z1,Mulz(z2,z3))”));
 
 (*[a,b]([c,d]+[e,f])=[a,b][c,d]+[a,b][e,f]*)
@@ -1359,7 +1474,11 @@ e0
 (qsuff_tac
  ‘!a b c d e f. Mulz(Asz(a,b),Addz(Asz(c,d),Asz(e,f))) = 
   Addz(Mulz(Asz(a,b),Asz(c,d)),Mulz(Asz(a,b),Asz(e,f)))’ 
- >-- cheat >>
+ >-- (rpt strip_tac >>
+     qspecl_then [‘z1’] strip_assume_tac cases_z >>
+     qspecl_then [‘z2’] strip_assume_tac cases_z >>
+     qspecl_then [‘z3’] strip_assume_tac cases_z >>
+     fs[]) >>
  rpt strip_tac >> rw[Mulz_Asz,Addz_Asz,LEFT_DISTR] >>
  qsuff_tac 
 ‘Add(Add(Mul(a, c), Mul(a, e)), Add(Mul(b, d), Mul(b, f))) =
@@ -1367,7 +1486,17 @@ e0
  Add(Add(Mul(a, d), Mul(a, f)), Add(Mul(b, c), Mul(b, e))) = 
  Add(Add(Mul(a, d), Mul(b, c)), Add(Mul(a, f), Mul(b, e)))’
  >-- (strip_tac >> arw[]) >>
- cheat (*tedious*))
+ strip_tac (* 2 *)
+ >-- (rw[GSYM Add_assoc] >> irule Add_req >>
+     qspecl_then [‘Add(Mul(b, d), Mul(b, f))’,‘Mul(a, e)’]
+     assume_tac Add_comm >> arw[] >>
+     rw[GSYM Add_assoc] >> irule Add_req >>
+     qspecl_then [‘Mul(a, e)’,‘Mul(b,f)’] assume_tac Add_comm >> arw[]) >>
+ rw[GSYM Add_assoc] >> irule Add_req >>
+ qspecl_then [‘Add(Mul(b, c), Mul(b, e))’,‘Mul(a, f)’]
+ assume_tac Add_comm >> arw[] >>
+ rw[GSYM Add_assoc] >> irule Add_req >>
+ qspecl_then [‘Mul(b, e)’,‘Mul(a,f)’] assume_tac Add_comm >> arw[])
 (form_goal
  “!z1 z2 z3. Mulz(z1,Addz(z2,z3)) = Addz(Mulz(z1,z2),Mulz(z1,z3))”));
 
@@ -1386,13 +1515,21 @@ e0
 val Mulz_comm = prove_store("Mulz_comm",
 e0
 (qsuff_tac ‘!a b c d. Mulz(Asz(a,b),Asz(c,d)) = Mulz(Asz(c,d),Asz(a,b))’
- >-- cheat >>
+ >-- (rpt strip_tac >>
+     qspecl_then [‘z1’] strip_assume_tac cases_z >>
+     qspecl_then [‘z2’] strip_assume_tac cases_z >>
+     once_arw[] >>
+     first_x_assum (qspecl_then [‘a’,‘b’,‘a'’,‘b'’] assume_tac) >> arw[]) >>
  rpt strip_tac >> rw[Mulz_Asz] >>
  qsuff_tac
  ‘Add(Mul(a, c), Mul(b, d)) = Add(Mul(c, a), Mul(d, b)) &
   Add(Mul(a, d), Mul(b, c)) = Add(Mul(c, b), Mul(d, a))’ 
- >-- (strip_tac >> arw[]) >>
- cheat (* tedious *))
+ >-- (strip_tac >> arw[]) >> strip_tac (* 2 *)
+ >-- (qspecl_then [‘a’,‘c’] assume_tac Mul_comm >>
+     qspecl_then [‘d’,‘b’] assume_tac Mul_comm >> arw[]) >>
+ qspecl_then [‘a’,‘d’] assume_tac Mul_comm >>
+ qspecl_then [‘c’,‘b’] assume_tac Mul_comm >> arw[] >>
+ qspecl_then [‘Mul(d, a)’,‘Mul(b, c)’] assume_tac Add_comm >> arw[])
 (form_goal “!z1 z2. Mulz(z1,z2) = Mulz(z2,z1)”));
 
 
@@ -1617,6 +1754,11 @@ e0
 
 val Repz_Zc = rewr_rule[GSYM Zc_def] Repz_ZC |> store_as "Repz_Zc";
 
+val Add_middle = prove_store("Add_middle",
+e0
+(rw[GSYM Add_assoc])
+(form_goal “!a b c d. Add(a,Add(b,Add(c,d))) = Add(Add(a,b),Add(c,d))”));
+
 val LEz_Trans = prove_store("LEz_Trans",
 e0
 (rw[Trans_def,LEz_def,Lez_def] >>
@@ -1627,21 +1769,38 @@ e0
  (qspecl_then [‘Add(n1, d)’,‘Add(a, n2)’,
                 ‘Add(n2, c)’,‘Add(b, n1)’] assume_tac) Le_Add >> rfs[] >>
  fs[Add_assoc] >>
-(*
- qby_tac ‘Add(Add(Add(n1, d), a), n2)  = Add(Add(Add(n1, n2), a), d)’
- qspecl_then [‘d’,‘n1’] assume_tac Add_comm >> fs[] >>
- qspecl_then [‘a’,‘Add(d,n1)’] assume_tac Add_comm >> fs[] >> 
- qspecl_then [‘a’,‘Add(d,n1)’] assume_tac Add_comm >> fs[] >> 
- fs[GSYM Add_assoc] >>
- qsspecl_then [‘Add(b, n1)’,‘Add(n2, c)’] assume_tac Add_comm >>*)
- cheat)
+ qby_tac ‘Add(Add(Add(n1, d), a), n2)  = Add(Add(a,d),Add(n1,n2))’
+ >-- (qspecl_then [‘n2’,‘Add(Add(n1, d), a)’] assume_tac Add_comm >>
+     arw[] >> rw[GSYM Add_assoc] >> rw[Add_middle] >>
+     qspecl_then [‘Add(d,a)’,‘Add(n2,n1)’] assume_tac Add_comm >> arw[] >>
+     qspecl_then [‘d’,‘a’] assume_tac Add_comm >>
+     qspecl_then [‘n1’,‘n2’] assume_tac Add_comm >> arw[]) >>
+ qby_tac ‘Add(Add(Add(n2, c), b), n1)  = Add(Add(b,c),Add(n1,n2))’
+ >-- (qspecl_then [‘n1’,‘Add(Add(n2, c), b)’] assume_tac Add_comm >> 
+     arw[] >> rw[GSYM Add_assoc] >> rw[Add_middle] >> 
+     qspecl_then [‘Add(c,b)’,‘Add(n1,n2)’] assume_tac Add_comm >> arw[] >>
+     qspecl_then [‘c’,‘b’] assume_tac Add_comm >> arw[]) >>
+ fs[] >> fs[LESS_EQ_MONO_ADD_EQ])
 (form_goal “Trans(LEz)”));
 
 
 val LEz_Asym = prove_store("LEz_Asym",
 e0
 (rw[Asym_def,LEz_def,Lez_def] >>
- rpt strip_tac >> cheat (*should easy  prove equal*))
+ rpt strip_tac >> 
+ irule Repz_eq_eq >> 
+ qspecl_then [‘a’] (x_choosel_then ["x","y"] assume_tac) Repz_Zc >>
+ qspecl_then [‘b’] (x_choosel_then ["u","v"] assume_tac) Repz_Zc >>
+ arw[] >>
+ rw[Zc_def,ZC_def] >> 
+ assume_tac ZR_ER >> drule rsi_eq_ER >> arw[] >>
+ rw[ZR_def] >> irule Le_Asym >> strip_tac (* 2 *)>-- 
+ (last_x_assum (qspecl_then [‘x’,‘y’,‘u’,‘v’] assume_tac) >>
+  rfs[] >> 
+  qspecl_then [‘y’,‘u’] assume_tac Add_comm >> arw[]) >>
+ first_x_assum (qspecl_then [‘u’,‘v’,‘x’,‘y’] assume_tac) >>
+ rfs[] >>
+ qspecl_then [‘v’,‘x’] assume_tac Add_comm >> arw[])
 (form_goal “Asym(LEz)”));
 
 
@@ -1651,12 +1810,56 @@ e0
 val Total_def = qdefine_psym("Total",[‘R:A~>A’])
 ‘!a b. Holds(R,a,b) | Holds(R,b,a)’ |> gen_all |> store_as "Total_def";
 
+val Lez_resp0 = prove_store("Lez_resp0",
+e0
+cheat
+(form_goal “!a b c d e f g h.Holds(ZR,Pair(a,b),Pair(c,d)) & 
+ Holds(ZR,Pair(e,f),Pair(g,h)) ==>
+ (Le(Add(a,f),Add(b,e)) <=> Le(Add(c,h),Add(d,g)))”));
+
+
+
+
+
 val LEz_Total = prove_store("LEz_Total",
 e0
 (rw[Total_def,LEz_def,Lez_def] >>
  rpt strip_tac >> 
- rw[Le_def] >> cheat (*should easy *))
+ qcases ‘!x y u v.Repz(a) = Zc(x,y) & Repz(b) = Zc(u,v) ==>
+ Le(Add(x,v),Add(y,u))’
+ >-- arw[] >>
+ disj2_tac >> rpt strip_tac >>
+ ccontra_tac >>
+ qspecl_then [‘Add(a', d)’,‘Add(b', c)’] assume_tac LESS_EQ_cases >>
+ qby_tac ‘Le(Add(b', c), Add(a', d))’ >-- fs[] >>
+ qsuff_tac ‘!x y u v.Repz(a) = Zc(x,y) & Repz(b) = Zc(u,v) ==>
+ Le(Add(x,v),Add(y,u))’
+ >-- arw[] >>
+ rpt strip_tac >> irule $ iffLR Lez_resp0 >>
+ qexistsl_tac [‘c’,‘d’,‘a'’,‘b'’] >> rpt strip_tac >-- 
+ (qspecl_then [‘b'’,‘c’] assume_tac Add_comm >>
+ qspecl_then [‘a'’,‘d’] assume_tac Add_comm >>arw[]) 
+ >-- (assume_tac ZR_ER >> drule $ GSYM rsi_eq_ER >>
+     arw[] >> rw[GSYM ZC_def,GSYM Zc_def] >>
+     qpick_x_assum ‘Repz(a) = Zc(x, y)’ (assume_tac o GSYM) >> arw[]) >>
+ assume_tac ZR_ER >> drule $ GSYM rsi_eq_ER >>
+ arw[] >> rw[GSYM ZC_def,GSYM Zc_def] >>
+ qpick_x_assum ‘Repz(b) = Zc(u, v)’ (assume_tac o GSYM) >> arw[])
 (form_goal “Total(LEz)”));
+
+val Lez_Asz = prove_store("Lez_Asz",
+e0
+(rpt strip_tac >>
+ rw[Lez_def] >> dimp_tac >>rpt strip_tac(* 2 *)
+ >-- (first_x_assum irule >> rw[Asz_Repz]) >>
+ irule$ iffLR Lez_resp0 >>
+ qexistsl_tac [‘a’,‘b’,‘c’,‘d’] >> arw[] >>
+ assume_tac ZR_ER >> drule $ GSYM rsi_eq_ER >>
+ arw[] >> rw[GSYM ZC_def,GSYM Zc_def] >>
+ qpick_x_assum ‘Repz(Asz(a, b)) = Zc(a', b')’ (assume_tac o GSYM) >>
+ qpick_x_assum ‘Repz(Asz(c, d)) = Zc(c', d')’ (assume_tac o GSYM) >>
+ arw[] >> rw[Asz_Repz])
+(form_goal “!a b c d.Lez(Asz(a,b),Asz(c,d)) <=> Le(Add(a,d),Add(b,c))”));
 
 
 (*[a,b]≤[c,d] ⇒ [a,b]+[e,f]≤[c,d]+[e,f]*)
@@ -1667,9 +1870,37 @@ e0
  ‘!a b c d e f.
  Lez(Asz(a,b),Asz(c,d)) ==>
  Lez(Addz(Asz(a,b),Asz(e,f)),Addz(Asz(c,d),Asz(e,f)))’
- >-- cheat >>
- rw[Lez_def] >> rpt strip_tac >> cheat)
+ >-- (rpt strip_tac >>
+     qspecl_then [‘z1’] strip_assume_tac cases_z >>
+     qspecl_then [‘z2’] strip_assume_tac cases_z >>
+     qspecl_then [‘z3’] strip_assume_tac cases_z >> fs[] >>
+     first_x_assum irule >> arw[]) >>
+ rpt strip_tac >> rw[Addz_Asz] >> fs[Lez_def] >>
+ rpt strip_tac >> irule $ iffLR Lez_resp0 >>
+ qexistsl_tac [‘Add(a,e)’,‘Add(b,f)’,‘Add(c, e)’,‘Add(d,f)’] >>
+ rpt strip_tac (* 3 *)
+ >-- (first_x_assum (qspecl_then [‘a’,‘b’,‘c’,‘d’] assume_tac) >>
+     fs[Asz_Repz] >>
+     qsuff_tac ‘Add(Add(a, e), Add(d, f)) = Add(Add(a, d), Add(e, f)) & 
+                Add(Add(b, f), Add(c, e)) = Add(Add(b, c), Add(e, f))’
+     >-- (strip_tac >> arw[LESS_EQ_MONO_ADD_EQ]) >>
+     strip_tac (*2 *)
+     >-- (rw[GSYM Add_assoc] >> irule Add_req >> rw[Add_assoc] >>
+         irule Add_leq >>
+         qspecl_then [‘e’,‘d’] assume_tac Add_comm >> arw[]) >>
+     rw[GSYM Add_assoc] >> irule Add_req >> rw[Add_assoc] >>
+     qspecl_then [‘f’,‘Add(c, e)’] assume_tac Add_comm >> arw[] >>
+     rw[Add_assoc])
+ >-- (assume_tac ZR_ER >> drule $ GSYM rsi_eq_ER >> arw[] >>
+     rw[GSYM ZC_def,GSYM Zc_def] >>
+     qpick_x_assum ‘Repz(Asz(Add(a, e), Add(b, f))) = Zc(a', b')’
+     (assume_tac o GSYM) >> arw[Asz_Repz]) >>
+assume_tac ZR_ER >> drule $ GSYM rsi_eq_ER >> arw[] >>
+rw[GSYM ZC_def,GSYM Zc_def] >>
+qpick_x_assum ‘Repz(Asz(Add(c, e), Add(d, f))) = Zc(c', d')’
+ (assume_tac o GSYM) >> arw[Asz_Repz])
 (form_goal “!z1 z2 z3. Lez(z1,z2) ==> Lez(Addz(z1,z3),Addz(z2,z3))”));
+
 
 
 (*[a,b] ≤ [c,d] and 0Z ≤ [e,f] ⇒ [a,b][e,f] ≤ [c,d][e,f]*)
@@ -1677,10 +1908,91 @@ val Lez_Mulz = prove_store("Lez_Mulz",
 e0
 (qsuff_tac
  ‘!a b c d e f.
- Lez(Asz(a,b),Asz(c,d)) ==>
- Lez(Addz(Asz(a,b),Asz(e,f)),Addz(Asz(c,d),Asz(e,f)))’
- >-- cheat >>
- rw[Lez_def] >> rpt strip_tac >> cheat)
+ Lez(Asz(a,b),Asz(c,d)) & Lez(Asz(O,O),Asz(e,f))==>
+ Lez(Mulz(Asz(a,b),Asz(e,f)),Mulz(Asz(c,d),Asz(e,f)))’
+ >-- (rpt strip_tac >>
+     qspecl_then [‘z1’] strip_assume_tac cases_z >>
+     qspecl_then [‘z2’] strip_assume_tac cases_z >>
+     qspecl_then [‘z3’] strip_assume_tac cases_z >> fs[Oz_def] >>
+     first_x_assum irule >> arw[]) >>
+ rpt strip_tac >> fs[Lez_def] >>
+ rpt strip_tac >>
+ irule $ iffLR Lez_resp0 >> fs[Mulz_Asz] >>
+ qexistsl_tac [‘Add(Mul(a, e), Mul(b, f))’,‘Add(Mul(a, f), Mul(b, e))’,
+‘Add(Mul(c, e), Mul(d, f))’,‘Add(Mul(c, f), Mul(d, e))’] >>
+ rpt strip_tac (* 3 *)
+ >-- (qby_tac
+     ‘Add(Add(Mul(a, e), Mul(b, f)), Add(Mul(c, f), Mul(d, e))) = 
+      Add(Mul(f,Add(b,c)),Mul(e,Add(a,d))) & 
+      Add(Add(Mul(a, f), Mul(b, e)), Add(Mul(c, e), Mul(d, f))) = 
+      Add(Mul(f,Add(a,d)),Mul(e,Add(b,c)))’
+     >-- (rw[LEFT_DISTR] >> strip_tac (* 2 *)
+          >-- (qspecl_then [‘d’,‘e’] assume_tac Mul_comm >> arw[] >>
+              rw[Add_assoc] >> irule Add_leq >>
+              qspecl_then [‘Mul(e,a)’,‘Add(Mul(f, b), Mul(f, c))’] 
+              assume_tac Add_comm >> arw[GSYM Add_assoc] >>
+              qspecl_then [‘e’,‘a’] assume_tac Mul_comm >> arw[] >>
+              irule Add_req >>
+              qspecl_then [‘b’,‘f’] assume_tac Mul_comm >> arw[] >>
+              irule Add_req >> 
+              qspecl_then [‘c’,‘f’] assume_tac Mul_comm >> arw[]) >>
+          rw[GSYM Add_assoc] >>
+          qspecl_then [‘f’,‘a’] assume_tac Mul_comm >> arw[] >>
+          irule Add_req >>
+          qspecl_then [‘Add(Mul(e, b), Mul(e, c))’,‘Mul(f, d)’]
+          assume_tac Add_comm >> arw[] >>
+          qspecl_then [‘d’,‘f’] assume_tac Mul_comm >> arw[] >>
+          rw[Add_assoc] >> irule Add_leq >>
+          qspecl_then [‘e’,‘b’] assume_tac Mul_comm >> arw[] >>
+          qspecl_then [‘e’,‘c’] assume_tac Mul_comm >> arw[])  >>
+     arw[] >> pop_assum (K all_tac) >>
+     qsuff_tac
+     ‘Le(Sub(Mul(e, Add(a, d)),Mul(f, Add(a, d))),
+         Sub(Mul(e, Add(b, c)),Mul(f, Add(b, c))))’
+     >-- (strip_tac >>
+         qby_tac ‘Le(f,e)’ 
+         >-- (first_x_assum (qspecl_then [‘O’,‘O’,‘e’,‘f’] assume_tac) >>
+              fs[Asz_Repz,Add_O2]) >>
+         drule Le_MONO_Mul' >>
+         first_assum (qspecl_then [‘Add(a,d)’] assume_tac) >>
+         drule SUB_ADD >> 
+         first_x_assum (qspecl_then [‘Add(b,c)’] assume_tac) >> 
+         drule SUB_ADD >>
+         qby_tac
+         ‘Le(Add(Sub(Mul(e, Add(a, d)), Mul(f, Add(a, d))),Mul(f, Add(a, d))),
+             Add(Sub(Mul(e, Add(b, c)), Mul(f, Add(b, c))),Mul(f, Add(a, d))))’
+         >-- (irule $ iffRL LESS_EQ_MONO_ADD_EQ >> arw[]) >>
+         rfs[] >>
+         qby_tac
+         ‘Le(Add(Mul(e, Add(a, d)),Mul(f, Add(b, c))),
+             Add(Add(Sub(Mul(e, Add(b, c)), Mul(f, Add(b, c))),
+               Mul(f, Add(a, d))),Mul(f, Add(b, c))))’
+         >-- (irule $ iffRL LESS_EQ_MONO_ADD_EQ >> arw[]) >>
+         pop_assum mp_tac >> rw[GSYM Add_assoc] >>
+         qspecl_then [‘Mul(f, Add(b, c))’,‘Mul(f, Add(a, d))’] assume_tac
+         Add_comm >> arw[] >> 
+         qspecl_then [‘Mul(f, Add(b, c))’,‘Mul(e, Add(a, d))’] assume_tac
+         Add_comm >> arw[] >>
+         strip_tac >>
+         qsuff_tac ‘Add(Sub(Mul(e, Add(b, c)), Mul(f, Add(b, c))),
+               Add(Mul(f, Add(b, c)), Mul(f, Add(a, d)))) = 
+               Add(Mul(f, Add(a, d)), Mul(e, Add(b, c)))’
+         >-- (strip_tac >> fs[]) >>
+         rw[Add_assoc] >> arw[] >>
+         qspecl_then [‘Mul(f, Add(a, d))’,‘Mul(e, Add(b, c))’] accept_tac
+         Add_comm) >>
+     rw[GSYM RIGHT_SUB_DISTR] >>
+     once_rw[Mul_comm] >> irule Le_MONO_Mul' >>
+     last_x_assum irule >> rw[Asz_Repz]) 
+ >-- (assume_tac ZR_ER >> drule $ GSYM rsi_eq_ER >> arw[] >>
+     rw[GSYM ZC_def,GSYM Zc_def] >>
+     qpick_x_assum ‘Repz(Asz(Add(Mul(a, e), Mul(b, f)), Add(Mul(a, f), Mul(b, e)))) = Zc(a', b')’ (assume_tac o GSYM) >> arw[Asz_Repz]) >>
+ assume_tac ZR_ER >> drule $ GSYM rsi_eq_ER >> arw[] >>
+ rw[GSYM ZC_def,GSYM Zc_def] >>
+ qpick_x_assum ‘Repz(Asz(Add(Mul(c, e), Mul(d, f)), Add(Mul(c, f), Mul(d, e)))) = Zc(c', d')’ (assume_tac o GSYM) >> arw[Asz_Repz]
+(* ae + bf + cf + de <= af + be + ce + df
+        f(c+b) + e(a+d) <= f(a+d) + e(b+c)*)
+)
 (form_goal “!z1 z2 z3. Lez(z1,z2) & Lez(Oz,z3)==> 
  Lez(Mulz(z1,z3),Mulz(z2,z3))”));
 

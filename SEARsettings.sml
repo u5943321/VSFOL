@@ -1740,13 +1740,13 @@ e0
 
 val IdL = prove_store("IdL",
 e0
-(cheat)
+(rw[Id_def,GSYM FUN_EXT,App_App_o])
 (form_goal “!A B f:A->B. Id(B) o f = f”));
 
 
 val IdR = prove_store("IdR",
 e0
-(cheat)
+(rw[Id_def,GSYM FUN_EXT,App_App_o])
 (form_goal “!A B f:A->B. f o Id(A) = f”));
 
 
@@ -2140,11 +2140,19 @@ e0
  rw[App_App_o,S0_def])
 (form_goal “!n.~(App(SUC,n) = O)”));
 
+
 val Image_ex = prove_store("Image_ex",
 e0
-(cheat)
+(rpt strip_tac >> irule 
+ (P2fun' |> qspecl [‘Pow(A)’,‘Pow(B)’]
+        |> fVar_sInst_th “P(x:mem(Pow(A)),y:mem(Pow(B)))”
+        “!b. IN(b,y) <=> ?a. IN(a,x) & b = App(f:A->B,a)”) >>
+ strip_tac >> accept_tac
+ (IN_def_P |> qspecl [‘B’] 
+           |> fVar_sInst_th “P(b:mem(B))”
+           “?a:mem(A). IN(a,x) & b = App(f:A->B,a)”))
 (form_goal “!A B f:A->B. ?im:Pow(A) -> Pow(B). 
- !a b. IN(b,App(im,a)) <=> ?a. b = App(f,a)”));
+ !sa b. IN(b,App(im,sa)) <=> ?a. IN(a,sa) & b = App(f,a)”));
 
 
 val Image_def = Image_ex |> spec_all
