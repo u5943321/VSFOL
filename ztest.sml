@@ -1741,11 +1741,6 @@ e0
 
 val Repz_Zc = rewr_rule[GSYM Zc_def] Repz_ZC |> store_as "Repz_Zc";
 
-val Add_middle = prove_store("Add_middle",
-e0
-(rw[GSYM Add_assoc])
-(form_goal “!a b c d. Add(a,Add(b,Add(c,d))) = Add(Add(a,b),Add(c,d))”));
-
 val LEz_Trans = prove_store("LEz_Trans",
 e0
 (rw[Trans_def,LEz_def,Lez_def] >>

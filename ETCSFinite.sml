@@ -54,15 +54,36 @@ val l = List.map (dest_var o rastt) ["a:1->A","ss:1->Exp(A,1+1)"]
 
 val prim_lemma = prove_store("SS_lemma",
 e0
-cheat
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?p:Exp(A,1+1) ->1+1.
+  !a.p o a = TRUE <=> SS(f o a,a)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘p’ >> arw[] >> rpt strip_tac >>
+     irule FUN_EXT >> strip_tac >> irule $ iffLR pred_ext >> arw[]) >>
+ rw[SS_def] >>
+ exists_tac 
+ (qform2IL [‘sa:1->Exp(A,1+1)’] ‘!a:1->A.IN(a,f o sa) ==> IN(a,sa)’) >>
+ strip_tac >> rw[o_assoc,All_def,Pa_distr,IMP_def,p12_of_Pa,IN_def])
 (form_goal
 “!A f:Exp(A,1+1)->Exp(A,1+1). ?!p:Exp(A,1+1) ->1+1.
   !a.p o a = TRUE <=> SS(f o a,a)”));
 
 
+val IN_Tp1 = prove_store("IN_Tp1",
+e0
+(rw[IN_def,In_def,Tp1_def,Ev_of_Tp_el',o_assoc,p12_of_Pa,idR])
+(form_goal “!A a:1->A s.IN(a,Tp1(s)) <=> s o a = TRUE”));
+
+
 val prim_lemma' = prove_store("SS_lemma'",
 e0
-cheat
+(rpt strip_tac >> 
+ qsuff_tac
+ ‘?p:1-> Exp(Exp(A,1+1),1+1).!a.IN(a,p)<=> SS(f o a,a)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘p’ >> arw[] >>
+      rpt strip_tac >> irule $ iffLR IN_EXT >> arw[]) >>
+ qsspecl_then [‘f’] (strip_assume_tac o uex2ex_rule) prim_lemma >>  
+ qexists_tac ‘Tp1(p)’ >> arw[IN_Tp1])
 (form_goal
 “!A f:Exp(A,1+1)->Exp(A,1+1). ?!p:1-> Exp(Exp(A,1+1),1+1).
   !a.IN(a,p)<=> SS(f o a,a)”));
@@ -76,11 +97,6 @@ val _ = new_fsym2IL("Fst",(rastt "p1(A,B)",[dest_var (rastt "ab:X->A * B")]));
 
 val _ = new_fsym2IL("Snd",(rastt "p2(A,B)",[dest_var (rastt "ab:X->A * B")]));
 
-
-val IN_Tp1 = prove_store("IN_Tp1",
-e0
-(rw[IN_def,In_def,Tp1_def,Ev_of_Tp_el',o_assoc,p12_of_Pa,idR])
-(form_goal “!A a:1->A s.IN(a,Tp1(s)) <=> s o a = TRUE”));
 
 local
 val FI_cl = 
@@ -187,10 +203,23 @@ val FI_cases = FI_cases1 |> store_as "FI_cases";
 val FI_rules = FI_rules3 |> store_as "FI_rules";
 
 
-
+(*TODO: tactic that detect is IN ... and show suffices to show exists*)
 val DEL_def = proved_th $
 e0
-(cheat)
+(strip_tac >>
+ qsuff_tac
+ ‘?DEL:Exp(X,1+1) * X -> Exp(X,1 + 1).
+ !x0 xs x. IN(x,DEL o Pa(xs,x0)) <=> IN(x,xs) & ~(x = x0)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘DEL’ >> arw[] >> rpt strip_tac >>
+      irule FUN_EXT >> strip_tac >> 
+      qsspecl_then [‘a’] strip_assume_tac Pair_has_comp >> arw[] >>
+      irule $ iffLR  IN_EXT >> arw[]) >>
+ exists_tac (Tp (qform2IL [‘x:1->X’,‘xs:1->Exp(X,1+1)’,‘x0:1->X’]
+ ‘IN(x,xs) & ~(x = x0)’)) >>
+ rw[IN_def,In_def] >> rw[Ev_of_Tp_el] >>
+ rw[CONJ_def,Pa_distr,o_assoc,NEG_def'] >>
+ once_rw[p31_def,p32_def,p33_def] >>
+ rw[Pa_distr,o_assoc,p12_of_Pa,Eq_property_TRUE])
 (form_goal “!X.?!DEL:Exp(X,1+1) * X -> Exp(X,1 + 1).
  !x0 xs x. IN(x,DEL o Pa(xs,x0)) <=> IN(x,xs) & ~(x = x0)”)
 |> spec_all |> uex2ex_rule
