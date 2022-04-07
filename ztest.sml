@@ -1432,19 +1432,6 @@ e0
 
 (*([a, b][c, d])[e, f ] = [a, b]([c, d][e, f ])*)
 
-val Add_leq = prove_store("Add_leq",
-e0
-(rpt strip_tac >> arw[])
-(form_goal “!a1 a2 b. a1 = a2 ==> Add(a1,b) = Add(a2,b)”));
-
-
-val Add_req = prove_store("Add_req",
-e0
-(rpt strip_tac >> arw[])
-(form_goal “!a b1 b2. b1 = b2 ==> Add(a,b1) = Add(a,b2)”));
-
-
-
 val Mulz_assoc = prove_store("Mulz_assoc",
 e0
 (qsuff_tac

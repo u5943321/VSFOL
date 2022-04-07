@@ -1608,6 +1608,24 @@ e0
  “!m n. Lt(O,n) & Le(n,m) ==> Lt(Sub(m,n),m)”));
  
 
+val Add_leq = prove_store("Add_leq",
+e0
+(rpt strip_tac >> arw[])
+(form_goal “!a1 a2 b. a1 = a2 ==> Add(a1,b) = Add(a2,b)”));
+
+
+val Add_req = prove_store("Add_req",
+e0
+(rpt strip_tac >> arw[])
+(form_goal “!a b1 b2. b1 = b2 ==> Add(a,b1) = Add(a,b2)”));
+
+
+val Add_middle = prove_store("Add_middle",
+e0
+(rw[GSYM Add_assoc])
+(form_goal “!a b c d. Add(a,Add(b,Add(c,d))) = Add(Add(a,b),Add(c,d))”));
+
+
 (*
 define the set of lists
 App(f:A(set of A~>B functions)~>B(set of A list ~> B list function),a)
