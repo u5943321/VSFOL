@@ -3139,6 +3139,19 @@ e0
  “!A AB iA:A->AB B iB:B->AB. iscoPr(iA,iB) ==>
   !X f:A->X g:B->X.?!fg:AB->X.iscoPa(iA,iB,f,g,fg)”));
 
+val INC_FAC_xor = prove_store("INC_FAC_xor",
+e0
+(rpt strip_tac >>
+ qcases ‘?x0. x = i1(A,B) o x0’ >> arw[] (* 2 *)
+ >-- (pop_assum strip_assume_tac >> ccontra_tac >> pop_assum strip_assume_tac >>
+     qsspecl_then [‘x0’,‘x0'’] assume_tac prop_5_lemma >>
+     qpick_x_assum ‘x = i1(A, B) o x0’ (assume_tac o GSYM) >> fs[]) >>
+ pop_assum (assume_tac o GSYM) >>
+ qsspecl_then [‘x’] assume_tac INC_FAC >> rfs[] >>
+ qexists_tac ‘f0’ >> arw[])
+(form_goal 
+ “!A B x:1->A+B. (~(?x0:1->A. x = i1(A,B) o x0)) <=> (?x0:1->B. x = i2(A,B) o x0)”));
+
 val copr_disjoint = prove_store("copr_disjoint",
 e0
 (rpt strip_tac >>
@@ -3163,8 +3176,8 @@ e0
          first_x_assum (qsspecl_then [‘i1(A,B)’,‘i2(A,B)’]
                                      (assume_tac o uex2ex_rule)) >>
          arw[]) >> arw[] >>
-     qby_tac ‘~’
-             )
+     cheat >> 
+ rw[INC_FAC_xor])
 (form_goal “!A B AB iA:A->AB iB:B->AB. iscoPr(iA,iB) ==>
 !x:1->AB. (~(?x0:1->A. x = iA o x0)) <=> (?x0:1->B. x = iB o x0)”));
 
