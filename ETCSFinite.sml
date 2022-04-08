@@ -203,6 +203,8 @@ val FI_cases = FI_cases1 |> store_as "FI_cases";
 val FI_rules = FI_rules3 |> store_as "FI_rules";
 
 
+
+
 (*TODO: tactic that detect is IN ... and show suffices to show exists*)
 val DEL_def = proved_th $
 e0
@@ -396,7 +398,6 @@ fun dest_cross t =
 
 fun mk_Pair a b = mk_fun "Pa" [a,b] 
 
-val Pair_has_comp = has_components |> qspecl [‘1’]
 
 fun forall_cross_fconv f = 
     let val (pv as (n,s),b) = dest_forall f 

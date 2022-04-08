@@ -27,7 +27,7 @@ val IN_BIGUNION = BU_def |> rewr_rule[GSYM BIGUNION_def]
 qform2IL [‘P1:1->Exp(A,2)’] ‘SS(P1,P2)’*)
 
 
-val SSf_IL_uex = prove_store("SSf_IL_uex",
+val SSf_IL_u   vex = prove_store("SSf_IL_uex",
 e0
 (cheat)
 (form_goal “!A f:Exp(A,1+1) ->Exp(A,1+1). ?!p:Exp(A,1+1) -> 1+1.
@@ -516,6 +516,7 @@ val CB_coind = coind0 |> gen_all |> qspecl [‘Exp(N,X+1) * Exp(N,X+1)’,‘CB(
                       |> conv_rule (depth_fconv no_conv forall_cross_fconv)
                       |> rewr_rule[CB_def]
                       |> gen_all
+
 
 
 val llind_cases = cases0 |> gen_all |> qsspecl [‘llindf(P:1->Exp(A,1+1),phi:A->X * A)’] 

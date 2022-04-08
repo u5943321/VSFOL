@@ -125,13 +125,13 @@ e0
 val Inc_def = qdefine_fsym("Inc",[‘a:mem(A)’])
 ‘App(i1(A,1),a)’ |> gen_all
 
-val shift1_def = proved_th $
+val lcons0_def = proved_th $
 e0
 (cheat)
 (form_goal “!X f0:N->X + 1 x.?!f. 
  App(f,O) = Inc(x) & 
  (!n. App(f,Suc(n)) = App(f0,n))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "shift1" [‘x’,‘f0’]
+|> spec_all |> uex2ex_rule |> qSKOLEM "lcons0" [‘x’,‘f0’]
 |> gen_all 
 
 val Null_def = proved_th $
@@ -157,7 +157,7 @@ e0
   !gs:mem(Pow(Exp(N,X+1))) g.
   IN(g,App(f,gs)) <=>
   g = Tpm(Null(X)) |
-  ?h t. g  = Tpm(shift1(h,t)) & IN(Tpm(t),gs)”));
+  ?h t. g  = Tpm(lcons0(h,t)) & IN(Tpm(t),gs)”));
 
 val llf_def = llf_uex |> uex2ex_rule |> qSKOLEM "llf" [‘X’]
                       |> gen_all
@@ -261,7 +261,7 @@ e0
 (cheat)
 (form_goal
  “!X xl1:mem(X * llist(X)).?!l2.
-  Repll(l2) = Tpm(shift1(Fst(xl1),tof(Repll(Snd(xl1)))))”)
+  Repll(l2) = Tpm(lcons0(Fst(xl1),tof(Repll(Snd(xl1)))))”)
 |> qspecl [‘X’,‘Pair(x:mem(X),ll:mem(llist(X)))’]
 |> uex2ex_rule |> rewr_rule[Pair_def'] 
 |> qSKOLEM "LCons" [‘x’,‘ll’] |> gen_all
@@ -294,6 +294,85 @@ val lnil_def = qdefine_fsym("lnil",[‘X’]) ‘Tpm(Null(X))’
 val NONE_def = qdefine_fsym("NONE",[‘X’])
 ‘App(i2(X,1),dot)’
 
+
+val CB_def = proved_th $
+e0
+cheat
+(form_goal “!X. ?!cB:Pow(llist(X) * llist(X)) ->
+                    Pow(llist(X) * llist(X)).
+ !R:mem(Pow(llist(X) * llist(X))).
+  !ll1 ll2.IN(Pair(ll1,ll2),App(cB,R)) <=> 
+  (ll1 = LNil(X) & ll2 = LNil(X)) | 
+  (?l01 l02 x. IN(Pair(l01,l02),R) &
+   ll1 = LCons(x,l01) & ll2 = LCons(x,l02))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "CB" [‘X’]
+
+
+val CB_monotone = prove_store("CB_monotone",
+e0
+cheat
+(form_goal “monotone(CB(X))”));
+
+
+
+val CB_cases = cases0 |> gen_all |> qsspecl [‘CB(X)’] 
+                      |> C mp CB_monotone
+                      |> rewr_rule[GSYM IN_EXT]
+                      |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+                      |> rewr_rule[CB_def]
+                      |> gen_all
+
+
+val CB_rules00  = rules0 |> gen_all |> qsspecl [‘CB(X)’] 
+                       |> C mp CB_monotone 
+                       |> rewr_rule[SS_def] 
+                       |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+                       |> rewr_rule[CB_def]
+                       |> mk_rules2 |> mk_rules3
+                       |> gen_all
+
+val CB_rules0 = prove_store("CB_rules0",
+e0
+cheat
+(form_goal
+ “!X. IN(Pair(LNil(X),LNil(X)),gfp(CB(X))) &
+  !l01 l02. 
+  IN(Pair(l01,l02),gfp(CB(X))) ==>
+  !x. IN(Pair(LCons(x,l01),LCons(x,l02)),gfp(CB(X)))”));
+
+
+
+
+val CB_coind0 = coind0 |> gen_all |> qspecl [‘llist(X) * llist(X)’,‘CB(X)’]
+                      |> rewr_rule[SS_def]
+                      |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+                      |> rewr_rule[CB_def]
+                      |> gen_all
+
+
+
+val gfp_CB = prove_store("gfp_CB",
+e0
+cheat
+(form_goal
+“!X g1 g2. IN(Pair(g1,g2),gfp(CB(X))) <=> g1 = g2”));
+
+
+val LLIST_BISIMULATION = prove_store("LLIST_BISIMULATION",
+e0
+cheat
+(form_goal
+ “!ll1 ll2.
+       (ll1 = ll2) <=>
+       ?R. IN(Pair(ll1,ll2),R) &
+           !ll3 ll4.
+           IN(Pair(ll3,ll4),R) ==>
+              (ll3 = LNil(X)) /\ (ll4 = LNil(X)) |
+?h t1 t2. IN(Pair(t1,t2),R) & 
+ ll3 = LCons(h,t1) & ll4 = LCons(h,t2)”));
+
+
+
 val llcrf_def = proved_th $
 e0
 cheat
@@ -305,6 +384,67 @@ cheat
   (?a0 ll0 x. IN(Pair(a0,ll0),ps0) &
               App(h,Fst(p)) = Inc(Pair(x,a0)) & 
               Snd(p) = LCons(x,ll0))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "llcrf"  [‘h’]
+|> gen_all
+
+val llcrf_monotone = proved_th $
+e0
+cheat
+(form_goal 
+“!h:A -> (X * A) + 1. monotone(llcrf(h))”)
+
+val llcrf_cases0 = 
+ cases0 |> gen_all |> qsspecl [‘llcrf(h:A -> (X * A) + 1)’] 
+        |> C mp (llcrf_monotone |> spec_all)
+        |> rewr_rule[GSYM IN_EXT]
+        |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+        |> rewr_rule[GSYM IN_EXT_iff]
+        |> rewr_rule[llcrf_def]
+        |> gen_all
+        |> qspecl [‘A’,‘X’,‘h:A -> (X * A) + 1’,
+                   ‘Pair(a:mem(A),ll:mem(llist(X)))’]
+        |> rewr_rule[Pair_def']
+
+
+val llcrf_rules0 =
+    rules0 |> gen_all |> qsspecl [‘llcrf(h:A -> (X * A) + 1)’] 
+           |> C mp (llcrf_monotone |> spec_all)
+           |> rewr_rule[SS_def] 
+           |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+           |> rewr_rule[llcrf_def,Pair_def']
+           |> mk_rules2 |> mk_rules3
+           |> gen_all
+
+
+(*
+(pull_conj_fconv is_eq)
+
+“P(q) & a = b:A->B & P(c) & c  = d:C->D”
+
+
+!a c. a = b ==> P(a)
+
+1.look at a var quantifier, find if there is some a(quantified var) = b or b = a, if there is, and if lower variables does not depend on this, then move the quantifier in, move the eqn, eliminate it. This completes the conv. Otherwise just fail, therefore can do depth_conv on this
+t      
+ check if some vars among these quantifiers 
+
+!a. a = b ==> P(a)
+*)
+
+(*either subst in immediately after pull eqlity to LHS 
+  HOL does this.
+
+, or call recursively on the rest of conjuncts*)
+
+val llcrf_coind0 = 
+    coind0 |> gen_all |> qspecl [‘A * llist(X)’,‘llcrf(h:A -> (X * A) + 1)’]
+                      |> rewr_rule[SS_def]
+                      |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+                      |> rewr_rule[llcrf_def,Pair_def']
+                      |> gen_all
+                       
+
+
 
 (*FUNPOW*)
 val FP_def = proved_th $
@@ -345,3 +485,21 @@ cheat
   App(g,O) = Inc(x) &
   (!n x1 a1. App(g,Suc(n)) =  ))
  ”
+
+
+(*
+
+  (“P(A,B)”,“Iso(A,B)”) take 
+  (“P(a,b)”,“a = b”)
+
+  ?A. Q(A) & !B. Q(B) ==> A Divides B
+
+
+A * B
+
+A --> F(A)
+f: A->F(A) g:A->F(A) define bisimulation on f and g
+
+
+
+*)

@@ -1442,6 +1442,10 @@ val J2_iii = prove_store("J2_iii",
 e0
 (strip_tac >> strip_tac >>  strip_tac >>  strip_tac >>  strip_tac >>  strip_tac >>  strip_tac >>  strip_tac >>  
  rw[ZR_def_alt,Mulj_property,Pair_def'] >> 
+
+
+
+
  abbrev_tac 
  “Add(Mul(p,c),Add(Mul(q,c),Add(Mul(p,d),Mul(q,d)))) = l” >>
  strip_tac >>

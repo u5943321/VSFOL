@@ -666,22 +666,97 @@ e0
 
 val strong_ind = prove_store("strong_ind",
 e0
-(cheat)
+(rpt strip_tac >> 
+ suffices_tac
+ “!a. (!a0. Le(a0,a) ==> p o a0 = TRUE)”
+ >-- (strip_tac >> 
+      pop_assum (qspecl_then [‘n’,‘n’] assume_tac) >>
+      first_assum irule >> rw[Le_refl]) >>
+ IL_tac
+ >-- (IL_ex_tac >> 
+      rw[All_def,o_assoc,IMP_def,Pa_distr,p12_of_Pa,
+        Eq_property_TRUE,one_to_one_id,idR,LE_Le]) >>
+ ind_with0 N_induct >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> drule Le_O >> arw[] >>
+      first_assum irule >> rpt strip_tac >>
+      pop_assum mp_tac >> rw[NOT_Lt_O]) >>
+ rpt strip_tac >> drule Le_cases >> pop_assum mp_tac >>
+ rw[Lt_Suc_Le] >> strip_tac
+ >-- (first_assum irule >> first_assum accept_tac) >>
+ arw[] >> last_x_assum irule >>
+ rw[Lt_Suc_Le] >> first_x_assum accept_tac)
+(form_goal 
+“!p:N->1+1.
+ (!n:1->N. 
+  (!n0:1->N. 
+    Lt(n0,n) ==> p o n0 = TRUE) ==> p o n = TRUE) ==> 
+  !n. p o n = TRUE”));
+
+(*
+val strong_ind = prove_store("strong_ind",
+e0
+(rpt strip_tac >> 
+ qsuff_tac ‘!’
+
+irule strong_ind0
+
+)
 (form_goal 
 “!P p0:P->N. Mono(p0) ==>
  (!n:1->N. 
   (!n0:1->N. 
     LT o Pa(n0,n) = TRUE ==> Char(p0) o n0 = TRUE) ==> Char(p0) o n = TRUE) ==> Iso(p0)”));
+*)
+
 
 val WOP = prove_store("WOP",
 e0
-(cheat)
+(rpt strip_tac >> ccontra_tac >>
+ qby_tac ‘!l. P o l = TRUE ==> ?n. P o n = TRUE & ~(Le(l,n))’
+ >-- (rpt strip_tac >> ccontra_tac >>
+      qsuff_tac ‘?a0. P o a0 = TRUE & 
+                     !a1. P o a1 = TRUE ==> Le(a0,a1)’ 
+     >-- (rw[]>> first_x_assum accept_tac) >>
+     qexists_tac ‘l’ >> strip_tac (* 2 *)
+     >-- first_x_assum accept_tac >>
+     rpt strip_tac >> ccontra_tac >>
+     qby_tac ‘?n. P o n = TRUE & ~(Le(l,n))’ 
+     >-- (qexists_tac ‘a1’ >> strip_tac >> first_x_assum accept_tac) >>
+     first_x_assum opposite_tac ) >>
+ qsuff_tac ‘!n. ~(P o n = TRUE)’ >-- (rpt strip_tac >>
+ first_x_assum (qspecl_then [‘a’] assume_tac) >> 
+ first_x_assum opposite_tac) >>
+ qsuff_tac ‘!n n0. Le(n0,n) ==> ~(P o n0 = TRUE)’
+ >-- (strip_tac >> rpt strip_tac >> first_x_assum irule >>
+     qexists_tac ‘n’ >> rw[Le_refl]) >>
+ IL_tac
+ >-- (IL_ex_tac >> rw[All_def,IMP_def,NEG_def',Eq_property_TRUE,o_assoc,Pa_distr,one_to_one_id,idR,p12_of_Pa,LE_Le]) >>
+ ind_with0 N_induct >> rpt strip_tac (* 2 *) >--
+ (drule Le_O >> arw[] >> ccontra_tac >>
+ first_x_assum drule >> pop_assum strip_assume_tac >>
+ pop_assum mp_tac >>  rw[Le_def,Sub_of_O]) >>
+ pop_assum mp_tac >> strip_tac >>
+ drule Le_cases >> pop_assum mp_tac >> rw[Lt_Suc_Le] >> strip_tac (* 2 *)
+ >-- (first_x_assum drule >> first_x_assum accept_tac) >>
+ arw[] >> ccontra_tac >> 
+ last_x_assum drule >> pop_assum strip_assume_tac >>
+ qspecl_then [‘n'’,‘Suc(n)’] assume_tac LESS_cases >> 
+ cases_on “Lt(n',Suc(n))” >--
+ (pop_assum mp_tac >> rw[Lt_Suc_Le] >> ccontra_tac >> first_x_assum drule>>
+ first_x_assum opposite_tac) >>
+ pop_assum mp_tac >> pop_assum strip_assume_tac >> strip_tac 
+)
+(form_goal
+ “!P a. P o a = TRUE ==> ?a0. P o a0 = TRUE & 
+       !a1.P o a1 = TRUE ==> Le(a0,a1)”));
+
+(*
 (form_goal
  “!P:N->1+1. ~(P = False(N)) ==> 
   ?l:1->N. P o l = TRUE &
   !n:1->N. P o n = TRUE ==>
   LE o Pa(l,n) = TRUE”));
-
+*)
 
 val MUL_def0 = Thm1 |> qspecl [‘N’,‘N’,‘O o To1(N)’,
                                ‘ADD o Pa(p2(N * N,N),p1(N, N) o p1(N * N,N))’] |> uex2ex_rule
@@ -1006,8 +1081,16 @@ val ASYM_def = qdefine_psym("ASYM",[‘R:A*A -> 1+1’]) ‘!a b. Holds(R,a,b) &
 
 val Suc_NEQ = prove_store("Add_Suc_NEQ",
 e0
-(strip_tac >> ccontra_tac >> 
-cheat)
+(strip_tac >> ccontra_tac >>
+ assume_tac (WOP |> specl[qform2IL [‘a:1->N’] ‘a = Suc(a)’])>>
+fs[Eq_property_TRUE,o_assoc,Pa_distr,idL,idR,GSYM Suc_def]>>
+ first_x_assum drule >> 
+ pop_assum strip_assume_tac >>
+ cases_on “a0 = O” >-- fs[GSYM Suc_NONZERO] >>
+ fs[O_xor_Suc] >> fs[] >>
+ fs[Suc_eq_eq] >>
+ first_x_assum drule >> 
+ drule $ iffRL Lt_Suc_Le >> fs[Lt_def])
 (form_goal “!a:1->N. ~(a = Suc(a))”));
 
 

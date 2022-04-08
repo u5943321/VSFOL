@@ -53,6 +53,12 @@ fun forall_cross_fconv f =
 
 val f = “∀b':mem(N * N).P(a:mem(N),b:mem(N),b')”; 
 val f = “∀a1 a2 a3. Holds(ZR,a1,a2) & Holds(ZR,z2,z3)”;
+
+
+
+“!a:mem(A * B). P(a) <=> !a b.P(Pair(a,b))”
+
+“?a:mem(A * B). P(a) <=> ?a b.P(Pair(a,b))”
 *)
 
 fun forall_cross_fconv f = 

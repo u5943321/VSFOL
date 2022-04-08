@@ -61,9 +61,6 @@ val SUB = mk_fun "SUB" [];
 val N = mk_fun "N" []
 val O = mk_fun "O" []
 
-val LE_def = define_fsym("LE",[])
-(form2IL [dest_var $ rastt "n1:1->N",dest_var $ rastt "n2:1->N"]
-“Sub(n1,n2) = O”) |> store_as "LE_def";
 
 
 
