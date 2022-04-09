@@ -455,11 +455,6 @@ e0
 (form_goal “!a b. LE o Pa(a,b) = TRUE <=> Le(a,b)”));
 
 
-val NEG_def' = prove_store("NEG_def'",
-e0
-(rw[NEG_def,TRUE2FALSE])
-(form_goal “!pred. NEG o pred = TRUE <=> ~(pred = TRUE)”));
-
 val LT_Lt = prove_store("LT_Lt",
 e0
 (rw[Lt_def,LT_def,Pa_distr,p12_of_Pa,CONJ_def,NEG_def',

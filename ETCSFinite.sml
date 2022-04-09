@@ -69,11 +69,6 @@ e0
   !a.p o a = TRUE <=> SS(f o a,a)”));
 
 
-val IN_Tp1 = prove_store("IN_Tp1",
-e0
-(rw[IN_def,In_def,Tp1_def,Ev_of_Tp_el',o_assoc,p12_of_Pa,idR])
-(form_goal “!A a:1->A s.IN(a,Tp1(s)) <=> s o a = TRUE”));
-
 
 val prim_lemma' = prove_store("SS_lemma'",
 e0
