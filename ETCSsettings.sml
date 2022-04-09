@@ -2966,6 +2966,16 @@ e0
   iscoPr(iA,iB) ==> Iso(coPa(iA,iB))”)); 
 
 
+val iscoPr_Iso = prove_store("iscoPr_Iso",
+e0
+(cheat)
+(form_goal
+ “!A B AB iA:A->AB iB:B->AB. 
+  iscoPr(iA,iB) ==> !f.iscoPa(iA,iB,i1(A,B),i2(A,B),f) ==>
+  coPa(iA,iB) o f = id(AB) & f o coPa(iA,iB) = id(A+B)”)); 
+
+
+
 
 val iscoPa_def = 
     qdefine_psym("iscoPa",[‘iA:A->AB’,‘iB:B->AB’,‘f:A->X’,‘g:B->X’,‘fg:AB->X’])
@@ -3152,12 +3162,94 @@ e0
 (form_goal 
  “!A B x:1->A+B. (~(?x0:1->A. x = i1(A,B) o x0)) <=> (?x0:1->B. x = i2(A,B) o x0)”));
 
+
+val iscoPa_coPa_inc = prove_store("iscoPa_coPa_inc",
+e0
+(rpt strip_tac >> rw[iscoPa_def,i2_def,i12_of_coPa])
+(form_goal
+ “!A AB iA:A->AB B iB:B->AB. iscoPr(iA,iB) ==> 
+  iscoPa(i1(A, B), i2(A, B), iA, iB, coPa(iA, iB))”))
+
+
+val iscoPa_i12 = prove_store("iscoPa_i12",
+e0
+(rpt strip_tac >> qspecl_then [‘A’,‘B’] assume_tac i2_def >>
+ drule iscoPa_coPa_inc >> fs[] >> 
+ qby_tac ‘coPa(i1(A, B), i2(A, B)) = id(A + B)’ 
+ >-- (irule from_coP_eq >> rw[idL,i12_of_coPa]) >> fs[] >>
+ dimp_tac >> strip_tac (* 2 *) >> arw[] >>
+ drule iscoPa_ex >>
+ first_x_assum (qsspecl_then [‘i1(A,B)’,‘i2(A,B)’] assume_tac) >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qsuff_tac ‘f = fg & id(A + B) = fg’ 
+ >-- (strip_tac >> arw[]) >> strip_tac >> first_x_assum irule >> arw[])
+(form_goal
+ “!A B f.iscoPa(i1(A, B), i2(A, B), i1(A, B), i2(A, B), f) <=> 
+  f = id(A+B)”))
+
+
+val iscoPa_inc = prove_store("iscoPa_inc",
+e0
+(rpt strip_tac >> drule coPr_resp >> fs[] >>
+ rw[iscoPa_def] >> rw[i2_def,o_assoc,i12_of_coPa] >>
+ drule $ iffLR iscoPr_def >>
+ first_x_assum (qsspecl_then [‘iA’,‘iB’] assume_tac) >>
+ pop_assum (strip_assume_tac o uex_expand) >> 
+ dimp_tac >> strip_tac >> arw[idL] >>
+ qsuff_tac ‘f = fg & id(AB) = fg’ 
+ >-- (strip_tac >> arw[]) >> strip_tac >> first_x_assum irule >> arw[idL])
+(form_goal
+ “!A AB iA:A->AB B iB:B->AB. iscoPr(iA,iB) ==> !f.iscoPa(iA,iB,iA,iB, f) <=> 
+  f = id(AB)”))
+
+
+
+
+val coPr_iso_ex = prove_store("coPr_iso_ex",
+e0
+(rpt strip_tac >> drule iscoPa_ex >>
+ first_x_assum 
+ (qsspecl_then [‘i1(A,B)’,‘i2(A,B)’] (strip_assume_tac o uex2ex_rule)) >>
+ qexists_tac ‘fg’ >> drule coPr_resp >> rfs[] >>
+ last_x_assum (drule o iffLR) >>
+ drule $ iffLR iscoPa_i12 >> arw[] >>
+ drule $ iffRL from_coP_eq_iff >>
+ pop_assum mp_tac >> rw[o_assoc,i12_of_coPa,idL] >> strip_tac >> arw[] >>
+ irule $ iffLR iscoPa_inc >>
+ qexistsl_tac [‘A’,‘iA’,‘B’,‘iB’] >> arw[] >>
+ first_x_assum (irule o iffLR) >> arw[] >>
+ drule iscoPa_coPa_inc >> arw[])
+(form_goal
+ “!A B AB iA:A->AB iB:B->AB. 
+  iscoPr(iA,iB) ==> ?iso:AB->A + B. 
+  iso o coPa(iA,iB) = id(A+B) & coPa(iA,iB) o iso = id(AB) & 
+  iso o iA = i1(A,B) & iso o iB = i2(A,B)”));
+
 val copr_disjoint = prove_store("copr_disjoint",
 e0
 (rpt strip_tac >>
  qsuff_tac
  ‘!x:1->A+B. (~(?x0:1->A. x = i1(A,B) o x0)) <=> (?x0:1->B. x = i2(A,B) o x0)’ 
- >-- strip_tac >>
+ >-- (strip_tac >>
+     qby_tac ‘?iso:AB-> A+B. i1(A,B) = iso o iA & i2(A,B) = iso o iB &
+              Iso(iso)’ 
+     >-- (drule coPr_resp >>
+          qsuff_tac ‘?iso:AB-> A+B. i1(A,B) = iso o iA & i2(A,B) = iso o iB’ 
+          >-- (strip_tac >> qexists_tac ‘iso’ >>
+              arw[Iso_def] >> qexists_tac ‘coPa(iA,iB)’ >>
+              irule iscoPr_Iso >> rw[iscoPa_def] >>
+              arw[i2_def]) >>
+         qsuff_tac ‘?iso. iscoPa(iA,iB,i1(A,B),i2(A,B),iso)’ 
+         >-- (strip_tac >> rfs[] >> 
+             qby_tac ‘iso o coPa(iA, iB) = coPa(i1(A,B),i2(A,B))’ 
+             >-- (irule from_coP_eq >> rw[o_assoc,i12_of_coPa] >>
+                 drule $ iffLR iscoPa_def >> fs[o_assoc,i12_of_coPa]) >>
+             qexists_tac ‘iso’ >> 
+             drule $ iffRL from_coP_eq_iff >> fs[o_assoc,i12_of_coPa]) >>
+         drule iscoPa_ex >>
+         first_x_assum (qsspecl_then [‘i1(A,B)’,‘i2(A,B)’]
+                                     (assume_tac o uex2ex_rule)) >>
+         arw[]) >>
      qcases ‘?x0. x = iA o x0’ 
      >-- (arw[] >> ccontra_tac >> fs[] >>
          qsuff_tac ‘i1(A,B) o x0 = i2(A,B) o x0'’ 
@@ -3165,18 +3257,22 @@ e0
          qsuff_tac ‘?iso:AB-> A+B. i1(A,B) = iso o iA & i2(A,B) = iso o iB’ 
          >-- (strip_tac >> arw[o_assoc] >>
              qpick_x_assum ‘x = iA o x0’ (assume_tac o GSYM) >> arw[]) >>
-         drule coPr_resp >>
-         qsuff_tac ‘?iso. iscoPa(iA,iB,i1(A,B),i2(A,B),iso)’ 
-         >-- (strip_tac >> rfs[] >> 
-             qby_tac ‘iso o coPa(iA, iB) = coPa(i1(A,B),i2(A,B))’ 
-             >-- cheat >>
-             qexists_tac ‘iso’ >> 
-             drule $ iffRL from_coP_eq_iff >> fs[o_assoc,i12_of_coPa]) >>
-         drule iscoPa_ex >>
-         first_x_assum (qsspecl_then [‘i1(A,B)’,‘i2(A,B)’]
-                                     (assume_tac o uex2ex_rule)) >>
-         arw[]) >> arw[] >>
-     cheat >> 
+         qexists_tac ‘iso’ >> arw[]) >> arw[] >>
+     fs[] >>
+     qby_tac ‘~(?x0. iso o  x = i1(A,B) o x0)’
+     >-- (ccontra_tac >> pop_assum strip_assume_tac >>
+         qsuff_tac ‘?x0:1->A. x = iA o x0’ 
+         >-- arw[] >> 
+         qexists_tac ‘x0’ >>    
+        irule $iffLR Mono_def >> qexistsl_tac [‘A + B’,‘iso’] >>
+        arw[o_assoc] >> irule Iso_Mono >>
+        arw[]) >>
+     qsspecl_then [‘iso o x’] assume_tac (GSYM INC_FAC) >> rfs[] >>
+     qexists_tac ‘x0’ >> fs[o_assoc] >>
+     irule $ iffLR Mono_def >>
+      qexistsl_tac [‘A + B’,‘iso’] >>
+        arw[o_assoc] >> irule Iso_Mono >>
+        arw[]) >>
  rw[INC_FAC_xor])
 (form_goal “!A B AB iA:A->AB iB:B->AB. iscoPr(iA,iB) ==>
 !x:1->AB. (~(?x0:1->A. x = iA o x0)) <=> (?x0:1->B. x = iB o x0)”));
