@@ -576,6 +576,13 @@ cheat
  “!A B f:A->B. tof(Tpm(f))  = f”));
 
 
+val Tpm_tof_inv = prove_store("Tpm_tof_inv",
+e0
+cheat
+(form_goal
+ “!A B f:mem(Exp(A,B)). Tpm(tof(f))  = f”));
+
+
 (*"LNTH_THM",
   ``(!n. LNTH n LNIL = NONE) /\
     (!h t. LNTH 0 (LCONS h t) = SOME h) /\
@@ -689,6 +696,114 @@ e0
          App(g,z) = Tpm(lcons0(a,(tof(App(g,b)))))))==>
   !z. App(g,z) = Tpm(toabs(f,z))”));
 
+
+val llcr0_def = proved_th $
+e0
+(cheat)
+(form_goal
+ “!A B f:B -> (B * A)+1.
+  ?!g:B->Exp(N,A +1).
+  !z.App(g,z) = Tpm(toabs(f,z))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "llcr0" [‘f’]
+
+val llrec0_uex = prove_store("llrec0_uex",
+e0
+(rpt strip_tac >> uex_tac >> qexists_tac ‘llcr0(f)’ >> 
+ qby_tac
+ ‘!z.
+  (App(f,z) = NONE(B * A) ==> App(llcr0(f),z) = Tpm(Null(A))) &
+  (!b a. App(f,z) = SOME(Pair(b,a)) ==>
+   App(llcr0(f),z) = Tpm(lcons0(a,tof(App(llcr0(f),b))))) &
+  isll(App(llcr0(f),z))’
+ >-- (strip_tac >> rw[llcr0_def,toabs_isll,Tpm_eq_eq,toabs_char0,tof_Tpm_inv])>>
+ arw[] >>
+ rpt strip_tac >> irule $ iffLR FUN_EXT >>
+ strip_tac >>
+ rw[GSYM tof_eq_eq] >>
+ rw[llcr0_def,tof_Tpm_inv] >>
+ rw[GSYM Tpm_eq_eq] >>
+ (*!(z : mem(B)). App(g#, z#) = Tpm(toabs(f#, z#))*)
+ rw[Tpm_tof_inv] >>
+ irule toabs_unique >> arw[]
+ )
+(form_goal
+ “!A B f:B ->(B * A) + 1.
+  ?!cr:B -> Exp(N,A+1). 
+  !z.
+  (App(f,z) = NONE(B * A) ==> App(cr,z) = Tpm(Null(A))) &
+  (!b a. App(f,z) = SOME(Pair(b,a)) ==>
+   App(cr,z) = Tpm(lcons0(a,tof(App(cr,b))))) &
+  isll(App(cr,z))”));
+
+
+val Inj_lift_fun = prove_store("Inj_lift_fun",
+e0
+(rpt strip_tac >>
+ irule (P2fun' |> qspecl [‘X’,‘A’] 
+        |> fVar_sInst_th “P(x:mem(X),a:mem(A))”
+           “App(i:A->A0,a) = App(f0:X->A0,x)”
+        |> rewr_rule[GSYM App_App_o]) >>
+ flip_tac >> strip_tac >> uex_tac >>
+ first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+ qexists_tac ‘a’ >> arw[] >> fs[Inj_def] >> rpt strip_tac >>
+ first_x_assum irule >> arw[]
+ )
+(form_goal
+ “!A A0 i:A-> A0.
+  Inj(i) ==>
+  !X f0:X->A0.
+  (!x. ?a.App(f0,x) = App(i,a))==>
+  ?f:X->A. 
+  !x. App(i o f,x) = App(f0,x)”));
+
+val llcr_uex = prove_store("llcr_uex",
+e0
+(rpt strip_tac >>
+ qspecl_then [‘A’] assume_tac repll_Inj >>
+ drule Inj_lift_fun >>
+ qsspecl_then [‘f’] assume_tac llrec0_uex >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ last_x_assum (qsspecl_then [‘cr’] assume_tac) >>
+ qby_tac
+ ‘!x. ?a.App(cr,x) = App(repll(A),a)’ 
+ >-- cheat (*trivial*) >>
+ first_x_assum drule >>
+ pop_assum (x_choosel_then ["crf"] assume_tac) >>
+ uex_tac >> qexists_tac ‘crf’ >>
+ fs[App_App_o] >>
+ qby_tac
+ ‘!z.
+  (App(f,z) = NONE(B * A) ==> App(crf,z) = LNil(A)) &
+  (!b a. App(f,z) = SOME(Pair(b,a)) ==>
+   App(crf,z) = LCons(a,App(crf,b)))’
+ >-- (rpt strip_tac (* 2 *)
+     >-- (irule $ iffLR Repll_eq_eq >> arw[Repll_def] >>
+         last_x_assum (qspecl_then [‘z’] strip_assume_tac) >>
+         first_x_assum drule >> arw[LNil_def,GSYM Repll_def]) >>
+     irule $ iffLR Repll_eq_eq >> arw[Repll_def] >>
+     last_x_assum (qspecl_then [‘z’] strip_assume_tac) >>
+     first_x_assum drule >> arw[] >> rw[LCons_def,GSYM Repll_def] >>
+     arw[Repll_def]) >>
+ arw[] >> rpt strip_tac >>
+ irule $ iffLR FUN_EXT >> strip_tac >>
+ irule  $ iffLR Repll_eq_eq >> rw[Repll_def] >>
+ rw[GSYM App_App_o] >>
+ qby_tac ‘repll(A) o crf = cr’ 
+ >-- arw[GSYM FUN_EXT,App_App_o] >>
+  arw[] >>
+ qsuff_tac ‘repll(A) o cr' = cr’ 
+ >-- (strip_tac >> arw[]) >>
+ first_x_assum irule >> rw[App_App_o,GSYM Repll_def,isll_Repll] >>
+ rw[GSYM LNil_def] >> rw[Repll_eq_eq] >>
+ arw[] >> rw[GSYM LCons_def] >> rw[Repll_eq_eq] >> arw[] >>
+ strip_tac >> qexists_tac ‘App(cr', z)’ >> rw[])
+(form_goal
+ “!A B f:B ->(B * A) + 1.
+  ?!cr:B -> llist(A). 
+  !z.
+  (App(f,z) = NONE(B * A) ==> App(cr,z) = LNil(A)) &
+  (!b a. App(f,z) = SOME(Pair(b,a)) ==>
+   App(cr,z) = LCons(a,App(cr,b)))”));
 
 (*
 
