@@ -164,7 +164,15 @@ e0
 
 val Null_def = proved_th $
 e0
-cheat
+(strip_tac >> rw[GSYM NONE_def] >>
+ qsuff_tac
+ ‘?f:N->X+1.!n. App(f,n) = NONE(X)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+     rw[GSYM FUN_EXT] >> rpt strip_tac >> arw[]) >>
+ assume_tac (P2fun' |> qspecl [‘N’,‘X + 1’] 
+ |> fVar_sInst_th “P(n:mem(N),x1:mem(X+1))” “x1 = NONE(X)”) >>
+ first_x_assum irule >> strip_tac >> uex_tac >> qexists_tac ‘NONE(X)’ >>
+ rw[] >> rpt strip_tac >> arw[])
 (form_goal “!X. ?!f:N->X+1.!n. App(f,n) = App(i2(X,1),dot)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "Null" [‘X’]
 |> gen_all
@@ -437,11 +445,47 @@ cheat
      !n. App(fp,Pair(Suc(n),x)) = App(fp,Pair(n,App(f,x)))”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "FP" [‘f’]
 
-(*OPTION_MAP*)
+(*OPTION_MAP
+ (∀f x. OPTION_MAP f:α->β (SOME x) = SOME (f x)) ∧
+     ∀f. OPTION_MAP f NONE = NONE
+*)
 
 val OM_def = proved_th $
 e0
-cheat
+(rpt strip_tac >> 
+ qsuff_tac
+ ‘?om:A+1 -> B + 1.
+   App(om,NONE(A)) = NONE(B) &
+  (!a. App(om,SOME(a)) = SOME(App(f,a)))’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘om’ >> arw[] >>
+     rpt strip_tac >> rw[GSYM FUN_EXT] >> strip_tac >>
+     qcases ‘a = NONE(A)’ (* 2 *)
+     >-- arw[] >>
+     fs[option_xor] >> pop_assum (strip_assume_tac o uex2ex_rule) >>
+     arw[]) >>
+ assume_tac 
+ (P2fun' |> qspecl [‘A + 1’,‘B + 1’] 
+         |> fVar_sInst_th “P(a1:mem(A+1),b1:mem(B + 1))”
+         “(a1 = NONE(A) & b1 = NONE(B)) |
+          (?a.a1 = SOME(a) & b1 = SOME(App(f:A->B,a)))”) >>
+ qsuff_tac
+ ‘?f':A+1->B+1. 
+ !a1. (a1 = NONE(A) & App(f',a1) = NONE(B)) | 
+(?a.a1 = SOME(a) & App(f',a1) = SOME(App(f,a)))’
+ >-- (strip_tac >> qexists_tac ‘f'’ >> 
+     first_assum (qspecl_then [‘NONE(A)’] assume_tac) >>
+     fs[GSYM SOME_NOTNONE] >> strip_tac >>
+     first_x_assum (qspecl_then [‘SOME(a)’] assume_tac) >> 
+     fs[SOME_NOTNONE,SOME_eq_eq]) >>
+ first_x_assum irule >>
+ strip_tac >> uex_tac >>
+ qcases ‘x = NONE(A)’ >> arw[GSYM SOME_NOTNONE] (* 2 *)
+ >-- (qexists_tac ‘NONE(B)’ >> rw[] >> rpt strip_tac >> arw[]) >>
+ fs[option_xor] >>
+ pop_assum (strip_assume_tac o uex2ex_rule) >>
+ arw[SOME_eq_eq] >> qexists_tac ‘SOME(App(f,a0))’ >> 
+ rpt strip_tac >> arw[] >>
+ qexists_tac ‘a0’ >> arw[])
 (form_goal
  “!A B f:A->B. ?!om:A+1 -> B + 1.
    App(om,NONE(A)) = NONE(B) &
@@ -455,17 +499,65 @@ cheat
 
 val OB_def = proved_th $
 e0
-cheat
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?ob.!f.
+ App(ob,Pair(NONE(A),Tpm(f))) = NONE(B) &
+ !a.App(ob,Pair(SOME(a),Tpm(f))) = App(f,a)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘ob’ >> arw[]>> rpt strip_tac >>
+     rw[GSYM FUN_EXT] >> strip_tac >>
+     qsspecl_then [‘a’] (x_choosel_then ["a1","f0"] assume_tac) Pair_has_comp >>
+     arw[] >>
+     qcases ‘a1 = NONE(A)’ 
+     >-- (fs[] >>
+         first_x_assum (qspecl_then [‘tof(f0)’] assume_tac) >>
+         last_x_assum (qspecl_then [‘tof(f0)’] assume_tac) >> 
+         fs[Tpm_tof_inv]) >>
+     fs[option_xor] >>
+     pop_assum (strip_assume_tac o uex2ex_rule) >> arw[] >>
+     first_x_assum (qspecl_then [‘tof(f0)’] assume_tac) >>
+     last_x_assum (qspecl_then [‘tof(f0)’] assume_tac) >> 
+     fs[Tpm_tof_inv]) >>
+ assume_tac
+ (P2fun' |> qspecl [‘(A + 1) * Exp(A,B+1)’,‘B + 1’] 
+ |> fVar_sInst_th “P(a1f:mem((A + 1) * Exp(A,B+1)),b1:mem(B + 1))”
+    “(Fst(a1f:mem((A + 1) * Exp(A,B+1))) = NONE(A) & b1 = NONE(B)) |
+     (?a. Fst(a1f) = SOME(a) & b1 = App(tof(Snd(a1f)),a))”) >>
+ qsuff_tac
+ ‘?f:(A + 1) * Exp(A,B+1) -> B + 1.
+   !a1f : mem((A + 1) * Exp(A, (B + 1))).
+           (Fst(a1f) = NONE(A) & App(f, a1f) = NONE(B)) |
+   ?a:mem(A).
+         Fst(a1f) = SOME(a) & App(f, a1f) = App(tof(Snd(a1f)), a)’
+ >-- (strip_tac >> qexists_tac ‘f’ >> rpt strip_tac (* 2 *)
+     >-- (first_x_assum (qspecl_then [‘Pair(NONE(A),Tpm(f'))’] assume_tac) >>
+         fs[Pair_def',GSYM SOME_NOTNONE]) >>
+     first_x_assum (qspecl_then [‘Pair(SOME(a),Tpm(f'))’] assume_tac) >>
+     fs[Pair_def',SOME_NOTNONE] >>
+     fs[tof_Tpm_inv,SOME_eq_eq]) >>  
+ first_x_assum irule >>
+ strip_tac >>
+ qsspecl_then [‘x’] (x_choosel_then ["a1","f"] assume_tac) Pair_has_comp >>
+ arw[Pair_def'] >> 
+ qcases ‘a1 = NONE(A)’ 
+ >-- (arw[GSYM SOME_NOTNONE] >> uex_tac >> qexists_tac ‘NONE(B)’ >> rw[] >>
+     rpt strip_tac) >>
+ fs[option_xor] >>
+ pop_assum (strip_assume_tac o uex2ex_rule) >>
+ arw[SOME_NOTNONE,SOME_eq_eq] >> uex_tac >>
+ qexists_tac ‘App(tof(f),a0)’ >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘a0’ >> rw[]) >> arw[])
 (form_goal
- “!A B f:A->B + 1.?!ob.
+ “!A B.?!ob. !f:A->B + 1.
  App(ob,Pair(NONE(A),Tpm(f))) = NONE(B) &
  !a.App(ob,Pair(SOME(a),Tpm(f))) = App(f,a)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "OB" [‘f’]
+|> spec_all |> uex2ex_rule |> qSKOLEM "OB" [‘A’,‘B’]
+(* [‘f’]*)
 
 (*FUNPOW Body in LUNFOLD_def*)
 val FPB_def = proved_th $
 e0
-cheat
+()
 (form_goal
 “!f: B -> (B * A)+1. ?!fpb:(B * A) + 1 -> (B * A) + 1.
  App(fpb,NONE(B * A)) = NONE(B * A) &
