@@ -127,7 +127,35 @@ val SOME_def = qdefine_fsym("SOME",[‘a:mem(A)’])
 
 val lcons0_def = proved_th $
 e0
-(cheat)
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?f. 
+ App(f,O) = SOME(x) & 
+ (!n. App(f,Suc(n)) = App(f0,n))’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+     rpt strip_tac >>
+     irule $ iffLR FUN_EXT >> ind_with N_induct >>
+     arw[]) >>
+ assume_tac(P2fun' |> qspecl [‘N’,‘X + 1’] 
+ |> fVar_sInst_th “P(n:mem(N),x1:mem(X+1))”
+    “(n = O & x1 = SOME(x)) | (?n0. n = Suc(n0) & x1 = App(f0:N->X+1,n0))”) >>
+ qsuff_tac
+ ‘?f :N -> X+1.
+   !a:mem(N). (a = O & App(f, a) = SOME(x)) |
+ ?n0:mem(N). a = Suc(n0) & App(f, a) = App(f0, n0)’ 
+ >-- (strip_tac >> qexists_tac ‘f’ >>  
+     first_assum (qspecl_then [‘O’] assume_tac) >> fs[] >--
+     (rpt strip_tac >>
+     first_x_assum (qspecl_then [‘Suc(n)’] assume_tac) >>
+     fs[Suc_NONZERO] >> fs[Suc_eq_eq]) >> fs[GSYM Suc_NONZERO]) >>
+ first_x_assum irule >>
+ ind_with N_induct >> strip_tac (* 2 *)
+ >-- (uex_tac >> qexists_tac ‘SOME(x)’ >> rw[] >> rw[GSYM Suc_NONZERO] >>
+     rpt strip_tac >> arw[]) >>
+ rpt strip_tac >> rw[Suc_NONZERO] >> rw[Suc_eq_eq] >> uex_tac >>
+ qexists_tac ‘App(f0,n)’ >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘n’ >> rw[]) >>
+ arw[])
 (form_goal “!X f0:N->X + 1 x.?!f. 
  App(f,O) = SOME(x) & 
  (!n. App(f,Suc(n)) = App(f0,n))”)
