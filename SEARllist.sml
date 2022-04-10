@@ -187,7 +187,33 @@ cheat
 
 val llf_uex = prove_store("llf_uex",
 e0
-(cheat)
+(qsuff_tac
+ ‘?f: Pow(Exp(N,X+1)) -> Pow(Exp(N,X+1)).
+  !gs:mem(Pow(Exp(N,X+1))) g.
+  IN(g,App(f,gs)) <=>
+  g = Tpm(Null(X)) |
+  ?h t. g  = Tpm(lcons0(h,t)) & IN(Tpm(t),gs)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >> rpt strip_tac >>
+     rw[GSYM FUN_EXT] >> strip_tac >> rw[GSYM IN_EXT_iff] >> arw[]) >>
+ assume_tac
+ (P2fun' |> qspecl [‘Pow(Exp(N,X+1))’,‘Pow(Exp(N,X+1))’] 
+         |> fVar_sInst_th “P(s0:mem(Pow(Exp(N,X+1))),s1 :mem(Pow(Exp(N,X+1))))”
+         “!g. IN(g,s1) <=> 
+         g = Tpm(Null(X)) |
+  ?h t. g  = Tpm(lcons0(h,t)) & IN(Tpm(t),s0:mem(Pow(Exp(N,X+1))))”) >>
+ qby_tac
+ ‘!s0. ?!y. !g. IN(g,y) <=> 
+  g = Tpm(Null(X)) |
+  ?h t. g  = Tpm(lcons0(h,t)) & IN(Tpm(t),s0:mem(Pow(Exp(N,X+1))))’
+ >-- (strip_tac >> 
+ assume_tac (IN_def_P |> qspecl [‘Exp(N,X+1)’]
+                      |> fVar_sInst_th “P(g:mem(Exp(N,X+1)))”
+                         “g = Tpm(Null(X)) |
+  ?h t. g  = Tpm(lcons0(h,t)) & IN(Tpm(t),s0:mem(Pow(Exp(N,X+1))))”) >>
+ arw[]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘f’ >> arw[])
 (form_goal
  “?!f: Pow(Exp(N,X+1)) -> Pow(Exp(N,X+1)).
   !gs:mem(Pow(Exp(N,X+1))) g.
