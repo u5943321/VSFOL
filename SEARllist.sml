@@ -607,7 +607,18 @@ e0
 
 val toabs_def = proved_th $
 e0
-cheat
+(rpt strip_tac >>
+ qsuff_tac ‘?toabs.
+ !n.App(toabs,n) = App(OM(p2(B,A)),App(FP(FPB(f)),Pair(n,App(f,z))))’ 
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘toabs’ >> arw[] >>
+     rpt strip_tac >> rw[GSYM FUN_EXT] >> arw[]) >>
+ irule
+ (P2fun' |> qspecl [‘N’,‘A + 1’]
+ |> fVar_sInst_th “P(n:mem(N),a1:mem(A+1))”
+ “a1 =  App(OM(p2(B,A)),App(FP(FPB(f)),Pair(n,App(f:B -> (B * A)+1,z))))”) >>
+ strip_tac >> uex_tac >>
+ qexists_tac ‘App(OM(p2(B, A)), App(FP(FPB(f)), Pair(x, App(f, z))))’ >>
+ rw[])
 (form_goal “!f:B-> (B * A)+1 z. ?!toabs.
  !n.App(toabs,n) = App(OM(p2(B,A)),App(FP(FPB(f)),Pair(n,App(f,z))))”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "toabs" [‘f’,‘z’]
