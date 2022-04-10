@@ -824,7 +824,18 @@ e0
 
 val llcr0_def = proved_th $
 e0
-(cheat)
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?g:B->Exp(N,A +1).
+  !z.App(g,z) = Tpm(toabs(f,z))’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘g’ >> arw[] >>
+     rpt strip_tac >> rw[GSYM FUN_EXT] >> arw[]) >>
+ irule
+ (P2fun' |> qspecl [‘B’,‘Exp(N,A + 1)’] 
+         |> fVar_sInst_th “P(b:mem(B),f0:mem(Exp(N,A+1)))”
+         “f0 = Tpm(toabs(f:B -> (B * A) + 1,b))”) >>
+ strip_tac >> uex_tac >>
+ qexists_tac ‘Tpm(toabs(f, x))’ >> rw[])
 (form_goal
  “!A B f:B -> (B * A)+1.
   ?!g:B->Exp(N,A +1).
