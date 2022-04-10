@@ -295,83 +295,6 @@ val NONE_def = qdefine_fsym("NONE",[‘X’])
 ‘App(i2(X,1),dot)’
 
 
-val CB_def = proved_th $
-e0
-cheat
-(form_goal “!X. ?!cB:Pow(llist(X) * llist(X)) ->
-                    Pow(llist(X) * llist(X)).
- !R:mem(Pow(llist(X) * llist(X))).
-  !ll1 ll2.IN(Pair(ll1,ll2),App(cB,R)) <=> 
-  (ll1 = LNil(X) & ll2 = LNil(X)) | 
-  (?l01 l02 x. IN(Pair(l01,l02),R) &
-   ll1 = LCons(x,l01) & ll2 = LCons(x,l02))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "CB" [‘X’]
-
-
-val CB_monotone = prove_store("CB_monotone",
-e0
-cheat
-(form_goal “monotone(CB(X))”));
-
-
-
-val CB_cases = cases0 |> gen_all |> qsspecl [‘CB(X)’] 
-                      |> C mp CB_monotone
-                      |> rewr_rule[GSYM IN_EXT]
-                      |> conv_rule (depth_fconv no_conv forall_cross_fconv)
-                      |> rewr_rule[CB_def]
-                      |> gen_all
-
-
-val CB_rules00  = rules0 |> gen_all |> qsspecl [‘CB(X)’] 
-                       |> C mp CB_monotone 
-                       |> rewr_rule[SS_def] 
-                       |> conv_rule (depth_fconv no_conv forall_cross_fconv)
-                       |> rewr_rule[CB_def]
-                       |> mk_rules2 |> mk_rules3
-                       |> gen_all
-
-val CB_rules0 = prove_store("CB_rules0",
-e0
-cheat
-(form_goal
- “!X. IN(Pair(LNil(X),LNil(X)),gfp(CB(X))) &
-  !l01 l02. 
-  IN(Pair(l01,l02),gfp(CB(X))) ==>
-  !x. IN(Pair(LCons(x,l01),LCons(x,l02)),gfp(CB(X)))”));
-
-
-
-
-val CB_coind0 = coind0 |> gen_all |> qspecl [‘llist(X) * llist(X)’,‘CB(X)’]
-                      |> rewr_rule[SS_def]
-                      |> conv_rule (depth_fconv no_conv forall_cross_fconv)
-                      |> rewr_rule[CB_def]
-                      |> gen_all
-
-
-
-val gfp_CB = prove_store("gfp_CB",
-e0
-cheat
-(form_goal
-“!X g1 g2. IN(Pair(g1,g2),gfp(CB(X))) <=> g1 = g2”));
-
-
-val LLIST_BISIMULATION = prove_store("LLIST_BISIMULATION",
-e0
-cheat
-(form_goal
- “!ll1 ll2.
-       (ll1 = ll2) <=>
-       ?R. IN(Pair(ll1,ll2),R) &
-           !ll3 ll4.
-           IN(Pair(ll3,ll4),R) ==>
-              (ll3 = LNil(X)) /\ (ll4 = LNil(X)) |
-?h t1 t2. IN(Pair(t1,t2),R) & 
- ll3 = LCons(h,t1) & ll4 = LCons(h,t2)”));
-
-
 
 val llcrf_def = proved_th $
 e0
@@ -804,6 +727,196 @@ e0
   (App(f,z) = NONE(B * A) ==> App(cr,z) = LNil(A)) &
   (!b a. App(f,z) = SOME(Pair(b,a)) ==>
    App(cr,z) = LCons(a,App(cr,b)))”));
+
+
+
+
+
+
+val CB_def = proved_th $
+e0
+cheat
+(form_goal “!X. ?!cB:Pow(llist(X) * llist(X)) ->
+                    Pow(llist(X) * llist(X)).
+ !R:mem(Pow(llist(X) * llist(X))).
+  !ll1 ll2.IN(Pair(ll1,ll2),App(cB,R)) <=> 
+  (ll1 = LNil(X) & ll2 = LNil(X)) | 
+  (?l01 l02 x. IN(Pair(l01,l02),R) &
+   ll1 = LCons(x,l01) & ll2 = LCons(x,l02))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "CB" [‘X’]
+
+
+val CB_monotone = prove_store("CB_monotone",
+e0
+cheat
+(form_goal “monotone(CB(X))”));
+
+
+
+val CB_cases = cases0 |> gen_all |> qsspecl [‘CB(X)’] 
+                      |> C mp CB_monotone
+                      |> rewr_rule[GSYM IN_EXT]
+                      |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+                      |> rewr_rule[CB_def]
+                      |> gen_all
+
+
+val CB_rules00  = rules0 |> gen_all |> qsspecl [‘CB(X)’] 
+                       |> C mp CB_monotone 
+                       |> rewr_rule[SS_def] 
+                       |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+                       |> rewr_rule[CB_def]
+                       |> mk_rules2 |> mk_rules3
+                       |> gen_all
+
+val CB_rules0 = prove_store("CB_rules0",
+e0
+cheat
+(form_goal
+ “!X. IN(Pair(LNil(X),LNil(X)),gfp(CB(X))) &
+  !l01 l02. 
+  IN(Pair(l01,l02),gfp(CB(X))) ==>
+  !x. IN(Pair(LCons(x,l01),LCons(x,l02)),gfp(CB(X)))”));
+
+
+
+
+val CB_coind0 = coind0 |> gen_all |> qspecl [‘llist(X) * llist(X)’,‘CB(X)’]
+                      |> rewr_rule[SS_def]
+                      |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+                      |> rewr_rule[CB_def]
+                      |> gen_all
+
+
+
+val Repll_n_EQ = prove_store("LNTH_EQ",
+e0
+cheat
+(form_goal
+ “!A ll1:mem(llist(A)) ll2.
+  (!n. App(tof(Repll(ll1)),n) = App(tof(Repll(ll2)),n)) <=> ll1 = ll2”))
+
+
+val LNTH_def = qdefine_fsym("LNTH",[‘n:mem(N)’,‘ll:mem(llist(A))’])
+‘App(tof(Repll(ll)),n) ’ |> gen_all
+
+val LNTH_EQ = Repll_n_EQ |> rewr_rule[GSYM LNTH_def]
+
+val LHD_def = qdefine_fsym("LHD",[‘ll:mem(llist(X))’])
+‘App(tof(Repll(ll)),O)’ |> gen_all
+
+val LTL_def = proved_th $
+e0
+(cheat)
+(form_goal
+ “!X ll:mem(llist(X)).?!ltl.
+  (LHD(ll) = NONE(X) ==> ltl = NONE(llist(X))) &
+  (!hd. LHD(ll) = SOME(hd) ==> ?ltl0.
+    ltl = SOME(ltl0) &
+    !n.App(tof(Repll(ltl0)),n) = App(tof(Repll(ll)),Suc(n)))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "LTL" [‘ll’] |> gen_all
+
+val LCons_xor_LNil = prove_store("LCons_xor_LNil",
+e0
+cheat
+(form_goal
+ “!X ll:mem(llist(X)). ~(ll = LNil(X)) <=> ?h t. ll = LCons(h,t)”));
+
+
+val LHD_THM = prove_store("LHD_THM",
+e0
+cheat
+(form_goal “LHD(LNil(X)) = NONE(X) &(!h:mem(X) t. LHD (LCons(h,t)) = SOME(h))”));
+
+
+val LTL_THM = prove_store("LTL_THM",
+e0
+cheat
+(form_goal “LTL(LNil(X)) = NONE(llist(X)) & (!h:mem(X) t. LTL (LCons(h,t)) = SOME(t))”));
+
+val SOME_eq_eq = prove_store("SOME_eq_eq",
+e0
+(cheat)
+(form_goal “!X x1:mem(X) x2. SOME(x1) = SOME(x2) <=> x1 = x2”));
+
+val LNTH_THM = prove_store("LNTH_THM",
+e0
+cheat
+(form_goal
+ “!X.(!n. LNTH(n,LNil(X)) = NONE(X)) &
+  (!h:mem(X) t. LNTH(O,LCons(h,t)) = SOME(h)) &
+ (!n h:mem(X) t. LNTH(Suc(n),LCons(h,t)) = LNTH(n,t))”));
+
+val gfp_CB = prove_store("gfp_CB",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >-- 
+ (rw[GSYM LNTH_EQ] >> fs[IN_gfp,SS_def,CB_def] >>
+ qsuff_tac
+ ‘!n g1 g2.IN(Pair(g1, g2), sa) ==> LNTH(n, g1) = LNTH(n, g2)’
+ >-- (rpt strip_tac >> first_x_assum drule >> arw[]) >>
+ ind_with strong_ind >> 
+ last_x_assum mp_tac >> fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
+ rw[CB_def] >> strip_tac >>
+ rpt strip_tac >>
+ first_assum drule >>
+ qcases ‘g1' = LNil(X) & g2' = LNil(X)’ >-- arw[] >>
+ fs[] >> qcases ‘a = O’ (* 2 *)
+ >-- (arw[] >> rw[LNTH_THM]) >>
+ fs[O_xor_Suc] >> rw[LNTH_THM] >>first_assum irule >> arw[Lt_Suc]) >>
+ qby_tac
+ ‘?ss. !a b. IN(Pair(a:mem(llist(X)),b:mem(llist(X))),ss) <=> a = b’
+ >-- cheat >> pop_assum strip_assume_tac >>
+ rw[IN_gfp] >>
+ qexists_tac ‘ss’ >> arw[] >> rw[SS_def] >>
+ strip_tac >>
+ qsspecl_then [‘a’] (x_choosel_then ["ll1","ll2"] assume_tac) Pair_has_comp >>
+ arw[CB_def] >> strip_tac >>
+ qcases ‘ll1 = LNil(X) & ll2 = LNil(X)’ >> arw[] >>
+ qby_tac ‘?ll0. SOME(ll0) = LTL(ll2)’
+ >-- cheat >>
+ pop_assum strip_assume_tac >>
+ qby_tac ‘?x0. SOME(x0) = LHD(ll2)’
+ >-- cheat >>
+ pop_assum strip_assume_tac >>
+ qexistsl_tac [‘ll0’,‘ll0’,‘x0’] >> rw[] >>
+ qby_tac ‘~(ll2 = LNil(X))’ >-- cheat >>
+ fs[LCons_xor_LNil] >> fs[LTL_THM,LHD_THM,SOME_eq_eq])
+(form_goal
+“!X g1 g2. IN(Pair(g1,g2),gfp(CB(X))) <=> g1 = g2”));
+
+
+
+(*TODO: rw LHS*)
+
+val LLIST_BISIMULATION0 = prove_store("LLIST_BISIMULATION0",
+e0
+(rpt strip_tac >> 
+ qsspecl_then [‘ll1’,‘ll2’] assume_tac (GSYM gfp_CB) >> arw[] >>
+ rw[IN_gfp] >>
+ rw[SS_def] >> 
+ fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
+ rw[CB_def] >> 
+ dimp_tac >> strip_tac (* 2 *)
+ >-- (qexists_tac ‘sa’ >> arw[] >> rpt strip_tac >> first_x_assum drule >>
+     qcases ‘ll3 = LNil(X) & ll4 = LNil(X)’ >-- fs[] >> 
+     (fs[] >> qexistsl_tac [‘x’,‘l01’,‘l02’] >> arw[])) >>
+ qexistsl_tac [‘R’] >>
+ arw[] >> rpt strip_tac >>
+ first_x_assum drule >>
+ qcases ‘a' = LNil(X) & b = LNil(X)’
+ >-- fs[] >>
+ fs[] >> qexistsl_tac [‘t1’,‘t2’,‘h’] >> arw[]
+ )
+(form_goal
+ “!ll1 ll2.
+       (ll1 = ll2) <=>
+       ?R. IN(Pair(ll1,ll2),R) &
+           !ll3 ll4.
+           IN(Pair(ll3,ll4),R) ==>
+              (ll3 = LNil(X)) & (ll4 = LNil(X)) |
+?h t1 t2. IN(Pair(t1,t2),R) & 
+ ll3 = LCons(h,t1) & ll4 = LCons(h,t2)”));
+
 
 (*
 
