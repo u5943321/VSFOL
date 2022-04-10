@@ -557,7 +557,47 @@ e0
 (*FUNPOW Body in LUNFOLD_def*)
 val FPB_def = proved_th $
 e0
-()
+(strip_tac >> 
+ qsuff_tac
+ ‘?fpb:(B * A) + 1 -> (B * A) + 1.
+ App(fpb,NONE(B * A)) = NONE(B * A) &
+ !b a. App(fpb,SOME(Pair(b,a))) = App(f,b)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘fpb’ >> arw[] >>
+     rpt strip_tac >> rw[GSYM FUN_EXT] >>
+     strip_tac >>
+     qcases ‘a = NONE(B * A)’ >> arw[] >>
+     fs[option_xor] >> pop_assum (assume_tac o uex2ex_rule) >>
+     pop_assum (x_choosel_then ["ab"] assume_tac) >>
+     qsspecl_then [‘ab’] (x_choosel_then ["a1","b1"] assume_tac) 
+     Pair_has_comp >> arw[]) >> 
+ assume_tac (P2fun' |> qspecl [‘(B * A) +1’,‘(B * A) + 1’] 
+                    |> fVar_sInst_th “P(ba1:mem((B * A) + 1),
+                                        ba2:mem((B * A) + 1))”
+                    “(ba1 = NONE(B * A) & ba2 = NONE(B * A)) |
+                     (?b:mem(B) a:mem(A). ba1 = SOME(Pair(b,a)) &
+                                      ba2 = App(f:B->(B * A + 1),b))”) >>
+ qsuff_tac
+ ‘!x. ?!y. x = NONE(B * A) & y = NONE(B * A) |
+ (?b a. x = SOME(Pair(b,a)) & y = App(f,b))’ 
+ >-- (strip_tac >> first_x_assum drule >>
+     pop_assum strip_assume_tac >>
+     qexists_tac ‘f'’ >> 
+     first_assum (qspecl_then [‘NONE(B * A)’] assume_tac) >> 
+     fs[GSYM SOME_NOTNONE] >>
+     rpt strip_tac >>
+     first_x_assum (qspecl_then [‘SOME(Pair(b,a))’] assume_tac) >>
+     fs[SOME_NOTNONE,SOME_eq_eq,Pair_eq_eq]) >>
+ strip_tac >>
+ uex_tac >> qcases ‘x = NONE(B * A)’ (* 2 *)
+ >-- (arw[] >> qexists_tac ‘NONE(B * A)’ >> rw[GSYM SOME_NOTNONE] >>
+     rpt strip_tac >> arw[]) >>
+ fs[option_xor] >> pop_assum (strip_assume_tac o uex2ex_rule) >>
+ qsspecl_then [‘a0’] (x_choosel_then ["b1","a1"] assume_tac) Pair_has_comp >>
+ arw[] >>
+ rw[SOME_NOTNONE,SOME_eq_eq,Pair_eq_eq] >> 
+ qexists_tac ‘App(f,b1)’ >> rw[] >> rpt strip_tac (* 2 *)
+ >-- (qexistsl_tac [‘b1’,‘a1’] >> arw[]) >> rfs[]
+  )
 (form_goal
 “!f: B -> (B * A)+1. ?!fpb:(B * A) + 1 -> (B * A) + 1.
  App(fpb,NONE(B * A)) = NONE(B * A) &
