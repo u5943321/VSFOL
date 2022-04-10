@@ -263,10 +263,30 @@ val isll_Repll = llist_def |> spec_all |> conjE2
                         |> gen_all 
                         |> store_as "isll_Repll";
 
+val Repll_isll = repll_isll |> rewr_rule[GSYM Repll_def]
+
+val isll_rules = ll_rules |> rewr_rule[GSYM isll_def]
+
+val isll_lcons0 = isll_rules |> spec_all |> conjE2 
+                             |> spec_all |> undisch |> gen_all
+                             |> disch_all |> gen_all
 
 val LCons_def = proved_th $
 e0
-(cheat)
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?l2.
+  Repll(l2) = Tpm(lcons0(Fst(xl1),tof(Repll(Snd(xl1)))))’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘l2’ >> arw[] >>
+     rpt strip_tac >> arw[GSYM Repll_eq_eq]) >>
+ qsspecl_then [‘xl1’] (x_choosel_then ["x1","l1"] assume_tac) Pair_has_comp >>
+ arw[Pair_def'] >> 
+ qsspecl_then [‘l1’] assume_tac Repll_isll >>
+ qby_tac ‘isll(Tpm(tof(Repll(l1))))’ 
+ >-- arw[Tpm_tof_inv] >>
+ drule isll_lcons0 >>
+ first_x_assum (qspecl_then [‘x1’] assume_tac) >>
+ fs[isll_Repll] >> qexists_tac ‘b''’ >> rw[])
 (form_goal
  “!X xl1:mem(X * llist(X)).?!l2.
   Repll(l2) = Tpm(lcons0(Fst(xl1),tof(Repll(Snd(xl1)))))”)
@@ -285,7 +305,10 @@ e0
 
 val LCons_NONLNIL = prove_store("LCons_NONLNIL",
 e0
-(cheat)
+(rpt strip_tac >> rw[GSYM Repll_eq_eq,LCons_def,LNil_def,Tpm_eq_eq] >>
+ rw[GSYM FUN_EXT] >> ccontra_tac >>
+ first_x_assum (qspecl_then [‘O’] assume_tac) >>
+ fs[lcons0_def,Null_def,GSYM NONE_def,SOME_NOTNONE] )
 (form_goal
  “!X x l. ~(LCons(x,l) = LNil(X))”));
 
@@ -467,7 +490,11 @@ e0
 (strip_tac >>
 qby_tac
  ‘?sa. !g.IN(g,sa)<=>
-   ?z.g = Tpm(toabs(f,z))’ >-- cheat >>
+   ?z.g = Tpm(toabs(f,z))’ >-- 
+accept_tac (IN_def_P_ex |> qspecl [‘Exp(N,A+1)’] 
+|> fVar_sInst_th “P(g:mem(Exp(N, A + 1)))”
+   “?z.g = Tpm(toabs(f:B ->(B * A) + 1,z))”
+|> GSYM) >>
  pop_assum strip_assume_tac >> 
  qsuff_tac ‘!g. IN(g,sa) ==> isll(g)’ 
  >-- (strip_tac >> rfs[] >>
