@@ -162,9 +162,17 @@ e0
 val llf_def = llf_uex |> uex2ex_rule |> qSKOLEM "llf" [‘X’]
                       |> gen_all
 
+
+
+val Tpm_eq_eq = prove_store("Tpm_eq_eq",
+e0
+(cheat)
+(form_goal “!A B f1:A->B f2. Tpm(f1) = Tpm(f2) <=> f1 = f2”));
+
 val llf_monotone = prove_store("llf_monotone",
 e0
-cheat
+(rw[monotone_def,llf_def,SS_def] >> rpt strip_tac >> arw[Tpm_eq_eq] >>
+ disj2_tac >> qexistsl_tac [‘h’,‘t’] >> arw[] >> first_x_assum irule >> arw[])
 (form_goal “!X.monotone(llf(X))”));
 
 val islls_def = qdefine_fsym("islls",[‘X’]) ‘gfp(llf(X))’
@@ -295,7 +303,7 @@ val NONE_def = qdefine_fsym("NONE",[‘X’])
 ‘App(i2(X,1),dot)’
 
 
-
+(*
 val llcrf_def = proved_th $
 e0
 cheat
@@ -365,6 +373,7 @@ val llcrf_coind0 =
                       |> conv_rule (depth_fconv no_conv forall_cross_fconv)
                       |> rewr_rule[llcrf_def,Pair_def']
                       |> gen_all
+*)
                        
 
 
@@ -447,11 +456,6 @@ e0
   (!b a. App(f,z) = SOME(Pair(b,a)) ==>
    toabs(f,z) = lcons0(a,toabs(f,b)))”)
 
-
-val Tpm_eq_eq = prove_store("Tpm_eq_eq",
-e0
-(cheat)
-(form_goal “!A B f1:A->B f2. Tpm(f1) = Tpm(f2) <=> f1 = f2”));
 
 val option_xor = prove_store("option_xor",
 e0
@@ -748,7 +752,12 @@ cheat
 
 val CB_monotone = prove_store("CB_monotone",
 e0
-cheat
+(rw[monotone_def,SS_def] >> 
+ fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
+ rw[CB_def] >> rpt strip_tac >> arw[] >>
+ disj2_tac >> 
+ qexistsl_tac [‘l01’,‘l02’,‘x’] >> arw[] >>
+ first_x_assum irule >> arw[])
 (form_goal “monotone(CB(X))”));
 
 
@@ -805,9 +814,61 @@ val LNTH_EQ = Repll_n_EQ |> rewr_rule[GSYM LNTH_def]
 val LHD_def = qdefine_fsym("LHD",[‘ll:mem(llist(X))’])
 ‘App(tof(Repll(ll)),O)’ |> gen_all
 
-val LTL_def = proved_th $
+
+val SOME_NOTNONE = prove_store("SOME_NOTNONE",
 e0
 (cheat)
+(form_goal “!X x.~(SOME (x) = NONE(X)) ”));
+
+val isll_cases0 = ll_cases |> rewr_rule[GSYM IN_EXT_iff] 
+                          |> rewr_rule[GSYM isll_def,llf_def,GSYM LNil_def,
+                                       GSYM LCons_def]
+
+
+val SOME_eq_eq = prove_store("SOME_eq_eq",
+e0
+(cheat)
+(form_goal “!X x1:mem(X) x2. SOME(x1) = SOME(x2) <=> x1 = x2”));
+
+val LHD_THM = prove_store("LHD_THM",
+e0
+(rw[LHD_def,LNil_def,tof_Tpm_inv,Null_def,NONE_def,
+    LCons_def,lcons0_def])
+(form_goal “LHD(LNil(X)) = NONE(X) &(!h:mem(X) t. LHD (LCons(h,t)) = SOME(h))”));
+
+
+val LTL_def = proved_th $
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?ltl.
+  (LHD(ll) = NONE(X) ==> ltl = NONE(llist(X))) &
+  (!hd. LHD(ll) = SOME(hd) ==> ?ltl0.
+    ltl = SOME(ltl0) &
+    !n.App(tof(Repll(ltl0)),n) = App(tof(Repll(ll)),Suc(n)))’ 
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘ltl’ >> arw[] >> rpt strip_tac >>
+     qcases ‘LHD(ll) = NONE(X)’ (* 2 *)
+     >-- (first_x_assum drule >> arw[] >>
+         last_x_assum drule >> arw[]) >>
+     fs[option_xor] >>
+     pop_assum (strip_assume_tac o uex2ex_rule) >>
+     first_x_assum drule >> 
+     last_x_assum drule >> fs[] >>
+     rw[SOME_eq_eq,GSYM Repll_eq_eq,GSYM tof_eq_eq] >> 
+     irule $ iffLR FUN_EXT >> arw[]) >>
+ qcases ‘LHD(ll) = NONE(X)’ (* 2 *)
+ >-- (qexists_tac ‘NONE(llist(X))’ >> arw[GSYM SOME_NOTNONE]) >>
+ qby_tac ‘isll(Repll(ll))’ 
+ >-- (rw[isll_Repll] >> qexists_tac ‘ll’ >> rw[]) >>
+ drule $ iffLR isll_cases0 >>
+ qby_tac ‘~(Repll(ll) = Repll(LNil(X)))’ 
+ >-- (rw[Repll_eq_eq] >> ccontra_tac >> fs[LHD_THM]) >>
+ fs[] >> drule $ iffLR isll_Repll >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘SOME(b)’ >> rpt strip_tac >> qexists_tac ‘b’ >> rw[] >>
+ qpick_assum ‘Tpm(t) = Repll(b)’ (assume_tac o GSYM) >> once_arw[] >>
+ rw[tof_Tpm_inv] >> 
+ rw[lcons0_def])
 (form_goal
  “!X ll:mem(llist(X)).?!ltl.
   (LHD(ll) = NONE(X) ==> ltl = NONE(llist(X))) &
@@ -816,28 +877,38 @@ e0
     !n.App(tof(Repll(ltl0)),n) = App(tof(Repll(ll)),Suc(n)))”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "LTL" [‘ll’] |> gen_all
 
+
+
+val LCons_NONLNIL = prove_store("LCons_NONLNIL",
+e0
+(rpt strip_tac >> rw[GSYM Repll_eq_eq] >>
+ rw[LNil_def,LCons_def,Tpm_eq_eq,GSYM FUN_EXT] >> ccontra_tac >>
+ first_x_assum (qspecl_then [‘O’] assume_tac) >>
+ fs[lcons0_def,Null_def] >> fs[SOME_NOTNONE,GSYM NONE_def])
+(form_goal
+ “!X x l. ~(LCons(x,l) = LNil(X))”));
+
 val LCons_xor_LNil = prove_store("LCons_xor_LNil",
 e0
-cheat
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[LCons_NONLNIL] >>
+ rw[GSYM Repll_eq_eq] >> rw[LCons_def] >>
+ qsspecl_then [‘Repll(ll)’] assume_tac isll_cases0 >>
+ fs[isll_Repll] >>
+ rfs[Repll_eq_eq] >>
+ qby_tac ‘?b.ll = b’ >-- (qexists_tac ‘ll’ >> rw[]) >> 
+ pop_assum mp_tac >> arw[] >>
+ strip_tac >> 
+ qexistsl_tac [‘h’,‘b’] >> arw[] >> 
+ pop_assum (assume_tac o GSYM) >> arw[tof_Tpm_inv])
 (form_goal
  “!X ll:mem(llist(X)). ~(ll = LNil(X)) <=> ?h t. ll = LCons(h,t)”));
 
-
-val LHD_THM = prove_store("LHD_THM",
-e0
-cheat
-(form_goal “LHD(LNil(X)) = NONE(X) &(!h:mem(X) t. LHD (LCons(h,t)) = SOME(h))”));
 
 
 val LTL_THM = prove_store("LTL_THM",
 e0
 cheat
 (form_goal “LTL(LNil(X)) = NONE(llist(X)) & (!h:mem(X) t. LTL (LCons(h,t)) = SOME(t))”));
-
-val SOME_eq_eq = prove_store("SOME_eq_eq",
-e0
-(cheat)
-(form_goal “!X x1:mem(X) x2. SOME(x1) = SOME(x2) <=> x1 = x2”));
 
 val LNTH_THM = prove_store("LNTH_THM",
 e0
