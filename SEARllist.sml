@@ -1340,7 +1340,12 @@ e0
  fs[O_xor_Suc] >> rw[LNTH_THM] >>first_assum irule >> arw[Lt_Suc]) >>
  qby_tac
  ‘?ss. !a b. IN(Pair(a:mem(llist(X)),b:mem(llist(X))),ss) <=> a = b’
- >-- cheat >> pop_assum strip_assume_tac >>
+ >-- assume_tac (IN_def_P |> qspecl [‘llist(X) * llist(X)’] 
+ |> fVar_sInst_th “P(a:mem(llist(X) * llist(X)))”
+    “Fst(a) = Snd(a:mem(llist(X) * llist(X)))” |> uex2ex_rule
+                 |> conv_rule(depth_fconv no_conv forall_cross_fconv)
+                 |> rewr_rule[Pair_def']) >>
+ pop_assum (x_choose_then "ss" assume_tac) >>
  rw[IN_gfp] >>
  qexists_tac ‘ss’ >> arw[] >> rw[SS_def] >>
  strip_tac >>
@@ -1348,13 +1353,18 @@ e0
  arw[CB_def] >> strip_tac >>
  qcases ‘ll1 = LNil(X) & ll2 = LNil(X)’ >> arw[] >>
  qby_tac ‘?ll0. SOME(ll0) = LTL(ll2)’
- >-- cheat >>
+ >-- (qby_tac ‘~(ll1 = LNil(X))’ 
+     >-- (ccontra_tac >> fs[] >> rfs[]) >>
+     fs[LCons_xor_LNil] >> rfs[LTL_THM] >> qexists_tac ‘t’ >> rw[]) >>
  pop_assum strip_assume_tac >>
  qby_tac ‘?x0. SOME(x0) = LHD(ll2)’
- >-- cheat >>
+ >-- (qby_tac ‘~(ll1 = LNil(X))’ 
+     >-- (ccontra_tac >> fs[] >> rfs[]) >> 
+     fs[LCons_xor_LNil] >> rfs[] >> rw[LHD_THM] >> qexists_tac ‘h’ >> rw[]) >>
  pop_assum strip_assume_tac >>
  qexistsl_tac [‘ll0’,‘ll0’,‘x0’] >> rw[] >>
- qby_tac ‘~(ll2 = LNil(X))’ >-- cheat >>
+ qby_tac ‘~(ll2 = LNil(X))’ >-- 
+ (ccontra_tac >> fs[LHD_THM]) >>
  fs[LCons_xor_LNil] >> fs[LTL_THM,LHD_THM,SOME_eq_eq])
 (form_goal
 “!X g1 g2. IN(Pair(g1,g2),gfp(CB(X))) <=> g1 = g2”));
