@@ -2395,6 +2395,25 @@ e0
    !a b. ~(App(i1,a) = App(i2,b))”));
 
 
+val coPo_def = iscoPr_ex |> spec_all 
+                         |> qSKOLEM "+" [‘A’,‘B’] |> gen_all
+                         |> store_as "coPo_def";
+
+val i1_def = coPo_def |> spec_all 
+                      |> qSKOLEM "i1" [‘A’,‘B’] |> gen_all
+                      |> store_as "i1_def";
+
+val i2_def = i1_def |> spec_all |> qSKOLEM "i2" [‘A’,‘B’] |> gen_all
+                    |> store_as "i2_def";
+
+val coPa_def = i2_def |> rewr_rule[iscoPr_def] 
+                      |> spec_all
+                      |> conjE1 |> spec_all
+                      |> uex_expand 
+                      |> qSKOLEM "coPa" [‘f’,‘g’]
+                      |> gen_all
+                      |> store_as "coPa_def";
+
 val i1_Inj = prove_store("i1_Inj",
 e0
 cheat
