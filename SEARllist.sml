@@ -72,7 +72,9 @@ val IN_BIGUNION = BU_def |> rewr_rule[GSYM BIGUNION_def]
 
 val prims_def = proved_th $
 e0
-cheat
+(rpt strip_tac >>
+accept_tac (IN_def_P |> qspecl [‘Pow(A)’] 
+ |> fVar_sInst_th “P(sa:mem(Pow(A)))” “SS(sa,App(f:Pow(A) -> Pow(A),sa))”))
 (form_goal “!A f:Pow(A) ->Pow(A).
  ?!prims:mem(Pow(Pow(A))).
  !sa.IN(sa,prims) <=> SS(sa,App(f,sa))”)
@@ -84,7 +86,7 @@ val gfp_def = qdefine_fsym("gfp",[‘f:Pow(A) -> Pow(A)’])
 
 val IN_gfp = prove_store("IN_gfp",
 e0
-(cheat)
+(rw[gfp_def,IN_BIGUNION,prims_def])
 (form_goal “!f a:mem(A). 
  IN(a,gfp(f)) <=> ?sa. SS(sa,App(f,sa)) & IN(a,sa)”));
 
@@ -519,7 +521,11 @@ e0
  qby_tac
  ‘?h:Exp(X,X) -> Exp(X,X). 
   !f0. App(h,f0) = Tpm(tof(f0) o f)’
- >-- cheat >> pop_assum strip_assume_tac >>
+ >-- (irule (P2fun' |> qspecl [‘Exp(X,X)’,‘Exp(X,X)’] 
+ |> fVar_sInst_th “P(g1:mem(Exp(X,X)),g2:mem(Exp(X,X)))”
+     “g2 = Tpm(tof(g1:mem(Exp(X,X))) o f:X->X)”) >>
+     strip_tac >> uex_tac  >> qexists_tac ‘Tpm(tof(x) o f)’ >> rw[]) >>
+ pop_assum strip_assume_tac >>
  assume_tac
  (Thm1_case_1 |> qspecl [‘Exp(X,X)’,‘El(Tpm(Id(X)))’,‘h:Exp(X,X) ->Exp(X,X) o p2(N,Exp(X,X))’]
  |> rewr_rule[p12_of_Pa,o_assoc]) >>
@@ -540,7 +546,13 @@ e0
  qby_tac
  ‘?fp:N * X ->X.
    !n x. App(fp,Pair(n,x)) = App(tof(App(f1,n)),x)’
- >-- cheat >> pop_assum strip_assume_tac >>
+ >-- (irule (P2fun' |> qspecl [‘N * X’,‘X’] 
+                   |> fVar_sInst_th “P(nx:mem(N * X),x1:mem(X))”
+                   “x1 = App(tof(App(f1:N->Exp(X,X),Fst(nx))),Snd(nx))”
+                   |> conv_rule (depth_fconv no_conv forall_cross_fconv) 
+                   |> rewr_rule[Pair_def']) >>
+     rpt strip_tac >> uex_tac >> qexists_tac ‘App(tof(App(f1, a)), b)’ >>
+     rw[]) >> pop_assum strip_assume_tac >>
  qexists_tac ‘fp’ >> arw[] >> rpt strip_tac (*2 *)
  >-- (fs[GSYM FUN_EXT] >>
      first_x_assum (qspecl_then [‘dot’] assume_tac) >>
