@@ -33,7 +33,23 @@ val coPa_def = i2_def |> rewr_rule[iscoPr_def] |> spec_all
 
 val BU_ex = prove_store("BU_ex",
 e0
-(cheat)
+(strip_tac >>
+ qsuff_tac
+ ‘?BU:Pow(Pow(A)) -> Pow(A). 
+  !sss a:mem(A). IN(a,App(BU,sss)) <=>
+  ?ss.IN(ss,sss) & IN(a,ss)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘BU’ >> arw[] >>
+     rpt strip_tac >> irule $ iffLR FUN_EXT >> strip_tac >>
+     irule IN_EXT >> arw[]) >>
+ irule 
+ (P2fun' |> qspecl [‘Pow(Pow(A))’,‘Pow(A)’]
+ |> fVar_sInst_th “P(sss:mem(Pow(Pow(A))),u:mem(Pow(A)))”
+    “!a:mem(A). IN(a,u) <=>
+           (?ss.IN(ss,sss) & IN(a,ss))”) >>
+ strip_tac >>
+ accept_tac (IN_def_P |> qspecl [‘A’] |> fVar_sInst_th “P(a:mem(A))”
+ “ (?ss.IN(ss,x) & IN(a:mem(A),ss))”)
+ )
 (form_goal
  “!A. ?!BU:Pow(Pow(A)) -> Pow(A). 
   !sss a:mem(A). IN(a,App(BU,sss)) <=>
@@ -161,6 +177,11 @@ e0
  (!n. App(f,Suc(n)) = App(f0,n))”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "lcons0" [‘x’,‘f0’]
 |> gen_all 
+
+
+
+val NONE_def = qdefine_fsym("NONE",[‘X’])
+‘App(i2(X,1),dot)’
 
 val Null_def = proved_th $
 e0
@@ -324,7 +345,7 @@ val isll_Repll = llist_def |> spec_all |> conjE2
                                      GSYM Repll_def] 
                         |> gen_all 
                         |> store_as "isll_Repll";
-
+ 
 val Repll_isll = repll_isll |> rewr_rule[GSYM Repll_def]
 
 val isll_rules = ll_rules |> rewr_rule[GSYM isll_def]
@@ -332,6 +353,22 @@ val isll_rules = ll_rules |> rewr_rule[GSYM isll_def]
 val isll_lcons0 = isll_rules |> spec_all |> conjE2 
                              |> spec_all |> undisch |> gen_all
                              |> disch_all |> gen_all
+
+val Tpm_tof_inv = prove_store("Tpm_tof_inv",
+e0
+cheat
+(form_goal
+ “!A B f:mem(Exp(A,B)). Tpm(tof(f))  = f”));
+
+
+val Repll_eq_eq = prove_store("Repll_eq_eq",
+e0
+(rpt strip_tac >> rw[Repll_def] >> irule Inj_eq_eq >>
+ rw[repll_Inj])
+(form_goal “!X l1:mem(llist(X)) l2.
+ Repll(l1) = Repll(l2) <=> l1 = l2”));
+
+
 
 val LCons_def = proved_th $
 e0
@@ -357,12 +394,12 @@ e0
 |> qSKOLEM "LCons" [‘x’,‘ll’] |> gen_all
 
 
-val Repll_eq_eq = prove_store("Repll_eq_eq",
+
+
+val SOME_NOTNONE = prove_store("SOME_NOTNONE",
 e0
-(rpt strip_tac >> rw[Repll_def] >> irule Inj_eq_eq >>
- rw[repll_Inj])
-(form_goal “!X l1:mem(llist(X)) l2.
- Repll(l1) = Repll(l2) <=> l1 = l2”));
+(cheat)
+(form_goal “!X x.~(SOME (x) = NONE(X)) ”));
 
 
 val LCons_NONLNIL = prove_store("LCons_NONLNIL",
@@ -383,9 +420,6 @@ e0
  “!X l. Repll(l) = Tpm(Null(X)) <=> l = LNil(X)”));
 
 val lnil_def = qdefine_fsym("lnil",[‘X’]) ‘Tpm(Null(X))’
-
-val NONE_def = qdefine_fsym("NONE",[‘X’])
-‘App(i2(X,1),dot)’
 
 
 (*
@@ -460,13 +494,61 @@ val llcrf_coind0 =
                       |> gen_all
 *)
                        
+(*
+val Expo_def = proved_th $
+e0
+cheat
+(form_goal
+ “!A B C.?!expo:Exp(A,B) * Exp(B,C) -> Exp(A,C).
+  !f:A->B g:B->C.
+   App(expo,Pair(Tpm(f),Tpm(g))) = ”)
+*)
+
+
+val tof_Tpm_inv = prove_store("tof_Tpm_inv",
+e0
+cheat
+(form_goal
+ “!A B f:A->B. tof(Tpm(f))  = f”));
 
 
 (*FUNPOW*)
 val FP_def = proved_th $
 e0
-cheat
-(form_goal “!f:X->X.?!fp:N * X -> X.
+(strip_tac >> 
+ qby_tac
+ ‘?h:Exp(X,X) -> Exp(X,X). 
+  !f0. App(h,f0) = Tpm(tof(f0) o f)’
+ >-- cheat >> pop_assum strip_assume_tac >>
+ assume_tac
+ (Thm1_case_1 |> qspecl [‘Exp(X,X)’,‘El(Tpm(Id(X)))’,‘h:Exp(X,X) ->Exp(X,X) o p2(N,Exp(X,X))’]
+ |> rewr_rule[p12_of_Pa,o_assoc]) >>
+ qsuff_tac
+ ‘?fp:N * X -> X.
+ !x. App(fp,Pair(O,x)) = x & 
+     !n. App(fp,Pair(Suc(n),x)) = App(fp,Pair(n,App(f,x)))’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘fp’ >> arw[] >>
+     rpt strip_tac >> irule $ iffLR FUN_EXT >>
+     qsuff_tac
+     ‘!n x. App(fp',Pair(n,x)) = App(fp,Pair(n,x))’ 
+     >-- (rpt strip_tac >>
+         qsspecl_then [‘a’] strip_assume_tac Pair_has_comp >>
+         arw[]) >>
+     ind_with N_induct >> arw[] >> rpt strip_tac >> arw[]) >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum (x_choosel_then ["f1"] assume_tac) >>
+ qby_tac
+ ‘?fp:N * X ->X.
+   !n x. App(fp,Pair(n,x)) = App(tof(App(f1,n)),x)’
+ >-- cheat >> pop_assum strip_assume_tac >>
+ qexists_tac ‘fp’ >> arw[] >> rpt strip_tac (*2 *)
+ >-- (fs[GSYM FUN_EXT] >>
+     first_x_assum (qspecl_then [‘dot’] assume_tac) >>
+     fs[App_App_o,El_def,tof_Tpm_inv,Id_def]) >>
+ fs[GSYM FUN_EXT] >> 
+ last_x_assum (qspecl_then [‘n’] assume_tac) >>
+ fs[App_App_o,GSYM Suc_def,tof_Tpm_inv])
+(form_goal “!f:X->X.?!fp:N * X -> X. 
  !x. App(fp,Pair(O,x)) = x & 
      !n. App(fp,Pair(Suc(n),x)) = App(fp,Pair(n,App(f,x)))”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "FP" [‘f’]
@@ -475,6 +557,19 @@ cheat
  (∀f x. OPTION_MAP f:α->β (SOME x) = SOME (f x)) ∧
      ∀f. OPTION_MAP f NONE = NONE
 *)
+
+
+val SOME_eq_eq = prove_store("SOME_eq_eq",
+e0
+(cheat)
+(form_goal “!X x1:mem(X) x2. SOME(x1) = SOME(x2) <=> x1 = x2”));
+
+
+val option_xor = prove_store("option_xor",
+e0
+(cheat)
+(form_goal “!A a1:mem(A+1). ~(a1 = NONE(A)) <=> ?!a0. a1 = SOME(a0)”));
+
 
 val OM_def = proved_th $
 e0
@@ -677,11 +772,6 @@ e0
    toabs(f,z) = lcons0(a,toabs(f,b)))”)
 
 
-val option_xor = prove_store("option_xor",
-e0
-(cheat)
-(form_goal “!A a1:mem(A+1). ~(a1 = NONE(A)) <=> ?!a0. a1 = SOME(a0)”));
-
 val toabs_isll = prove_store("toabs_isll",
 e0
 (strip_tac >>
@@ -720,18 +810,6 @@ cheat
  “!A B f:mem(Exp(A,B)) g. tof(f)  = tof(g) <=> f = g”));
 
 
-val tof_Tpm_inv = prove_store("tof_Tpm_inv",
-e0
-cheat
-(form_goal
- “!A B f:A->B. tof(Tpm(f))  = f”));
-
-
-val Tpm_tof_inv = prove_store("Tpm_tof_inv",
-e0
-cheat
-(form_goal
- “!A B f:mem(Exp(A,B)). Tpm(tof(f))  = f”));
 
 
 (*"LNTH_THM",
@@ -928,7 +1006,17 @@ e0
  last_x_assum (qsspecl_then [‘cr’] assume_tac) >>
  qby_tac
  ‘!x. ?a.App(cr,x) = App(repll(A),a)’ 
- >-- cheat (*trivial*) >>
+ >-- (strip_tac >> rw[GSYM Repll_def] >> rw[GSYM isll_Repll] >>
+     first_x_assum (qspecl_then [‘x’] strip_assume_tac)) >>
+     (*qcases ‘App(f,x) = NONE(B * A)’ (* 2 *)
+     >-- last_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+     (*fs[option_xor] ERR
+     ("disjE.first disjunct not in the formula list: ", [], [],
+      [Pred ("=", true, [App(f, x), NONE(B * A)])]) raised*)
+     pop_assum mp_tac >> rw[option_xor] >> strip_tac >>
+     pop_assum (strip_assume_tac o uex2ex_rule) >> 
+     qsspecl_then [‘a0’] strip_assume_tac Pair_has_comp >> 
+     (*last_x_assum (qspecl_then [‘x’] strip_assume_tac)*)*)
  first_x_assum drule >>
  pop_assum (x_choosel_then ["crf"] assume_tac) >>
  uex_tac >> qexists_tac ‘crf’ >>
@@ -974,7 +1062,45 @@ e0
 
 val CB_def = proved_th $
 e0
-cheat
+(strip_tac >>
+ qsuff_tac
+ ‘?cB:Pow(llist(X) * llist(X)) ->
+                    Pow(llist(X) * llist(X)).
+ !R:mem(Pow(llist(X) * llist(X))).
+  !ll1 ll2.IN(Pair(ll1,ll2),App(cB,R)) <=> 
+  (ll1 = LNil(X) & ll2 = LNil(X)) | 
+  (?l01 l02 x. IN(Pair(l01,l02),R) &
+   ll1 = LCons(x,l01) & ll2 = LCons(x,l02))’ 
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘cB’ >> arw[] >> rpt strip_tac >>
+     rw[GSYM FUN_EXT] >> strip_tac >> irule IN_EXT >>
+     strip_tac >>
+     qsspecl_then [‘x’] (x_choosel_then ["ll1","ll2"] assume_tac)
+     Pair_has_comp >> arw[]) >>
+ assume_tac (P2fun' |> qspecl [‘Pow(llist(X) * llist(X))’,
+                               ‘Pow(llist(X) * llist(X))’] 
+                    |> fVar_sInst_th “P(R0:mem(Pow(llist(X) * llist(X))),
+                                        R1:mem(Pow(llist(X) * llist(X))))”
+                    “!ll1 ll2.IN(Pair(ll1,ll2),R1) <=> 
+                    (ll1 = LNil(X) & ll2 = LNil(X)) | 
+             (?l01 l02 x. IN(Pair(l01,l02),R0) &
+               ll1 = LCons(x,l01) & ll2 = LCons(x,l02))”) >>
+ qby_tac
+ ‘!R0. ?!R1.
+  !ll1 ll2. IN(Pair(ll1,ll2),R1) <=>
+  (ll1 = LNil(X) & ll2 = LNil(X)) | 
+             (?l01 l02 x. IN(Pair(l01,l02),R0) &
+               ll1 = LCons(x,l01) & ll2 = LCons(x,l02))’
+ >-- (strip_tac >>
+     assume_tac 
+     (IN_def_P |> qspecl [‘llist(X) * llist(X)’] 
+               |> fVar_sInst_th “P(ll12:mem(llist(X) * llist(X)))”
+                  “(Fst(ll12) = LNil(X) & Snd(ll12) = LNil(X)) | 
+             (?l01 l02 x. IN(Pair(l01,l02),R0) &
+               Fst(ll12) = LCons(x,l01) & Snd(ll12) = LCons(x,l02))”
+               |>  conv_rule (depth_fconv no_conv forall_cross_fconv)
+               |> rewr_rule[Pair_def']) >> arw[]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >> qexists_tac ‘f’ >> arw[])
 (form_goal “!X. ?!cB:Pow(llist(X) * llist(X)) ->
                     Pow(llist(X) * llist(X)).
  !R:mem(Pow(llist(X) * llist(X))).
@@ -1015,7 +1141,11 @@ val CB_rules00  = rules0 |> gen_all |> qsspecl [‘CB(X)’]
 
 val CB_rules0 = prove_store("CB_rules0",
 e0
-cheat
+(strip_tac >>
+ qspecl_then [‘X’] strip_assume_tac CB_rules00 >>
+ rpt strip_tac (* 2 *)
+ >-- (first_x_assum irule >> rw[]) >>
+ first_x_assum irule >> qexists_tac ‘l02’ >> arw[])
 (form_goal
  “!X. IN(Pair(LNil(X),LNil(X)),gfp(CB(X))) &
   !l01 l02. 
@@ -1033,9 +1163,10 @@ val CB_coind0 = coind0 |> gen_all |> qspecl [‘llist(X) * llist(X)’,‘CB(X)�
 
 
 
-val Repll_n_EQ = prove_store("LNTH_EQ",
+val Repll_n_EQ = prove_store("Repll_n_EQ",
 e0
-cheat
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ arw[GSYM Repll_eq_eq,GSYM tof_eq_eq,GSYM FUN_EXT])
 (form_goal
  “!A ll1:mem(llist(A)) ll2.
   (!n. App(tof(Repll(ll1)),n) = App(tof(Repll(ll2)),n)) <=> ll1 = ll2”))
@@ -1049,21 +1180,10 @@ val LNTH_EQ = Repll_n_EQ |> rewr_rule[GSYM LNTH_def]
 val LHD_def = qdefine_fsym("LHD",[‘ll:mem(llist(X))’])
 ‘App(tof(Repll(ll)),O)’ |> gen_all
 
-
-val SOME_NOTNONE = prove_store("SOME_NOTNONE",
-e0
-(cheat)
-(form_goal “!X x.~(SOME (x) = NONE(X)) ”));
-
 val isll_cases0 = ll_cases |> rewr_rule[GSYM IN_EXT_iff] 
                           |> rewr_rule[GSYM isll_def,llf_def,GSYM LNil_def,
                                        GSYM LCons_def]
 
-
-val SOME_eq_eq = prove_store("SOME_eq_eq",
-e0
-(cheat)
-(form_goal “!X x1:mem(X) x2. SOME(x1) = SOME(x2) <=> x1 = x2”));
 
 val LHD_THM = prove_store("LHD_THM",
 e0
@@ -1140,14 +1260,63 @@ e0
 
 
 
+
 val LTL_THM = prove_store("LTL_THM",
 e0
-cheat
+(qspecl_then [‘X’] strip_assume_tac LTL_def >>
+ first_assum (qspecl_then [‘LNil(X)’] assume_tac) >>
+ fs[LHD_THM] >> pop_assum (K all_tac) >> rpt strip_tac >> 
+ first_x_assum (qspecl_then [‘LCons(h,t)’] strip_assume_tac) >> 
+ fs[LHD_THM,SOME_eq_eq] >>
+ first_x_assum (qspecl_then [‘h’] assume_tac) >> fs[] >>
+ rw[SOME_eq_eq] >> 
+ fs[LCons_def,tof_Tpm_inv,lcons0_def] >> 
+ rw[GSYM Repll_eq_eq] >> arw[GSYM tof_eq_eq,GSYM FUN_EXT])
 (form_goal “LTL(LNil(X)) = NONE(llist(X)) & (!h:mem(X) t. LTL (LCons(h,t)) = SOME(t))”));
+
+
+val accept_tac = 
+ fn th => fn (ct,asl,w) =>
+    if eq_form(concl th,w)  then ([], empty th) 
+    else raise ERR ("accept_tac.concl of th not equal to the goal",[],[],[concl th,w])
+
+
+(*bug MWE
+
+strip_tac 
+qcases ‘B’ >-- accept_tac (trueI [“B”])
+>> accept_tac (trueI [“~B”])
+“A==>T”
+
+“ LNTH(Suc(O), LCons(h:mem(X), t)) = LNTH(O, t)”
+cases_on ‘t = LNil(X)’ >> arw[] (* 2 *)
+     >-- rw[LNTH_def,LCons_def,tof_Tpm_inv,lcons0_def,LNil_def,Null_def,
+            NONE_def] >>
+
+qsspecl_then [‘tof(Repll(t))’,‘h’,‘O’] accept_tac(lcons0_def |> spec_all |> conjE2 |> gen_all) 
+*)
+
 
 val LNTH_THM = prove_store("LNTH_THM",
 e0
-cheat
+(strip_tac >>
+ qby_tac ‘(!n. LNTH(n,LNil(X)) = NONE(X)) &
+  (!h:mem(X) t. LNTH(O,LCons(h,t)) = SOME(h))’
+>-- (rpt strip_tac >> rw[LNTH_def] (* 2 *)
+         >-- rw[LNil_def,tof_Tpm_inv,Null_def,NONE_def] 
+         >-- rw[LCons_def,tof_Tpm_inv,lcons0_def]) >>
+ arw[] >> ind_with N_induct >> rpt strip_tac (* 2 *)
+ >-- (qcases ‘t = LNil(X)’ >> arw[] (* 2 *)
+     >-- rw[LNTH_def,LCons_def,tof_Tpm_inv,lcons0_def,LNil_def,Null_def,
+            NONE_def] >>
+     rw[LNTH_def,LCons_def,tof_Tpm_inv,LNil_def,lcons0_def]) >> 
+ qcases ‘t = LNil(X)’
+ >-- (arw[] >> rw[LNTH_def,LCons_def,tof_Tpm_inv,lcons0_def,LNil_def,
+                 Null_def,NONE_def]) >> 
+ fs[LCons_xor_LNil] >>
+ rw[LNTH_def,LCons_def,tof_Tpm_inv,lcons0_def] 
+ (*may not need induction...*)
+ )
 (form_goal
  “!X.(!n. LNTH(n,LNil(X)) = NONE(X)) &
   (!h:mem(X) t. LNTH(O,LCons(h,t)) = SOME(h)) &
