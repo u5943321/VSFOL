@@ -2276,3 +2276,145 @@ val AX5 = store_ax("AX5",
                 !y. (?y0. App(i,y0) = y) <=> Holds(M,b,y))
      ==> P(App(p,b),Mb)) & 
  !a:mem(A) X. P(a,X) ==> ?b. App(p,b) = a”)
+
+(* subset of Pow(A) * Pow(B)*)
+val iscoPr_ex = prove_store("iscoPr_ex",
+e0
+(rpt strip_tac >>
+ x_choosel_then ["AB","i"] assume_tac
+ (Thm_2_4 |> qspecl [‘Pow(A) * Pow(B)’] 
+ |> fVar_sInst_th “P(sab:mem(Pow(A) * Pow(B)))”
+    “(Snd(sab) = Empty(B) & ?a. Fst(sab) = Sing(a)) | 
+     (Fst(sab) = Empty(A) & ?b. Snd(sab) = Sing(b))”
+ |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+ |> rewr_rule[Pair_def']) >> 
+ qexists_tac ‘AB’ >> fs[] >>
+ qby_tac
+ ‘?i10:A->Pow(A) * Pow(B).
+  !a.App(i10,a) = Pair(Sing(a),Empty(B))’
+ >-- cheat >>
+ pop_assum strip_assume_tac >>
+ drule Inj_lift_fun >>
+ first_x_assum (qsspecl_then [‘i10’] assume_tac) >>
+ qby_tac
+ ‘!x.?a:mem(AB).App(i10,x) = App(i,a)’
+ >-- (strip_tac >> 
+     arw[] >> first_x_assum (irule o iffLR) >>
+     rw[] >> disj1_tac >> qexists_tac ‘x’ >> 
+     rw[]) >>
+ first_x_assum drule >>
+ pop_assum (x_choosel_then ["i1"] assume_tac) >>
+ qby_tac
+ ‘?i20:B->Pow(A) * Pow(B).
+  !b.App(i20,b) = Pair(Empty(A),Sing(b))’
+ >-- cheat >>
+ pop_assum strip_assume_tac >>
+ drule Inj_lift_fun >>
+ first_x_assum (qsspecl_then [‘i20’] assume_tac) >>
+ qby_tac
+ ‘!x.?b:mem(AB).App(i20,x) = App(i,b)’
+ >-- (strip_tac >> 
+     arw[] >> first_x_assum (irule o iffLR) >>
+     rw[] >> disj2_tac >> qexists_tac ‘x’ >> 
+     rw[]) >>
+ first_x_assum drule >>
+ pop_assum (x_choosel_then ["i2"] assume_tac) >>
+ qexistsl_tac [‘i1’,‘i2’] >> 
+ qby_tac ‘!ab. 
+ (?a.App(i,ab) = Pair(Sing(a),Empty(B))) |
+ (?b.App(i,ab) = Pair(Empty(A),Sing(b)))’
+ >-- (strip_tac >>
+     first_x_assum 
+     (qspecl_then [‘Fst(App(i,ab))’,
+                   ‘Snd(App(i,ab))’] assume_tac) >>
+     fs[Pair_Fst_Snd] >>
+     qby_tac ‘?b. App(i,ab) = App(i,b)’
+     >-- (qexists_tac ‘ab’ >> rw[]) >>
+     first_x_assum (drule o iffRL) >> 
+     pop_assum (strip_assume_tac o GSYM) (* 2 *)
+     >-- (disj1_tac >> qexists_tac ‘a''’ >> arw[Pair_Fst_Snd]) >> disj2_tac >> qexists_tac ‘b'’ >> arw[Pair_Fst_Snd]) >>
+ qby_tac ‘iscoPr(i1,i2)’ >--
+ (rw[iscoPr_def] >> rpt strip_tac >>
+  uex_tac >> 
+  qby_tac
+  ‘?fg: AB ->X.
+   !ab. 
+   (!a. App(i,ab) = Pair(Sing(a),Empty(B)) ==>
+        App(fg,ab) = App(f,a)) &
+   (!b. App(i,ab) = Pair(Empty(A),Sing(b)) ==>
+        App(fg,ab) = App(g,b)) ’
+  >-- cheat >>
+  pop_assum strip_assume_tac >>
+  qexists_tac ‘fg’ >>
+  qby_tac ‘fg o i1 = f & fg o i2 = g’ 
+  >-- (rw[GSYM FUN_EXT,App_App_o] >> 
+      rpt strip_tac (* 2 *)
+      >-- (first_x_assum 
+      (qspecl_then [‘App(i1, a)’] strip_assume_tac) >>
+      first_x_assum irule >> arw[GSYM App_App_o]) >>
+      first_x_assum 
+      (qspecl_then [‘App(i2, a)’] strip_assume_tac) >>
+      first_x_assum irule >> arw[GSYM App_App_o]) >>
+  arw[] >> rpt strip_tac >>
+  rw[GSYM FUN_EXT] >> strip_tac >>
+  last_x_assum (qspecl_then [‘a’] strip_assume_tac) (* 2 *)
+  >-- (first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+      first_x_assum drule >> arw[]>>
+      qby_tac ‘a = App(i1,a')’ 
+      >-- (drule Inj_eq_eq >>
+          first_x_assum (irule o iffLR) >>
+          arw[GSYM App_App_o]) >>
+      arw[] >> rw[GSYM App_App_o] >> arw[]) >> 
+  first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+  first_x_assum drule >> arw[]>>
+  qby_tac ‘a = App(i2,b)’ 
+  >-- (drule Inj_eq_eq >>
+       first_x_assum (irule o iffLR) >>
+       arw[GSYM App_App_o]) >>
+  arw[] >> rw[GSYM App_App_o] >> arw[]) >>
+ arw[] >>
+ qby_tac ‘Inj(i1)’ 
+ >-- (rw[Inj_def] >> rpt strip_tac >>
+     irule $ iffLR Inj_eq_eq >>
+     qexistsl_tac [‘Pow(A) * Pow(B)’,‘i10’] >>
+     cheat (*prove i10 inj first*))  >> arw[] >>
+ qby_tac ‘Inj(i2)’ 
+ >-- (rw[Inj_def] >> rpt strip_tac >>
+     irule $ iffLR Inj_eq_eq >>
+     qexistsl_tac [‘Pow(A) * Pow(B)’,‘i20’] >>
+     cheat (*prove i10 inj first*)) >> arw[] >>
+ rpt strip_tac >>
+ ccontra_tac >>
+ qby_tac
+ ‘App(i o i1, a) = App(i o i2, b)’
+ >-- rw[App_App_o] >> arw[] >>
+ rfs[Pair_eq_eq] >> cheat
+ )
+(form_goal “!A B.?AB i1:A->AB i2:B->AB.iscoPr(i1,i2)
+ & Inj(i1) & Inj(i2) & 
+   !a b. ~(App(i1,a) = App(i2,b))”));
+
+
+val i1_Inj = prove_store("i1_Inj",
+e0
+cheat
+(form_goal “!A B.Inj(i1(A,B))”));
+
+
+val i1_ne_i2 = prove_store("i1_xor_i2",
+e0
+cheat
+(form_goal “!A B a b. ~(App(i1(A,B),a) = App(i2(A,B),b))”));
+
+
+
+val i1_xor_i2 = prove_store("i1_xor_i2",
+e0
+cheat
+(form_goal “!A B ab.~(?a. ab = App(i1(A,B),a)) <=> ?b. ab = App(i2(A,B),b)”));
+
+
+val i2_xor_i1 = prove_store("i2_xor_i1",
+e0
+cheat
+(form_goal “!A B ab.~(?b. ab = App(i2(A,B),b)) <=> ?a. ab = App(i1(A,B),a)”));

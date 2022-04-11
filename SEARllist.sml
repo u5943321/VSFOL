@@ -6,11 +6,6 @@ val iscoPr_def = qdefine_psym("iscoPr",[‘i1:A->AB’,‘i2:B->AB’])
 
 
 
-val iscoPr_ex = prove_store("iscoPr_ex",
-e0
-cheat
-(form_goal “!A B.?AB i1:A->AB i2:B->AB.iscoPr(i1,i2)”));
-
 
 
 val coPo_def = iscoPr_ex |> spec_all 
@@ -407,11 +402,6 @@ e0
 |> qSKOLEM "LCons" [‘x’,‘ll’] |> gen_all
 
 
-val i1_ne_i2 = prove_store("i1_xor_i2",
-e0
-cheat
-(form_goal “!A B a b. ~(App(i1(A,B),a) = App(i2(A,B),b)) ”));
-
 val SOME_NOTNONE = prove_store("SOME_NOTNONE",
 e0
 (rpt strip_tac >> rw[SOME_def,NONE_def] >> rw[i1_ne_i2])
@@ -585,11 +575,6 @@ e0
      ∀f. OPTION_MAP f NONE = NONE
 *)
 
-val i1_Inj = prove_store("i1_Inj",
-e0
-cheat
-(form_goal “!A B.Inj(i1(A,B))”));
-
 
 val SOME_eq_eq = prove_store("SOME_eq_eq",
 e0
@@ -597,17 +582,6 @@ e0
  assume_tac i1_Inj >> fs[Inj_def] >> 
  first_x_assum drule >> arw[])
 (form_goal “!X x1:mem(X) x2. SOME(x1) = SOME(x2) <=> x1 = x2”));
-
-val i1_xor_i2 = prove_store("i1_xor_i2",
-e0
-cheat
-(form_goal “!A B ab.~(?a. ab = App(i1(A,B),a)) <=> ?b. ab = App(i2(A,B),b)”));
-
-
-val i2_xor_i1 = prove_store("i2_xor_i1",
-e0
-cheat
-(form_goal “!A B ab.~(?b. ab = App(i2(A,B),b)) <=> ?a. ab = App(i1(A,B),a)”));
 
 
 val option_xor = prove_store("option_xor",
