@@ -202,7 +202,15 @@ e0
 
 val tof_def = proved_th $
 e0
-cheat
+(rpt strip_tac >> flip_tac >>
+ qsuff_tac ‘?f:A->B. 
+ !a. App(f,a)= App(Ev(A,B),Pair(a,f0))’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+     rpt strip_tac >> arw[GSYM FUN_EXT]) >>
+ irule (P2fun' |> qspecl [‘A’,‘B’] 
+ |> fVar_sInst_th “P(x:mem(A),y:mem(B))”
+    “y = App(Ev(A,B),Pair(x,f0:mem(Exp(A,B))))”) >>
+ strip_tac >> uex_tac >> qexists_tac ‘App(Ev(A, B), Pair(x, f0))’ >> rw[])
 (form_goal “!A B f0:mem(Exp(A,B)).
  ?!f:A->B. 
  !a. App(Ev(A,B),Pair(a,f0)) = App(f,a)”)
@@ -251,7 +259,9 @@ val llf_def = llf_uex |> uex2ex_rule |> qSKOLEM "llf" [‘X’]
 
 val Tpm_eq_eq = prove_store("Tpm_eq_eq",
 e0
-(cheat)
+(rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] >> 
+ irule $ iffLR FUN_EXT >>
+ once_rw[GSYM Tpm_def] >> arw[])
 (form_goal “!A B f1:A->B f2. Tpm(f1) = Tpm(f2) <=> f1 = f2”));
 
 val llf_monotone = prove_store("llf_monotone",
@@ -358,7 +368,8 @@ val isll_lcons0 = isll_rules |> spec_all |> conjE2
 
 val Tpm_tof_inv = prove_store("Tpm_tof_inv",
 e0
-cheat
+(flip_tac >> rpt strip_tac >> irule is_Tpm >>
+ rw[tof_def])
 (form_goal
  “!A B f:mem(Exp(A,B)). Tpm(tof(f))  = f”));
 
@@ -396,11 +407,14 @@ e0
 |> qSKOLEM "LCons" [‘x’,‘ll’] |> gen_all
 
 
-
+val i1_ne_i2 = prove_store("i1_xor_i2",
+e0
+cheat
+(form_goal “!A B a b. ~(App(i1(A,B),a) = App(i2(A,B),b)) ”));
 
 val SOME_NOTNONE = prove_store("SOME_NOTNONE",
 e0
-(cheat)
+(rpt strip_tac >> rw[SOME_def,NONE_def] >> rw[i1_ne_i2])
 (form_goal “!X x.~(SOME (x) = NONE(X)) ”));
 
 
@@ -509,7 +523,8 @@ cheat
 
 val tof_Tpm_inv = prove_store("tof_Tpm_inv",
 e0
-cheat
+(rpt strip_tac >> rw[GSYM FUN_EXT] >>
+ rw[GSYM tof_def,Tpm_def])
 (form_goal
  “!A B f:A->B. tof(Tpm(f))  = f”));
 
@@ -570,16 +585,43 @@ e0
      ∀f. OPTION_MAP f NONE = NONE
 *)
 
+val i1_Inj = prove_store("i1_Inj",
+e0
+cheat
+(form_goal “!A B.Inj(i1(A,B))”));
+
 
 val SOME_eq_eq = prove_store("SOME_eq_eq",
 e0
-(cheat)
+(rw[SOME_def] >> rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ assume_tac i1_Inj >> fs[Inj_def] >> 
+ first_x_assum drule >> arw[])
 (form_goal “!X x1:mem(X) x2. SOME(x1) = SOME(x2) <=> x1 = x2”));
+
+val i1_xor_i2 = prove_store("i1_xor_i2",
+e0
+cheat
+(form_goal “!A B ab.~(?a. ab = App(i1(A,B),a)) <=> ?b. ab = App(i2(A,B),b)”));
+
+
+val i2_xor_i1 = prove_store("i2_xor_i1",
+e0
+cheat
+(form_goal “!A B ab.~(?b. ab = App(i2(A,B),b)) <=> ?a. ab = App(i1(A,B),a)”));
 
 
 val option_xor = prove_store("option_xor",
 e0
-(cheat)
+(rpt strip_tac >> rw[NONE_def,SOME_def] >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qsuff_tac ‘?a0. a1 = App(i1(A,1),a0)’ 
+     >-- (strip_tac >> uex_tac >> qexists_tac ‘a0’ >> arw[] >>
+         qspecl_then [‘A’,‘1’] assume_tac i1_Inj >> fs[Inj_def] >>
+         rpt strip_tac >> first_x_assum irule >> arw[]) >>
+     rw[GSYM i2_xor_i1] >> ccontra_tac >> fs[dot_def]) >>
+ pop_assum (assume_tac o uex2ex_rule) >> 
+ drule $ iffRL i2_xor_i1 >> ccontra_tac >>
+ qsuff_tac ‘?b. a1 = App(i2(A, 1), b)’ >-- arw[] >>
+ qexists_tac ‘dot’ >> arw[])
 (form_goal “!A a1:mem(A+1). ~(a1 = NONE(A)) <=> ?!a0. a1 = SOME(a0)”));
 
 
@@ -817,7 +859,8 @@ accept_tac (IN_def_P_ex |> qspecl [‘Exp(N,A+1)’]
 
 val tof_eq_eq = prove_store("tof_eq_eq",
 e0
-cheat
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ qby_tac ‘Tpm(tof(f)) = Tpm(tof(g))’ >-- arw[]>> fs[Tpm_tof_inv] )
 (form_goal
  “!A B f:mem(Exp(A,B)) g. tof(f)  = tof(g) <=> f = g”));
 
