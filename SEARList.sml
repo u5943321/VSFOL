@@ -192,14 +192,6 @@ val Repl_Cons = CONS_def |> rewr_rule[GSYM Cons_def]
                          |> GSYM
                          |> store_as "Repl_Cons";
 
-val Inj_eq_eq = prove_store("Inj_eq_eq",
-e0
-(rpt strip_tac >> fs[Inj_def] >> dimp_tac >>
- rpt strip_tac >> arw[] >>
- first_x_assum irule >> arw[])
-(form_goal “!X Y i:X->Y. Inj(i) ==>
- (!x1 x2. App(i,x1) = App(i,x2) <=> x1 =  x2)”));
-
 (*should automate*)
 val Repl_eq_eq = prove_store("Repl_eq_eq",
 e0

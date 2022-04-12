@@ -2279,19 +2279,123 @@ val AX5 = store_ax("AX5",
 
 
 
+val Sg_def = P2fun'|> qspecl [‘A’,‘Pow(A)’] 
+                   |> fVar_sInst_th “P(a:mem(A),s:mem(Pow(A)))”
+                      “!a0. IN(a0,s) <=> a0 = a:mem(A)”
+                   |> C mp 
+                      (IN_def_P |> spec_all
+                                |> fVar_sInst_th “P(a0:mem(A))”
+                                   “a0 = a:mem(A)”
+                                |> qgen ‘a’)
+                   |> qSKOLEM "Sg" [‘A’] |> gen_all
+                   |> store_as "Sg_def";
+
+val Sing_def = qdefine_fsym ("Sing",[‘a:mem(A)’])
+                            ‘App(Sg(A),a:mem(A))’
+                            |> gen_all |> store_as "Sing_def";
+
+
+val Empty_def = IN_def_P |> qspecl [‘X’]
+                         |> fVar_sInst_th “P(x:mem(X))” “F”
+                         |> uex2ex_rule
+                         |> qSKOLEM "Empty" [‘X’]
+                         |> rewr_rule[]
+                         |> gen_all |> store_as "Empty_def";
+
+val Inj_eq_eq = prove_store("Inj_eq_eq",
+e0
+(rpt strip_tac >> fs[Inj_def] >> dimp_tac >>
+ rpt strip_tac >> arw[] >>
+ first_x_assum irule >> arw[])
+(form_goal “!X Y i:X->Y. Inj(i) ==>
+ (!x1 x2. App(i,x1) = App(i,x2) <=> x1 =  x2)”));
+
+
 val Sing_eq_eq = prove_store("Sing_eq_eq",
 e0
-cheat
+(rw[GSYM IN_EXT_iff,Sing_def,Sg_def] >> 
+ rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >> 
+ first_x_assum (qspecl_then [‘a1’] assume_tac) >> fs[])
 (form_goal “!A a1:mem(A) a2. Sing(a1) = Sing(a2) <=> a1 = a2”));
 
 
 val Sing_NONEMPTY = prove_store("Sing_NONEMPTY",
 e0
-cheat
+(rw[GSYM IN_EXT_iff,Empty_def,Sing_def,Sg_def] >>rpt strip_tac >>
+ ccontra_tac >> first_x_assum (qspecl_then [‘a’] assume_tac) >> fs[] )
 (form_goal “!A a:mem(A). ~(Sing(a) = Empty(A))”));
 
 
 
+
+val iscoPr_def = qdefine_psym("iscoPr",[‘i1:A->AB’,‘i2:B->AB’])
+‘!X f:A->X g:B->X.?!fg:AB->X.fg o i1 = f & fg o i2 = g’
+|> qgenl [‘A’,‘B’,‘AB’,‘i1’,‘i2’]
+|> store_as "iscoPr_def";
+
+
+
+
+val Inj_lift_fun = prove_store("Inj_lift_fun",
+e0
+(rpt strip_tac >>
+ irule (P2fun' |> qspecl [‘X’,‘A’] 
+        |> fVar_sInst_th “P(x:mem(X),a:mem(A))”
+           “App(i:A->A0,a) = App(f0:X->A0,x)”
+        |> rewr_rule[GSYM App_App_o]) >>
+ flip_tac >> strip_tac >> uex_tac >>
+ first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+ qexists_tac ‘a’ >> arw[] >> fs[Inj_def] >> rpt strip_tac >>
+ first_x_assum irule >> arw[]
+ )
+(form_goal
+ “!A A0 i:A-> A0.
+  Inj(i) ==>
+  !X f0:X->A0.
+  (!x. ?a.App(f0,x) = App(i,a))==>
+  ?f:X->A. 
+  !x. App(i o f,x) = App(f0,x)”));
+
+
+
+fun dest_cross t = 
+    case view_term t of 
+        vFun("*",_,[A,B])=> (A,B)
+      | _ => raise simple_fail "dest_cross.not a cross";
+               
+
+fun mk_Pair a b = mk_fun "Pair" [a,b]
+
+fun forall_cross_fconv f = 
+    let val (pv as (n,s),b) = dest_forall f 
+        val pset = s |> dest_sort |> #2  |> hd
+        val (A,B) = dest_cross pset 
+        val pt = mk_var pv
+        val eth = Pair_has_comp |> specl [A,B,pt]
+        val (ocv1 as (ocn1,ocs1),ob1) = dest_exists (concl eth) 
+        val (ocv2 as (ocn2,ocs2),ob2) = dest_exists ob1
+        val avoids = fvf b
+        val ct1 = pvariantt avoids (mk_var ocv1)
+        val ct2 = pvariantt avoids (mk_var ocv2)
+        val (cv1 as (cn1,cs1)) = dest_var ct1
+        val (cv2 as (cn2,cs2)) = dest_var ct2
+        val b1 = substf (ocv1,ct1) ob1
+        val b2 = substf (ocv2,ct2) (substf (ocv1,ct1) ob2)
+        val pair = mk_Pair ct1 ct2 
+        val b' = substf (pv,pair) b
+        val new = mk_forall cn1 cs1 (mk_forall cn2 cs2 b')
+        val l2r = f |> assume |> allE pair 
+                    |> simple_genl [cv1,cv2]
+                    |> disch f
+        val eth1 = b1 |> assume 
+        val r2l = new |> assume |> specl [ct1,ct2]
+                      |> rewr_rule[GSYM $ assume b2]
+                      |> existsE cv2 eth1 
+                      |> existsE cv1 eth
+                      |> allI pv
+                      |> disch new
+    in dimpI l2r r2l 
+    end
 
 (* subset of Pow(A) * Pow(B)*)
 val iscoPr_ex = prove_store("iscoPr_ex",

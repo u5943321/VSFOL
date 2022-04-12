@@ -8,14 +8,6 @@ val Ins_def = IN_def_P |> qspecl [‘X’]
                        |> store_as "Ins_def";
 
 
-val Empty_def = IN_def_P |> qspecl [‘X’]
-                         |> fVar_sInst_th “P(x:mem(X))” “F”
-                         |> uex2ex_rule
-                         |> qSKOLEM "Empty" [‘X’]
-                         |> rewr_rule[]
-                         |> gen_all |> store_as "Empty_def";
-
-
 local
 val FI_cl = 
  “(xs = Empty(X) ==> IN(xs,FIs)) &

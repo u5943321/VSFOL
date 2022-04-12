@@ -1,29 +1,7 @@
 
-val iscoPr_def = qdefine_psym("iscoPr",[‘i1:A->AB’,‘i2:B->AB’])
-‘!X f:A->X g:B->X.?!fg:AB->X.fg o i1 = f & fg o i2 = g’
-|> qgenl [‘A’,‘B’,‘AB’,‘i1’,‘i2’]
-|> store_as "iscoPr_def";
 
 
 
-
-
-val coPo_def = iscoPr_ex |> spec_all 
-                         |> qSKOLEM "+" [‘A’,‘B’] |> gen_all
-                         |> store_as "coPo_def";
-
-val i1_def = coPo_def |> spec_all 
-                      |> qSKOLEM "i1" [‘A’,‘B’] |> gen_all
-                      |> store_as "i1_def";
-
-val i2_def = i1_def |> spec_all |> qSKOLEM "i2" [‘A’,‘B’] |> gen_all
-                    |> store_as "i2_def";
-
-val coPa_def = i2_def |> rewr_rule[iscoPr_def] |> spec_all
-                      |> uex_expand 
-                      |> qSKOLEM "coPa" [‘f’,‘g’]
-                      |> gen_all
-                      |> store_as "coPa_def";
 
 
 val BU_ex = prove_store("BU_ex",
@@ -1004,27 +982,6 @@ e0
    App(cr,z) = Tpm(lcons0(a,tof(App(cr,b))))) &
   isll(App(cr,z))”));
 
-
-val Inj_lift_fun = prove_store("Inj_lift_fun",
-e0
-(rpt strip_tac >>
- irule (P2fun' |> qspecl [‘X’,‘A’] 
-        |> fVar_sInst_th “P(x:mem(X),a:mem(A))”
-           “App(i:A->A0,a) = App(f0:X->A0,x)”
-        |> rewr_rule[GSYM App_App_o]) >>
- flip_tac >> strip_tac >> uex_tac >>
- first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
- qexists_tac ‘a’ >> arw[] >> fs[Inj_def] >> rpt strip_tac >>
- first_x_assum irule >> arw[]
- )
-(form_goal
- “!A A0 i:A-> A0.
-  Inj(i) ==>
-  !X f0:X->A0.
-  (!x. ?a.App(f0,x) = App(i,a))==>
-  ?f:X->A. 
-  !x. App(i o f,x) = App(f0,x)”));
-
 val llcr_uex = prove_store("llcr_uex",
 e0
 (rpt strip_tac >>
@@ -1303,12 +1260,12 @@ e0
  rw[GSYM Repll_eq_eq] >> arw[GSYM tof_eq_eq,GSYM FUN_EXT])
 (form_goal “LTL(LNil(X)) = NONE(llist(X)) & (!h:mem(X) t. LTL (LCons(h,t)) = SOME(t))”));
 
-
+(*
 val accept_tac = 
  fn th => fn (ct,asl,w) =>
     if eq_form(concl th,w)  then ([], empty th) 
     else raise ERR ("accept_tac.concl of th not equal to the goal",[],[],[concl th,w])
-
+*)
 
 (*bug MWE
 

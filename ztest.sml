@@ -13,85 +13,6 @@ AX1 |> qspecl [‘N * N’,‘N * N’] |> uex2ex_rule
     |> store_as "ZR_def";
 
 
-
-fun dest_cross t = 
-    case view_term t of 
-        vFun("*",_,[A,B])=> (A,B)
-      | _ => raise simple_fail "dest_cross.not a cross";
-               
-
-fun mk_Pair a b = mk_fun "Pair" [a,b]
-
-(*
-fun forall_cross_fconv f = 
-    let val (pv as (n,s),b) = dest_forall f 
-        val pset = s |> dest_sort |> #2  |> hd
-        val (A,B) = dest_cross pset 
-        val pt = mk_var pv
-        val eth = Pair_has_comp |> specl [A,B,pt]
-        val (cv1 as (cn1,cs1),b1) = dest_exists (concl eth) 
-        val (cv2 as (cn2,cs2),b2) = dest_exists b1
-        val ct1 = mk_var cv1
-        val ct2 = mk_var cv2
-        val pair = mk_Pair ct1 ct2 
-        val b' = substf (pv,pair) b
-        val new = mk_forall cn1 cs1 (mk_forall cn2 cs2 b')
-        val l2r = f |> assume |> allE pair 
-                    |> simple_genl [cv1,cv2]
-                    |> disch f
-        val eth1 = b1 |> assume 
-        val r2l = new |> assume |> specl [ct1,ct2]
-                      |> rewr_rule[GSYM $ assume b2]
-                      |> existsE cv2 eth1 
-                      |> existsE cv1 eth
-                      |> allI pv
-                      |> disch new
-    in dimpI l2r r2l 
-    end
-
-
-
-val f = “∀b':mem(N * N).P(a:mem(N),b:mem(N),b')”; 
-val f = “∀a1 a2 a3. Holds(ZR,a1,a2) & Holds(ZR,z2,z3)”;
-
-
-
-“!a:mem(A * B). P(a) <=> !a b.P(Pair(a,b))”
-
-“?a:mem(A * B). P(a) <=> ?a b.P(Pair(a,b))”
-*)
-
-fun forall_cross_fconv f = 
-    let val (pv as (n,s),b) = dest_forall f 
-        val pset = s |> dest_sort |> #2  |> hd
-        val (A,B) = dest_cross pset 
-        val pt = mk_var pv
-        val eth = Pair_has_comp |> specl [A,B,pt]
-        val (ocv1 as (ocn1,ocs1),ob1) = dest_exists (concl eth) 
-        val (ocv2 as (ocn2,ocs2),ob2) = dest_exists ob1
-        val avoids = fvf b
-        val ct1 = pvariantt avoids (mk_var ocv1)
-        val ct2 = pvariantt avoids (mk_var ocv2)
-        val (cv1 as (cn1,cs1)) = dest_var ct1
-        val (cv2 as (cn2,cs2)) = dest_var ct2
-        val b1 = substf (ocv1,ct1) ob1
-        val b2 = substf (ocv2,ct2) (substf (ocv1,ct1) ob2)
-        val pair = mk_Pair ct1 ct2 
-        val b' = substf (pv,pair) b
-        val new = mk_forall cn1 cs1 (mk_forall cn2 cs2 b')
-        val l2r = f |> assume |> allE pair 
-                    |> simple_genl [cv1,cv2]
-                    |> disch f
-        val eth1 = b1 |> assume 
-        val r2l = new |> assume |> specl [ct1,ct2]
-                      |> rewr_rule[GSYM $ assume b2]
-                      |> existsE cv2 eth1 
-                      |> existsE cv1 eth
-                      |> allI pv
-                      |> disch new
-    in dimpI l2r r2l 
-    end
-
 (*
 pred_fconv ((try_conv (rewr_conv (GSYM $ assume “b' = Pair(a':mem(N), b'':mem(N))”))))
  “P(a:mem(N), b:mem(N), Pair(a':mem(N), b'':mem(N)))”
@@ -230,22 +151,6 @@ e0
 (rw[ER_def,ZR_Sym,ZR_Refl,ZR_Trans])
 (form_goal “ER(ZR)”));
 
-
-
-val Sg_def = P2fun'|> qspecl [‘A’,‘Pow(A)’] 
-                   |> fVar_sInst_th “P(a:mem(A),s:mem(Pow(A)))”
-                      “!a0. IN(a0,s) <=> a0 = a:mem(A)”
-                   |> C mp 
-                      (IN_def_P |> spec_all
-                                |> fVar_sInst_th “P(a0:mem(A))”
-                                   “a0 = a:mem(A)”
-                                |> qgen ‘a’)
-                   |> qSKOLEM "Sg" [‘A’] |> gen_all
-                   |> store_as "Sg_def";
-
-val Sing_def = qdefine_fsym ("Sing",[‘a:mem(A)’])
-                            ‘App(Sg(A),a:mem(A))’
-                            |> gen_all |> store_as "Sing_def";
 
 
 val Ri_def = P2fun'|> qspecl [‘Pow(A)’,‘Pow(B)’] 
