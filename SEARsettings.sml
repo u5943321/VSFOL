@@ -2277,6 +2277,22 @@ val AX5 = store_ax("AX5",
      ==> P(App(p,b),Mb)) & 
  !a:mem(A) X. P(a,X) ==> ?b. App(p,b) = a”)
 
+
+
+val Sing_eq_eq = prove_store("Sing_eq_eq",
+e0
+cheat
+(form_goal “!A a1:mem(A) a2. Sing(a1) = Sing(a2) <=> a1 = a2”));
+
+
+val Sing_NONEMPTY = prove_store("Sing_NONEMPTY",
+e0
+cheat
+(form_goal “!A a:mem(A). ~(Sing(a) = Empty(A))”));
+
+
+
+
 (* subset of Pow(A) * Pow(B)*)
 val iscoPr_ex = prove_store("iscoPr_ex",
 e0
@@ -2292,7 +2308,11 @@ e0
  qby_tac
  ‘?i10:A->Pow(A) * Pow(B).
   !a.App(i10,a) = Pair(Sing(a),Empty(B))’
- >-- cheat >>
+ >-- (irule (P2fun' |> qspecl [‘A’,‘Pow(A) * Pow(B)’]
+     |> fVar_sInst_th “P(a:mem(A),sab:mem(Pow(A) * Pow(B)))”
+     “sab:mem(Pow(A) * Pow(B)) = Pair(Sing(a),Empty(B))”) >>
+     strip_tac >> uex_tac >> 
+     qexists_tac ‘Pair(Sing(x), Empty(B))’ >> rw[]) >>
  pop_assum strip_assume_tac >>
  drule Inj_lift_fun >>
  first_x_assum (qsspecl_then [‘i10’] assume_tac) >>
@@ -2307,7 +2327,11 @@ e0
  qby_tac
  ‘?i20:B->Pow(A) * Pow(B).
   !b.App(i20,b) = Pair(Empty(A),Sing(b))’
- >-- cheat >>
+ >-- (irule (P2fun' |> qspecl [‘B’,‘Pow(A) * Pow(B)’]
+     |> fVar_sInst_th “P(b:mem(B),sab:mem(Pow(A) * Pow(B)))”
+     “sab:mem(Pow(A) * Pow(B)) = Pair(Empty(A),Sing(b))”) >>
+     strip_tac >> uex_tac >> 
+     qexists_tac ‘Pair(Empty(A),Sing(x))’ >> rw[]) >>
  pop_assum strip_assume_tac >>
  drule Inj_lift_fun >>
  first_x_assum (qsspecl_then [‘i20’] assume_tac) >>
@@ -2333,6 +2357,42 @@ e0
      first_x_assum (drule o iffRL) >> 
      pop_assum (strip_assume_tac o GSYM) (* 2 *)
      >-- (disj1_tac >> qexists_tac ‘a''’ >> arw[Pair_Fst_Snd]) >> disj2_tac >> qexists_tac ‘b'’ >> arw[Pair_Fst_Snd]) >>
+ qby_tac ‘Inj(i10)’
+ >-- (rw[Inj_def] >> arw[Pair_eq_eq,Sing_eq_eq])>>
+ qby_tac ‘Inj(i20)’
+ >-- (rw[Inj_def] >> arw[Pair_eq_eq,Sing_eq_eq])>>
+ qby_tac ‘Inj(i1)’ 
+ >-- (rw[Inj_def] >> rpt strip_tac >>
+     irule $ iffLR Inj_eq_eq >>
+     qexistsl_tac [‘Pow(A) * Pow(B)’,‘i10’] >>
+     qby_tac
+     ‘App(i o i1, x1) = App(i o i1, x2)’ 
+     >-- (rw[App_App_o] >> arw[]) >> rfs[]) >> arw[] >>
+ qby_tac ‘Inj(i2)’ 
+ >-- (rw[Inj_def] >> rpt strip_tac >>
+     irule $ iffLR Inj_eq_eq >>
+     qexistsl_tac [‘Pow(A) * Pow(B)’,‘i20’] >>
+     qby_tac
+     ‘App(i o i2, x1) = App(i o i2, x2)’ 
+     >-- (rw[App_App_o] >> arw[]) >> rfs[]) >> arw[] >>
+qby_tac ‘(!a b. ~(App(i1,a) = App(i2,b)))’
+ >--(rpt strip_tac >>
+ ccontra_tac >>
+ qby_tac
+ ‘App(i o i1, a) = App(i o i2, b)’
+ >-- rw[App_App_o] >> arw[] >>
+ rfs[Pair_eq_eq,Sing_NONEMPTY]) >> arw[] >>
+ qby_tac ‘!ab. ((?a. ab = App(i1,a)) | (?b. ab = App(i2,b)))’
+ >-- (strip_tac >> 
+ first_x_assum (qspecl_then [‘ab’] strip_assume_tac) (* 2 *)
+ >-- (disj1_tac >> qexists_tac ‘a’ >> 
+     irule $ iffLR Inj_eq_eq >> 
+     qexistsl_tac [‘Pow(A) * Pow(B)’,‘i’] >>
+     arw[] >> arw[GSYM App_App_o]) >>
+ disj2_tac >> qexists_tac ‘b’ >> 
+ irule $ iffLR Inj_eq_eq >> 
+ qexistsl_tac [‘Pow(A) * Pow(B)’,‘i’] >>
+ arw[] >> arw[GSYM App_App_o]) >>
  qby_tac ‘iscoPr(i1,i2)’ >--
  (rw[iscoPr_def] >> rpt strip_tac >>
   uex_tac >> 
@@ -2343,7 +2403,64 @@ e0
         App(fg,ab) = App(f,a)) &
    (!b. App(i,ab) = Pair(Empty(A),Sing(b)) ==>
         App(fg,ab) = App(g,b)) ’
-  >-- cheat >>
+  >-- (assume_tac (P2fun' |> qspecl [‘AB’,‘X’]
+     |> fVar_sInst_th “P(ab:mem(AB),x:mem(X))”
+        “(?a. ab = App(i1:A->AB,a) & x = App(f:A->X,a)) | 
+         (?b. ab = App(i2:B->AB,b) & x = App(g:B->X,b))”) >>
+     qby_tac ‘!ab. 
+     ?!x. (?a. ab = App(i1:A->AB,a) & x = App(f:A->X,a)) | 
+         (?b. ab = App(i2:B->AB,b) & x = App(g:B->X,b))’
+     >-- (strip_tac >>
+         qsuff_tac
+         ‘?x. (?a. ab = App(i1:A->AB,a) & x = App(f:A->X,a)) | 
+         (?b. ab = App(i2:B->AB,b) & x = App(g:B->X,b))’
+         >-- (strip_tac (* 2 *)
+             >-- (uex_tac >> qexists_tac ‘x’ >> 
+                 rpt strip_tac (* 3 *)
+                 >-- (disj1_tac >> qexists_tac ‘a’ >> 
+                     arw[]) 
+                 >-- (arw[] >>
+                     qsuff_tac ‘a= a'’ 
+                     >-- (strip_tac >> arw[]) >>
+                     irule $ iffLR Inj_eq_eq >>
+                     qexistsl_tac [‘AB’,‘i1’] >> arw[] >>
+                     qpick_x_assum ‘ab = App(i1, a)’
+                     (assume_tac o GSYM) >> arw[]) >>
+                 rfs[]) >>
+             uex_tac >> qexists_tac ‘x’ >> 
+             rpt strip_tac (* 3 *)
+             >-- (disj2_tac >> qexists_tac ‘b’ >> arw[]) 
+             >-- (fs[] >> rfs[])
+             >-- (arw[] >>
+                     qsuff_tac ‘b= b'’ 
+                     >-- (strip_tac >> arw[]) >>
+                     irule $ iffLR Inj_eq_eq >>
+                     qexistsl_tac [‘AB’,‘i2’] >> arw[] >>
+                     qpick_x_assum ‘ab = App(i2, b)’
+                     (assume_tac o GSYM) >> arw[])) >>
+         qcases ‘?a. ab = App(i1,a)’ (* 2 *)
+         >-- (fs[] >> qexists_tac ‘App(f,a)’ >> disj1_tac >>
+             qexists_tac ‘a’ >> rw[]) >>
+         qpick_x_assum ‘!ab. (?a. ab = App(i1,a)) |
+                             (?b. ab = App(i2,b))’
+         (qspecl_then [‘ab’] assume_tac) >> rfs[] >>
+         qexists_tac ‘App(g,b)’ >> disj2_tac >> 
+         qexists_tac ‘b’ >>  rw[]) >>
+     first_x_assum drule >>
+     pop_assum (x_choosel_then ["fg"] assume_tac) >>
+     qexists_tac ‘fg’ >> rpt strip_tac (* 2 *)
+     >-- (first_x_assum
+         (qspecl_then [‘ab’] strip_assume_tac) (* 2 *)
+         >-- (fs[GSYM App_App_o] >> 
+             rfs[Sing_eq_eq,Pair_eq_eq]) >>
+         fs[GSYM App_App_o] >> 
+         rfs[Pair_eq_eq,Sing_NONEMPTY]) >>
+     first_x_assum
+     (qspecl_then [‘ab’] strip_assume_tac) (* 2 *)
+     >-- (fs[GSYM App_App_o] >> 
+         rfs[Pair_eq_eq,Sing_NONEMPTY]) >>
+     fs[GSYM App_App_o] >> 
+     rfs[Sing_eq_eq,Pair_eq_eq]) >>
   pop_assum strip_assume_tac >>
   qexists_tac ‘fg’ >>
   qby_tac ‘fg o i1 = f & fg o i2 = g’ 
@@ -2361,38 +2478,23 @@ e0
   >-- (first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
       first_x_assum drule >> arw[]>>
       qby_tac ‘a = App(i1,a')’ 
-      >-- (drule Inj_eq_eq >>
+      >-- (rev_drule Inj_eq_eq >>
           first_x_assum (irule o iffLR) >>
           arw[GSYM App_App_o]) >>
       arw[] >> rw[GSYM App_App_o] >> arw[]) >> 
   first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
   first_x_assum drule >> arw[]>>
   qby_tac ‘a = App(i2,b)’ 
-  >-- (drule Inj_eq_eq >>
+  >-- (rev_drule Inj_eq_eq >>
        first_x_assum (irule o iffLR) >>
        arw[GSYM App_App_o]) >>
   arw[] >> rw[GSYM App_App_o] >> arw[]) >>
- arw[] >>
- qby_tac ‘Inj(i1)’ 
- >-- (rw[Inj_def] >> rpt strip_tac >>
-     irule $ iffLR Inj_eq_eq >>
-     qexistsl_tac [‘Pow(A) * Pow(B)’,‘i10’] >>
-     cheat (*prove i10 inj first*))  >> arw[] >>
- qby_tac ‘Inj(i2)’ 
- >-- (rw[Inj_def] >> rpt strip_tac >>
-     irule $ iffLR Inj_eq_eq >>
-     qexistsl_tac [‘Pow(A) * Pow(B)’,‘i20’] >>
-     cheat (*prove i10 inj first*)) >> arw[] >>
- rpt strip_tac >>
- ccontra_tac >>
- qby_tac
- ‘App(i o i1, a) = App(i o i2, b)’
- >-- rw[App_App_o] >> arw[] >>
- rfs[Pair_eq_eq] >> cheat
- )
+ arw[])
 (form_goal “!A B.?AB i1:A->AB i2:B->AB.iscoPr(i1,i2)
  & Inj(i1) & Inj(i2) & 
-   !a b. ~(App(i1,a) = App(i2,b))”));
+ (!a b. ~(App(i1,a) = App(i2,b))) & 
+ !ab. ((?a. ab = App(i1,a)) | (?b. ab = App(i2,b)))
+ ”));
 
 
 val coPo_def = iscoPr_ex |> spec_all 
@@ -2414,26 +2516,34 @@ val coPa_def = i2_def |> rewr_rule[iscoPr_def]
                       |> gen_all
                       |> store_as "coPa_def";
 
-val i1_Inj = prove_store("i1_Inj",
-e0
-cheat
-(form_goal “!A B.Inj(i1(A,B))”));
+val i1_Inj = i2_def |> spec_all |> conjE2
+                    |> conjE1 |> gen_all
 
 
-val i1_ne_i2 = prove_store("i1_xor_i2",
-e0
-cheat
-(form_goal “!A B a b. ~(App(i1(A,B),a) = App(i2(A,B),b))”));
+val i1_ne_i2 = i2_def |> spec_all |> conjE2
+                    |> conjE2 |> conjE2
+                    |> conjE1 |> gen_all
 
-
+val i1_or_i2 = i2_def |> spec_all |> conjE2
+                    |> conjE2 |> conjE2
+                    |> conjE2|> gen_all
 
 val i1_xor_i2 = prove_store("i1_xor_i2",
 e0
-cheat
+(rpt strip_tac >>
+ qsspecl_then [‘ab’] strip_assume_tac i1_or_i2 (* 2 *) >--
+ (arw[i1_ne_i2] >> dimp_tac >> strip_tac >> arw[] >>
+ qsuff_tac ‘?a'.  App(i1(A, B), a) = App(i1(A,B),a')’
+ >-- arw[] >>
+ qexists_tac ‘a’ >> rw[]) >>
+ arw[GSYM i1_ne_i2] >> dimp_tac >> strip_tac (* 2 *)
+ >-- (qexists_tac ‘b’ >> rw[]) >>
+ ccontra_tac >> fs[])
 (form_goal “!A B ab.~(?a. ab = App(i1(A,B),a)) <=> ?b. ab = App(i2(A,B),b)”));
 
 
 val i2_xor_i1 = prove_store("i2_xor_i1",
 e0
-cheat
+(rpt strip_tac >>
+ rw[GSYM i1_xor_i2])
 (form_goal “!A B ab.~(?b. ab = App(i2(A,B),b)) <=> ?a. ab = App(i1(A,B),a)”));
