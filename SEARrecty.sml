@@ -119,8 +119,84 @@ val isfm_cases = isfm_cases1 |> store_as "isfm_cases";
 val isfm_rules = isfm_rules3 |> store_as "isfm_rules";
 
 
+val isfm_def = qdefine_psym("isfm",[‘f:mem(Pow(N * A))’])
+‘IN(f,isfms(A))’ |> gen_all 
+
+
+val form_def = Thm_2_4  |> qspecl [‘Pow(N * A)’]
+                        |> fVar_sInst_th “P(f:mem(Pow(N * A)))”
+                        “isfm(f:mem(Pow(N * A)))”
+                        |> qSKOLEM "form" [‘A’]
+                        |> qSKOLEM "repf" [‘A’]
+
+val Repf_def = qdefine_fsym("Repf",[‘f:mem(form(A))’]) ‘App(repf(A),f)’
+                           |> gen_all 
+
+
 (*model is a R:A~>A with a member of Pow(A * N)
 
 type of model: Pow(A * A) * Pow(A * N)
  *)
+
+val Vof_def = qdefine_fsym("Vof",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’])
+‘tof(Snd(M))’ |> gen_all
+
+
+val Rof_def = qdefine_fsym("Rof",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’])
+‘Fst(M)’ |> gen_all
+
+
+val satis_cheat = 
+    qdefine_psym("satis",
+                 [‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,‘w:mem(W)’,‘f:mem(form(A))’])
+    ‘T’
+
+val BOT_def = proved_th $
+e0
+cheat
+(form_goal “?!f. Repf(f) = F0(A)”)
+|> uex2ex_rule |> qSKOLEM "BOT" [‘A’]
+
+val VAR_def = qdefine_fsym("VAR",[‘a:mem(A)’]) ‘BOT(A)’
+
+val NEG_def = qdefine_fsym("NEG",[‘f:mem(form(A))’]) ‘BOT(A)’
+
+val DISJ_def = qdefine_fsym("DISJ",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
+                           ‘BOT(A)’
+
+val DIAM_def = qdefine_fsym("DIAM",[‘f:mem(form(A))’]) ‘BOT(A)’
+
+
+val satis_def = prove_store("satis_def",
+e0
+cheat
+(form_goal 
+“(satis(M:mem(Pow(W * W) * Exp(W,Pow(A))),w,VAR(a:mem(A))) <=> 
+ IN(a,App(Vof(M),w))) &
+ (satis(M,w,NEG(f)) <=> ~ (satis(M,w,f))) & 
+ (satis(M,w,DISJ(f1,f2)) <=> (satis(M,w,f1) | satis(M,w,f2)))”));
+
+(*related*)
+val Rlt_def = qdefine_psym("Rlt",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,‘w1:mem(W)’,‘w2:mem(W)’]) ‘IN(Pair(w1,w2),Rof(M))’
+
+val Sim_def = qdefine_psym("Sim",[‘R:W1~>W2’,‘M1:mem(Pow(W1 * W1) * Exp(W1,Pow(A)))’,‘M2:mem(Pow(W2 * W2) * Exp(W2,Pow(A)))’]) 
+‘!w1 w2.Holds(R,w1,w2) ==>
+ (!p.IN(p,App(Vof(M1),w1)) ==> IN(p,App(Vof(M2),w2))) & 
+ (!v. Rlt(M1,w1,v) ==> ?v'. Holds(R,v,v') & Rlt(M2,w2,v'))’
+
+val PUS_def = qdefine_psym("PUS",[‘f:mem(form(A))’])
+‘!W1 W2 R:W1~>W2 M1:mem(Pow(W1 * W1) * Exp(W1,Pow(A))) M2. Sim(R,M1,M2) ==>
+ !w1 w2. Holds(R,w1,w2) ==> satis(M1,w1,f) ==> satis(M2,w2,f)’
+
+val PE_cheat = qdefine_psym("PE",[‘f:mem(form(A))’]) ‘T’
+
+val EQV_def = qdefine_psym("EQV",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
+ ‘!W M w:mem(W). satis(M,w,f1) <=> satis(M,w,f2)’
+
+
+
+val Thm_6_25 = prove_store("Thm_6_25",
+e0
+cheat
+(form_goal “!A f:mem(form(A)). PUS(f) <=> ?f0. PE(f0) & EQV(f,f0)”))
 
