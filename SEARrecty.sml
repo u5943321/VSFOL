@@ -193,9 +193,218 @@ val PE_cheat = qdefine_psym("PE",[‘f:mem(form(A))’]) ‘T’
 val EQV_def = qdefine_psym("EQV",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
  ‘!W M w:mem(W). satis(M,w,f1) <=> satis(M,w,f2)’
 
+val Msat_def = qdefine_psym("Msat",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’]) ‘T’
 
+val INTER_def = proved_th $ 
+e0
+cheat
+(form_goal “!A. ?f:Pow(A) * Pow(A) -> Pow(A).
+ !s1 s2 a. IN(a,App(f,Pair(s1,s2))) <=> IN(a,s1) & IN(a,s2)”)
+|> spec_all |> qSKOLEM "INTER" [‘A’]
+
+val Inter_def = qdefine_fsym("Inter",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(A))’])
+‘App(INTER(A),Pair(s1,s2))’
+
+val IN_Inter = prove_store("IN_Inter",
+e0
+cheat
+(form_goal “!A s1 s2 a. IN(a:mem(A),Inter(s1,s2)) <=> IN(a,s1) & IN(a,s2)”));
+
+val EMPTY_def = qdefine_psym("EMPTY",[‘A’])
+‘!x:mem(A).F’
+
+val filter_def = qdefine_psym("filter",[‘L:mem(Pow(Pow(J)))’,‘J’])
+‘~EMPTY(J) &
+  ~(L = Empty(Pow(J))) & IN(Whole(J),L) & 
+  (!X Y. IN(X,L) & IN(Y,L) ==> IN(Inter(X,Y),L)) & 
+  (!X. IN(X,L) ==> !Y. SS(X,Y) ==> IN(Y,L))’
+
+
+val COMPL_def = proved_th $ 
+e0
+cheat
+(form_goal “!A. ?f:Pow(A) -> Pow(A).
+ !s a. IN(a,App(f,s)) <=> ~IN(a,s)”)
+|> spec_all |> qSKOLEM "COMPL" [‘A’]
+
+val Compl_def = qdefine_fsym("Compl",[‘s:mem(Pow(A))’])
+‘App(COMPL(A),s)’
+
+val IN_Compl = prove_store("IN_Compl",
+e0
+cheat
+(form_goal “!A s a. IN(a:mem(A),Compl(s)) <=> ~IN(a,s)”));
+
+
+val ufilter_def = qdefine_psym("ufilter",[‘L:mem(Pow(Pow(J)))’,‘J’])
+‘filter(L,J) & 
+ (!X. IN(X,L) <=> ~(IN(Compl(X),L)))’
+
+val UFs_def = Thm_2_4 |> qspecl [‘Pow(Pow(J))’]
+                      |> fVar_sInst_th “P(a:mem(Pow(Pow(J))))”
+                      “ufilter(a,J)”
+                      |> qSKOLEM "UFs" [‘J’]
+                      |> qSKOLEM "iUF" [‘J’] 
+
+val Repu_def = qdefine_fsym("Repu",[‘u:mem(UFs(J))’])
+‘App(iUF(J),u)’
+
+(*True at, takes a letter, gives the set of worlds it holds*)
+val Tat_def = proved_th $
+e0
+(cheat)
+(form_goal “!f0:W ->Pow(A). !a.?!ws:mem(Pow(W)).
+ !w. IN(w,ws) <=> IN(a,App(f0,w))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "Tat" [‘f0’,‘a’]
+
+val ueV_def = proved_th $
+e0
+cheat
+(form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))).
+ ?!f0:mem(Exp(UFs(W),Pow(A))).
+  !u a. IN(a,App(tof(f0),u)) <=>  IN(Tat(Vof(M),a),Repu(u))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "ueV" [‘M’]
+
+val csee_def = proved_th $
+e0
+cheat
+(form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))) X. 
+ ?!cs:mem(Pow(W)).
+ !w. IN(w,cs) <=> ?v. IN(v,X) &IN(Pair(w,v),Rof(M)) ”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "csee" [‘M’,‘X’]
+
+val ueR_def = proved_th $
+e0
+cheat
+(form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))).
+ ?!R:mem(Pow(UFs(W) * UFs(W))).
+   !u1 u2. IN(Pair(u1,u2),R) <=> 
+   (!X.IN(X,Repu(u2)) ==> IN(csee(M,X),Repu(u1)))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "ueR" [‘M’]
+
+val UE_def = qdefine_fsym("UE",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’])
+‘Pair(ueR(M),ueV(M))’
+
+val MEQ_def = 
+    qdefine_psym("MEQ",[‘M1:mem(Pow(W1 * W1) * Exp(W1,Pow(A)))’,
+                        ‘w1:mem(W1)’,
+                        ‘M2:mem(Pow(W2 * W2) * Exp(W2,Pow(A)))’,
+                        ‘w2:mem(W2)’])
+    ‘!f. satis(M1,w1,f) <=> satis(M2,w2,f)’
+
+val Pft_def = proved_th $
+e0
+cheat
+(form_goal “!W w0:mem(W). ?!uw:mem(UFs(W)).
+ !ws.IN(ws,Repu(uw)) <=> IN(w0,ws)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "Pft" [‘w0’]
+
+val Prop_5_7 = prove_store("Prop_5_7",
+e0
+cheat
+(form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))) w.
+ MEQ(M,w,UE(M),Pft(w))”));
+
+val Prop_5_9 = prove_store("Prop_5_9",
+e0
+cheat
+(form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))). Msat(UE(M))”));
+
+
+
+val Thm_6_22 = prove_store("Thm_6_22",
+e0
+cheat
+(form_goal “!M1 M2.Msat(M1) & Msat(M2) ==> 
+ !w1:mem(W1) w2:mem(W2). (!f:mem(form(A)).PE(f) ==> satis(M1,w1,f) ==> satis(M2,w2,f)) ==>
+ ?R. Sim(R,M1,M2) & Holds(R,w1,w2)”));
+
+val Thm_6_23 = prove_store("Thm_6_23",
+e0
+cheat
+(form_goal
+ “!fs:mem(Pow(form(A))).
+  (!ffs. SS(ffs,fs) & Fin(ffs) ==> 
+  ?W M:mem(Pow(W * W) * Exp(W,Pow(A))) w.
+   !f. IN(f,ffs) ==> satis(M,w,f)) ==>
+  ?W M:mem(Pow(W * W) * Exp(W,Pow(A))) w. 
+   !f. IN(f,fs) ==> satis(M,w,f) ”));
+
+val SATIS_def = qdefine_psym("SATIS",
+[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,‘w:mem(W)’,‘fs:mem(Pow(form(A)))’])
+‘!f. IN(f,fs) ==> satis(M,w,f)’
+
+
+val ENT_def = qdefine_psym("ENT",[‘phis:mem(Pow(form(A)))’,‘psi:mem(form(A))’])
+‘!W M:mem(Pow(W * W) * Exp(W,Pow(A))) w. 
+ SATIS(M,w,phis) ==> satis(M,w,psi)’
+
+
+val Thm_6_24 = prove_store("Thm_6_24",
+e0
+cheat
+(form_goal
+ “!fs:mem(Pow(form(A))) phi.ENT(fs,phi) ==>
+  ?ffs. SS(ffs,fs) & Fin(ffs) & ENT(ffs,phi)”));
+
+
+val Ent_def = qdefine_psym("Ent",[‘phi:mem(form(A))’,‘psi:mem(form(A))’])
+‘!W M:mem(Pow(W * W) * Exp(W,Pow(A))) w. satis(M,w,phi) ==> satis(M,w,psi)’
+
+
+val PEC_def = proved_th $
+e0
+cheat
+(form_goal “!A f:mem(form(A)). ?!pec.
+ !phi. IN(phi,pec) <=> PE(phi) & Ent(f,phi)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "PEC" [‘f’]
+
+val Fin_ENT_PE = prove_store("Fin_ENT_PE",
+e0
+cheat
+(form_goal
+ “!fs. Fin(fs) & (!f. IN(f,fs) ==> PE(f))==> 
+ ?phi:mem(form(A)).PE(phi) &
+       !W M w:mem(W).SATIS(M,w,fs) <=> satis(M,w,phi)”));
+
+val SATIS_SS = prove_store("SATIS_SS",
+e0
+(rpt strip_tac >> fs[SS_def,SATIS_def] >> 
+ rpt strip_tac >> first_x_assum irule >> first_x_assum irule >> arw[])
+(form_goal “!s1 s2. SS(s1,s2) ==>
+ !M:mem(Pow(W * W) * Exp(W,Pow(A))) w.SATIS(M,w,s2) ==> SATIS(M,w,s1) ”))
 
 val Thm_6_25 = prove_store("Thm_6_25",
+e0
+(rpt strip_tac >> 
+ qsuff_tac
+ ‘ENT(PEC(f),f)’
+ >-- (strip_tac >>
+     drule Thm_6_24 >> pop_assum strip_assume_tac >>
+     qby_tac ‘!f.IN(f,ffs) ==> PE(f)’ 
+     >-- (fs[SS_def,PEC_def] >> rpt strip_tac >> first_x_assum drule >>
+         arw[]) >>
+     qsspecl_then [‘ffs’] assume_tac Fin_ENT_PE >>
+     rfs[] >> qexists_tac ‘phi’ >> arw[] >>
+     rw[EQV_def] >> pop_assum (assume_tac o GSYM) >> arw[] >>
+     rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+     >-- (qsuff_tac ‘SATIS(M,w,PEC(f))’
+          >-- strip_tac >> fs[SS_def] >> )
+
+
+(qsuff_tac ‘!c.IN(c,PEC(f)) ==> satis(M,w,c)’ 
+         >-- (rpt strip_tac >> fs[SS_def] >> first_x_assum irule >>
+             first_x_assum irule >> arw[]) >>
+         rw[PEC_def,Ent_def] >> rpt strip_tac >> 
+         first_x_assum irule >> arw[]) >>
+     qpick_x_assum ‘ENT(ffs, f)’ assume_tac >>
+     fs[ENT_def] >> first_x_assum irule >> arw[]) >>
+ rw[ENT_def] >> rpt strip_tac >> 
+ qby_tac
+ ‘?G. !psi. IN(psi,G) <=> PE(psi) & ’)
+(form_goal “!A f:mem(form(A)). PUS(f) ==> ?f0. PE(f0) & EQV(f,f0)”))
+
+val Thm_6_25_iff = prove_store("Thm_6_25_iff",
 e0
 cheat
 (form_goal “!A f:mem(form(A)). PUS(f) <=> ?f0. PE(f0) & EQV(f,f0)”))
