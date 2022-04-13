@@ -185,20 +185,79 @@ e0
 (form_goal “!A B f:A->B. Inj(f) ==>
  !b. (?!a.App(f,a) = b) <=> (?a.App(f,a) = b)”));
 
-val BOT_def = proved_th $
+fun flip_fconv f = 
+    let val eqths = List.map eq_sym (!EqSorts)
+        val fc = first_fconv (List.map rewr_fconv eqths)
+    in  (once_depth_fconv no_conv fc) f
+    end
+
+val form_def' = form_def |> conv_rule flip_fconv
+
+val Bot_def = proved_th $
 e0
-(qsuff_tac ‘?f’)
+(rw[Repf_def] >> assume_tac repf_Inj >>
+ drule Inj_ex_uex >> arw[] >>
+ flip_tac >> rw[GSYM form_def] >> rw[isfm_clauses])
 (form_goal “?!f. Repf(f) = F0(A)”)
-|> uex2ex_rule |> qSKOLEM "BOT" [‘A’]
+|> uex2ex_rule |> qSKOLEM "Bot" [‘A’]
 
-val VAR_def = qdefine_fsym("VAR",[‘a:mem(A)’]) ‘BOT(A)’
+val VAR_def = Inj_lift_fun |> qsspecl [‘repf(A)’]
+                           |> C mp repf_Inj
+                           |> qsspecl [‘VAR0(A)’] 
+                           |> rewr_rule[GSYM Var0_def,GSYM form_def,
+                                        isfm_clauses]
+                           |> qSKOLEM "VAR" [‘A’]
 
-val NEG_def = qdefine_fsym("NEG",[‘f:mem(form(A))’]) ‘BOT(A)’
+val repf_isfm = prove_store("repf_isfm",
+e0
+(rw[form_def] >> rpt strip_tac >> rw[Repf_def] >>
+ qexists_tac ‘f0’ >> rw[])
+(form_goal “!f0:mem(form(A)).isfm(Repf(f0))”));
+
+val isfm_Neg0 = isfm_clauses |> conjE2 |> conjE2 |> conjE1 
+
+val Neg0_Repf = proved_th $
+e0
+(strip_tac >> irule isfm_Neg0 >> rw[repf_isfm])
+(form_goal “!f0:mem(form(A)). isfm(Neg0(Repf(f0)))”)
+
+val NEG_def = Inj_lift_fun_lemma |> qsspecl [‘repf(A)’]
+                           |> C mp repf_Inj
+                           |> qsspecl [‘NEG0(A)’] 
+                           |> rewr_rule[App_App_o,GSYM Neg0_def]
+                           |> rewr_rule[GSYM form_def,GSYM Repf_def]
+                           |> rewr_rule[Neg0_Repf]
+                           |> qSKOLEM "NEG" [‘A’]
+
+val isfm_Diam0 = isfm_clauses |> conjE2 |> conjE2 |> conjE2 
+                              |> conjE2
+
+val Diam0_Repf = proved_th $
+e0
+(strip_tac >> irule isfm_Diam0 >> rw[repf_isfm])
+(form_goal “!f0:mem(form(A)). isfm(Diam0(Repf(f0)))”)
+
+
+val DIAM_def = Inj_lift_fun_lemma |> qsspecl [‘repf(A)’]
+                           |> C mp repf_Inj
+                           |> qsspecl [‘DIAM0(A)’] 
+                           |> rewr_rule[App_App_o,GSYM Diam0_def]
+                           |> rewr_rule[GSYM form_def,GSYM Repf_def]
+                           |> rewr_rule[Diam0_Repf]
+                           |> qSKOLEM "DIAM" [‘A’]
+
+
+                          
+val Var_def = qdefine_fsym("Var",[‘a:mem(A)’]) ‘App(VAR(A),a)’
+
+val Neg_def = qdefine_fsym("Neg",[‘f:mem(form(A))’]) ‘App(NEG(A),f)’
+
+val Diam_def = qdefine_fsym("Diam",[‘f:mem(form(A))’]) ‘App(DIAM(A),f)’
 
 val DISJ_def = qdefine_fsym("DISJ",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
                            ‘BOT(A)’
 
-val DIAM_def = qdefine_fsym("DIAM",[‘f:mem(form(A))’]) ‘BOT(A)’
+
 
 
 
