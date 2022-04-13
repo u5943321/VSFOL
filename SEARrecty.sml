@@ -123,14 +123,83 @@ val isfm_def = qdefine_psym("isfm",[‘f:mem(Pow(N * A))’])
 ‘IN(f,isfms(A))’ |> gen_all 
 
 
+
+(*isfm_ind cannot be solved by arw with isfm_ind since the bracket of isfm_ind is weird*)
+val isfm_induct = prove_store("isfm_induct",
+e0
+(rw[isfm_def] >> strip_tac >>
+ x_choose_then "s" (assume_tac o conjE1) 
+ (IN_def_P_expand |> qspecl [‘Pow(N * A)’]) >> arw[] >>
+ rpt strip_tac >> irule isfm_ind >> arw[])
+(form_goal 
+ “!A.P(F0(A)) & 
+  (!p:mem(A). P(Var0(p))) & 
+  (!f0:mem(Pow(N * A)). P(f0) ==> P(Neg0(f0))) &
+  (!f1:mem(Pow(N * A)) f2. P(f1) & P(f2) ==> P(Disj0(f1,f2))) &
+  (!f0:mem(Pow(N * A)). P(f0) ==> P(Diam0(f0))) ==>
+  !f0:mem(Pow(N * A)). isfm(f0) ==> P(f0)”));
+ 
+val isfm_F0 = prove_store("isfm_F0",
+e0
+(rw[isfm_def,isfm_rules])
+(form_goal
+ “!A. isfm(F0(A))”)); 
+
+
+val isfm_Var0 = prove_store("isfm_Var0",
+e0
+(rw[isfm_def,isfm_rules])
+(form_goal
+ “!A p:mem(A). isfm(Var0(p))”)); 
+
+val isfm_clauses = isfm_rules |> rewr_rule[GSYM isfm_def]
+
+
+
+
+
+val isL_Ins = isL_rules |> spec_all |> conjE2 
+                        |> rewr_rule[GSYM isL_def]
+                        |> spec_all |> undisch 
+                        |> gen_all |> disch_all
+                        |> gen_all |> store_as "isL_Ins";
+
+
 val form_def = Thm_2_4  |> qspecl [‘Pow(N * A)’]
                         |> fVar_sInst_th “P(f:mem(Pow(N * A)))”
                         “isfm(f:mem(Pow(N * A)))”
                         |> qSKOLEM "form" [‘A’]
                         |> qSKOLEM "repf" [‘A’]
 
+val repf_Inj = form_def |> conjE1 |> store_as "repf_Inj"; 
+
 val Repf_def = qdefine_fsym("Repf",[‘f:mem(form(A))’]) ‘App(repf(A),f)’
                            |> gen_all 
+
+val Inj_ex_uex = prove_store("Inj_ex_uex",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- first_x_assum (accept_tac o uex2ex_rule) >>
+ uex_tac >> qexists_tac ‘a’ >> arw[] >> rpt strip_tac >>
+ fs[Inj_def] >> first_x_assum irule >> arw[])
+(form_goal “!A B f:A->B. Inj(f) ==>
+ !b. (?!a.App(f,a) = b) <=> (?a.App(f,a) = b)”));
+
+val BOT_def = proved_th $
+e0
+(qsuff_tac ‘?f’)
+(form_goal “?!f. Repf(f) = F0(A)”)
+|> uex2ex_rule |> qSKOLEM "BOT" [‘A’]
+
+val VAR_def = qdefine_fsym("VAR",[‘a:mem(A)’]) ‘BOT(A)’
+
+val NEG_def = qdefine_fsym("NEG",[‘f:mem(form(A))’]) ‘BOT(A)’
+
+val DISJ_def = qdefine_fsym("DISJ",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
+                           ‘BOT(A)’
+
+val DIAM_def = qdefine_fsym("DIAM",[‘f:mem(form(A))’]) ‘BOT(A)’
+
 
 
 (*model is a R:A~>A with a member of Pow(A * N)
@@ -150,21 +219,6 @@ val satis_cheat =
     qdefine_psym("satis",
                  [‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,‘w:mem(W)’,‘f:mem(form(A))’])
     ‘T’
-
-val BOT_def = proved_th $
-e0
-cheat
-(form_goal “?!f. Repf(f) = F0(A)”)
-|> uex2ex_rule |> qSKOLEM "BOT" [‘A’]
-
-val VAR_def = qdefine_fsym("VAR",[‘a:mem(A)’]) ‘BOT(A)’
-
-val NEG_def = qdefine_fsym("NEG",[‘f:mem(form(A))’]) ‘BOT(A)’
-
-val DISJ_def = qdefine_fsym("DISJ",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
-                           ‘BOT(A)’
-
-val DIAM_def = qdefine_fsym("DIAM",[‘f:mem(form(A))’]) ‘BOT(A)’
 
 
 val satis_def = prove_store("satis_def",
@@ -392,7 +446,7 @@ cheat
 (form_goal “!f1:mem(form(A)) f2.NEG(f1) = NEG(f2) <=> f1 = f2”));
 
 
-val Thm_6_25 = prove_store("Thm_6_25",
+val Thm_6_25_l2r = prove_store("Thm_6_25_l2r",
 e0
 (rpt strip_tac >> 
  qsuff_tac
@@ -414,7 +468,11 @@ e0
  rw[ENT_def] >> rpt strip_tac >>
  qby_tac
  ‘?G. !psi. IN(psi,G) <=>?psi0. psi = NEG(psi0) & PE(psi0) & ~(satis(M,w,psi0))’
- >-- cheat (*IN_def_P*)>>
+ >-- accept_tac (IN_def_P |> qspecl [‘form(A)’]
+              |> fVar_sInst_th “P(psi:mem(form(A)))”
+                 “?psi0:mem(form(A)). psi = NEG(psi0) & PE(psi0) & 
+                                      ~(satis(M,w:mem(W),psi0))”
+              |> uex2ex_rule) >>
  pop_assum strip_assume_tac >>
  qby_tac 
  ‘!ss.SS(ss,Ins(f,G)) &  Fin(ss) ==>
@@ -423,9 +481,12 @@ e0
      qby_tac
      ‘?ss0. !f0. IN(f0,ss0) <=> 
       IN(NEG(f0),Del(ss,f))’ 
-     >-- cheat >> 
+     >-- accept_tac (IN_def_P |> qspecl [‘form(A)’]
+              |> fVar_sInst_th “P(f0:mem(form(A)))”
+                 “IN(NEG(f0),Del(ss,f:mem(form(A))))”
+              |> uex2ex_rule) >> 
      pop_assum strip_assume_tac >>
-     qby_tac ‘Fin(ss0)’ >-- cheat >>
+     qby_tac ‘Fin(ss0)’ >-- (*FINITE_Inj*) cheat >>
      qby_tac
      ‘!psi0.IN(NEG(psi0),G) ==> PE(psi0) & ~satis(M,w,psi0)’
      >-- (arw[] >> rw[NEG_eq_eq] >> rpt strip_tac >> rfs[] >> arw[]) >>
@@ -510,8 +571,16 @@ e0
  qsspecl_then [‘M’,‘w’] assume_tac Prop_5_7 >> fs[MEQ_def])
 (form_goal “!A f:mem(form(A)). PUS(f) ==> ?f0. PE(f0) & EQV(f,f0)”))
 
-val Thm_6_25_iff = prove_store("Thm_6_25_iff",
+val Thm_6_25_r2l = prove_store("Thm_6_25_r2l",
 e0
 cheat
+(form_goal “!A f f0:mem(form(A)). PE(f0) & EQV(f,f0) ==> PUS(f)”));
+
+val Thm_6_25_iff = prove_store("Thm_6_25_iff",
+e0
+(rpt strip_tac >> dimp_tac >> disch_tac 
+ >-- (drule Thm_6_25_l2r >> arw[]) >>
+ irule Thm_6_25_r2l >> pop_assum strip_assume_tac >>
+ qexists_tac ‘f0’ >> arw[])
 (form_goal “!A f:mem(form(A)). PUS(f) <=> ?f0. PE(f0) & EQV(f,f0)”))
 
