@@ -246,7 +246,62 @@ val DIAM_def = Inj_lift_fun_lemma |> qsspecl [‘repf(A)’]
                            |> rewr_rule[Diam0_Repf]
                            |> qSKOLEM "DIAM" [‘A’]
 
+(*think about how quo related to this*)
+val Inj_restrict = prove_store("Inj_restrict",
+e0
+(rpt strip_tac >>
+ assume_tac (P2fun_uex |> qspecl [‘D’,‘C’] 
+                    |> fVar_sInst_th “P(d:mem(D),c:mem(C))”
+                       “App(f0:D0->C0 o i1:D->D0, d) = App(i2:C->C0, c)”) >>
+ first_x_assum drule >> flip_tac >>
+ fs[GSYM App_App_o,FUN_EXT])
+(form_goal 
+ “!D D0 i1:D->D0. Inj(i1) ==> 
+  !C C0 i2:C->C0. Inj(i2) ==>
+  !f0:D0->C0.
+   (!d.?!c. App(f0 o i1,d) = App(i2,c)) ==>
+  ?!f:D->C.i2 o f = f0 o i1”));
 
+val form_def_uex = prove_store("form_def_uex",
+e0
+(strip_tac >> assume_tac repf_Inj >>
+ drule Inj_ex_uex >> flip_tac >>
+ rw[Repf_def] >> arw[] >>
+ rw[form_def] >> lflip_tac >> rw[])
+(form_goal “!a:mem(Pow(N * A)).
+ (?!b. a = Repf(b)) <=> isfm(a)”));
+
+val isfm_Disj0 =  isfm_clauses |> conjE2 |> conjE2 
+                               |> conjE2 |> conjE1
+
+local
+val l = proved_th $
+e0
+(rpt strip_tac >> irule isfm_Disj0 >> rw[repf_isfm])
+(form_goal “!a b:mem(form(A)).isfm(Disj0(Repf(a), Repf(b)))”)
+in
+val DISJ_def = Inj_restrict |> qsspecl [‘Prla(repf(A),repf(A))’]
+                            |> C mp (Prla_Inj |> qsspecl [‘repf(A)’]
+                                              |> C mp repf_Inj
+                                              |> qsspecl [‘repf(A)’]
+                                              |> C mp repf_Inj)
+                            |> qsspecl [‘repf(A)’] 
+                            |> conv_rule
+                            (depth_fconv no_conv forall_cross_fconv)
+                            |> C mp repf_Inj
+                            |> qspecl [‘DISJ0(A)’]
+                            |> rewr_rule[App_App_o,Prla_def,App_Pa_Pair]
+                            |> rewr_rule[Pair_def,GSYM Repf_def]
+                            |> rewr_rule[form_def_uex,GSYM Disj0_def]
+                            |> C mp l
+                            |> uex2ex_rule
+                            |> qSKOLEM "DISJ" [‘A’] 
+                            |> rewr_rule[GSYM FUN_EXT] 
+                            |>  conv_rule
+                            (depth_fconv no_conv forall_cross_fconv)
+                            |> rewr_rule[App_App_o,App_Pa_Pair,Pair_def,
+                                         GSYM Disj0_def,GSYM Repf_def]
+end
                           
 val Var_def = qdefine_fsym("Var",[‘a:mem(A)’]) ‘App(VAR(A),a)’
 
@@ -254,8 +309,8 @@ val Neg_def = qdefine_fsym("Neg",[‘f:mem(form(A))’]) ‘App(NEG(A),f)’
 
 val Diam_def = qdefine_fsym("Diam",[‘f:mem(form(A))’]) ‘App(DIAM(A),f)’
 
-val DISJ_def = qdefine_fsym("DISJ",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
-                           ‘BOT(A)’
+val Disj_def = qdefine_fsym("Disj",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
+                           ‘App(DISJ(A),Pair(f1,f2))’
 
 
 
