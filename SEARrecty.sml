@@ -380,6 +380,18 @@ cheat
 (form_goal “!f M:mem(Pow(W * W) * Exp(W,Pow(A))) w.
  satis(M,w,f) ==> SATIS(M,w,PEC(f)) ”));
 
+val satis_NEG = prove_store("satis_NEG",
+e0
+cheat
+(form_goal
+ “!M:mem(Pow(W * W) * Exp(W,Pow(A))) w.satis(M, w, NEG(f)) <=> ~satis(M, w, f)”));
+
+val NEG_eq_eq = prove_store("NEG_eq_eq",
+e0
+cheat
+(form_goal “!f1:mem(form(A)) f2.NEG(f1) = NEG(f2) <=> f1 = f2”));
+
+
 val Thm_6_25 = prove_store("Thm_6_25",
 e0
 (rpt strip_tac >> 
@@ -401,16 +413,80 @@ e0
      fs[ENT_def]) >>
  rw[ENT_def] >> rpt strip_tac >>
  qby_tac
- ‘?G. !psi. IN(psi,G) <=> PE(psi) & ~(satis(M,w,psi))’
+ ‘?G. !psi. IN(psi,G) <=>?psi0. psi = NEG(psi0) & PE(psi0) & ~(satis(M,w,psi0))’
  >-- cheat (*IN_def_P*)>>
  pop_assum strip_assume_tac >>
  qby_tac 
  ‘!ss.SS(ss,Ins(f,G)) &  Fin(ss) ==>
   ?V M1:mem(Pow(V * V) * Exp(V,Pow(A))) v.SATIS(M1,v,ss)’
- >-- cheat >>
+ >-- (rpt strip_tac >> ccontra_tac >>
+     qby_tac
+     ‘?ss0. !f0. IN(f0,ss0) <=> 
+      IN(NEG(f0),Del(ss,f))’ 
+     >-- cheat >> 
+     pop_assum strip_assume_tac >>
+     qby_tac ‘Fin(ss0)’ >-- cheat >>
+     qby_tac
+     ‘!psi0.IN(NEG(psi0),G) ==> PE(psi0) & ~satis(M,w,psi0)’
+     >-- (arw[] >> rw[NEG_eq_eq] >> rpt strip_tac >> rfs[] >> arw[]) >>
+     qby_tac ‘SS(Del(ss,f),G)’ >-- cheat >> 
+     qby_tac ‘!f0. IN(f0,ss0) ==> PE(f0)’ 
+     >-- (rpt strip_tac >> drule $ iffLR SS_def >> 
+          first_x_assum (drule o iffLR) >> 
+          qsuff_tac ‘PE(f0) & ~satis(M,w,f0)’ 
+          >-- (strip_tac >> arw[]) >>
+          first_x_assum irule >> 
+          drule $ iffLR SS_def >> first_x_assum irule >> arw[]) >>
+     qby_tac ‘?ff. PE(ff) & !V M1:mem(Pow(V * V) * Exp(V,Pow(A))) v.
+              satis(M1,v,ff) <=> ?f0. IN(f0,ss0) & satis(M1,v,f0)’
+     >-- cheat >> pop_assum strip_assume_tac >>
+     qby_tac ‘IN(ff,PEC(f))’ 
+     >-- (rw[PEC_def] >> arw[] >> rw[Ent_def] >>
+          arw[] >> rpt strip_tac >> ccontra_tac >>
+          qsuff_tac ‘?V M1 v:mem(V). SATIS(M1,v,ss)’
+          >-- arw[] >>
+          qexistsl_tac [‘W'’,‘M'’,‘w'’] >>
+          qby_tac ‘!f1. IN(f1,Del(ss,f)) ==> satis(M',w',f1)’ 
+          >-- (rpt strip_tac >>
+              qby_tac ‘?f0. f1 = NEG(f0)’ >-- cheat >> fs[] >>
+              fs[] >> ccontra_tac  >>
+              qby_tac ‘?f0. IN(NEG(f0),Del(ss,f)) & satis(M',w',f0)’ 
+              >-- (qexists_tac ‘f0’ >> arw[] >> fs[satis_NEG]) >>
+              first_x_assum opposite_tac) >>
+          rw[SATIS_def] >> rpt strip_tac >>
+          qcases ‘f' = f’ 
+          >-- arw[] >>
+          qby_tac ‘IN(f',Del(ss,f))’ >-- arw[Del_def] >>
+          first_x_assum drule >> arw[]) >>
+     qby_tac ‘satis(M,w,ff)’ 
+     >-- (rev_drule $ iffLR SATIS_def >>
+         first_x_assum drule >> arw[]) >>
+     qby_tac ‘?f0. IN(f0,ss0) & satis(M,w,f0)’ 
+     >-- (first_x_assum (irule o iffLR) >> arw[]) >>
+     pop_assum strip_assume_tac >> 
+     qby_tac ‘!f0.IN(f0,ss0) ==> ~satis(M,w,f0)’ 
+     >-- (rpt strip_tac >> 
+         last_x_assum $ drule o iffLR >> 
+         qby_tac ‘IN(NEG(f0'),G)’
+         >-- (qsuff_tac ‘SS(Del(ss,f),G)’
+             >-- (rw[SS_def] >> rpt strip_tac >>
+                 first_x_assum irule >> arw[]) >>
+             cheat (* SS(ss, Ins(f, G)) ==> SS(Del(ss, f), G)*)) >>
+         pop_assum mp_tac >> arw[] >> strip_tac >>
+         fs[NEG_eq_eq]) >>
+     first_x_assum drule >> fs[])>>
  drule Thm_6_23 >> pop_assum strip_assume_tac >>
  qby_tac ‘!psi. PE(psi) ==> satis(M',w',psi) ==> satis(M,w,psi)’ 
- >-- cheat >>
+ >-- (qsuff_tac ‘!psi.PE(psi) ==> ~satis(M,w,psi) ==> ~satis(M',w',psi)’
+     >-- (rpt strip_tac >> ccontra_tac >> 
+         first_x_assum drule >> first_x_assum drule >> fs[]) >>
+     rpt strip_tac >>
+     qby_tac ‘IN(NEG(psi),G)’ 
+     >-- (first_x_assum (irule o iffRL) >>
+         qexists_tac ‘psi’ >> arw[]) >> 
+     drule $ iffLR SATIS_def >>
+     first_x_assum (qsspecl_then [‘NEG(psi)’] assume_tac) >>
+     rfs[Ins_def,satis_NEG]) >>
  qby_tac
  ‘?R. Sim(R,UE(M'),UE(M)) & Holds(R,Pft(w'),Pft(w))’
  >-- (irule Thm_6_22 >> rw[Prop_5_9] >> rpt strip_tac >>
@@ -431,7 +507,7 @@ e0
  qby_tac ‘satis(UE(M),Pft(w),f)’ 
  >-- (drule $ iffLR PUS_def >> first_x_assum drule >>
      first_x_assum drule >> first_x_assum drule >> arw[]) >>
- qsspecl_then [‘M’,‘w’] assume_tac Prop_5_7 >> )
+ qsspecl_then [‘M’,‘w’] assume_tac Prop_5_7 >> fs[MEQ_def])
 (form_goal “!A f:mem(form(A)). PUS(f) ==> ?f0. PE(f0) & EQV(f,f0)”))
 
 val Thm_6_25_iff = prove_store("Thm_6_25_iff",
