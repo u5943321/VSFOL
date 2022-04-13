@@ -314,6 +314,41 @@ val Disj_def = qdefine_fsym("Disj",[‘f1:mem(form(A))’,‘f2:mem(form(A))’]
 
 
 
+local
+val fmind_cl = 
+ “(p = Pair(Bot(A),x0:mem(X)) ==> IN(p,fmind)) &
+  (!a:mem(A).p = Pair(Var(a),App(vf:A->X,a)) ==> IN(p,fmind)) &
+  (!p0:mem(form(A) * X). IN(p0,fmind) &
+   p = Pair(Neg(Fst(p0)),App(nf:X->X,Snd(p0))) ==> IN(p,fmind)) &
+  (!p0:mem(form(A) * X). IN(p0,fmind) &
+   p = Pair(Diam(Fst(p0)),App(dmf:X->X,Snd(p0))) ==> IN(p,fmind)) & 
+  (!p1:mem(form(A) * X) p2. IN(p1,fmind) & IN(p2,fmind) & 
+   p = Pair(Disj(Fst(p1),Fst(p2)),App(djf:X * X ->X,Pair(Snd(p1),Snd(p2)))) ==> IN(p,fmind))”
+in
+val (fmind_incond,x1) = mk_incond fmind_cl;
+val fmindf_ex = mk_fex fmind_incond x1;
+val fmindf_def = mk_fdef "fmindf" fmindf_ex;
+val fmindf_monotone = mk_monotone fmindf_def;
+val fmind's_def = mk_prim fmindf_def;
+val fminds_def = mk_LFP (rastt "fmind's(djf:X*X->X, dmf:X->X, nf:X->X, vf:A->X, x0:mem(X))");
+val fminds_cond = mk_cond fminds_def fmind's_def;
+val fminds_SS = mk_SS fminds_def fmind's_def;
+val fmind_rules0 = mk_rules fmindf_monotone fminds_SS fminds_cond;
+val fmind_cases0 = mk_cases fmindf_monotone fmind_rules0 fminds_cond;
+val fmind_ind0 = mk_ind fminds_cond;
+val fmind_ind1 = mk_ind1 fmindf_def fmind_ind0;
+val fmind_ind2 = mk_ind2 fmind_ind1; 
+val fmind_cases1 = mk_case1 fmindf_def fmind_cases0; 
+val fmind_rules1 = mk_rules1 fmindf_def fmind_rules0; 
+val fmind_rules2 = mk_rules2 fmind_rules1; 
+val fmind_rules3 = mk_rules3 fmind_rules2;
+end
+
+val fmind_ind = fmind_ind2 |> store_as "fmind_ind";
+val fmind_cases = fmind_cases1 |> store_as "fmind_cases";
+val fmind_rules = fmind_rules3 |> store_as "fmind_rules";
+
+
 
 
 (*model is a R:A~>A with a member of Pow(A * N)
