@@ -716,7 +716,87 @@ e0
  (!f.satis(M,w,Diam(f)) <=> ?v. Rm(M,w,v) & satis(M,v,f))”));
 
 
-val 
+val Top_def = qdefine_fsym("Top",[‘A’]) ‘Neg(Bot(A))’;
+
+val Conj_def = qdefine_fsym("Conj",[‘f1:mem(form(A))’,‘f2:mem(form(A))’]) 
+                           ‘Neg(Disj(Neg(f1),Neg(f2)))’ 
+
+val neg_or_distr = proved_th $
+e0
+(cheat)
+(form_goal “(~(A | B)) <=> (~A & ~B)”)
+
+val satis_Conj = prove_store("satis_Conj",
+e0
+(rpt strip_tac >> rw[Conj_def,satis_def] >> once_rw[neg_or_distr] >>
+ rw[])
+(form_goal “!M w:mem(W) f1:mem(form(A)) f2.
+ satis(M,w,Conj(f1,f2)) <=> satis(M,w,f1) & satis(M,w,f2)
+ ”));
+
+
+local
+val PE_cl = 
+ “(f = Top(A) ==> IN(f,PEs)) &
+  (f = Bot(A) ==> IN(f,PEs)) & 
+  (!p.f = Var(p) ==> IN(f,PEs)) &
+  (!f1 f2. IN(f1,PEs) & IN(f2,PEs) & f = Conj(f1,f2) ==> IN(f,PEs)) & 
+  (!f1 f2. IN(f1,PEs) & IN(f2,PEs) & f = Disj(f1,f2) ==> IN(f,PEs)) & 
+  (!f0. IN(f0,PEs) & f = Diam(f0) ==> IN(f,PEs))”
+in
+val (PE_incond,x1) = mk_incond PE_cl;
+val PEf_ex = mk_fex PE_incond x1;
+val PEf_def = mk_fdef "PEf" PEf_ex;
+val PEf_monotone = mk_monotone PEf_def;
+val PE's_def = mk_prim PEf_def;
+val PEs_def = mk_LFP (rastt "PE's(A)");
+val PEs_cond = mk_cond PEs_def PE's_def;
+val PEs_SS = mk_SS PEs_def PE's_def;
+val PE_rules0 = mk_rules PEf_monotone PEs_SS PEs_cond;
+val PE_cases0 = mk_cases PEf_monotone PE_rules0 PEs_cond;
+val PE_ind0 = mk_ind PEs_cond;
+val PE_ind1 = mk_ind1 PEf_def PE_ind0;
+val PE_ind2 = mk_ind2 PE_ind1; 
+val PE_cases1 = mk_case1 PEf_def PE_cases0; 
+val PE_rules1 = mk_rules1 PEf_def PE_rules0; 
+val PE_rules2 = mk_rules2 PE_rules1; 
+val PE_rules3 = mk_rules3 PE_rules2;
+end
+
+val PE_ind0 = PE_ind2 |> store_as "PE_ind";
+val PE_cases0 = PE_cases1 |> store_as "PE_cases";
+val PE_rules0 = PE_rules3 |> store_as "PE_rules";
+
+val PE_def0 = qdefine_psym("PE",[‘f:mem(form(A))’]) ‘IN(f,PEs(A))’
+
+val PE_ind = PE_ind0 |> rewr_rule[GSYM PE_def0];
+val PE_cases = PE_cases0 |> rewr_rule[GSYM PE_def0];
+val PE_rules = PE_rules0 |> rewr_rule[GSYM PE_def0];
+
+
+
+val PE_induct = prove_store("PE_induct",
+e0
+(strip_tac >>
+ x_choose_then "s" (assume_tac o conjE1) 
+ (IN_def_P_expand |> qspecl [‘form(A)’]) >> arw[] >>
+ disch_tac >> 
+ match_mp_tac PE_ind >> arw[])
+(form_goal
+ “!A. P(Top(A)) & P(Bot(A)) & (!p:mem(A). P(Var(p))) &
+      (!f1:mem(form(A)) f2. P(f1) & P(f2) ==> P(Conj(f1,f2))) & 
+      (!f1:mem(form(A)) f2. P(f1) & P(f2) ==> P(Disj(f1,f2))) & 
+      (!f:mem(form(A)).P(f) ==> P(Diam(f))) ==> 
+      (!f:mem(form(A)). PE(f) ==> P(f)) ”));
+
+
+
+
+val Thm_6_25_r2l0 = prove_store("Thm_6_25_r2l0",
+e0
+cheat
+(form_goal “!A f f0:mem(form(A)). PE(f0) ==> PUS(f)”));
+
 
 (*model is a R:A~>A with a member of Pow(A * N)
 
