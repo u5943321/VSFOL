@@ -1482,8 +1482,6 @@ cheat
  !a b. App(f,Pair(a,b)) = App(i2(1,1),dot)  <=> Holds(R,a,b)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "r2f" [‘R’] |> gen_all
 
-val true_def = qdefine_fsym("true",[]) ‘App(i2(1,1),dot)’
-
 val id_ER = prove_store("id_ER",
 e0
 (rw[id_def,ER_def,Refl_def,Sym_def,Trans_def] >> rpt strip_tac >> arw[])
@@ -1602,11 +1600,6 @@ e0
   App(LEzf, Pair(z1, z2)) = App(r2f(ler0), Pair(Pair(a,b),Pair(c,d)))”));
 
 
-val tv_eq_true = prove_store("tv_eq_true",
-e0
-(cheat)
-(form_goal “!tv1 tv2. tv1 = tv2 <=>
- (tv1 = true <=> tv2 = true)”));
 
 
 val main_LEzf3 = prove_store("main_LEzf3",
@@ -1622,13 +1615,6 @@ e0
 
 val main_LEzf4 = main_LEzf3 |> rewr_rule[true_def,r2f_def,ler0_def] 
            |> rewr_rule[GSYM true_def]
-
-val f2r_def = proved_th $
-e0
-cheat
-(form_goal “!A B f:A * B -> 1+1.?!R:A~>B.
- !a b. Holds(R,a,b) <=> App(f,Pair(a,b)) = true”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "f2r" [‘f’] |> gen_all
 
 val LEz_def0 = qdefine_fsym("LEz",[]) ‘f2r(LEzf)’;
 *)
