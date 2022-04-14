@@ -312,6 +312,80 @@ val Diam_def = qdefine_fsym("Diam",[‘f:mem(form(A))’]) ‘App(DIAM(A),f)’
 val Disj_def = qdefine_fsym("Disj",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
                            ‘App(DISJ(A),Pair(f1,f2))’
 
+val Repf_eq_eq = prove_store("Repf_eq_eq",
+e0
+(cheat)
+(form_goal “!f1:mem(form(A)) f2. Repf(f1) = Repf(f2) <=> f1 = f2”))
+
+val form_induct = prove_store("form_induct",
+e0
+(strip_tac >> disch_tac >>
+ qsuff_tac ‘!f0:mem(Pow(N * A)). isfm(f0) ==> isfm(f0) &
+ !f.Repf(f) = f0 ==> P(f)’ 
+ >-- (strip_tac >>
+     qby_tac ‘!f0:mem(Pow(N * A)). isfm(f0) ==>
+                      (!f. Repf(f) = f0 ==> P(f))’ 
+     >-- (rpt strip_tac >> first_x_assum drule >>
+          rfs[] >> first_x_assum irule >> arw[]) >>
+     strip_tac >> first_x_assum irule >>
+     qexists_tac ‘Repf(f0)’ >> rw[repf_isfm]) >>
+ ind_with (isfm_induct |> qspecl [‘A’]) >>
+ rw[isfm_F0,isfm_Var0] >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >>
+     qsuff_tac ‘f = Bot(A)’ >-- (strip_tac >> arw[]) >>
+     irule $ iffLR Inj_eq_eq >> qexistsl_tac [‘Pow(N * A)’,‘repf(A)’] >>
+     arw[repf_Inj,Bot_def,GSYM Repf_def]) >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> 
+      qsuff_tac ‘f = Var(p)’ >-- (strip_tac >> arw[]) >>
+      irule $ iffLR Inj_eq_eq >> qexistsl_tac [‘Pow(N * A)’,‘repf(A)’] >>
+      arw[repf_Inj,Var_def,GSYM Repf_def,GSYM VAR_def,App_App_o]) >> 
+ strip_tac (* 2 *)
+ >-- (rpt gen_tac >> disch_tac >> 
+     pop_assum strip_assume_tac >> 
+     qby_tac ‘isfm(Neg0(f0))’ >-- (irule isfm_Neg0 >> arw[]) >> arw[] >>
+     rpt strip_tac >>
+     qby_tac ‘?f1. Repf(f1) = f0’ 
+     >-- arw[GSYM form_def',Repf_def] >>
+     pop_assum strip_assume_tac >> 
+     first_x_assum drule >>
+     fs[] >> 
+     qsuff_tac ‘f = Neg(f1)’ 
+     >-- (strip_tac >> arw[] >> first_x_assum irule >> arw[]) >>
+     rw[GSYM Repf_eq_eq] >> arw[Neg_def,NEG_def]) >> strip_tac (* 2 *)
+>-- (rpt gen_tac >> disch_tac >> pop_assum strip_assume_tac >>
+    qby_tac ‘isfm(Disj0(f1, f2))’ 
+    >-- (irule isfm_Disj0 >> arw[]) >>
+    arw[] >> rpt strip_tac >> 
+    qby_tac ‘?f10. Repf(f10) = f1’ 
+    >-- arw[GSYM form_def',Repf_def] >>
+    pop_assum strip_assume_tac >> 
+    qby_tac ‘?f20. Repf(f20) = f2’ 
+    >-- arw[GSYM form_def',Repf_def] >>
+    pop_assum strip_assume_tac >> 
+    first_x_assum drule >> first_x_assum drule >> fs[] >>
+    qsuff_tac ‘f = Disj(f10,f20)’ 
+    >-- (rpt strip_tac >> arw[] >> first_x_assum irule >> arw[]) >>
+    rw[GSYM Repf_eq_eq] >> arw[Disj_def,DISJ_def]) >>
+rpt gen_tac >> disch_tac >> 
+pop_assum strip_assume_tac >> 
+qby_tac ‘isfm(Diam0(f0))’ >-- (irule isfm_Diam0 >> arw[]) >> arw[] >>
+rpt strip_tac >>
+qby_tac ‘?f1. Repf(f1) = f0’ 
+>-- arw[GSYM form_def',Repf_def] >>
+pop_assum strip_assume_tac >> 
+first_x_assum drule >>
+fs[] >> 
+qsuff_tac ‘f = Diam(f1)’ 
+>-- (strip_tac >> arw[] >> first_x_assum irule >> arw[]) >>
+rw[GSYM Repf_eq_eq] >> arw[Diam_def,DIAM_def])
+(form_goal
+ “!A.P(Bot(A)) & 
+  (!p:mem(A). P(Var(p))) & 
+  (!f0:mem(form(A)). P(f0) ==> P(Neg(f0))) &
+  (!f1:mem(form(A)) f2. P(f1) & P(f2) ==> P(Disj(f1,f2))) &
+  (!f0:mem(form(A)). P(f0) ==> P(Diam(f0))) ==>
+  !f0:mem(form(A)). P(f0)”));
+
 
 
 local
@@ -348,9 +422,281 @@ val fmind_ind = fmind_ind2 |> store_as "fmind_ind";
 val fmind_cases = fmind_cases1 |> store_as "fmind_cases";
 val fmind_rules = fmind_rules3 |> store_as "fmind_rules";
 
+val Bot_NOT = prove_store("Bot_NOT",
+e0
+cheat
+(form_goal “!A. (!p.~(Bot(A) = Var(p))) &
+ (!f. ~(Bot(A) = Neg(f))) &
+ (!f. ~(Bot(A) = Diam(f))) &
+ (!f1 f2. ~(Bot(A) = Disj(f1,f2)))”));
 
 
 
+val Var_NOT = prove_store("Bot_NOT",
+e0
+cheat
+(form_goal “!A. (!p.~(Var(p) = Bot(A))) &
+ (!p:mem(A) f. ~(Var(p) = Neg(f))) &
+ (!p:mem(A) f. ~(Var(p) = Diam(f))) &
+ (!p:mem(A) f1 f2. ~(Var(p) = Disj(f1,f2)))”));
+
+
+val Neg_NOT = prove_store("Neg_NOT",
+e0
+cheat
+(form_goal “!A. (!f:mem(form(A)).~(Neg(f) = Bot(A))) &
+ (!f p:mem(A). ~(Neg(f) = Var(p))) &
+ (!f f0:mem(form(A)). ~(Neg(f) = Diam(f0))) &
+ (!f:mem(form(A)) f1 f2. ~(Neg(f) = Disj(f1,f2)))”));
+
+
+val Diam_NOT = prove_store("Diam_NOT",
+e0
+cheat
+(form_goal “!A. (!f:mem(form(A)).~(Diam(f) = Bot(A))) &
+ (!f p:mem(A). ~(Diam(f) = Var(p))) &
+ (!f f0:mem(form(A)). ~(Diam(f) = Neg(f0))) &
+ (!f:mem(form(A)) f1 f2. ~(Diam(f) = Disj(f1,f2)))”));
+
+
+
+val Disj_NOT = prove_store("Disj_NOT",
+e0
+cheat
+(form_goal “!A. (!f1 f2:mem(form(A)).~(Disj(f1,f2) = Bot(A))) &
+ (!f1 f2 p:mem(A). ~(Disj(f1,f2) = Var(p))) &
+ (!f1 f2 f0:mem(form(A)). ~(Disj(f1,f2) = Diam(f0))) &
+ (!f1 f2 f:mem(form(A)). ~(Disj(f1,f2) = Neg(f)))”));
+
+
+val Var_eq_eq = prove_store("Var_eq_eq",
+e0
+(cheat)
+(form_goal “!p1 p2:mem(A). Var(p1) = Var(p2) <=> p1 = p2”));
+
+
+val Neg_eq_eq = prove_store("Neg_eq_eq",
+e0
+(cheat)
+(form_goal “!f1 f2:mem(form(A)). Neg(f1) = Neg(f2) <=> f1 = f2”));
+
+
+val Diam_eq_eq = prove_store("Diam_eq_eq",
+e0
+(cheat)
+(form_goal “!f1 f2:mem(form(A)). Diam(f1) = Diam(f2) <=> f1 = f2”));
+
+
+val Disj_eq_eq = prove_store("Disj_eq_eq",
+e0
+(cheat)
+(form_goal “!f1 f2 g1 g2:mem(form(A)). Disj(f1,f2) = Disj(g1,g2) <=> f1 = g1 & f2 = g2”));
+
+val fmind_Neg = fmind_rules |> conjE2 |> conjE2 |> conjE1
+                            |> qspecl [‘Pair(f:mem(form(A)),x:mem(X))’]
+                            |> rewr_rule[Pair_def'];
+val fmind_Disj = fmind_rules |> conjE2 |> conjE2 |> conjE2|> conjE2
+                             |> qspecl [‘Pair(f1:mem(form(A)),x1:mem(X))’]
+                             |> rewr_rule[Pair_def']
+                             |> qspecl [‘Pair(f2:mem(form(A)),x2:mem(X))’]
+                             |> rewr_rule[Pair_def']
+                             |> undisch  |> gen_all
+                             |> disch_all |> gen_all;
+
+val fmind_Diam = fmind_rules |> conjE2 |> conjE2 |> conjE2 |> conjE1
+                             |> qspecl [‘Pair(f:mem(form(A)),x:mem(X))’]
+                             |> rewr_rule[Pair_def']
+
+(*exactly same proof as Nind_uex*)
+val fmind_uex = prove_store("fmind_uex",
+e0
+(strip_tac >> strip_tac >> strip_tac >> strip_tac >>
+ strip_tac >> strip_tac >> 
+ ind_with (form_induct |> qspecl [‘A’]) >> strip_tac (* 2 *)
+ >-- (uex_tac >> qexists_tac ‘x0’ >>
+      rw[fmind_rules] >> once_rw[fmind_cases] >>
+      rw[Pair_eq_eq,Bot_NOT] >> rpt strip_tac) >> strip_tac 
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘App(vf,p)’ >>
+     rw[fmind_rules] >> once_rw[fmind_cases] >>
+     rw[Pair_eq_eq,Var_NOT,Var_eq_eq] >> rpt strip_tac >> rfs[])>>
+ strip_tac 
+ >-- (rpt strip_tac >> uex_tac >>
+     pop_assum (strip_assume_tac o uex_expand) >>
+     qexists_tac ‘App(nf,x)’ >>
+     drule (fmind_rules |> conjE2 |> conjE2 |> conjE1) >> fs[Pair_def'] >>
+     rpt strip_tac >> drule $ iffLR fmind_cases >>
+     fs[Pair_eq_eq,Neg_NOT,Neg_eq_eq] >>
+     qsspecl_then [‘p0’] (x_choosel_then ["f1","x1"] strip_assume_tac)
+     Pair_has_comp >> fs[Pair_def'] >>
+     qby_tac ‘x1 = x’ 
+     >-- (first_x_assum irule >> arw[]) >>
+     arw[]) >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> uex_tac >>
+     last_x_assum (strip_assume_tac o uex_expand) >>
+     last_x_assum (strip_assume_tac o uex_expand) >>
+     qexists_tac ‘App(djf,Pair(x,x'))’ >>
+     rev_drule (fmind_rules |> conjE2 |> conjE2 |> conjE2|> conjE2
+                            |> spec_all |> undisch  |> gen_all
+                            |> disch_all |> gen_all) >> 
+     first_x_assum drule >>
+     fs[Pair_def',Disj_NOT] >>
+     rpt strip_tac >> drule $ iffLR fmind_cases >>
+     fs[Pair_eq_eq,Disj_NOT,Disj_eq_eq] >>
+     qsspecl_then [‘p1’] (x_choosel_then ["f1'","x1"] strip_assume_tac)
+     Pair_has_comp >>
+     qsspecl_then [‘p2’] (x_choosel_then ["f2'","x2"] strip_assume_tac)
+     Pair_has_comp >> fs[Pair_def'] >>
+     qby_tac ‘x1 = x’ 
+     >-- (first_x_assum irule >> arw[]) >>
+     qby_tac ‘x2 = x'’ 
+     >-- (first_x_assum irule >> arw[]) >>
+     arw[]) >>
+ rpt strip_tac >> uex_tac >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘App(dmf,x)’ >>
+ drule (fmind_rules |> conjE2 |> conjE2 |> conjE2 |> conjE1) >> fs[Pair_def'] >>
+ rpt strip_tac >> drule $ iffLR fmind_cases >>
+ fs[Pair_eq_eq,Diam_NOT,Diam_eq_eq] >>
+ qsspecl_then [‘p0’] (x_choosel_then ["f1","x1"] strip_assume_tac)
+ Pair_has_comp >> fs[Pair_def'] >>
+ qby_tac ‘x1 = x’ 
+ >-- (first_x_assum irule >> arw[]) >>
+ arw[])
+(form_goal
+ “!A x0:mem(X) vf nf djf dmf f:mem(form(A)). ?!x. IN(Pair(f,x),fminds(djf,dmf,nf,vf,x0))”));
+
+
+
+val fmrec_def = P2fun' |> qspecl [‘form(A)’,‘X’] 
+                      |> fVar_sInst_th “P(f:mem(form(A)),
+                                          x:mem(X))”
+                          “IN(Pair(f,x),
+                              fminds(djf:X * X ->X,dmf,nf,vf:A->X,x0))”
+                      |> C mp (fmind_uex |> spec_all
+                                         |> qgen ‘f’)
+                      |> qSKOLEM "fmrec" [‘x0’,‘vf’,‘nf’,‘djf’,‘dmf’]
+                      |> qgenl [‘X’,‘x0’,‘A’,‘vf’,‘nf’,‘djf’,‘dmf’]
+                      |> store_as "fmrec_def";
+
+
+val App_fmrec_fminds = prove_store("App_fmrec_fminds",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >--
+(pop_assum (assume_tac o GSYM) >> arw[fmrec_def]) >>
+qsspecl_then [‘x0’,‘vf’,‘nf’,‘djf’,‘dmf’,‘f’] assume_tac fmrec_def >>
+qsspecl_then [‘x0’,‘vf’,‘nf’,‘djf’,‘dmf’,‘f’] assume_tac fmind_uex >>
+pop_assum (strip_assume_tac o uex_expand) >>
+qby_tac ‘App(fmrec(x0, vf,nf,djf,dmf), f) = x' & x = x'’ 
+>-- (strip_tac >> first_x_assum irule >> arw[]) >>
+arw[])
+(form_goal “!X x0 A vf:A->X nf djf:X * X->X dmf.
+!f x. App(fmrec(x0,vf,nf,djf,dmf),f) = x <=> 
+IN(Pair(f,x),fminds(djf,dmf,nf,vf,x0))”));
+
+val fmrec_clauses = prove_store("fmrec_clauses",
+e0
+(rpt gen_tac >> rw[App_fmrec_fminds,fmind_rules] >> rpt strip_tac (* 3 *)
+ >-- (irule fmind_Neg >> rw[GSYM App_fmrec_fminds])
+ >-- (irule fmind_Disj >> rw[GSYM App_fmrec_fminds]) >>
+ irule fmind_Diam >> rw[GSYM App_fmrec_fminds])
+(form_goal “!X x0 A vf:A->X nf djf:X * X->X dmf. 
+ App(fmrec(x0,vf,nf,djf,dmf),Bot(A)) = x0 & 
+ (!p.App(fmrec(x0,vf,nf,djf,dmf),Var(p)) = App(vf,p)) &
+ (!f.App(fmrec(x0,vf,nf,djf,dmf),Neg(f)) = 
+     App(nf,App(fmrec(x0,vf,nf,djf,dmf),f))) & 
+ (!f1 f2.App(fmrec(x0,vf,nf,djf,dmf),Disj(f1,f2)) = 
+     App(djf,Pair(App(fmrec(x0,vf,nf,djf,dmf),f1),
+                  App(fmrec(x0,vf,nf,djf,dmf),f2)))) & 
+ (!f.App(fmrec(x0,vf,nf,djf,dmf),Diam(f)) = 
+     App(dmf,App(fmrec(x0,vf,nf,djf,dmf),f))) ”));
+
+
+val r2f_def = proved_th $
+e0
+cheat
+(form_goal “!R:A~>B. ?!f:A * B -> 1+1.
+ !a b. App(f,Pair(a,b)) = App(i2(1,1),dot)  <=> Holds(R,a,b)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "r2f" [‘R’] |> gen_all
+
+
+val true_def = qdefine_fsym("true",[]) ‘App(i2(1,1),dot)’
+
+val false_def = qdefine_fsym("false",[]) ‘App(i1(1,1),dot)’
+
+val tv_eq_true = prove_store("tv_eq_true",
+e0
+(cheat)
+(form_goal “!tv1 tv2. tv1 = tv2 <=>
+ (tv1 = true <=> tv2 = true)”));
+
+val OR_def = proved_th $
+e0
+(cheat)
+(form_goal “?f:(1+1) * (1+1) -> 1+1. 
+ App(f,Pair(true,true)) = true & 
+ App(f,Pair(true,false)) = true &
+ App(f,Pair(false,true)) = true &
+ App(f,Pair(false,false)) = false”)
+|> qSKOLEM "OR" [] 
+
+
+val NOT_def = proved_th $
+e0
+(cheat)
+(form_goal “?f:1+1 -> 1+1. 
+App(f,true) = false & App(f,false) = true”)
+|> qSKOLEM "NOT" [] 
+
+
+
+val f2r_def = proved_th $
+e0
+cheat
+(form_goal “!A B f:A * B -> 1+1.?!R:A~>B.
+ !a b. Holds(R,a,b) <=> App(f,Pair(a,b)) = true”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "f2r" [‘f’] |> gen_all
+
+
+val ss2f = proved_th $
+e0
+(cheat)
+(form_goal “!A s:mem(Pow(A)).?!f:A -> 1+1.
+ !a. App(f,a) = true <=> IN(a,s)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "ss2f" [‘s’]
+
+(*Holds at*)
+val HAT_def = proved_th $
+e0
+cheat
+(form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))).
+ ?!f:A->Pow(W). !a w. IN(w,App(f,a)) <=> IN(a,App(Vof(M),w))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "HAT" [‘M’]
+
+
+val satis_dmf = proved_th $
+e0
+(cheat)
+(form_goal
+ “!M:mem(Pow(W * W) * Exp(W,Pow(A))).
+  ?!f:Pow(W) -> Pow(W). 
+  (!s0 w.IN(w,App(f,s0)) <=> ?w0.IN(w0,s0) & IN(Pair(w,w0),Rof(M)))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "sdmf" [‘M’]
+
+val satisf_def = qdefine_fsym("satisf",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’])
+‘fmrec(Empty(W), HAT(M), COMPL(W), UNION(W), sdmf(M))’
+ 
+val satisf_clause = 
+fmrec_clauses |> qspecl [‘Pow(W)’]
+              |> qspecl [‘Empty(W)’]
+              |> qspecl [‘A’]
+              |> qspecl [‘HAT(M:mem(Pow(W * W) * Exp(W,Pow(A))))’]
+              |> qspecl [‘COMPL(W)’]
+              |> qspecl [‘UNION(W)’]
+              |> qspecl [‘sdmf(M)’]
+              |> rewr_rule[GSYM satisf_def]
+
+rastt "ss2f(App(Vof(M:mem(Pow(W * W) * Exp(W,Pow(A)))),w))"
+“ss2f(App(Vof(M:mem(Pow(W * W) * Exp(W,Pow(A)))),w)) = a”
 (*model is a R:A~>A with a member of Pow(A * N)
 
 type of model: Pow(A * A) * Pow(A * N)
@@ -407,6 +753,15 @@ cheat
 
 val Inter_def = qdefine_fsym("Inter",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(A))’])
 ‘App(INTER(A),Pair(s1,s2))’
+
+
+
+val UNION_def = proved_th $ 
+e0
+cheat
+(form_goal “!A. ?f:Pow(A) * Pow(A) -> Pow(A).
+ !s1 s2 a. IN(a,App(f,Pair(s1,s2))) <=> IN(a,s1) | IN(a,s2)”)
+|> spec_all |> qSKOLEM "UNION" [‘A’]
 
 val IN_Inter = prove_store("IN_Inter",
 e0
