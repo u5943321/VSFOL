@@ -1000,11 +1000,55 @@ cheat
  !ws.IN(ws,Repu(uw)) <=> IN(w0,ws)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "Pft" [‘w0’]
 
-val Prop_5_7 = prove_store("Prop_5_7",
+(*satis worlds*)
+val SW_def = proved_th $
+e0
+(cheat)
+(form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))).
+ ?!sws:form(A) -> Pow(W). !f w. IN(w,App(sws,f)) <=> satis(M,w,f)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "SW" [‘M’]
+
+val Sw_def = qdefine_fsym("Sw",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,
+                                        ‘f:mem(form(A))’]) 
+                          ‘App(SW(M),f)’
+
+val Prop_5_8 = prove_store("Prop_5_8",
 e0
 cheat
+(form_goal “!W M:mem(Pow(W * W) * Exp(W,Pow(A))) u.
+ IN(Sw(M,phi),Repu(u)) <=> satis(UE(M),u,phi) ”));
+
+val Prop_5_7 = prove_store("Prop_5_7",
+e0
+(rpt strip_tac >> rw[MEQ_def] >> rw[GSYM Prop_5_8] >>
+ rw[Pft_def,Sw_def,SW_def])
 (form_goal “!W M:mem(Pow(W * W) * Exp(W,Pow(A))) w.
  MEQ(M,w,UE(M),Pft(w))”));
+
+val FIP_def = qdefine_psym("FIP",[‘ss:mem(Pow(Pow(A)))’])
+‘!ss0. SS(ss0,ss) & Fin(ss0) & ~(ss0 = Empty(Pow(A))) ==> ~(BIGINTER(ss) = Empty(A))’
+
+(*⊢ FIP A J ∧ J ̸= ∅ ⇒ ∃ U . ultrafilter U J ∧ A ⊆ U*)
+(*
+(rw[FIP_def] >> rpt strip_tac >> ccontra_tac >>
+ fs[GSYM IN_EXT_iff,Empty_def,BIGINTER_def] >> 
+ qby_tac ‘ss = Sing(Empty(A)) | ss = Empty(Pow(A))’ >-- cheat >>
+ pop_assum strip_assume_tac (* 2 *)
+ >-- fs[] >> fs[IN_BIGINTER,Sing_def,Sg_def]
+     first_x_assum (qspecl_then [‘Sing(Empty(A))’] assume_tac) >>
+     fs[Sing_def,Sg_def,SS_def] >> fs[GSYM Sing_def] >>
+     qby_tac ‘Fin(Sing(Empty(A)))’ >-- cheat >> fs[] >>
+     qby_tac ‘~(!x. ~(x = Empty(A)))’ >-- cheat >> fs[] >>
+     cheat (*exists x:mem(A)*) 
+ fs[] )
+“!A. EMPTY(A) ==> !ss:mem(Pow(Pow(A))). ~FIP(ss)”
+*)
+
+val Prop_5_3 = prove_store("Prop_5_3",
+e0
+cheat
+(form_goal “!ss:mem(Pow(Pow(A))). FIP(ss) & ~(EMPTY(A)) ==>
+ ?u:mem(UFs(A)). SS(ss,Repu(u)) ”));
 
 val Prop_5_9 = prove_store("Prop_5_9",
 e0
