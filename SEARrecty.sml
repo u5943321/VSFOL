@@ -841,6 +841,14 @@ e0
 (form_goal “!A f:mem(form(A)). PE(f) ==> PUS(f)”));
 
 
+
+val Thm_6_25_r2l = prove_store("Thm_6_25_r2l",
+e0
+(rpt strip_tac >> drule Thm_6_25_r2l0 >>
+ fs[PUS_def] >> fs[EQV_def])
+(form_goal “!A f f0:mem(form(A)). PE(f0) & EQV(f,f0) ==> PUS(f)”));
+
+
 (*model is a R:A~>A with a member of Pow(A * N)
 
 type of model: Pow(A * A) * Pow(A * N)
@@ -1209,11 +1217,6 @@ e0
      first_x_assum drule >> first_x_assum drule >> arw[]) >>
  qsspecl_then [‘M’,‘w’] assume_tac Prop_5_7 >> fs[MEQ_def])
 (form_goal “!A f:mem(form(A)). PUS(f) ==> ?f0. PE(f0) & EQV(f,f0)”))
-
-val Thm_6_25_r2l = prove_store("Thm_6_25_r2l",
-e0
-cheat
-(form_goal “!A f f0:mem(form(A)). PE(f0) & EQV(f,f0) ==> PUS(f)”));
 
 val Thm_6_25_iff = prove_store("Thm_6_25_iff",
 e0
