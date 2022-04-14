@@ -790,12 +790,55 @@ e0
       (!f:mem(form(A)). PE(f) ==> P(f)) ”));
 
 
+val satis_Bot = satis_def |> conjE1 |> gen_all
 
+val satis_Top = prove_store("satis_Top",
+e0
+(rw[Top_def,satis_def,satis_Bot])
+(form_goal “!A M w:mem(W). satis(M,w,Top(A))”));
+
+val PUS_Var = prove_store("PUS_Var",
+e0
+(rpt strip_tac >> rw[PUS_def,satis_def] >>
+ rpt strip_tac >> fs[Sim_def] >>
+ first_x_assum drule >> pop_assum strip_assume_tac >>
+ first_x_assum irule >> arw[])
+(form_goal “!A p:mem(A). PUS(Var(p))”));
+
+val PUS_Top = prove_store("PUS_Top",
+e0
+(rpt strip_tac >> rw[PUS_def,satis_Top])
+(form_goal “!A. PUS(Top(A))”));
+
+val PUS_Bot = prove_store("PUS_Bot",
+e0
+(rpt strip_tac >> fs[PUS_def,satis_Bot])
+(form_goal “!A. PUS(Bot(A))”));
 
 val Thm_6_25_r2l0 = prove_store("Thm_6_25_r2l0",
 e0
-cheat
-(form_goal “!A f f0:mem(form(A)). PE(f0) ==> PUS(f)”));
+(strip_tac >> ind_with (PE_induct |> spec_all) >>
+ rw[PUS_Top,PUS_Bot,PUS_Var] >> 
+ once_rw[PUS_def] >> rpt strip_tac (* 3 *)
+ >-- (fs[satis_Conj] >> first_x_assum drule >>
+      first_x_assum drule >> first_x_assum drule >> arw[] >>
+      first_x_assum drule >> first_x_assum drule >> 
+      first_x_assum drule >> arw[])
+ >-- (fs[satis_def] (* 2 *)
+     >-- (disj1_tac >> first_x_assum irule >>
+         qexistsl_tac [‘W1’,‘M1’,‘R’,‘w1’] >> arw[]) >>
+     disj2_tac >> first_x_assum irule >>
+     qexistsl_tac [‘W1’,‘M1’,‘R’,‘w1’] >> arw[]) >>
+ fs[satis_def] >>
+ drule $ iffLR Sim_def >> 
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ first_x_assum drule >> pop_assum strip_assume_tac >>
+ qexists_tac ‘v'’ >> arw[] >> 
+ first_x_assum irule >>
+ qexistsl_tac [‘W1’,‘M1’,‘R’,‘v’] >> arw[]
+ )
+(form_goal “!A f:mem(form(A)). PE(f) ==> PUS(f)”));
 
 
 (*model is a R:A~>A with a member of Pow(A * N)
@@ -823,7 +866,7 @@ val Rlt_def = qdefine_psym("Rlt",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,‘w1:
 val Sim_def = qdefine_psym("Sim",[‘R:W1~>W2’,‘M1:mem(Pow(W1 * W1) * Exp(W1,Pow(A)))’,‘M2:mem(Pow(W2 * W2) * Exp(W2,Pow(A)))’]) 
 ‘!w1 w2.Holds(R,w1,w2) ==>
  (!p.IN(p,App(Vof(M1),w1)) ==> IN(p,App(Vof(M2),w2))) & 
- (!v. Rlt(M1,w1,v) ==> ?v'. Holds(R,v,v') & Rlt(M2,w2,v'))’
+ (!v. Rm(M1,w1,v) ==> ?v'. Holds(R,v,v') & Rm(M2,w2,v'))’
 
 val PUS_def = qdefine_psym("PUS",[‘f:mem(form(A))’])
 ‘!W1 W2 R:W1~>W2 M1:mem(Pow(W1 * W1) * Exp(W1,Pow(A))) M2. Sim(R,M1,M2) ==>
