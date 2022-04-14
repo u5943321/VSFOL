@@ -673,14 +673,17 @@ cheat
 |> spec_all |> uex2ex_rule |> qSKOLEM "HAT" [‘M’]
 
 
+val Rm_def = qdefine_psym("Rm",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,‘w1:mem(W)’,‘w2:mem(W)’]) ‘IN(Pair(w1,w2),Rof(M))’;
+
 val satis_dmf = proved_th $
 e0
 (cheat)
 (form_goal
  “!M:mem(Pow(W * W) * Exp(W,Pow(A))).
   ?!f:Pow(W) -> Pow(W). 
-  (!s0 w.IN(w,App(f,s0)) <=> ?w0.IN(w0,s0) & IN(Pair(w,w0),Rof(M)))”)
+  (!s0 w.IN(w,App(f,s0)) <=> ?w0.IN(w0,s0) & Rm(M,w,w0))”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "sdmf" [‘M’]
+
 
 val satisf_def = qdefine_fsym("satisf",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’])
 ‘fmrec(Empty(W), HAT(M), COMPL(W), UNION(W), sdmf(M))’
@@ -695,8 +698,26 @@ fmrec_clauses |> qspecl [‘Pow(W)’]
               |> qspecl [‘sdmf(M)’]
               |> rewr_rule[GSYM satisf_def]
 
-rastt "ss2f(App(Vof(M:mem(Pow(W * W) * Exp(W,Pow(A)))),w))"
-“ss2f(App(Vof(M:mem(Pow(W * W) * Exp(W,Pow(A)))),w)) = a”
+val satis_def0 = qdefine_psym("satis",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,‘w:mem(W)’,‘f:mem(form(A))’]) ‘IN(w,App(satisf(M),f))’;
+
+val satis_def = prove_store("satis_def",
+e0
+(rw[satis_def0] >> rw[satisf_clause,COMPL_def,UNION_def,Empty_def] >>
+ rw[HAT_def] >> rw[satis_dmf] >> 
+ strip_tac >> dimp_tac >> strip_tac 
+ >-- (qexists_tac ‘w0’ >> arw[]) >>
+ qexists_tac ‘v’ >> arw[])
+(form_goal 
+“(~(satis(M,w,Bot(A)))) & 
+ (!a.satis(M:mem(Pow(W * W) * Exp(W,Pow(A))),w,Var(a:mem(A))) <=> 
+ IN(a,App(Vof(M),w))) &
+ (!f.satis(M,w,Neg(f)) <=> ~ (satis(M,w,f))) & 
+ (!f1 f2.satis(M,w,Disj(f1,f2)) <=> (satis(M,w,f1) | satis(M,w,f2))) &
+ (!f.satis(M,w,Diam(f)) <=> ?v. Rm(M,w,v) & satis(M,v,f))”));
+
+
+val 
+
 (*model is a R:A~>A with a member of Pow(A * N)
 
 type of model: Pow(A * A) * Pow(A * N)
@@ -715,15 +736,6 @@ val satis_cheat =
                  [‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,‘w:mem(W)’,‘f:mem(form(A))’])
     ‘T’
 
-
-val satis_def = prove_store("satis_def",
-e0
-cheat
-(form_goal 
-“(satis(M:mem(Pow(W * W) * Exp(W,Pow(A))),w,VAR(a:mem(A))) <=> 
- IN(a,App(Vof(M),w))) &
- (satis(M,w,NEG(f)) <=> ~ (satis(M,w,f))) & 
- (satis(M,w,DISJ(f1,f2)) <=> (satis(M,w,f1) | satis(M,w,f2)))”));
 
 (*related*)
 val Rlt_def = qdefine_psym("Rlt",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,‘w1:mem(W)’,‘w2:mem(W)’]) ‘IN(Pair(w1,w2),Rof(M))’
