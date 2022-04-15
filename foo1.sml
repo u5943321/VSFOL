@@ -39,24 +39,24 @@ val strip_conj =
 fun conj f t = t |> dest_imp |> #1 |> strip_conj |> f
 fun max ith = ith |> concl |> strip_forall |> #1 |> conj length
  
+datatype mpos = Any | Pos of (form list -> form)
 
 (*mp_then with only Any *)
-fun mp_then ttac ith0 rth (g as (ct,asl,w)) = 
+fun mp_then mpos ttac ith0 rth (g as (ct,asl,w)) = 
     let val ith = ir_canon ith0
         val f = concl rth
-        fun doit (n:int) =
+    in 
+        case mpos of
+            Any =>
+        let fun doit (n:int) =
             if n > max ith then raise simple_fail "doit"
             else m ttac ith rth (conj (el n)) (fn _ => doit (n + 1)) f g
-    in doit 1
+        in doit 1
+        end
+          | Pos ff => m ttac ith rth (conj ff) (fn _ => raise simple_fail "mp_then.Pos") f g
     end
 
-
-fun m (ttac:thm_tactic) ith rth ff k fm g = 
-    let val th0 = part_match ff ith fm
-        val th = rewr_rule[rth] th0
-    in ttac th g
-    end
-    handle _ => k()
+(*why HOL mp_then not just use rewr_rule *)
 
 val fpartfn = ff 
 val th = ith
@@ -76,6 +76,39 @@ fun drule_then k = dGEN first_assum k
 
 val drule = first_assum o (mp_then mp_tac)
 
+fun isfa_imp th = th |> concl |> strip_forall |> #1 |> is_imp
+
+
+
+infix then_tcl
+infix orelse_tcl
+
+fun (ttcl1: thm_tactical) then_tcl (ttcl2: thm_tactical) =
+   fn ttac => ttcl1 (ttcl2 ttac)
+
+fun (ttcl1: thm_tactical) orelse_tcl (ttcl2: thm_tactical) =
+   fn ttac => fn th => ttcl1 ttac th handle _ => ttcl2 ttac th
+
+fun repeat_tcl ttcl ttac th =
+   ((ttcl then_tcl (repeat_tcl ttcl)) orelse_tcl I) ttac th
+
+val all_then: thm_tactical = I
+val no_then: thm_tactical = fn ttac => fn th => raise simple_fail "no_then"
+val first_tcl = List.foldr (op orelse_tcl) no_then
+
+
+fun repeat_gtcl (ttcl: thm_tactical) ttac th (ct,asl,g) =
+   ttcl (repeat_gtcl ttcl ttac) th (ct,asl,g)
+   handle _ => ttac th (ct,asl,g)
+
+
+fun dall_prim k fa ith0 g =
+  repeat_gtcl (fn ttcl => fn th => fa (mp_then (Pos hd) ttcl th))
+              (k o assert (not o isfa_imp))
+              (assert isfa_imp ith0)
+              g
+
+
 val drule = dGEN first_assum mp_tac
 
 val th0 = proved_th $
@@ -92,9 +125,9 @@ e0
 (disch_tac)
 (form_goal “(?a.P(a)) ==> ?b. P(b)”)
 
-disch_tac >> disch_tac >>
-first_x_assum drule 
-“(A ==> B & C) ==> A ==> B & C”
+disch_tac >> strip_tac >>
+first_x_assum drule_all
+“(A & B ==> C) ==> A & B ==> C”
 
 first_x_assum (drule_then strip_assume_tac)
 
