@@ -330,6 +330,12 @@ val VAR_def = Inj_lift_fun |> qsspecl [‘repf(A)’]
                                         isfm_clauses]
                            |> qSKOLEM "VAR" [‘A’]
 
+
+val VAR_Inj = prove_store("VAR_Inj",
+e0
+(cheat)
+(form_def “!A. Inj(VAR(A))”));
+
 val repf_isfm = prove_store("repf_isfm",
 e0
 (rw[form_def] >> rpt strip_tac >> rw[Repf_def] >>
@@ -754,49 +760,6 @@ cheat
 |> spec_all |> uex2ex_rule |> qSKOLEM "HAT" [‘M’]
 
 
-val INTER_def = proved_th $ 
-e0
-cheat
-(form_goal “!A. ?f:Pow(A) * Pow(A) -> Pow(A).
- !s1 s2 a. IN(a,App(f,Pair(s1,s2))) <=> IN(a,s1) & IN(a,s2)”)
-|> spec_all |> qSKOLEM "INTER" [‘A’]
-
-val Inter_def = qdefine_fsym("Inter",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(A))’])
-‘App(INTER(A),Pair(s1,s2))’
-
-
-
-val UNION_def = proved_th $ 
-e0
-cheat
-(form_goal “!A. ?f:Pow(A) * Pow(A) -> Pow(A).
- !s1 s2 a. IN(a,App(f,Pair(s1,s2))) <=> IN(a,s1) | IN(a,s2)”)
-|> spec_all |> qSKOLEM "UNION" [‘A’]
-
-val IN_Inter = prove_store("IN_Inter",
-e0
-cheat
-(form_goal “!A s1 s2 a. IN(a:mem(A),Inter(s1,s2)) <=> IN(a,s1) & IN(a,s2)”));
-
-val EMPTY_def = qdefine_psym("EMPTY",[‘A’])
-‘!x:mem(A).F’
-
-val COMPL_def = proved_th $ 
-e0
-cheat
-(form_goal “!A. ?f:Pow(A) -> Pow(A).
- !s a. IN(a,App(f,s)) <=> ~IN(a,s)”)
-|> spec_all |> qSKOLEM "COMPL" [‘A’]
-
-val Compl_def = qdefine_fsym("Compl",[‘s:mem(Pow(A))’])
-‘App(COMPL(A),s)’
-
-val IN_Compl = prove_store("IN_Compl",
-e0
-cheat
-(form_goal “!A s a. IN(a:mem(A),Compl(s)) <=> ~IN(a,s)”));
-
-
 val satis_dmf = proved_th $
 e0
 (cheat)
@@ -847,10 +810,6 @@ val Top_def = qdefine_fsym("Top",[‘A’]) ‘Neg(Bot(A))’;
 val Conj_def = qdefine_fsym("Conj",[‘f1:mem(form(A))’,‘f2:mem(form(A))’]) 
                            ‘Neg(Disj(Neg(f1),Neg(f2)))’ 
 
-val neg_or_distr = proved_th $
-e0
-(cheat)
-(form_goal “(~(A | B)) <=> (~A & ~B)”)
 
 val satis_Conj = prove_store("satis_Conj",
 e0
@@ -1008,26 +967,6 @@ cheat
 val Msat_def = qdefine_psym("Msat",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’]) 
 ‘!w fs. Fsab(fs,Sucm(M,w),M) ==>  Sab(fs,Sucm(M,w),M) ’
 
-val filter_def = qdefine_psym("filter",[‘L:mem(Pow(Pow(J)))’])
-‘~EMPTY(J) &
-  ~(L = Empty(Pow(J))) & IN(Whole(J),L) & 
-  (!X Y. IN(X,L) & IN(Y,L) ==> IN(Inter(X,Y),L)) & 
-  (!X. IN(X,L) ==> !Y. SS(X,Y) ==> IN(Y,L))’
-
-
-val ufilter_def = qdefine_psym("ufilter",[‘L:mem(Pow(Pow(J)))’])
-‘filter(L) & 
- (!X. IN(X,L) <=> ~(IN(Compl(X),L)))’
-
-val UFs_def = Thm_2_4 |> qspecl [‘Pow(Pow(J))’]
-                      |> fVar_sInst_th “P(a:mem(Pow(Pow(J))))”
-                      “ufilter(a:mem(Pow(Pow(J))))”
-                      |> qSKOLEM "UFs" [‘J’]
-                      |> qSKOLEM "iUF" [‘J’] 
-
-val Repu_def = qdefine_fsym("Repu",[‘u:mem(UFs(J))’])
-‘App(iUF(J),u)’
-
 (*True at, takes a letter, gives the set of worlds it holds*)
 val Tat_def = proved_th $
 e0
@@ -1118,18 +1057,6 @@ e0
  >--  (first_x_assum drule >> arw[]) 
  >> first_x_assum irule >> arw[])
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))) X Y:mem(Pow(W)). osee(M,Inter(X,Y)) = Inter(osee(M,X),osee(M,Y))”));
-
-
-val Empty_NOTIN_UF = prove_store("Empty_NOTIN_UF",
-e0
-cheat
-(form_goal “!J L.ufilter(L) ==> ~IN(Empty(J),L)”));
-
-
-val Empty_NOTIN_UFs = prove_store("Empty_NOTIN_UFs",
-e0
-cheat
-(form_goal “!J u.~IN(Empty(J),Repu(u))”));
  
 val Sw_Bot = prove_store("Sw_Bot",
 e0
@@ -1161,8 +1088,6 @@ e0
                   Sw(M,Neg(f)) = Compl(Sw(M,f))”));
 
 
-val Union_def = qdefine_fsym("Union",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(A))’])
-‘App(UNION(A),Pair(s1,s2))’
 
 
 val Sw_Disj = prove_store("Sw_Disj",
@@ -1172,21 +1097,6 @@ e0
                   Sw(M,Disj(f1,f2)) = Union(Sw(M,f1),Sw(M,f2))”));
 
 
-val ufilter_alt = prove_store("ufilter_alt",
-e0
-(cheat)
-(form_goal “ufilter(L) <=> filter(L) &
-  !X. IN(Compl(X:mem(Pow(J))),L) <=> ~IN(X,L)”));
-
-val Compl_Repu = prove_store("Compl_Repu",
-e0
-cheat
-(form_goal “IN(Compl(X:mem(Pow(J))), Repu(u)) <=> ~IN(X,Repu(u))”));
-
-val Union_Repu = prove_store("Union_Repu",
-e0
-cheat
-(form_goal “IN(Union(s1:mem(Pow(J)),s2), Repu(u)) <=> (IN(s1,Repu(u)) | IN(s2,Repu(u)))”));
 
 val Rm_UE = prove_store("Rm_UE",
 e0
@@ -1238,9 +1148,6 @@ e0
 (form_goal “!W M:mem(Pow(W * W) * Exp(W,Pow(A))) w.
  MEQ(M,w,UE(M),Pft(w))”));
 
-val FIP_def = qdefine_psym("FIP",[‘ss:mem(Pow(Pow(A)))’])
-‘!ss0. SS(ss0,ss) & Fin(ss0) & ~(ss0 = Empty(Pow(A))) ==> ~(BIGINTER(ss0) = Empty(A))’
-
 (*⊢ FIP A J ∧ J ̸= ∅ ⇒ ∃ U . ultrafilter U J ∧ A ⊆ U*)
 (*
 (rw[FIP_def] >> rpt strip_tac >> ccontra_tac >>
@@ -1257,13 +1164,6 @@ val FIP_def = qdefine_psym("FIP",[‘ss:mem(Pow(Pow(A)))’])
 “!A. EMPTY(A) ==> !ss:mem(Pow(Pow(A))). ~FIP(ss)”
 *)
 
-val Prop_5_3 = prove_store("Prop_5_3",
-e0
-cheat
-(form_goal “!A ss:mem(Pow(Pow(A))). FIP(ss) & ~(EMPTY(A)) ==>
- ?u:mem(UFs(A)). SS(ss,Repu(u))”));
-
-
 val Fin_Sing = prove_store("Fin_Sing",
 e0
 cheat
@@ -1274,42 +1174,8 @@ e0
 cheat
 (form_goal “!M w:mem(W) f:mem(form(A)). SATIS(M,w,Sing(f)) <=> satis(M,w,f)”));
 
-val FIP_cloused_under_Inter = prove_store("FIP_cloused_under_Inter",
-e0
-cheat
-(form_goal
- “!W A B. 
-  (!a1. IN(a1,A) ==> !a2.IN(a2,A) ==> IN(Inter(a1,a2),A)) &
-  (!b1. IN(b1,B) ==> !b2.IN(b2,B) ==> IN(Inter(b1,b2),B)) & 
-  (!a. IN(a,A) ==> !b. IN(b,B) ==> ~(Inter(a,b) = Empty(W))) ==>
-  FIP(Union(A,B))
- ”));
 
 
-
-
-val FIP_iff_two = prove_store("FIP_iff_two",
-e0
-(rpt strip_tac >> 
- dimp_tac >> strip_tac >> fs[FIP_def] 
- >-- (rpt strip_tac >> 
-     first_x_assum (qsspecl_then [‘Union(Sing(s1),Sing(s2))’] assume_tac) >>
-     cheat) >>
- qsuff_tac
- ‘!ss0. Fin(ss0) ==> SS(ss0,ss) & ~(ss0 = Empty(Pow(A))) ==>
-        ~(BIGINTER(ss0) = Empty(A))’
- >-- (rpt strip_tac >> first_x_assum irule >> arw[]) >>
- ind_with (Fin_induct |> qspecl [‘Pow(A)’]) >>
- cheat)
-(form_goal “!ss. FIP(ss) <=> 
- !s1. IN(s1,ss) ==> !s2.IN(s2,ss) ==> ~(Inter(s1,s2) = Empty(A))”));
-
-
-val closed_under_inter_two = prove_store("FIP_iff_two",
-e0
-(cheat)
-(form_goal “!ss:mem(Pow(Pow(A))). (!ss0.SS(ss0,ss) & Fin(ss0) ==> IN(BIGINTER(ss0),ss)) <=> 
- !s1. IN(s1,ss) ==> !s2.IN(s2,ss) ==> IN(Inter(s1,s2),ss)”));
 
 
 val Prop_5_9 = prove_store("Prop_5_9",
@@ -1325,7 +1191,7 @@ e0
  ‘?Ys. !Y. IN(Y,Ys) <=> IN(osee(M,Y),Repu(w))’
  >-- cheat >> pop_assum strip_assume_tac >>
  qby_tac ‘FIP(Union(D0,Ys))’ >-- 
- (irule FIP_cloused_under_Inter >> rpt strip_tac (* 3 *)
+ (irule FIP_closed_under_Inter >> rpt strip_tac (* 3 *)
   >-- cheat >-- cheat >>
   rfs[] >>
   qsuff_tac ‘?u. (!e1. IN(e1,u) ==> !e2. IN(e2,u) ==> ~(Inter(e1,e2) = Empty(W))) &IN(a,u) & IN(b,u)’
@@ -1387,10 +1253,26 @@ e0
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))). Msat(UE(M))”));
 
 
+(* Z v1 v2 iff ∀ φ. PE φ ∧ M1, v1 􏲖 φ ⇒ M2, v2 􏲖 φ is a simulation. *)
 
 val Thm_6_22 = prove_store("Thm_6_22",
 e0
-cheat
+(rpt strip_tac >>
+ strip_assume_tac (AX1 |> qspecl [‘W1’,‘W2’] 
+ |> fVar_sInst_th “P(v1:mem(W1),v2:mem(W2))”
+ “!phi:mem(form(A)). PE(phi) ==> 
+          satis(M1,v1:mem(W1),phi) ==> satis(M2,v2:mem(W2),phi)”
+ |> uex2ex_rule) >>
+ qexists_tac ‘R’ >> arw[] >> rw[Sim_def] >>
+ rpt gen_tac >> disch_tac >>
+ qby_tac ‘!p. IN(p,App(Vof(M1),w1')) ==> IN(p,App(Vof(M2),w2'))’ 
+ >-- (rw[GSYM satis_def] >> strip_tac >>
+     first_x_assum (drule o iffLR) >>
+     first_x_assum (qspecl_then [‘Var(p)’] assume_tac) >>
+     fs[PE_rules]) >> arw[] >> rpt strip_tac >>
+ (*qby_tac ‘?d. !phi. IN(phi,d) <=> 
+              PE(phi) & satis(M,w1',phi)’ >-- cheat >>*)
+ cheat)
 (form_goal “!M1 M2.Msat(M1) & Msat(M2) ==> 
  !w1:mem(W1) w2:mem(W2). (!f:mem(form(A)).PE(f) ==> satis(M1,w1,f) ==> satis(M2,w2,f)) ==>
  ?R. Sim(R,M1,M2) & Holds(R,w1,w2)”));
