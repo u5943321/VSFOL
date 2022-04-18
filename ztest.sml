@@ -1444,36 +1444,8 @@ val Lez_def = qdefine_psym ("Lez",[‘z1:mem(Z)’,‘z2:mem(Z)’])
  Le(Add(a,d),Add(b,c))’ |> gen_all |> store_as "Lez_def";
 
 (*
-val iscoPr_def = qdefine_psym("iscoPr",[‘i1:A->AB’,‘i2:B->AB’])
-‘!X f:A->X g:B->X.?!fg:AB->X.fg o i1 = f & fg o i2 = g’
-|> qgenl [‘A’,‘B’,‘AB’,‘i1’,‘i2’]
-|> store_as "iscoPr_def";
 
 
-
-val iscoPr_ex = prove_store("iscoPr_ex",
-e0
-cheat
-(form_goal “!A B.?AB i1:A->AB i2:B->AB.iscoPr(i1,i2)”));
-
-
-
-val coPo_def = iscoPr_ex |> spec_all 
-                         |> qSKOLEM "+" [‘A’,‘B’] |> gen_all
-                         |> store_as "coPo_def";
-
-val i1_def = coPo_def |> spec_all 
-                      |> qSKOLEM "i1" [‘A’,‘B’] |> gen_all
-                      |> store_as "i1_def";
-
-val i2_def = i1_def |> spec_all |> qSKOLEM "i2" [‘A’,‘B’] |> gen_all
-                    |> store_as "i2_def";
-
-val coPa_def = i2_def |> rewr_rule[iscoPr_def] |> spec_all
-                      |> uex_expand 
-                      |> qSKOLEM "coPa" [‘f’,‘g’]
-                      |> gen_all
-                      |> store_as "coPa_def";
 
 val r2f_def = proved_th $
 e0
@@ -1481,11 +1453,6 @@ cheat
 (form_goal “!R:A~>B. ?!f:A * B -> 1+1.
  !a b. App(f,Pair(a,b)) = App(i2(1,1),dot)  <=> Holds(R,a,b)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "r2f" [‘R’] |> gen_all
-
-val id_ER = prove_store("id_ER",
-e0
-(rw[id_def,ER_def,Refl_def,Sym_def,Trans_def] >> rpt strip_tac >> arw[])
-(form_goal “!A. ER(id(A))”));
 
 
 (*
@@ -1501,26 +1468,12 @@ cheat
 (form_goal “?lef0:(N * N) ~> (N * N). !a b c d.Holds(lef0,Pair(a,b),Pair(c,d))<=> Le(Add(a,d),Add(b,c))
  ”) |> qSKOLEM "ler0" []
 
-val Sg_Inj = prove_store("Sg_Inj",
-e0
-(rw[Inj_def] >> rw[GSYM IN_EXT_iff,Sg_def] >> rpt strip_tac >>
- first_x_assum (qspecl_then [‘x1’] assume_tac) >> fs[] )
-(form_goal “!A. Inj(Sg(A))”));
 
 val resp_lef0 = prove_store("resp_lef0",
 e0
 (cheat)
 (form_goal “resp(r2f(ler0), prrel(ZR, ZR), id(1 + 1))”));
 
-val Quo_id_Sg = prove_store("Quo_id_Sg",
-e0
-(rw[Quo_def,GSYM IN_EXT_iff,Sg_def,IN_rsi,id_def] >> 
- rpt strip_tac >> dimp_tac >> rpt strip_tac(* 2 *)
- >-- (pop_assum (strip_assume_tac o uex_expand) >>
- qexists_tac ‘q’ >> arw[] >> strip_tac >> lflip_tac >> rw[]) >>
- uex_tac >> qexists_tac ‘a’ >> flip_tac >> arw[] >>
- rpt strip_tac >> first_x_assum (qspecl_then [‘q'’] assume_tac) >> fs[])
-(form_goal “!A.Quo(id(A),Sg(A))”));
 
 val main_LEzf = 
 Quo_fun |> qspecl [‘(N * N) * (N * N)’,‘1+1’,
@@ -1535,47 +1488,7 @@ Quo_fun |> qspecl [‘(N * N) * (N * N)’,‘1+1’,
 
 
 
-val Pow_conj_eq' = proved_th $
-e0
-(rpt gen_tac >> disch_tac >> drule Pow_conj_eq >>
- dimp_tac >> rpt strip_tac (* 2 *)
- >-- (first_x_assum drule >> arw[])
- >-- (first_x_assum drule >> arw[]) >>
- arw[])
-(form_goal “∀A B s1:mem(Pow(A)) s2:mem(Pow(B)) s3 s4 a0 b0. IN(a0,s1) & IN(b0,s2) ⇒ ( (∀a b. IN(a,s1) & IN(b,s2) ⇔ IN(a,s3) & IN(b,s4)) <=> 
- s1 = s3 & s2 = s4)”) |> spec_all |> undisch
-|> gen_all |> disch_all|> gen_all
 
-
-val Repz_iff_Asz = prove_store("Repz_iff_Asz",
-e0
-(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] (* 2 *)
- >-- (irule Repz_eq_eq >> arw[Asz_Repz]) >>
- pop_assum (assume_tac o GSYM) >> arw[] >>
- arw[Asz_Repz])
-(form_goal “!z a b. Repz(z) = Zc(a, b) <=> Asz(a,b) = z”));
-
-val ipow2_prrel_ZR = prove_store("ipow2_prrel_ZR",
-e0
-(rw[ipow2_def,GSYM IN_EXT_iff,IN_rsi] >>
-fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
-fconv_tac (depth_fconv no_conv forall_cross_fconv) >> 
-rw[prrel_def,ipow2_def] >>
-rw[GSYM IN_rsi] >>
-qby_tac ‘?xy uv.IN(xy,Repz(z1)) & IN(uv,Repz(z2))’
->-- (qspecl_then [‘z1’] strip_assume_tac iZ_nonempty >>
-    qspecl_then [‘z2’] strip_assume_tac iZ_nonempty >>
-    rw[Repz_def] >> qexistsl_tac [‘ab’,‘ab'’] >> arw[]) >>
-pop_assum (x_choosel_then ["xy","uv"] assume_tac) >>
-drule Pow_conj_eq' >> rw[GSYM Repz_def] >> 
-first_x_assum (qspecl_then [‘rsi(ZR, Pair(a, b))’,‘rsi(ZR, Pair(c, d))’] assume_tac)>> (*why arw does not work*)
-arw[] >>
-pop_assum mp_tac >> 
-fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
-strip_tac >> arw[] (*why must I use the cross fconv*)>>
-rw[GSYM Zc_def,GSYM ZC_def,Repz_iff_Asz])
-(form_goal
-“App(ipow2(iZ, iZ), Pair(z1, z2)) = rsi(prrel(ZR, ZR), Pair(Pair(a,b),Pair(c,d))) <=> Asz(a,b) = z1 & Asz(c,d) = z2”));
 
 
 val main_LEzf1 = 
@@ -1914,6 +1827,218 @@ e0
 )
 (form_goal “!z1 z2 z3. Lez(z1,z2) & Lez(Oz,z3)==> 
  Lez(Mulz(z1,z3),Mulz(z2,z3))”));
+
+
+
+val r2f_def = proved_th $
+e0
+cheat
+(form_goal “!R:A~>B. ?!f:A * B -> 1+1.
+ !a b. App(f,Pair(a,b)) = App(i2(1,1),dot)  <=> Holds(R,a,b)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "r2f" [‘R’] |> gen_all
+
+
+val true_def = qdefine_fsym("true",[]) ‘App(i2(1,1),dot)’
+
+val false_def = qdefine_fsym("false",[]) ‘App(i1(1,1),dot)’
+ 
+val true_ne_false = prove_store("true_ne_false",
+e0
+cheat
+(form_goal “~(true = false)”));
+
+val true_xor_false = prove_store("true_xor_false",
+e0
+cheat
+(form_goal “!tv. tv= true | tv = false”));
+
+val tv_eq_true = prove_store("tv_eq_true",
+e0
+(cheat)
+(form_goal “!tv1 tv2. tv1 = tv2 <=>
+ (tv1 = true <=> tv2 = true)”));
+
+val OR_def = proved_th $
+e0
+(cheat)
+(form_goal “?f:(1+1) * (1+1) -> 1+1. 
+ App(f,Pair(true,true)) = true & 
+ App(f,Pair(true,false)) = true &
+ App(f,Pair(false,true)) = true &
+ App(f,Pair(false,false)) = false”)
+|> qSKOLEM "OR" [] 
+
+
+val NOT_def = proved_th $
+e0
+(cheat)
+(form_goal “?f:1+1 -> 1+1. 
+App(f,true) = false & App(f,false) = true”)
+|> qSKOLEM "NOT" [] 
+
+
+val f2r_def = proved_th $
+e0
+cheat
+(form_goal “!A B f:A * B -> 1+1.?!R:A~>B.
+ !a b. Holds(R,a,b) <=> App(f,Pair(a,b)) = true”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "f2r" [‘f’] |> gen_all
+
+
+val ss2f = proved_th $
+e0
+(cheat)
+(form_goal “!A s:mem(Pow(A)).?!f:A -> 1+1.
+ !a. App(f,a) = true <=> IN(a,s)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "ss2f" [‘s’]
+
+
+val EVEN_def = Thm1_case_1 |> qspecl [‘1+1’,‘El(true)’,‘NOT o p2(N,1+1)’]
+                   |> rewr_rule[GSYM FUN_EXT,App_App_o,El_def,
+                                App_Pa_Pair,Id_def,Pair_def,GSYM Suc_def,
+                                dot_def]
+                   |> uex2ex_rule |> qSKOLEM "EVEN" []
+
+val Even_def = qdefine_psym("Even",[‘n:mem(N)’])
+               ‘App(EVEN,n) = true’
+
+val O_Even = EVEN_def |> conjE1 |> qspecl [‘dot’] 
+                      |> rewr_rule[GSYM Even_def] 
+
+val Suc_Even = prove_store("Suc_Even",
+e0
+(rw[Even_def,EVEN_def,NOT_def] >> strip_tac >>
+ qspecl_then [‘App(EVEN,n)’] strip_assume_tac true_xor_false >>
+ arw[NOT_def,GSYM true_ne_false])
+(form_goal “!n. Even(Suc(n)) <=> ~Even(n)”));
+
+val Odd_def = qdefine_psym("Odd",[‘n:mem(N)’]) ‘~Even(n)’
+
+
+val id_ER = prove_store("id_ER",
+e0
+(rw[id_def,ER_def,Refl_def,Sym_def,Trans_def] >> rpt strip_tac >> arw[])
+(form_goal “!A. ER(id(A))”));
+
+
+val Sg_Inj = prove_store("Sg_Inj",
+e0
+(rw[Inj_def] >> rw[GSYM IN_EXT_iff,Sg_def] >> rpt strip_tac >>
+ first_x_assum (qspecl_then [‘x1’] assume_tac) >> fs[] )
+(form_goal “!A. Inj(Sg(A))”));
+
+
+val Quo_id_Sg = prove_store("Quo_id_Sg",
+e0
+(rw[Quo_def,GSYM IN_EXT_iff,Sg_def,IN_rsi,id_def] >> 
+ rpt strip_tac >> dimp_tac >> rpt strip_tac(* 2 *)
+ >-- (pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘q’ >> arw[] >> strip_tac >> lflip_tac >> rw[]) >>
+ uex_tac >> qexists_tac ‘a’ >> flip_tac >> arw[] >>
+ rpt strip_tac >> first_x_assum (qspecl_then [‘q'’] assume_tac) >> fs[])
+(form_goal “!A.Quo(id(A),Sg(A))”));
+
+
+val Pow_conj_eq' = proved_th $
+e0
+(rpt gen_tac >> disch_tac >> drule Pow_conj_eq >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (first_x_assum drule >> arw[])
+ >-- (first_x_assum drule >> arw[]) >>
+ arw[])
+(form_goal “∀A B s1:mem(Pow(A)) s2:mem(Pow(B)) s3 s4 a0 b0. IN(a0,s1) & IN(b0,s2) ⇒ ( (∀a b. IN(a,s1) & IN(b,s2) ⇔ IN(a,s3) & IN(b,s4)) <=> 
+ s1 = s3 & s2 = s4)”) |> spec_all |> undisch
+|> gen_all |> disch_all|> gen_all
+
+
+
+val Repz_iff_Asz = prove_store("Repz_iff_Asz",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] (* 2 *)
+ >-- (irule Repz_eq_eq >> arw[Asz_Repz]) >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ arw[Asz_Repz])
+(form_goal “!z a b. Repz(z) = Zc(a, b) <=> Asz(a,b) = z”));
+
+
+val ipow2_prrel_ZR = prove_store("ipow2_prrel_ZR",
+e0
+(rw[ipow2_def,GSYM IN_EXT_iff,IN_rsi] >>
+fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
+fconv_tac (depth_fconv no_conv forall_cross_fconv) >> 
+rw[prrel_def,ipow2_def] >>
+rw[GSYM IN_rsi] >>
+qby_tac ‘?xy uv.IN(xy,Repz(z1)) & IN(uv,Repz(z2))’
+>-- (qspecl_then [‘z1’] strip_assume_tac iZ_nonempty >>
+    qspecl_then [‘z2’] strip_assume_tac iZ_nonempty >>
+    rw[Repz_def] >> qexistsl_tac [‘ab’,‘ab'’] >> arw[]) >>
+pop_assum (x_choosel_then ["xy","uv"] assume_tac) >>
+drule Pow_conj_eq' >> rw[GSYM Repz_def] >> 
+first_x_assum (qspecl_then [‘rsi(ZR, Pair(a, b))’,‘rsi(ZR, Pair(c, d))’] assume_tac)>> (*why arw does not work*)
+arw[] >>
+pop_assum mp_tac >> 
+fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
+strip_tac >> arw[] (*why must I use the cross fconv*)>>
+rw[GSYM Zc_def,GSYM ZC_def,Repz_iff_Asz])
+(form_goal
+“App(ipow2(iZ, iZ), Pair(z1, z2)) = rsi(prrel(ZR, ZR), Pair(Pair(a,b),Pair(c,d))) <=> Asz(a,b) = z1 & Asz(c,d) = z2”));
+
+
+(*
+
+val even0_def = qdefine_psym ("even0",[‘ab:mem(N * N)’])
+‘(Even(Fst(ab)) & (Even(Snd(ab)))) | (Odd(Fst(ab)) & Odd(Snd(ab)))’
+|> gen_all |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+|> rewr_rule[Pair_def'] |> store_as "even0_def"; 
+
+val evenf0_def = proved_th $
+e0
+(cheat)
+(form_goal “?!evenf0:N * N-> 1+1.
+ !a b. App(evenf0,Pair(a,b)) = true <=> even0(Pair(a,b))”)
+|> uex2ex_rule |> qSKOLEM "evenf0" []
+
+val resp_evenf0 = prove_store("resp_evenf0",
+e0
+(rw[resp_def] >>
+fconv_tac (depth_fconv no_conv forall_cross_fconv) >> 
+rpt strip_tac >> rw[id_def] >> 
+fs[ZR_def] >>
+once_rw[tv_eq_true] >> rw[evenf0_def,even0_def] >>
+qcases ‘Even(a) & Even(b)’ >> arw[] >> cheat >> cheat 
+(*does smart proof exist?*))
+(form_goal “resp(evenf0, ZR, id(1 + 1))”));
+
+
+val IN_rsi_id = prove_store("IN_rsi_id",
+e0
+(rpt strip_tac >> rw[rsi_def,Rsi_def,id_def,Ri_def,App_App_o,Sg_def] >>
+ dimp_tac >> strip_tac (* 2 *)
+ >-- (qpick_x_assum ‘a' = a0’ (assume_tac o GSYM) >> arw[]) >>
+ qexists_tac ‘a’ >> arw[])
+(form_goal “!A a:mem(A) a0. IN(a0,rsi(id(A),a)) <=> a0 = a”));
+ 
+val EQ_EXT = prove_store("EQ_EXT",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ first_x_assum (qspecl_then [‘a1’] assume_tac) >> fs[] )
+(form_goal “!A a1:mem(A) a2. (!a. a = a1 <=> a = a2) <=> a1 = a2”));
+
+
+val main_EVENzf = 
+Quo_fun |> qspecl [‘N * N’,‘1+1’,
+                ‘evenf0’,
+                ‘ZR’,‘id(1+1)’,
+                ‘Z’,‘1+1’,‘iZ’,‘Sg(1+1)’]
+        |> rewr_rule[id_ER,Sg_Inj,Quo_id_Sg,resp_evenf0,ZR_ER,Inj_Quo_Z]
+        |> qSKOLEM "EVENzf" []
+        |> rewr_rule[rext_def,GSYM IN_EXT_iff,IN_rsi_id,App_App_o,Sg_def] 
+        |> rewr_rule[IN_EXT_iff,GSYM Repz_def]
+        |> conv_rule (depth_fconv no_conv exists_cross_fconv) 
+        |> rewr_rule[GSYM ZC_def,GSYM Zc_def,Repz_iff_Asz,EQ_EXT]
+
+*)
+
 
 (*
 ?a b c . f(a,b,c) = f(d,e,f) & ...

@@ -366,7 +366,8 @@ fun rw_fcanon th =
     in 
         if is_dimp f then [th] else
         if is_conj f then (op@ o (rw_fcanon ## rw_fcanon) o conj_pair) th else
-        if is_neg f then [eqF_intro th]  else
+        if is_neg f then [eqF_intro th] else
+        if is_eq f then [] else 
         [eqT_intro th]
     end 
 

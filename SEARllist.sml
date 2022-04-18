@@ -1,9 +1,3 @@
-
-
-
-
-
-
 val BU_ex = prove_store("BU_ex",
 e0
 (strip_tac >>

@@ -1733,7 +1733,7 @@ val Pair_has_comp = prove_store("Pair_has_comp",
 e0
 (rpt strip_tac >> 
  qexistsl_tac [‘Fst(ab)’,‘Snd(ab)’]>>
- rw[GSYM Pair_Fst_Snd])
+ rw[Pair_Fst_Snd])
 (form_goal
  “!A B ab:mem(A * B). ?a b. ab = Pair(a,b)”));
 

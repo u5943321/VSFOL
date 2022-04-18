@@ -268,7 +268,7 @@ e0
             g = Pa(p1(A,B) o g,p2(A,B) o g)’ >--
  (strip_tac >> once_arw[] >> rw[]) >>
  strip_tac (* 2 *) >--
- (irule is_Pa >> arw[]) >> once_rw[to_P_component])
+ (irule is_Pa >> arw[]) >> rw[GSYM to_P_component])
 (form_goal
  “!A B X f:X->A * B g:X->A * B. p1(A,B) o f = p1(A,B) o g &
  p2(A,B) o f = p2(A,B) o g ==> f = g”));
@@ -291,7 +291,7 @@ e0
             g = coPa(g o i1(A,B),g o i2(A,B))’ >--
  (strip_tac >> once_arw[] >> rw[]) >>
  strip_tac (* 2 *) >--
- (irule is_coPa >> arw[]) >> once_rw[from_coP_component])
+ (irule is_coPa >> arw[]) >> rw[GSYM from_coP_component])
 (form_goal
  “!A B X f:A + B-> X g:A + B->X. f o i1(A,B) = g o i1(A,B) & f o i2(A,B) = g o i2(A,B) ==> f = g”));
 
@@ -2820,7 +2820,7 @@ e0
  (qspecl_then [‘1’,‘u’,‘id(1)’] assume_tac) >>
  fs[idR] >> pop_assum (assume_tac o GSYM) >>
  arw[] >> dimp_tac >> strip_tac (* 2 *)
- >-- (qexists_tac ‘a’ >> arw[] >> once_rw[one_to_one_id]) >>
+ >-- (qexists_tac ‘a’ >> arw[] >> rw[one_to_one_id]) >>
  qexists_tac ‘a’ >> arw[])
 (form_goal 
 “!X Z f:X->Z g:1->Z P p0:P->X q.
