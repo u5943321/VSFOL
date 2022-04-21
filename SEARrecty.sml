@@ -44,6 +44,13 @@ val num1_def = qdefine_fsym("num1",[]) ‘Suc(O)’
 val num2_def = qdefine_fsym("num2",[]) ‘Suc(num1)’
 val num3_def = qdefine_fsym("num3",[]) ‘Suc(num2)’
 val num4_def = qdefine_fsym("num4",[]) ‘Suc(num3)’
+
+
+(*
+VAR not a Bot, NEG, 
+
+
+*)
                           
 val InjUU_def = proved_th $
 e0
@@ -334,7 +341,7 @@ val VAR_def = Inj_lift_fun |> qsspecl [‘repf(A)’]
 val VAR_Inj = prove_store("VAR_Inj",
 e0
 (cheat)
-(form_def “!A. Inj(VAR(A))”));
+(form_goal “!A. Inj(VAR(A))”));
 
 val repf_isfm = prove_store("repf_isfm",
 e0
@@ -738,6 +745,9 @@ e0
                   App(fmrec(x0,vf,nf,djf,dmf),f2)))) & 
  (!f.App(fmrec(x0,vf,nf,djf,dmf),Diam(f)) = 
      App(dmf,App(fmrec(x0,vf,nf,djf,dmf),f))) ”));
+
+
+
 
 
 

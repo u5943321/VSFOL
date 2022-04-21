@@ -167,22 +167,6 @@ e0
 |> spec_all |> uex2ex_rule |> qSKOLEM "Null" [‘X’]
 |> gen_all
 
-val tof_def = proved_th $
-e0
-(rpt strip_tac >> flip_tac >>
- qsuff_tac ‘?f:A->B. 
- !a. App(f,a)= App(Ev(A,B),Pair(a,f0))’
- >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
-     rpt strip_tac >> arw[GSYM FUN_EXT]) >>
- irule (P2fun' |> qspecl [‘A’,‘B’] 
- |> fVar_sInst_th “P(x:mem(A),y:mem(B))”
-    “y = App(Ev(A,B),Pair(x,f0:mem(Exp(A,B))))”) >>
- strip_tac >> uex_tac >> qexists_tac ‘App(Ev(A, B), Pair(x, f0))’ >> rw[])
-(form_goal “!A B f0:mem(Exp(A,B)).
- ?!f:A->B. 
- !a. App(Ev(A,B),Pair(a,f0)) = App(f,a)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "tof" [‘f0’]
-
 val llf_uex = prove_store("llf_uex",
 e0
 (qsuff_tac
@@ -1381,6 +1365,9 @@ e0
               (ll3 = LNil(X)) & (ll4 = LNil(X)) |
 ?h t1 t2. IN(Pair(t1,t2),R) & 
  ll3 = LCons(h,t1) & ll4 = LCons(h,t2)”));
+
+(*Map over llist, functorial law for Map. using list_bisimulation*)
+
 
 
 (*

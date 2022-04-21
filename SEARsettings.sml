@@ -2651,3 +2651,20 @@ e0
 (rpt strip_tac >>
  rw[GSYM i1_xor_i2])
 (form_goal “!A B ab.~(?b. ab = App(i2(A,B),b)) <=> ?a. ab = App(i1(A,B),a)”));
+
+
+val tof_def = proved_th $
+e0
+(rpt strip_tac >> flip_tac >>
+ qsuff_tac ‘?f:A->B. 
+ !a. App(f,a)= App(Ev(A,B),Pair(a,f0))’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+     rpt strip_tac >> arw[GSYM FUN_EXT]) >>
+ irule (P2fun' |> qspecl [‘A’,‘B’] 
+ |> fVar_sInst_th “P(x:mem(A),y:mem(B))”
+    “y = App(Ev(A,B),Pair(x,f0:mem(Exp(A,B))))”) >>
+ strip_tac >> uex_tac >> qexists_tac ‘App(Ev(A, B), Pair(x, f0))’ >> rw[])
+(form_goal “!A B f0:mem(Exp(A,B)).
+ ?!f:A->B. 
+ !a. App(Ev(A,B),Pair(a,f0)) = App(f,a)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "tof" [‘f0’]
