@@ -85,6 +85,7 @@ e0
 val Whole_IN_filter = filter_def |> iffLR |> undisch |> conjE2
                                  |> conjE1
                                  |> disch_all |> gen_all
+                                 |> store_as "Whole_IN_filter"
 
 val Whole_IN_ufilter = prove_store("Whole_IN_ufilter",
 e0
@@ -208,7 +209,7 @@ val FIP_def = qdefine_psym("FIP",[‘ss:mem(Pow(Pow(A)))’])
 val CUI_def = qdefine_psym("CUI",[‘ss:mem(Pow(Pow(A)))’])
                       ‘!ss0.
         SS(ss0, ss) & Fin(ss0) & ~(ss0 = Empty(Pow(A))) ==>
-        ~IN(BIGINTER(ss0),ss)’
+        IN(BIGINTER(ss0),ss)’
 
 val IN_Sing = prove_store("IN_Sing",
 e0
@@ -532,6 +533,203 @@ e0
 (form_goal “!ss:mem(Pow(Pow(A))). (!ss0.SS(ss0,ss) & Fin(ss0) & ~(ss0 = Empty(Pow(A))) ==> IN(BIGINTER(ss0),ss)) <=> 
  (!s1. IN(s1,ss) ==> !s2.IN(s2,ss) ==> IN(Inter(s1,s2),ss))”));
 *)
+
+val gfss_def = proved_th $
+e0
+(cheat)
+(form_goal “!A s0:mem(Pow(Pow(A))).
+ ?!ss. !s. IN(s,ss) <=> SS(s0,s) & filter(s)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "gfss" [‘s0’]
+
+val gfilter_def = qdefine_fsym("gfilter",[‘s:mem(Pow(Pow(A)))’])
+‘BIGINTER(gfss(s:mem(Pow(Pow(A)))))’
+
+val IN_gfilter = 
+    gfilter_def |> rewr_rule[GSYM IN_EXT_iff,IN_BIGINTER,gfss_def] 
+
+val gfilter_ind = IN_gfilter |> iffLR  
+                             |> strip_all_and_imp
+                             |> disch “IN(x:mem(Pow(A)), gfilter(s))”
+                             |> qgen ‘x’
+                             |> disch_all
+                             |> gen_all
+
+val gfilter_filter = prove_store("gfilter_filter",
+e0
+(rw[filter_def] >> rpt strip_tac >> arw[] (* 3 *)
+ >-- (rw[IN_gfilter] >> rpt strip_tac >> irule Whole_IN_filter >> arw[]) 
+ >-- (fs[IN_gfilter] >> rpt strip_tac >> irule Inter_IN_filter >>
+     arw[] >> strip_tac >> first_x_assum irule >> arw[]) >>
+ fs[IN_gfilter] >> rpt strip_tac >>
+ irule SS_IN_filter >> arw[] >>
+ qexists_tac ‘X’ >> arw[] >> first_x_assum irule >> arw[])
+(form_goal “!A.~(EMPTY(A)) ==>  !s:mem(Pow(Pow(A))). filter(gfilter(s))”));
+
+val pfilter_def = qdefine_psym("pfilter",[‘L:mem(Pow(Pow(J)))’])
+‘filter(L) & ~(L = Whole(Pow(J)))’
+
+val SS_gfilter = prove_store("SS_gfilter",
+e0
+(rw[SS_def,IN_gfilter] >>
+ rpt strip_tac >>  first_x_assum irule >> arw[])
+(form_goal “!A s:mem(Pow(Pow(A))).SS(s,gfilter(s))”));
+
+val gfilter1_def = proved_th $
+e0
+(cheat)
+(form_goal
+ “!s. ?!gf. !x. IN(x,gf) <=>
+ ( x = Whole(A) | ?ss. SS(ss,s) & Fin(ss) & ~(ss = Empty(Pow(A))) & SS(BIGINTER(ss),x))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "gfilter1" [‘s’]
+
+
+val Inter_Whole_Whole = prove_store("Inter_Whole_Whole",
+e0
+cheat
+(form_goal “!A s1:mem(Pow(A)) s2. Inter(s1,s2) = Whole(A) <=> s1 = Whole(A) & s2 = Whole(A)”));
+
+val SS_Union1 = prove_store("SS_Union1",
+e0
+(cheat)
+(form_goal “!A s1 s2 s:mem(Pow(A)). SS(Union(s1,s2),s) <=>
+ SS(s1,s) & SS(s2,s)”));
+
+
+val Union_Empty = Union_EMPTY
+
+val SS_Inter = prove_store("SS_Inter",
+e0
+cheat
+(form_goal “!A s1 s2:mem(Pow(A)) s. SS(s,Inter(s1,s2)) <=>
+ SS(s,s1) & SS(s,s2)”));
+ 
+val Inter_SS = prove_store("Inter_SS",
+e0
+(cheat)
+(form_goal “!A s1 s2:mem(Pow(A)). SS(Inter(s1,s2),s1) & SS(Inter(s1,s2),s2)”));
+
+val Whole_SS = prove_store("Whole_SS",
+e0
+cheat
+(form_goal “!A X.SS(Whole(A),X) ==> X = Whole(A)”));
+
+val gfilter1_filter = prove_store("gfilter1_filter",
+e0
+(rw[filter_def] >> rpt strip_tac >> arw[] (* 3 *)
+ >-- rw[gfilter1_def]
+ >-- (rw[gfilter1_def] >>
+     qcases ‘X = Whole(A)’ (* 2 *)
+     >-- (qcases ‘Y = Whole(A)’ 
+         >-- (disj1_tac >> arw[Inter_Whole]) >>
+         fs[Whole_Inter] >> drule $ iffLR gfilter1_def >> rfs[] >>
+         qexists_tac ‘ss’ >> arw[]) >>
+     qcases ‘Y = Whole(A)’ (* 2 *)
+     >-- (arw[Inter_Whole] >> rev_drule $ iffLR gfilter1_def >> rfs[] >>
+         qexists_tac ‘ss’ >> arw[]) >> arw[Inter_Whole_Whole] >>
+     fs[gfilter1_def] >>
+     qexists_tac ‘Union(ss,ss')’ >>
+     arw[SS_Union1,Fin_Union,Union_Empty,BIGINTER_Union,SS_Inter] >>
+     strip_tac >> irule SS_Trans (* 2 *)
+     >-- (qexists_tac ‘BIGINTER(ss)’ >> arw[Inter_SS]) >>
+     qexists_tac ‘BIGINTER(ss')’ >> arw[Inter_SS]) >>
+ fs[gfilter1_def] (* 2 *)
+ >-- (disj1_tac >> irule Whole_SS >> rfs[]) >>
+ disj2_tac >> qexists_tac ‘ss’ >> arw[] >>
+ irule SS_Trans >> qexists_tac ‘X’ >> arw[])
+(form_goal “!A.~(EMPTY(A)) ==>  !s:mem(Pow(Pow(A))). filter(gfilter1(s))”));
+
+
+val SS_gfilter1 = prove_store("SS_gfilter1",
+e0
+(rw[SS_def,gfilter1_def] >> rpt strip_tac >>
+ disj2_tac >>
+ qexists_tac ‘Sing(a)’ >> rw[IN_Sing,Sing_NONEMPTY,BIGINTER_Sing,Fin_Sing] >>
+ rpt strip_tac >> arw[])
+(form_goal “!A s:mem(Pow(Pow(A))). SS(s,gfilter1(s))”));
+
+val CUI_filter = prove_store("CUI_filter",
+e0
+(rpt strip_tac >> fs[filter_def,CUI_def] >> rpt gen_tac >> strip_tac >>
+ irule $ iffLR CUI_iff_binary >> arw[] >>
+ rpt strip_tac >> last_x_assum irule >> arw[])
+(form_goal “!A L:mem(Pow(Pow(A))).filter(L) ==> CUI(L)”));
+
+val gfilter_gfilter1 = prove_store("gfilter_gfilter1",
+e0
+(rpt strip_tac >> rw[GSYM IN_EXT_iff] >> rpt strip_tac >>
+ drule gfilter_filter >> drule gfilter1_filter >>
+ dimp_tac >--
+ (match_mp_tac gfilter_ind >> arw[SS_gfilter1]) >>
+ rw[IN_gfilter,gfilter1_def] >> rpt strip_tac >> arw[]
+ >-- (irule Whole_IN_filter >> arw[]) >>
+ drule CUI_filter >> fs[CUI_def] >>
+ first_x_assum (qspecl_then [‘ss’] assume_tac) >>
+ rfs[] >>
+ qby_tac ‘SS(ss, ss')’ >-- (irule SS_Trans >> qexists_tac ‘s’ >> arw[]) >>
+ fs[] >>
+ irule SS_IN_filter >> arw[] >> qexists_tac ‘BIGINTER(ss)’ >> arw[])
+(form_goal “!A s:mem(Pow(Pow(A))).~(EMPTY(A)) ==> gfilter(s) = gfilter1(s)”));
+
+val Empty_NOTIN_pfilter = prove_store("Empty_NOTIN_pfilter",
+e0
+(cheat)
+(form_goal “!A s.pfilter(s) <=> filter(s) & ~IN(Empty(A),s)”));
+
+val EMPTY_Empty_Whole = prove_store("EMPTY_Empty_Whole",
+e0
+cheat
+(form_goal “!A. EMPTY(A) <=> Empty(A) = Whole(A)”));
+
+val SS_Empty = prove_store("SS_Empty",
+e0
+cheat
+(form_goal “!A s. SS(s,Empty(A)) <=> s = Empty(A)”));
+
+val FIP_Empty_NOTIN_gfilter = prove_store("FIP_Empty_NOTIN_gfilter",
+e0
+(rpt strip_tac >> ccontra_tac >>
+ fs[FIP_def] >> drule gfilter_gfilter1 >> fs[] >>
+ fs[gfilter1_def] 
+ >-- fs[EMPTY_Empty_Whole] >>
+ fs[SS_Empty] >>
+ first_x_assum (qspecl_then [‘ss’] assume_tac) >> rfs[])
+(form_goal “!A.~EMPTY(A) ==> !s:mem(Pow(Pow(A))).FIP(s) ==> 
+ ~IN(Empty(A),gfilter(s)) ”));
+
+val FIP_PSUBSET_proper_filter = prove_store("FIP_PSUBSET_proper_filter",
+e0
+(rpt strip_tac >> qexists_tac ‘gfilter(s)’ >> 
+ rw[SS_gfilter] >> rw[Empty_NOTIN_pfilter] >>
+ drule gfilter_filter >> arw[] >>
+ irule FIP_Empty_NOTIN_gfilter >> arw[])
+(form_goal “!A. ~EMPTY(A) ==>
+ !s:mem(Pow(Pow(A))).FIP(s) ==> ?v.pfilter(v) & SS(s,v)”));
+
+val ufilter_thm = prove_store("ufilter_thm",
+e0
+cheat
+(form_goal “!A s:mem(Pow(Pow(A))). pfilter(s) ==>
+ ?u. ufilter(u) & SS(s,u)”));
+
+(*
+val zorns_lemma = prove_store("zorns_lemma",
+cheat
+(form_goal “!r s. ”)
+`!r s. (s <> {}) /\ partial_order r s /\
+  (!t. chain t r ==> upper_bounds t r <> {})
+  ==>
+  (?x. x IN maximal_elements s r)`,
+*)
+
+val ufilter_thm_coro = prove_store("ufilter_thm_coro",
+e0
+(rpt strip_tac >> drule FIP_PSUBSET_proper_filter >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >> drule ufilter_thm >>
+ pop_assum strip_assume_tac >> qexists_tac ‘u’ >> arw[] >>
+ irule SS_Trans >> qexists_tac ‘v’ >> arw[])
+(form_goal “!A ss:mem(Pow(Pow(A))). FIP(ss) & ~(EMPTY(A)) ==>
+ ?u. ufilter(u) & SS(ss,u)”));
 
 
 
