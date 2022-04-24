@@ -216,6 +216,13 @@ e0
 (rw[Sing_def,Sg_def])
 (form_goal “!A a0 a:mem(A). IN(a,Sing(a0)) <=> a = a0”));
 
+
+val IN_Union = prove_store("IN_Union",
+e0
+(rw[Union_def,UNION_def])
+(form_goal “!A s1 s2 a:mem(A). IN(a,Union(s1,s2)) <=> IN(a,s1) | IN(a,s2)”));
+
+
 val Union_Sing = prove_store("Union_Sing",
 e0
 (rw[GSYM IN_EXT_iff,IN_Union,IN_Sing,Ins_def])
@@ -238,6 +245,101 @@ e0
  >-- (first_x_assum irule >> arw[]) >>
  arw[])
 (form_goal “!A s:mem(Pow(A)). BIGINTER(Sing(s)) = s”));
+
+val Whole_Inter = prove_store("Whole_Inter",
+e0
+(rw[GSYM IN_EXT_iff,IN_Inter,Whole_def])
+(form_goal “!A s.Inter(Whole(A),s) = s”));
+
+
+val Inter_Whole = prove_store("Inter_Whole",
+e0
+(rw[GSYM IN_EXT_iff,IN_Inter,Whole_def])
+(form_goal “!A s.Inter(s,Whole(A)) = s”));
+
+
+val IN_Inter = prove_store("IN_Inter",
+e0
+(rw[Inter_def,INTER_def])
+(form_goal “!A s1:mem(Pow(A)) s2 a. IN(a,Inter(s1,s2)) <=> IN(a,s1) & IN(a,s2)”));
+
+val Empty_SS = prove_store("Empty_SS",
+e0
+(rw[SS_def,Empty_def])
+(form_goal “!A s. SS(Empty(A),s)”));
+
+val BIGINTER_Empty = prove_store("BIGINTER_Empty",
+e0
+(rw[GSYM IN_EXT_iff,IN_BIGINTER,Whole_def,Empty_def])
+(form_goal “BIGINTER(Empty(Pow(A))) = Whole(A)”));
+
+val BIGINTER_Ins_Empty = prove_store("BIGINTER_Ins_Empty",
+e0
+(rw[GSYM IN_EXT_iff,IN_BIGINTER,Ins_def,Empty_def] >>
+ rw[IN_EXT_iff] >> rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (first_x_assum irule >> arw[]) >>
+ rpt strip_tac >> arw[])
+(form_goal “!A x.BIGINTER(Ins(x, Empty(Pow(A)))) = x”));
+
+val Inter_same = prove_store("Inter_same",
+e0
+(rw[GSYM IN_EXT_iff,IN_Inter] >>
+ rpt strip_tac >> dimp_tac >> strip_tac >> arw[])
+(form_goal “!A x:mem(Pow(A)).Inter(x,x) = x”));
+
+
+val BIGINTER_Ins = prove_store("BIGINTER_Ins",
+e0
+(rw[GSYM IN_EXT_iff,IN_BIGINTER,IN_Inter,Ins_def] >>
+ rw[IN_EXT_iff] >> rpt strip_tac >> dimp_tac >> strip_tac >> arw[] (* 2 *)
+ >-- (first_assum (qspecl_then [‘x’] assume_tac) >>
+     fs[] >>
+     rpt strip_tac >> first_x_assum irule >> arw[]) >>
+ rpt strip_tac (* 2 *)
+ >-- arw[] >>
+ first_x_assum irule >> arw[])
+(form_goal “!A x:mem(Pow(A)) xs0. BIGINTER(Ins(x, xs0)) = 
+ Inter(x,BIGINTER(xs0))”));
+
+
+val imp_or_distr = prove_store("imp_or_distr",
+e0
+(dimp_tac >> rpt strip_tac (* 4 *)
+ >-- (first_x_assum irule >> arw[]) 
+ >-- (first_x_assum irule >> arw[]) 
+ >-- (first_x_assum drule >> arw[]) >>
+ first_x_assum drule >> arw[])
+(form_goal “(A | B ==> C) <=> (A ==> C) & (B ==> C)”));
+ 
+
+val BIGINTER_Union = prove_store("BIGINTER_Union",
+e0
+(rw[GSYM IN_EXT_iff,IN_BIGINTER,IN_Union,IN_Inter] >>
+ rpt strip_tac >> rw[imp_or_distr] >>
+ (*better strategy here*)
+ dimp_tac >> strip_tac >> arw[])
+(form_goal 
+     “!A s1 s2:mem(Pow(Pow(A))).
+BIGINTER(Union(s1,s2)) = Inter(BIGINTER(s1),BIGINTER(s2))”));
+
+
+val Empty_Inter = prove_store("Empty_Inter",
+e0
+(rw[GSYM IN_EXT_iff,IN_Inter,Empty_def])
+(form_goal “!A s. Inter(Empty(A),s) = Empty(A)”));
+
+val Union_EMPTY = prove_store("Union_EMPTY",
+e0
+(rw[GSYM IN_EXT_iff,IN_Union,Empty_def] >>
+ rw[neg_or_distr] >> rpt strip_tac >> dimp_tac >> strip_tac >> arw[])
+(form_goal “!A s1 s2. Union(s1,s2) = Empty(A) <=> 
+    s1 = Empty(A) & s2 = Empty(A)”));
+
+val neg_and_distr = prove_store("neg_and_distr",
+e0
+(dimp_tac >> strip_tac (* 3 *)
+ >> qcases ‘A’ >> fs[])
+(form_goal “~(A & B) <=> (~A | ~B)”));
 
 val CUI_iff_binary = prove_store("CUI_iff_binary",
 e0
@@ -268,11 +370,6 @@ e0
  “!W A:mem(Pow(Pow(W))).
   (!a1. IN(a1,A) ==> !a2.IN(a2,A) ==> IN(Inter(a1,a2),A)) <=> 
   (!s. SS(s,A) & Fin(s) & ~(s = Empty(Pow(W))) ==> IN(BIGINTER(s),A))”));
-
-val IN_Union = prove_store("IN_Union",
-e0
-(rw[Union_def,UNION_def])
-(form_goal “!A s1 s2 a:mem(A). IN(a,Union(s1,s2)) <=> IN(a,s1) | IN(a,s2)”));
 
 val SS_Union = prove_store("SS_Union",
 e0
@@ -307,25 +404,6 @@ e0
 (form_goal “!W A B:mem(Pow(Pow(W))) s. SS(s,Union(A,B)) <=>
   ?s1 s2. SS(s1,A) & SS(s2,B) & s = Union(s1,s2) ”));
 
-val imp_or_distr = prove_store("imp_or_distr",
-e0
-(dimp_tac >> rpt strip_tac (* 4 *)
- >-- (first_x_assum irule >> arw[]) 
- >-- (first_x_assum irule >> arw[]) 
- >-- (first_x_assum drule >> arw[]) >>
- first_x_assum drule >> arw[])
-(form_goal “(A | B ==> C) <=> (A ==> C) & (B ==> C)”));
-
-
-val BIGINTER_Union = prove_store("BIGINTER_Union",
-e0
-(rw[GSYM IN_EXT_iff,IN_BIGINTER,IN_Union,IN_Inter] >>
- rpt strip_tac >> rw[imp_or_distr] >>
- (*better strategy here*)
- dimp_tac >> strip_tac >> arw[])
-(form_goal 
-     “!A s1 s2:mem(Pow(Pow(A))).
-BIGINTER(Union(s1,s2)) = Inter(BIGINTER(s1),BIGINTER(s2))”));
 
 val Inter_Empty = prove_store("Inter_Empty",
 e0
@@ -333,35 +411,6 @@ e0
 (form_goal “!A s. Inter(s,Empty(A)) = Empty(A)”));
 
 
-
-val Empty_Inter = prove_store("Empty_Inter",
-e0
-(rw[GSYM IN_EXT_iff,IN_Inter,Empty_def])
-(form_goal “!A s. Inter(Empty(A),s) = Empty(A)”));
-
-val Union_EMPTY = prove_store("Union_EMPTY",
-e0
-(rw[GSYM IN_EXT_iff,IN_Union,Empty_def] >>
- rw[neg_or_distr] >> rpt strip_tac >> dimp_tac >> strip_tac >> arw[])
-(form_goal “!A s1 s2. Union(s1,s2) = Empty(A) <=> 
-    s1 = Empty(A) & s2 = Empty(A)”));
-
-val neg_and_distr = prove_store("neg_and_distr",
-e0
-(dimp_tac >> strip_tac (* 3 *)
- >> qcases ‘A’ >> fs[])
-(form_goal “~(A & B) <=> (~A | ~B)”));
-
-val Whole_Inter = prove_store("Whole_Inter",
-e0
-(rw[GSYM IN_EXT_iff,IN_Inter,Whole_def])
-(form_goal “!A s.Inter(Whole(A),s) = s”));
-
-
-val Inter_Whole = prove_store("Inter_Whole",
-e0
-(rw[GSYM IN_EXT_iff,IN_Inter,Whole_def])
-(form_goal “!A s.Inter(s,Whole(A)) = s”));
 
 val Fin_SS = prove_store("Fin_SS",
 e0
@@ -445,49 +494,6 @@ e0
  first_x_assum (qspecl_then [‘s2’] assume_tac) >>
  drule Fin_Ins >> arw[])
 (form_goal “Fin(Ins(s1, Ins(s2, Empty(A))))”));
-
-val IN_Inter = prove_store("IN_Inter",
-e0
-(rw[Inter_def,INTER_def])
-(form_goal “!A s1:mem(Pow(A)) s2 a. IN(a,Inter(s1,s2)) <=> IN(a,s1) & IN(a,s2)”));
-
-val Empty_SS = prove_store("Empty_SS",
-e0
-(rw[SS_def,Empty_def])
-(form_goal “!A s. SS(Empty(A),s)”));
-
-val BIGINTER_Empty = prove_store("BIGINTER_Empty",
-e0
-(rw[GSYM IN_EXT_iff,IN_BIGINTER,Whole_def,Empty_def])
-(form_goal “BIGINTER(Empty(Pow(A))) = Whole(A)”));
-
-val BIGINTER_Ins_Empty = prove_store("BIGINTER_Ins_Empty",
-e0
-(rw[GSYM IN_EXT_iff,IN_BIGINTER,Ins_def,Empty_def] >>
- rw[IN_EXT_iff] >> rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
- >-- (first_x_assum irule >> arw[]) >>
- rpt strip_tac >> arw[])
-(form_goal “!A x.BIGINTER(Ins(x, Empty(Pow(A)))) = x”));
-
-val Inter_same = prove_store("Inter_same",
-e0
-(rw[GSYM IN_EXT_iff,IN_Inter] >>
- rpt strip_tac >> dimp_tac >> strip_tac >> arw[])
-(form_goal “!A x:mem(Pow(A)).Inter(x,x) = x”));
-
-
-val BIGINTER_Ins = prove_store("BIGINTER_Ins",
-e0
-(rw[GSYM IN_EXT_iff,IN_BIGINTER,IN_Inter,Ins_def] >>
- rw[IN_EXT_iff] >> rpt strip_tac >> dimp_tac >> strip_tac >> arw[] (* 2 *)
- >-- (first_assum (qspecl_then [‘x’] assume_tac) >>
-     fs[] >>
-     rpt strip_tac >> first_x_assum irule >> arw[]) >>
- rpt strip_tac (* 2 *)
- >-- arw[] >>
- first_x_assum irule >> arw[])
-(form_goal “!A x:mem(Pow(A)) xs0. BIGINTER(Ins(x, xs0)) = 
- Inter(x,BIGINTER(xs0))”));
 
 
 
@@ -639,6 +645,11 @@ e0
 (form_goal “!A.~(EMPTY(A)) ==>  !s:mem(Pow(Pow(A))). filter(gfilter1(s))”));
 
 
+val Fin_Sing = prove_store("Fin_Sing",
+e0
+cheat
+(form_goal “!A a:mem(A).Fin(Sing(a))”));
+
 val SS_gfilter1 = prove_store("SS_gfilter1",
 e0
 (rw[SS_def,gfilter1_def] >> rpt strip_tac >>
@@ -672,7 +683,14 @@ e0
 
 val Empty_NOTIN_pfilter = prove_store("Empty_NOTIN_pfilter",
 e0
-(cheat)
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (fs[pfilter_def] >> ccontra_tac >>
+     qsuff_tac ‘s = Whole(Pow(A))’ 
+     >-- arw[] >>
+     rw[GSYM IN_EXT_iff,Whole_def] >> strip_tac >>
+     irule SS_IN_filter >> arw[] >>
+     qexists_tac ‘Empty(A)’ >> arw[Empty_SS]) >>
+ fs[pfilter_def] >> ccontra_tac >> fs[Whole_def])
 (form_goal “!A s.pfilter(s) <=> filter(s) & ~IN(Empty(A),s)”));
 
 val EMPTY_Empty_Whole = prove_store("EMPTY_Empty_Whole",
@@ -705,9 +723,299 @@ e0
 (form_goal “!A. ~EMPTY(A) ==>
  !s:mem(Pow(Pow(A))).FIP(s) ==> ?v.pfilter(v) & SS(s,v)”));
 
+
+val PSS_def = qdefine_psym("PSS",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(A))’])
+‘SS(s1:mem(Pow(A)),s2) & ~(s1 = s2)’
+
+(*NEQ_IN terrible*)
+
+val NEQ_IN = prove_store("NEQ_IN",
+e0
+(rw[GSYM IN_EXT_iff] >> rpt strip_tac >> dimp_tac >> strip_tac (* 3 *)
+ >-- (qcases ‘?a:mem(A).IN(a,s1) & ~IN(a,s2)’ >> arw[] >>
+     ccontra_tac >> 
+     qsuff_tac ‘!x.IN(x,s1) <=> IN(x,s2)’ >-- arw[] >>
+     strip_tac >> last_x_assum (K all_tac) >>
+     qcases ‘IN(x,s1)’ >> arw[] (* 2 *)
+     >-- (ccontra_tac >>
+         (*how can HOL realise it from here?*)
+         qsuff_tac ‘?a. IN(a,s1) & ~IN(a,s2)’ >-- arw[] >>
+         qexists_tac ‘x’ >> arw[]) >>
+     ccontra_tac >>
+     qsuff_tac ‘?a. IN(a,s2) & ~IN(a,s1)’ >-- arw[] >>
+     qexists_tac ‘x’ >> arw[]) 
+ >> ccontra_tac >> fs[])
+(form_goal “!A s1 s2. ~(s1 = s2) <=> 
+ (?a:mem(A).IN(a,s1) & ~IN(a,s2)) | (?a. IN(a,s2) & ~IN(a,s1))”));
+ 
+val PSS_alt = prove_store("PSS_alt",
+e0
+(rw[PSS_def] >> rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] (* 2 *)
+ >-- (fs[NEQ_IN,SS_def] (*2 *)
+     >-- (first_x_assum drule >> fs[]) >>
+     qexists_tac ‘a’ >> arw[]) >>
+ ccontra_tac >> fs[])
+(form_goal “!A s1 s2:mem(Pow(A)).PSS(s1,s2) <=> 
+ SS(s1,s2) & ?a. IN(a,s2) & ~IN(a,s1)”));
+
+
+val filter_Whole = prove_store("filter_Whole",
+e0
+(rw[Whole_def,filter_def])
+(form_goal “!J.~EMPTY(J) ==> filter(Whole(Pow(J)))”));
+
+val filter_Empty_Whole = prove_store("filter_Empty_Whole",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] (* 2 *)
+ >-- (rw[GSYM IN_EXT_iff,Whole_def] >> 
+     drule SS_IN_filter >> first_x_assum drule >>
+     strip_tac >> first_x_assum (qspecl_then [‘x’] assume_tac) >>
+     fs[Empty_SS]) >>
+ drule filter_Whole >> arw[Whole_def])
+(form_goal “!J. ~EMPTY(J) ==> !L. filter(L) & IN(Empty(J),L) <=> L = Whole(Pow(J))”));
+
+val Inter_Compl = prove_store("Inter_Compl",
+e0
+(rw[GSYM IN_EXT_iff,IN_Inter,IN_Compl,Empty_def] >> rpt strip_tac >> rw[] >>
+ ccontra_tac >> fs[])
+(form_goal “!A a:mem(Pow(A)). Inter(a,Compl(a)) = Empty(A)”));
+
+val ufilter_maximal = prove_store("ufilter_maximal",
+e0
+(rpt strip_tac >> fs[] >> fs[PSS_alt] >>
+ irule $ iffLR filter_Empty_Whole >> arw[] >>
+ qby_tac ‘~EMPTY(J)’ >-- fs[filter_def] >> arw[] >>
+ drule Inter_IN_filter >>
+ fs[ufilter_def] >>
+ last_x_assum (qspecl_then [‘a’] assume_tac) >>
+ pop_assum (assume_tac o GSYM) >> rfs[] >>
+ fs[SS_def] >> first_x_assum drule >>
+ first_x_assum (qspecl_then [‘a’,‘Compl(a)’] assume_tac) >>
+ rfs[Inter_Compl])
+(form_goal
+ “!J u:mem(Pow(Pow(J))). ufilter(u) ==>
+  !s. filter(s) & PSS(u,s) ==> s = Whole(Pow(J))”));
+
+val neg_iff = prove_store("neg_iff",
+e0
+(dimp_tac >> strip_tac >> qcases ‘A’ >> fs[])
+(form_goal “~(A <=> B) <=> (A & ~B) | (B & ~A)”));
+
+val maximal_ufilter = prove_store("maximal_ufilter",
+e0
+(rpt strip_tac >> arw[ufilter_def] >>
+ qby_tac ‘filter(u)’ >-- fs[pfilter_def] >> arw[] >>
+ strip_tac >> ccontra_tac >>
+ fs[neg_iff] (* 2 *)
+ >-- (qby_tac ‘FIP(Ins(X,u))’ >-- cheat (*proper_filter_INSERT_FIP*) >>
+     qby_tac ‘~EMPTY(J)’ >-- fs[filter_def,pfilter_def] >>
+     drule FIP_PSUBSET_proper_filter >> first_x_assum drule >>
+     pop_assum strip_assume_tac >> 
+     first_x_assum (qspecl_then [‘v’] assume_tac) >>
+     qby_tac ‘filter(v)’ >-- fs[pfilter_def] >> 
+     qby_tac ‘PSS(u,v)’ 
+     >-- (rw[PSS_alt] >> strip_tac (* 2 *)
+         >-- (irule SS_Trans >> qexists_tac ‘Ins(X, u)’ >>
+             arw[SS_Ins]) >>
+         qexists_tac ‘X’ >> arw[] >>
+         fs[SS_def] >> first_x_assum irule >> rw[Ins_def]) >>
+     fs[pfilter_def]) >>
+ drule Inter_IN_filter >>
+ first_x_assum (qspecl_then [‘X’,‘Compl(X)’] assume_tac) >> rfs[] >>
+ fs[Inter_Compl] >> 
+ qby_tac ‘u = Whole(Pow(J))’ 
+ >-- (irule $ iffLR filter_Empty_Whole >>
+     fs[filter_def]) >>
+ fs[pfilter_def])
+(form_goal “!J u. pfilter(u) ==> 
+ (!s. filter(s) & PSS(u,s) ==> s = Whole(Pow(J))) ==>
+ ufilter(u) ”));
+
+
+
+val chain_def = qdefine_psym("chain",[‘t:mem(Pow(A))’,‘R:A~>A’])
+‘!a1 a2. IN(a1,t) & IN(a2,t) ==> Holds(R,a1,a2) | Holds(R,a2,a1)’
+
+val ptorder_def = qdefine_psym("ptorder",[‘R:A~>A’])
+‘Trans(R) & Refl(R) & Asym(R)’
+
+val ubound_def = qdefine_psym("ubound",[‘s:mem(Pow(A))’,‘R:A~>A’,‘x:mem(A)’])
+‘!y. IN(y,s) ==> Holds(R,y,x)’
+
+val ismax_def = qdefine_psym("ismax",[‘R:A~>A’,‘m:mem(A)’]) 
+‘!x. Holds(R,m,x) ==> x = m’
+
+val zorns_lemma = store_ax("zorns_lemma",
+“!A R:A~>A. ptorder(R) ==> 
+  (!c. chain(c,R) & ~(c = Empty(A)) ==> ?ub. ubound(c,R,ub)) ==>
+  ?m. ismax(R,m)”);
+
+
+
+(*
+val Ubs_def = proved_th $
+e0
+()
+(form_goal “!A s R:A~>A. ?!ubs. 
+ !x. IN(x,ubs) <=> !y. IN(y,s) ==> Holds(R,y,x)”)
+
+val zorns_lemma = store_ax("zorns_lemma",
+“!r s. ptorder”);
+
+*)
+
+(* partial_order_def 
+∀r s.
+       partial_order r s ⇔
+       domain r ⊆ s ∧ range r ⊆ s ∧ transitive r ∧ reflexive r s ∧ antisym r:
+   thm
+
+ chain_def 
+ ∀s r. chain s r ⇔ ∀x y. x ∈ s ∧ y ∈ s ⇒ (x,y) ∈ r ∨ (y,x) ∈ r: thm
+
+upper_bounds_def = 
+ ∀s r. upper_bounds s r = {x | x ∈ range r ∧ ∀y. y ∈ s ⇒ (y,x) ∈ r}
+
+zorns_lemma
+
+∀r s.
+       s ≠ ∅ ∧ partial_order r s ∧ (∀t. chain t r ⇒ upper_bounds t r ≠ ∅) ⇒
+       ∃x. x ∈ maximal_elements s r: thm
+
+
+
+
+("set_relation", "maximal_elements_def"),
+     (⊢ ∀xs r.
+          maximal_elements xs r =
+          {x | x ∈ xs ∧ ∀x'. x' ∈ xs ∧ (x,x') ∈ r ⇒ x = x'}
+
+*)
+
+val ufilter_iff_maximal = prove_store("ufilter_iff_maximal",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac 
+ >-- (drule maximal_ufilter >> first_x_assum drule >> arw[]) >>
+ drule ufilter_maximal >> arw[])
+(form_goal “!J u. pfilter(u) ==>
+ ((!s. filter(s) & PSS(u,s) ==> s= Whole(Pow(J))) <=> ufilter(u))”));
+
+
+val PSS_SS = prove_store("PSS_SS",
+e0
+(rpt strip_tac >> fs[PSS_def])
+(form_goal “!A s1:mem(Pow(A)) s2. PSS(s1,s2) ==> SS(s1,s2)”));
+
+val SS_BIGUNION = prove_store("SS_BIGUNION",
+e0
+(rw[SS_def,IN_BIGUNION] >> rpt strip_tac >>
+ qexists_tac ‘s0’ >> arw[] >> first_x_assum irule >> arw[])
+(form_goal “!A s:mem(Pow(Pow(A))) ss s0. IN(s0,ss) & SS(s,s0) ==>
+  SS(s,BIGUNION(ss))”));
+
+
+
+val UNION_chain_filter_filter = prove_store("UNION_chain_filter_filter",
+e0
+(rpt strip_tac >> arw[filter_def] >> rpt strip_tac (* 3 *)
+ >-- (rw[IN_BIGUNION] >> fs[GSYM IN_NONEMPTY] >>
+     qexists_tac ‘a’ >> arw[] >> first_x_assum drule >>
+     fs[filter_def])
+ >-- (fs[IN_BIGUNION] >>
+     qby_tac ‘SS(ss',ss'') | SS(ss'',ss')’ 
+     >-- (first_x_assum irule >> arw[]) >>
+     pop_assum strip_assume_tac (* 2 *) >--
+     (qexists_tac ‘ss''’ >> fs[SS_def] >>
+     first_x_assum drule >>
+     irule Inter_IN_filter >> arw[] >>
+     first_x_assum irule >> arw[]) >>
+     qexists_tac ‘ss'’ >> fs[SS_def] >>
+     first_x_assum drule >>
+     irule Inter_IN_filter >> arw[] >>
+     first_x_assum irule >> arw[]) >>
+ fs[IN_BIGUNION] >>
+ qexists_tac ‘ss'’ >> arw[] >> irule SS_IN_filter >> 
+ qby_tac ‘filter(ss')’ 
+ >-- (first_x_assum irule >> arw[]) >> arw[] >>
+ qexists_tac ‘X’ >> arw[])
+(form_goal “!W. ~EMPTY(W) ==>
+ !ss. ~(ss = Empty(Pow(Pow(W)))) & 
+ (!s:mem(Pow(Pow(W))). IN(s,ss) ==> filter(s)) &
+ (!a b. IN(a,ss) & IN(b,ss) ==> SS(a,b) | SS(b,a)) ==>
+ filter(BIGUNION(ss))”));
+
+
+val UNION_chain_pfilter_pfilter = prove_store("UNION_chain_pfilter_pfilter",
+e0
+(rpt strip_tac >> rw[Empty_NOTIN_pfilter] >> strip_tac (* 2 *)
+ >-- (irule UNION_chain_filter_filter >> arw[] >>
+     rpt strip_tac >> first_x_assum drule >> fs[pfilter_def]) >>
+ qby_tac ‘!s.IN(s,ss) ==> ~(IN(Empty(W),s))’ 
+ >-- (rpt strip_tac >> first_x_assum drule >>
+     fs[Empty_NOTIN_pfilter]) >>
+ rw[IN_BIGUNION] >> ccontra_tac >> pop_assum strip_assume_tac >>
+ first_x_assum drule >> fs[])
+(form_goal “!W. ~EMPTY(W) ==>
+ !ss. ~(ss = Empty(Pow(Pow(W)))) & 
+ (!s:mem(Pow(Pow(W))). IN(s,ss) ==> pfilter(s)) &
+ (!a b. IN(a,ss) & IN(b,ss) ==> SS(a,b) | SS(b,a)) ==>
+ pfilter(BIGUNION(ss))”));
+
 val ufilter_thm = prove_store("ufilter_thm",
 e0
-cheat
+(rpt strip_tac >>
+ x_choosel_then ["pf","i"] strip_assume_tac
+ (Thm_2_4 |> qspecl [‘Pow(Pow(A))’] 
+ |> fVar_sInst_th “P(v:mem(Pow(Pow(A))))”
+    “pfilter(v:mem(Pow(Pow(A)))) & SS(s,v)”) >>
+ qby_tac ‘?r.!s1 s2:mem(pf). Holds(r,s1,s2)<=> SS(App(i,s1),App(i,s2))’
+ >-- cheat >>
+ pop_assum strip_assume_tac >>
+ qsuff_tac ‘?m. ismax(r,m)’ >--
+ (strip_tac >> fs[ismax_def] >>
+ qexists_tac ‘App(i,m)’ >>
+ qby_tac ‘pfilter(App(i,m)) & SS(s,App(i,m))’
+ >-- (arw[] >> qexists_tac ‘m’ >> rw[]) >>
+ arw[] >>
+ pop_assum strip_assume_tac >> drule $ GSYM ufilter_iff_maximal >>
+ arw[] >> 
+ pop_assum (K all_tac) >>
+ rpt strip_tac >>
+ ccontra_tac >>
+ qsuff_tac ‘?x. Holds(r,m,x) & ~(x = m)’
+ >-- (strip_tac >> first_x_assum drule >> fs[]) >>
+ qby_tac ‘pfilter(s') & SS(s,s')’ 
+ >-- (rw[pfilter_def] >> arw[] >> irule SS_Trans >>
+     qexists_tac ‘App(i,m)’ >> arw[] >> irule PSS_SS >> arw[]) >>
+ qby_tac ‘?s0. s' = App(i,s0)’ >-- (rfs[] >> qexists_tac ‘b’>> rw[]) >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘s0’ >> arw[] >> fs[] >>
+ drule PSS_SS >> arw[] >>
+ ccontra_tac >> fs[PSS_def]) >>
+ irule zorns_lemma >>
+ qby_tac ‘ptorder(r)’ 
+ >-- (rw[ptorder_def,Trans_def,Refl_def,Asym_def] >> rpt strip_tac (* 3 *)
+     >-- (rfs[] >> irule SS_Trans >> qexists_tac ‘App(i,a2)’>> arw[]) 
+     >-- arw[SS_Refl] >>
+     rfs[] >> fs[Inj_def] >> first_x_assum irule >>
+     irule SS_SS_eq >> arw[]) >>
+ arw[] >>
+ rpt strip_tac >>
+ qby_tac ‘pfilter(BIGUNION(IMAGE(i,c)))’
+ >-- cheat (* UNION_proper_proper *) >>
+ qby_tac ‘SS(s,BIGUNION(IMAGE(i,c)))’ 
+ >-- (irule SS_BIGUNION >> fs[GSYM IN_NONEMPTY] >>
+     qexists_tac ‘App(i,a)’ >> 
+     qby_tac ‘?b. App(i,a) = App(i,b)’ >-- (qexists_tac ‘a’ >> rw[]) >>
+     first_x_assum (drule o iffRL) >> arw[] >>
+     rw[IMAGE_def] >> qexists_tac ‘a’ >> arw[])  >>
+ qby_tac ‘?u0. BIGUNION(IMAGE(i, c)) = App(i,u0)’ 
+ >-- (first_x_assum (irule o iffLR) >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘u0’ >> arw[ubound_def] >>
+ pop_assum (assume_tac o GSYM) >> arw[] >> rpt strip_tac >>
+ irule SS_BIGUNION >> qexists_tac ‘App(i,y)’ >> rw[SS_Refl] >>
+ rw[IMAGE_def] >> qexists_tac ‘y’ >> arw[])
 (form_goal “!A s:mem(Pow(Pow(A))). pfilter(s) ==>
  ?u. ufilter(u) & SS(s,u)”));
 
