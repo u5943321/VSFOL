@@ -447,8 +447,8 @@ e0
   ?s1 s2. SS(s1,A) & SS(s2,B) & s = Union(s1,s2) ”));
 *)
 
-
-val SS_Union = prove_store("SS_Union",
+ 
+val SS_Union_split = prove_store("SS_Union_split",
 e0
 (rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *) >--
  (x_choose_then "s1" assume_tac
@@ -511,17 +511,37 @@ e0
 (strip_tac >>
  ind_with (Fin_induct |> qspecl [‘A’]) >>
  rw[SS_Empty] >> rpt strip_tac >> arw[Fin_Empty] >>
- fs[GSYM Union_Sing,SS_Union,SS_Sing] (* 2 *)
+ fs[GSYM Union_Sing,SS_Union_split,SS_Sing] (* 2 *)
  >-- (rw[Union_Sing] >> irule Fin_Ins >> 
      first_x_assum irule >> arw[]) >>
  rw[Empty_Union] >> first_x_assum irule >> arw[])
 (form_goal “!A s:mem(Pow(A)). Fin(s) ==> !t. SS(t,s) ==> Fin(t) ”));
 
+val disj_assoc = prove_store("disj_assoc",
+e0
+(dimp_tac >> qcases ‘A’ >> fs[])
+(form_goal “(A | B) | C <=> A | B | C”));
 
-(*up to here*)
+val Union_assoc = prove_store("Union_assoc",
+e0
+(rw[GSYM IN_EXT_iff,IN_Union,disj_assoc])
+(form_goal “!A s1:mem(Pow(A)) s2 s3. Union(Union(s1,s2),s3) = Union(s1,Union(s2,s3))”));
+
 val Fin_Union = prove_store("Fin_Union",
 e0
-cheat
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (strip_tac >> irule Fin_SS >> 
+     qexists_tac ‘Union(s1,s2)’ >> arw[SS_Union1]) >>
+ arw[SS_Union2] >>
+ qsuff_tac ‘!s1:mem(Pow(A)).
+ Fin(s1) ==> !s2. Fin(s2) ==> Fin(Union(s1,s2))’
+ >-- (rpt strip_tac >> first_x_assum irule >> arw[]) >>
+ pop_assum_list  (map_every (K all_tac)) >> 
+ ind_with (Fin_induct |> qspecl [‘A’]) >>
+ rw[Empty_Union] >> rpt strip_tac >>
+ rw[GSYM Union_Sing,Union_assoc] >> 
+ rw[Union_Sing] >> first_x_assum drule >>
+ irule Fin_Ins >> arw[])
 (form_goal “!A s1:mem(Pow(A)) s2.Fin(Union(s1,s2)) <=> Fin(s1) & Fin(s2)”));
 
 val IN_NONEMPTY = prove_store("IN_NONEMPTY",
@@ -557,7 +577,7 @@ e0
 val FIP_closed_under_Inter = prove_store("FIP_closed_under_Inter",
 e0
 (rpt strip_tac >> fs[CUI_iff_binary] >>
- rw[FIP_def] >> strip_tac >> rw[SS_Union] >>
+ rw[FIP_def] >> strip_tac >> rw[SS_Union_split] >>
  rpt strip_tac >> arw[BIGINTER_Union] >> rfs[Union_EMPTY,Fin_Union] >>
  qby_tac ‘~IN(Empty(W),A) & ~IN(Empty(W),B)’ 
  >-- (irule FIP_CUI_lemma >> arw[]) >> fs[] >> 
@@ -644,7 +664,12 @@ e0
 
 val gfss_def = proved_th $
 e0
-(cheat)
+(rpt strip_tac >>
+ assume_tac
+ (IN_def_P |> qspecl [‘Pow(Pow(A))’] 
+ |> fVar_sInst_th “P(a:mem(Pow(Pow(A))))”
+    “SS(s0,a:mem(Pow(Pow(A)))) & filter(a)”) >>
+ arw[])
 (form_goal “!A s0:mem(Pow(Pow(A))).
  ?!ss. !s. IN(s,ss) <=> SS(s0,s) & filter(s)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "gfss" [‘s0’]
@@ -684,7 +709,12 @@ e0
 
 val gfilter1_def = proved_th $
 e0
-(cheat)
+(strip_tac >>
+ assume_tac
+ (IN_def_P |> qspecl [‘Pow(A)’]
+           |> fVar_sInst_th “P(a:mem(Pow(A)))”
+              “a = Whole(A) |
+               ?ss. SS(ss,s) & Fin(ss) & ~(ss = Empty(Pow(A))) & SS(BIGINTER(ss),a)”) >> arw[])
 (form_goal
  “!s. ?!gf. !x. IN(x,gf) <=>
  ( x = Whole(A) | ?ss. SS(ss,s) & Fin(ss) & ~(ss = Empty(Pow(A))) & SS(BIGINTER(ss),x))”)
@@ -693,12 +723,14 @@ e0
 
 val Inter_Whole_Whole = prove_store("Inter_Whole_Whole",
 e0
-cheat
+(rpt strip_tac >> dimp_tac >> arw[] >> rpt strip_tac (* 3 *)
+ >> fs[GSYM IN_EXT_iff,Whole_def,IN_Inter])
 (form_goal “!A s1:mem(Pow(A)) s2. Inter(s1,s2) = Whole(A) <=> s1 = Whole(A) & s2 = Whole(A)”));
 
-val SS_Union1 = prove_store("SS_Union1",
+val Union_SS1 = prove_store("Union_SS1",
 e0
-(cheat)
+(rpt strip_tac >> rw[SS_def,IN_Union,imp_or_distr] >>
+ dimp_tac >> strip_tac >> arw[])
 (form_goal “!A s1 s2 s:mem(Pow(A)). SS(Union(s1,s2),s) <=>
  SS(s1,s) & SS(s2,s)”));
 
@@ -707,18 +739,23 @@ val Union_Empty = Union_EMPTY
 
 val SS_Inter = prove_store("SS_Inter",
 e0
-cheat
+(rw[SS_def,IN_Inter] >> rpt strip_tac >> 
+ dimp_tac >> rpt strip_tac (* 4 *)
+ >-- (first_x_assum drule >> arw[])
+ >-- (first_x_assum drule >> arw[]) 
+ >-- (first_x_assum irule >> arw[]) >>
+ first_x_assum irule >> arw[])
 (form_goal “!A s1 s2:mem(Pow(A)) s. SS(s,Inter(s1,s2)) <=>
  SS(s,s1) & SS(s,s2)”));
  
 val Inter_SS = prove_store("Inter_SS",
 e0
-(cheat)
+(rw[SS_def,IN_Inter] >> rpt strip_tac)
 (form_goal “!A s1 s2:mem(Pow(A)). SS(Inter(s1,s2),s1) & SS(Inter(s1,s2),s2)”));
 
 val Whole_SS = prove_store("Whole_SS",
 e0
-cheat
+(rw[SS_def,Whole_def,GSYM IN_EXT_iff])
 (form_goal “!A X.SS(Whole(A),X) ==> X = Whole(A)”));
 
 val gfilter1_filter = prove_store("gfilter1_filter",
@@ -736,7 +773,7 @@ e0
          qexists_tac ‘ss’ >> arw[]) >> arw[Inter_Whole_Whole] >>
      fs[gfilter1_def] >>
      qexists_tac ‘Union(ss,ss')’ >>
-     arw[SS_Union1,Fin_Union,Union_Empty,BIGINTER_Union,SS_Inter] >>
+     arw[Union_SS1,Fin_Union,Union_Empty,BIGINTER_Union,SS_Inter] >>
      strip_tac >> irule SS_Trans (* 2 *)
      >-- (qexists_tac ‘BIGINTER(ss)’ >> arw[Inter_SS]) >>
      qexists_tac ‘BIGINTER(ss')’ >> arw[Inter_SS]) >>
@@ -746,10 +783,15 @@ e0
  irule SS_Trans >> qexists_tac ‘X’ >> arw[])
 (form_goal “!A.~(EMPTY(A)) ==>  !s:mem(Pow(Pow(A))). filter(gfilter1(s))”));
 
+val Sing_Ins_Empty = prove_store("Sing_Ins_Empty",
+e0
+(rw[GSYM IN_EXT_iff,IN_Sing,Ins_def,Empty_def])
+(form_goal “!A a:mem(A). Sing(a) = Ins(a,Empty(A))”));
 
 val Fin_Sing = prove_store("Fin_Sing",
 e0
-cheat
+(rw[Sing_Ins_Empty] >> rpt strip_tac >> irule Fin_Ins >>
+rw[Fin_Empty])
 (form_goal “!A a:mem(A).Fin(Sing(a))”));
 
 val SS_gfilter1 = prove_store("SS_gfilter1",
@@ -797,12 +839,12 @@ e0
 
 val EMPTY_Empty_Whole = prove_store("EMPTY_Empty_Whole",
 e0
-cheat
+(rw[GSYM IN_EXT_iff,Empty_def,Whole_def,EMPTY_def])
 (form_goal “!A. EMPTY(A) <=> Empty(A) = Whole(A)”));
 
 val SS_Empty = prove_store("SS_Empty",
 e0
-cheat
+(rw[GSYM IN_EXT_iff,Empty_def,SS_def])
 (form_goal “!A s. SS(s,Empty(A)) <=> s = Empty(A)”));
 
 val FIP_Empty_NOTIN_gfilter = prove_store("FIP_Empty_NOTIN_gfilter",
@@ -902,6 +944,90 @@ val neg_iff = prove_store("neg_iff",
 e0
 (dimp_tac >> strip_tac >> qcases ‘A’ >> fs[])
 (form_goal “~(A <=> B) <=> (A & ~B) | (B & ~A)”));
+
+
+
+val CUI_Empty_NOTIN_FIP = prove_store("CUI_Empty_NOTIN_FIP",
+e0
+(rw[FIP_def,CUI_def] >> rpt strip_tac >>
+ ccontra_tac >> 
+ qsuff_tac ‘IN(BIGINTER(ss0),s)’ 
+ >-- arw[] >>
+ first_x_assum irule >> arw[])
+(form_goal “!W s:mem(Pow(Pow(W))). 
+ CUI(s) & ~IN(Empty(W),s) ==> FIP(s)”));
+
+val pfilter_FIP = prove_store("pfilter_FIP",
+e0
+(rpt strip_tac >> irule CUI_Empty_NOTIN_FIP >>
+ fs[Empty_NOTIN_pfilter] >> drule CUI_filter >> arw[] )
+(form_goal “!W s:mem(Pow(Pow(W))). pfilter(s) ==>
+ FIP(s)”));
+
+val pfilter_filter = prove_store("pfilter_filter",
+e0
+(rw[pfilter_def] >> rpt strip_tac)
+(form_goal “!A s:mem(Pow(Pow(A))). pfilter(s) ==> filter(s)”));
+
+val Union_Empty2 = prove_store("Union_Empty2",
+e0
+(rw[IN_Union,GSYM IN_EXT_iff,Empty_def])
+(form_goal “!A s. Union(s,Empty(A)) = s”));
+
+val Inter_eq_Empty = prove_store("Inter_eq_Empty",
+e0
+(rw[GSYM IN_EXT_iff,IN_Inter,SS_def,IN_Compl,Empty_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac >> ccontra_tac >>
+ fs[] (* 2 *)
+ >-- (first_x_assum (qspecl_then [‘a’] assume_tac) >>
+     rfs[]) >>
+ first_x_assum drule >> fs[])
+(form_goal 
+ “!W s1 s2.
+ Inter(s1,s2) = Empty(W) <=> SS(s2,Compl(s1))”));
+
+val pfilter_INSERT_FIP =
+    prove_store("proper_filter_INSERT_FIP",
+e0
+(rw[FIP_def] >> rpt strip_tac >>
+ qby_tac ‘~(b = Empty(W))’ >-- cheat (*otherwise filter does not contain W*) >>  
+ drule pfilter_FIP >>
+ fs[GSYM Union_Sing] >> fs[SS_Union_split] >>
+ fs[SS_Sing] (* 2 *)
+ >-- (qcases ‘s2 = Empty(Pow(W))’ (* 2 *)
+     >-- arw[Union_Empty2,BIGINTER_Sing] >>
+     rw[BIGINTER_Union,BIGINTER_Sing] >>
+     drule pfilter_filter >>
+     drule CUI_filter >> ccontra_tac >>
+     qsuff_tac ‘SS(BIGINTER(s2), Compl(b))’ 
+     >-- (strip_tac >> drule SS_IN_filter >>
+         first_x_assum
+         (qspecl_then [‘BIGINTER(s2)’] assume_tac) >>
+         rfs[Fin_Union] >>
+         qby_tac ‘IN(BIGINTER(s2), s)’ 
+         >-- (fs[CUI_def] >> last_x_assum irule >>
+             arw[]) >>
+         first_x_assum drule >>
+         first_x_assum drule >> fs[]) >>
+     fs[Inter_eq_Empty]) >>
+ fs[Empty_Union] >> 
+ qcases ‘s2 = Empty(Pow(W))’ (* 2 *)
+ >-- (arw[BIGINTER_Empty] >> flip_tac >> 
+     rw[GSYM EMPTY_Empty_Whole] >>
+     fs[pfilter_def,filter_def]) >>
+ ccontra_tac >> 
+ drule pfilter_filter >>
+ drule CUI_filter >>
+ qby_tac ‘IN(BIGINTER(s2), s)’ 
+ >-- (drule $ iffLR CUI_def >> last_x_assum irule >>
+      arw[] >> rfs[Fin_Union]) >>
+ qby_tac ‘IN(b,s)’ 
+ >-- (irule SS_IN_filter >> fs[pfilter_def] >>
+     qexists_tac ‘Empty(W)’ >> rfs[Empty_SS]) >>
+ fs[])
+(form_goal “!W s:mem(Pow(Pow(W))). pfilter(s) ==>
+ !b. ~IN(b,s) & ~IN(Compl(b),s) ==> FIP(Ins(b,s))”));
+
 
 val maximal_ufilter = prove_store("maximal_ufilter",
 e0
@@ -1121,16 +1247,6 @@ e0
  rw[IMAGE_def] >> qexists_tac ‘y’ >> arw[])
 (form_goal “!A s:mem(Pow(Pow(A))). pfilter(s) ==>
  ?u. ufilter(u) & SS(s,u)”));
-
-(*
-val zorns_lemma = prove_store("zorns_lemma",
-cheat
-(form_goal “!r s. ”)
-`!r s. (s <> {}) /\ partial_order r s /\
-  (!t. chain t r ==> upper_bounds t r <> {})
-  ==>
-  (?x. x IN maximal_elements s r)`,
-*)
 
 val ufilter_thm_coro = prove_store("ufilter_thm_coro",
 e0
