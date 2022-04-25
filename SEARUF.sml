@@ -406,7 +406,7 @@ e0
  first_x_assum (qspecl_then [‘Ins(a1,Ins(a2,Empty(Pow(W))))’] assume_tac) >>
  fs[GSYM Union_Sing,BIGINTER_Union,BIGINTER_Empty,Inter_Whole,BIGINTER_Sing] >>
  first_x_assum irule >> rw[Union_Sing,Ins_NONEMPTY] >> 
- cheat (*need Fin_Ins_Ins*) )
+ rw[Fin_Ins_Ins] >> rw[SS_def,Ins_def,Empty_def] >> rpt strip_tac >> arw[])
 (form_goal
  “!W A:mem(Pow(Pow(W))).
   (!a1. IN(a1,A) ==> !a2.IN(a2,A) ==> IN(Inter(a1,a2),A)) <=> 
@@ -990,7 +990,8 @@ val pfilter_INSERT_FIP =
     prove_store("proper_filter_INSERT_FIP",
 e0
 (rw[FIP_def] >> rpt strip_tac >>
- qby_tac ‘~(b = Empty(W))’ >-- cheat (*otherwise filter does not contain W*) >>  
+ qby_tac ‘~(b = Empty(W))’ >-- 
+ (ccontra_tac >> fs[Compl_Empty,pfilter_def,filter_def]) >>  
  drule pfilter_FIP >>
  fs[GSYM Union_Sing] >> fs[SS_Union_split] >>
  fs[SS_Sing] (* 2 *)
@@ -1035,7 +1036,8 @@ e0
  qby_tac ‘filter(u)’ >-- fs[pfilter_def] >> arw[] >>
  strip_tac >> ccontra_tac >>
  fs[neg_iff] (* 2 *)
- >-- (qby_tac ‘FIP(Ins(X,u))’ >-- cheat (*proper_filter_INSERT_FIP*) >>
+ >-- (qby_tac ‘FIP(Ins(X,u))’ >-- 
+      (irule pfilter_INSERT_FIP >> arw[]) >>
      qby_tac ‘~EMPTY(J)’ >-- fs[filter_def,pfilter_def] >>
      drule FIP_PSUBSET_proper_filter >> first_x_assum drule >>
      pop_assum strip_assume_tac >> 
@@ -1190,6 +1192,18 @@ e0
  (!a b. IN(a,ss) & IN(b,ss) ==> SS(a,b) | SS(b,a)) ==>
  pfilter(BIGUNION(ss))”));
 
+val IMAGE_eq_Empty = prove_store("IMAGE_eq_Empty",
+e0
+(rw[GSYM IN_EXT_iff,IMAGE_def,Empty_def] >> rpt strip_tac >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (ccontra_tac >> 
+     first_x_assum (qspecl_then [‘App(f,x)’] assume_tac) >>
+     qsuff_tac ‘?a. IN(a,s) & App(f,x) = App(f,a)’
+     >-- arw[] >> qexists_tac ‘x’>> arw[]) >>
+ ccontra_tac >> fs[] >> rfs[])
+(form_goal “!A B f:A->B s. IMAGE(f,s) = Empty(B) <=> 
+ s = Empty(A)”));
+
 val ufilter_thm = prove_store("ufilter_thm",
 e0
 (rpt strip_tac >>
@@ -1198,7 +1212,10 @@ e0
  |> fVar_sInst_th “P(v:mem(Pow(Pow(A))))”
     “pfilter(v:mem(Pow(Pow(A)))) & SS(s,v)”) >>
  qby_tac ‘?r.!s1 s2:mem(pf). Holds(r,s1,s2)<=> SS(App(i,s1),App(i,s2))’
- >-- cheat >>
+ >-- accept_tac(AX1 |> qspecl [‘pf’,‘pf’]
+ |> fVar_sInst_th “P(s1:mem(pf),s2:mem(pf))”
+    “SS(App(i:pf->Pow(Pow(A)),s1),App(i,s2))”
+|> uex2ex_rule) >>
  pop_assum strip_assume_tac >>
  qsuff_tac ‘?m. ismax(r,m)’ >--
  (strip_tac >> fs[ismax_def] >>
@@ -1230,8 +1247,17 @@ e0
      irule SS_SS_eq >> arw[]) >>
  arw[] >>
  rpt strip_tac >>
+ qby_tac ‘~EMPTY(A)’ >-- fs[pfilter_def,filter_def] >>
  qby_tac ‘pfilter(BIGUNION(IMAGE(i,c)))’
- >-- cheat (* UNION_proper_proper *) >>
+ >-- (irule UNION_chain_pfilter_pfilter >>
+     arw[IMAGE_eq_Empty] >> rpt strip_tac (* 2 *)
+     >-- (qsuff_tac ‘pfilter(s') & SS(s,s')’ 
+         >-- (strip_tac >> arw[]) >>
+         arw[] >> fs[IMAGE_def] >> 
+         qexists_tac ‘a’ >> rw[]) >>
+     fs[chain_def] >>
+     rfs[] >> fs[IMAGE_def] >>
+     first_x_assum irule >> arw[]) >>
  qby_tac ‘SS(s,BIGUNION(IMAGE(i,c)))’ 
  >-- (irule SS_BIGUNION >> fs[GSYM IN_NONEMPTY] >>
      qexists_tac ‘App(i,a)’ >> 
