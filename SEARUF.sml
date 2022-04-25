@@ -1297,3 +1297,250 @@ e0
 (form_goal “!A ss:mem(Pow(Pow(A))). FIP(ss) & ~(EMPTY(A)) ==>
  ?u:mem(UFs(A)). SS(ss,Repu(u))”));
 
+
+
+
+fun dest_n_exists n f = 
+    if n = 0 then ([],f) else 
+    let val (l,b) = dest_n_exists (n-1) f
+        val (ns,b1) = dest_exists b
+    in (l @ [ns],b1)
+    end
+
+val Pr_uex = prove_store("Pr_uex",
+e0
+cheat
+(form_goal “!A B. ?AB p1:AB->A p2:AB ->B. 
+ isPr(p1,p2) &
+ (!AB' p1':AB'->A p2'. isPr(p1',p2') ==>
+  ?!i:AB->AB' j. i o j = Id(AB') & j o i = Id(AB) &
+  p1' o i = p1 & p2' o i = p2 &
+  p1 o j = p1' & p2 o j = p2')”));
+
+val Pr_ts_ex = proved_th $
+e0
+cheat
+(form_goal “!A B. ?AB p1:AB->A p2:AB ->B. T”)
+
+val Reqv = proved_th $
+e0
+cheat
+(form_goal 
+“(!AB p1:AB->A p2:AB->B.
+ ?!i:AB->AB j. i o j = Id(AB) & j o i = Id(AB) &
+  p1 o i = p1 & p2 o i = p2 &
+  p1 o j = p1 & p2 o j = p2) &
+ (!AB p1:AB->A p2:AB->B AB' p1':AB'->A p2':AB'->B. 
+  (?!i:AB->AB' j. i o j = Id(AB') & j o i = Id(AB) &
+   p1' o i = p1 & p2' o i = p2 &
+   p1 o j = p1' & p2 o j = p2')==>
+  (?!i:AB'->AB j. i o j = Id(AB) & j o i = Id(AB') &
+   p1 o i = p1' & p2 o i = p2' &
+   p1' o j = p1 & p2' o j = p2)) & 
+ (!AB p1:AB->A p2:AB->B AB' p1':AB'->A p2':AB'->B
+      AB'' p1'':AB''->A p2'':AB''->B. 
+  (?!i:AB->AB' j. i o j = Id(AB') & j o i = Id(AB) &
+   p1' o i = p1 & p2' o i = p2 &
+   p1 o j = p1' & p2 o j = p2') &
+  (?!i:AB'->AB'' j. i o j = Id(AB'') & j o i = Id(AB') &
+   p1'' o i = p1' & p2'' o i = p2' &
+   p1' o j = p1'' & p2' o j = p2'') ==>
+  (?!i:AB->AB'' j. i o j = Id(AB'') & j o i = Id(AB) &
+   p1'' o i = p1 & p2'' o i = p2 &
+   p1 o j = p1'' & p2 o j = p2''))
+ ”)
+
+val uexth = Pr_uex |> spec_all
+
+val eth = Pr_ts_ex |> spec_all
+
+val eqvth = Reqv
+
+val fnames = ["*","p1","p2"]
+
+val iseqr = “P()”
+
+fun generate_eqr_cond n sorts Pname = 
+    let val 
+
+val arg1 = List.map (dest_var o rastt) 
+                    ["AB","p1:AB->A","p2:AB->B"]
+
+val arg2 = List.map (dest_var o rastt) 
+                     ["AB'","p1':AB'->A","p2':AB'->B"]
+
+val eqr = 
+“?!i:AB->AB' j. i o j = Id(AB') & j o i = Id(AB) &
+   (p1':AB'->A) o i = p1 & (p2':AB'->B) o i = p2 &
+   p1 o j = p1' & p2 o j = p2'”
+
+(*must have arg1 and arg2 as var list, not terms, since they cannot always be represented as a single term. even if they can after certain function symbols exists, but newspec is often the fsyms which are required for capturing these arguments as a single term*)
+
+val a = ("A'",set_sort)
+val f = “P(A,A')”
+inst_form (mk_inst [(a,rastt "A")] []) f
+
+ inst_form (mk_inst (zip arg2 argtrefl) []) eqr
+
+fun mk_tinst l = mk_inst l [] 
+
+fun addprims l = 
+            case l of [] => l
+                    | (n,s) :: t =>
+                      let val new = (n^"'",s)
+                      in
+                          new :: 
+                          (List.map 
+                               (dest_var o 
+                                (substt ((n,s),mk_var new)) o mk_var) (addprims t))
+                      end
+ (*if do arg3 like this, need all non-local constant 
+         terms to be given in the input list,
+         add all input vars by a "'",
+         [AB,p1:AB->A,p2:AB->B] |-> 
+         [AB',p1':AB'->A,p2':AB'->B]
+         but if
+         [A,B,AB,p1,p2], then give:
+         [A',B',AB',p1':AB'->A',p2':AB'->B']
+*)    
+(*should check arg1 and arg2 vars are all distinct*)
+
+val arg = arg1
+val Q = “isPr(p1:AB->A,p2:AB->B)”
+
+
+fun mk_existss nsl f = 
+    case nsl of 
+        [] => f
+      | (h as (n,s)) :: t =>
+        mk_exists n s (mk_existss t f)
+
+val vl = List.map dest_var [rastt "A",rastt "B"]
+
+
+newspec (arg1,arg2,eqr) (arg,Q) fnames vl eth eqvth
+uexth
+
+fun newspec (arg1:(string * sort) list,
+             arg2:(string * sort) list,eqr) 
+            (arg:(string * sort) list,Q)
+            fnames vl eth eqvth uexth = 
+    let 
+        (*1.check eqvth states eqr is ER*)
+        val argtrefl = List.map mk_var arg1
+        val reflbody = 
+            inst_form (mk_tinst (zip arg2 argtrefl)) eqr
+        val reflcl = mk_foralls arg1 reflbody
+        val (symt1,symt2) = (List.map mk_var arg1,
+                             List.map mk_var arg2)
+        val symconc = 
+            inst_form
+            (mk_tinst((zip arg1 symt2) @ (zip arg2 symt1)))
+            eqr
+        val symbody = 
+            mk_imp eqr symconc
+        val symcl = mk_foralls (arg1 @ arg2) symbody          
+        val arg3 = addprims arg2
+        val (transt1,transt2,transt3) =
+            (List.map mk_var arg1,
+             List.map mk_var arg2,
+             List.map mk_var arg3)
+        val transant2 = 
+            inst_form
+            (mk_tinst((zip arg1 transt2) @ (zip arg2 transt3)))
+            eqr
+        val transconc = 
+            inst_form
+            (mk_tinst((zip arg1 transt1) @ (zip arg2 transt3)))
+            eqr
+        val transbody = mk_imp (mk_conj eqr transant2)
+                               transconc
+        val transcl = mk_foralls (arg1 @ arg2 @ arg3)
+                                 transbody
+        val eqvcls = mk_conj reflcl (mk_conj symcl transcl)
+        val _ = eq_form (eqvcls,concl Reqv) orelse
+                raise simple_fail "newspec.Reqv concl"
+        val _ = HOLset.isSubset(cont Reqv,cont uexth) orelse
+                raise simple_fail "newspec.Reqv cont"
+        val _ = List.all (fn asm => List.exists
+                                        (fn a => eq_form(a,asm)) (ant uexth)) (ant Reqv) orelse
+                raise simple_fail "newspec.Reqv ant"
+        (*check the uexth*)
+        val maint = List.map mk_var arg
+        val mainprimv = addprims arg
+        val mainprimt = List.map mk_var mainprimv
+        val mainprim = inst_form
+            (mk_tinst (zip arg mainprimt)) Q
+        val relf = 
+            inst_form
+            (mk_tinst((zip arg1 maint) @ (zip arg2 mainprimt)))
+            eqr
+        val cj2ofit = mk_foralls mainprimv 
+                      (mk_imp mainprim relf)
+        val whole = mk_existss arg (mk_conj Q cj2ofit)
+        val _ = eq_form(whole,concl uexth) orelse
+                raise simple_fail "newspec.uexth concl"
+        (*check eth*)
+        val _ = HOLset.isSubset(cont eth,cont uexth) orelse
+                raise simple_fail "newspec.eth has extra variables"
+        val _ = eq_forml (ant eth) [] orelse
+                raise simple_fail "newspec.eth has assumptions"
+        val _ = eq_form(concl eth, mk_existss arg TRUE)
+                orelse 
+                raise simple_fail "newspec.ill-formed eth"
+        (*check the input contains all necessary ones*)
+        val inputvars0 = filter_cont (cont th)
+        val inputvars = List.foldr (fn (s,e) => HOLset.add(e,s)) 
+                           essps vl
+        val _ = HOLset.isSubset(inputvars0,inputvars) orelse 
+                raise simple_fail "there are necessary input variables missing"
+        val (newspvs,b) = dest_n_exists n (concl uexth)
+        val (main,impf) = dest_conj b 
+        val recoverex = mk_existss newspvs main
+        val sorts = List.map snd newspvs
+        val (ct,asm) = (cont uexth,ant uexth)
+        fun itmk fnl vl f = 
+            case fnl of 
+                [] => (fnl,f)
+              | h :: t =>
+                let val _ = new_fun (hd fnl) (hd sts,vl)
+                    val ft = mk_fun (hd fnl) (List.map mk_var vl)
+                    val (ns,b) = dest_exists f
+                    val f0 = substf (ns,ft) b
+                in itmk (tl fnl) vl f0
+                end
+        val (_,conc) = itmk fnames vl recoverex
+    in
+        mk_thm(ct,asm,conc)
+    end
+
+
+
+        fun mk_fsyms fnames arg vl = 
+List.map 
+
+
+            case fnames of [] => ()
+| h :: t => 
+        val fnspairs = zip fnames (List.map snd arg)
+        val _ = List.map new_fun
+
+
+
+new_fun fname (s,vl)
+
+
+        val n = List.length fnames
+        val (newspvs,b) = dest_n_exists n (concl uexth)
+        val (main,impf) = dest_conj b 
+        val 
+
+        (*number of new-speced function symbols*)
+        val asm = ant uexth
+        val c = concl uexth
+        val (uets,b) = dest_n_exists n c
+        (*actually can strip all exists here, 
+          since uexth will be a conjunction*) 
+        val (main,resp) = dest_conj b 
+        val 
+
