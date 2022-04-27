@@ -144,6 +144,11 @@ e0
 (form_goal “!J L.ufilter(L) ==> ~IN(Empty(J),L)”));
 
 
+val IN_UF_NONEMPTY = prove_store("IN_UF_NONEMPTY",
+e0
+(rpt strip_tac >> drule Empty_NOTIN_UF >> ccontra_tac >> fs[])
+(form_goal “!J L.ufilter(L) ==> !X.IN(X,L) ==> ~(X = Empty(J))”));
+
 val UFs_def = Thm_2_4 |> qspecl [‘Pow(Pow(J))’]
                       |> fVar_sInst_th “P(a:mem(Pow(Pow(J))))”
                       “ufilter(a:mem(Pow(Pow(J))))”
@@ -488,6 +493,18 @@ e0
 (form_goal “!A s. Inter(s,Empty(A)) = Empty(A)”));
 
 
+val IN_NONEMPTY = prove_store("IN_NONEMPTY",
+e0
+(rw[GSYM IN_EXT_iff,Empty_def] >> rpt strip_tac >>
+ dimp_tac >> strip_tac (* 2 *)
+ >-- (ccontra_tac >> fs[]) >>
+ ccontra_tac >>
+ qsuff_tac ‘!a. ~IN(a,s)’ >-- arw[] >>
+ strip_tac >> ccontra_tac >>
+ qsuff_tac ‘?a. IN(a,s)’ >--arw[] >>
+ qexists_tac ‘a’ >> arw[])
+(form_goal “!A s. (?a. IN(a,s)) <=> ~(s = Empty(A))”));
+
 val SS_Sing = prove_store("SS_Sing",
 e0
 (rw[SS_def,IN_Sing] >> rpt strip_tac >> dimp_tac >>
@@ -505,6 +522,13 @@ val Empty_Union = prove_store("Empty_Union",
 e0
 (rw[GSYM IN_EXT_iff,IN_Union,Empty_def])
 (form_goal “!A s. Union(Empty(A),s) = s”));
+
+
+val SS_Empty = prove_store("SS_Empty",
+e0
+(rw[GSYM IN_EXT_iff,Empty_def,SS_def])
+(form_goal “!A s. SS(s,Empty(A)) <=> s = Empty(A)”));
+
 
 val Fin_SS = prove_store("Fin_SS",
 e0
@@ -543,18 +567,6 @@ e0
  rw[Union_Sing] >> first_x_assum drule >>
  irule Fin_Ins >> arw[])
 (form_goal “!A s1:mem(Pow(A)) s2.Fin(Union(s1,s2)) <=> Fin(s1) & Fin(s2)”));
-
-val IN_NONEMPTY = prove_store("IN_NONEMPTY",
-e0
-(rw[GSYM IN_EXT_iff,Empty_def] >> rpt strip_tac >>
- dimp_tac >> strip_tac (* 2 *)
- >-- (ccontra_tac >> fs[]) >>
- ccontra_tac >>
- qsuff_tac ‘!a. ~IN(a,s)’ >-- arw[] >>
- strip_tac >> ccontra_tac >>
- qsuff_tac ‘?a. IN(a,s)’ >--arw[] >>
- qexists_tac ‘a’ >> arw[])
-(form_goal “!A s. (?a. IN(a,s)) <=> ~(s = Empty(A))”));
 
 val FIP_CUI_lemma = prove_store("FIP_CUI_lemma",
 e0
@@ -841,11 +853,6 @@ val EMPTY_Empty_Whole = prove_store("EMPTY_Empty_Whole",
 e0
 (rw[GSYM IN_EXT_iff,Empty_def,Whole_def,EMPTY_def])
 (form_goal “!A. EMPTY(A) <=> Empty(A) = Whole(A)”));
-
-val SS_Empty = prove_store("SS_Empty",
-e0
-(rw[GSYM IN_EXT_iff,Empty_def,SS_def])
-(form_goal “!A s. SS(s,Empty(A)) <=> s = Empty(A)”));
 
 val FIP_Empty_NOTIN_gfilter = prove_store("FIP_Empty_NOTIN_gfilter",
 e0
@@ -1298,7 +1305,14 @@ e0
  ?u:mem(UFs(A)). SS(ss,Repu(u))”));
 
 
+val FIP_Sing = prove_store("FIP_Sing",
+e0
+(rw[FIP_def] >> rpt strip_tac >>
+ fs[])
+(form_goal “!W a. ~(a = Empty(W)) ==> FIP(Sing(a)) ”));
 
+
+(*
 
 fun dest_n_exists n f = 
     if n = 0 then ([],f) else 
@@ -1376,12 +1390,6 @@ val eqr =
 
 (*must have arg1 and arg2 as var list, not terms, since they cannot always be represented as a single term. even if they can after certain function symbols exists, but newspec is often the fsyms which are required for capturing these arguments as a single term*)
 
-val a = ("A'",set_sort)
-val f = “P(A,A')”
-inst_form (mk_inst [(a,rastt "A")] []) f
-
- inst_form (mk_inst (zip arg2 argtrefl) []) eqr
-
 fun mk_tinst l = mk_inst l [] 
 
 fun addprims l = 
@@ -1417,10 +1425,25 @@ fun mk_existss nsl f =
 
 val vl = List.map dest_var [rastt "A",rastt "B"]
 
-
+(*
 newspec (arg1,arg2,eqr) (arg,Q) fnames vl eth eqvth
 uexth
+*)
 
+
+(*
+(AB,p1,p2),(AB',p1',p2') -> 
+ ?!(i : fun(AB, AB'))  (j : fun(AB', AB)).
+     i# o j# = Id(AB') &
+     j# o i# = Id(AB) &
+     p1' o i# = p1 & p2' o i# = p2 & p1 o j# = p1' & p2 o j# = p2'
+
+
+ER_def
+
+split the check into several functions
+
+*)
 fun newspec (arg1:(string * sort) list,
              arg2:(string * sort) list,eqr) 
             (arg:(string * sort) list,Q)
@@ -1499,6 +1522,7 @@ fun newspec (arg1:(string * sort) list,
         val recoverex = mk_existss newspvs main
         val sorts = List.map snd newspvs
         val (ct,asm) = (cont uexth,ant uexth)
+(*List.FOLD!!!!!!!!*)
         fun itmk fnl vl f = 
             case fnl of 
                 [] => (fnl,f)
@@ -1514,33 +1538,15 @@ fun newspec (arg1:(string * sort) list,
         mk_thm(ct,asm,conc)
     end
 
+ord(a) ->ord(a)
 
-
-        fun mk_fsyms fnames arg vl = 
-List.map 
-
-
-            case fnames of [] => ()
-| h :: t => 
-        val fnspairs = zip fnames (List.map snd arg)
-        val _ = List.map new_fun
+!o
+d:ord(a). ?!od':ord(a). od < od' & !od''. od < od'' ==> od' = od''
 
 
 
-new_fun fname (s,vl)
 
-
-        val n = List.length fnames
-        val (newspvs,b) = dest_n_exists n (concl uexth)
-        val (main,impf) = dest_conj b 
-        val 
-
-        (*number of new-speced function symbols*)
-        val asm = ant uexth
-        val c = concl uexth
-        val (uets,b) = dest_n_exists n c
-        (*actually can strip all exists here, 
-          since uexth will be a conjunction*) 
-        val (main,resp) = dest_conj b 
-        val 
-
+AX5 |> qspecl [‘N’] 
+|> fVar_sInst_th “P(n:mem(N),X)”
+   “nPow(B,n,X)”
+*)

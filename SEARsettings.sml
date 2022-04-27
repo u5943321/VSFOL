@@ -2264,7 +2264,7 @@ val nPow_def = qdefine_psym ("nPow",[‘B’,‘n:mem(N)’,‘Pn’])
     (!C0. Asset(App(f,O),C0) ==> Eqv(C0,B)) &
     (!k Ck Csk. 
       Lt(k,n) &
-      Asset(App(f,O),Ck) & Asset(App(f,O),Csk) ==>
+      Asset(App(f,k),Ck) & Asset(App(f,Suc(k)),Csk) ==>
       Eqv(Csk,Pow(Ck))) & 
     (!Cn. Asset(App(f,n),Cn) ==> Eqv(Cn,Pn))’
     |> store_as "nPow_def";
