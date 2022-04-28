@@ -1292,9 +1292,61 @@ val MEQ_def =
 (*
 val plfilter_def = prove_store(""
 *)
+
+val pufilter_def = proved_th $
+e0
+(rpt strip_tac >>
+ assume_tac
+ (IN_def_P |> qspecl [‘Pow(A)’] 
+ |> fVar_sInst_th “P(s:mem(Pow(A)))”
+    “IN(a:mem(A),s)”) >>
+ arw[])
+(form_goal “!A a:mem(A).
+ ?!ss. !s. IN(s,ss) <=> IN(a,s)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "pufilter" [‘a’]
+
+val pufilter_filter = prove_store("pufilter_filter",
+e0
+(rw[filter_def,pufilter_def,IN_Inter,EMPTY_def,Whole_def] >>
+ rpt strip_tac (* 2 *)
+ >-- (ccontra_tac >> 
+     first_x_assum (qspecl_then [‘a’] assume_tac) >> 
+     arw[]) >>
+ fs[SS_def] >> first_x_assum irule >> arw[]
+ )
+(form_goal “!A a:mem(A). filter(pufilter(a))”));
+
+
+val pufilter_ufilter = prove_store("pufilter_ufilter",
+e0
+(rw[ufilter_def,pufilter_filter,pufilter_def,IN_Compl])
+(form_goal “!A a:mem(A). ufilter(pufilter(a))”));
+
+val Repu_eq_eq = prove_store("Repu_eq_eq",
+e0
+(rw[Repu_def] >> 
+assume_tac (UFs_def|> conjE1 |> gen_all) >>
+rpt strip_tac >>
+first_x_assum (qspecl_then [‘W’] assume_tac) >>
+fs[Inj_def] >> first_x_assum irule >> arw[])
+(form_goal “!W u1:mem(UFs(W)) u2. Repu(u1) = Repu(u2) ==>
+ u1 = u2”));
+
 val Pft_def = proved_th $
 e0
-(rpt strip_tac >> cheat
+(rpt strip_tac >> 
+ qsuff_tac ‘?uw:mem(UFs(W)).
+ !ws.IN(ws,Repu(uw)) <=> IN(w0,ws)’
+ >-- (rpt strip_tac >>
+     uex_tac >> qexists_tac ‘uw’ >> arw[] >>
+     rpt strip_tac >>
+     irule Repu_eq_eq >> 
+     arw[GSYM IN_EXT_iff]) >>
+ assume_tac
+ (from_UFs |> gen_all |> qsspecl [‘pufilter(w0:mem(W))’]) >>
+ fs[pufilter_ufilter] >>
+ qexists_tac ‘b’ >> pop_assum (assume_tac o GSYM)  >>
+ arw[pufilter_def]
  )
 (form_goal “!W w0:mem(W). ?!uw:mem(UFs(W)).
  !ws.IN(ws,Repu(uw)) <=> IN(w0,ws)”)
@@ -2057,7 +2109,10 @@ e0
           qexistsl_tac [‘W'’,‘M'’,‘w'’] >>
           qby_tac ‘!f1. IN(f1,Del(ss,f)) ==> satis(M',w',f1)’ 
           >-- (rpt strip_tac >>
-              qby_tac ‘?f0. f1 = Neg(f0)’ >-- cheat >> fs[] >>
+              qby_tac ‘?f0. f1 = Neg(f0)’ >-- 
+              (fs[SS_def] >>
+              first_x_assum drule >>
+              rfs[]>> qexists_tac ‘psi0’ >> rw[]) >> fs[] >>
               fs[] >> ccontra_tac  >>
               qby_tac ‘?f0. IN(Neg(f0),Del(ss,f)) & satis(M',w',f0)’ 
               >-- (qexists_tac ‘f0’ >> arw[] >> fs[satis_Neg]) >>
