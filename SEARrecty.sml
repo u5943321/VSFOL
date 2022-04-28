@@ -1483,6 +1483,51 @@ e0
 
 
 
+val Fin_Inter = prove_store("Fin_Inter",
+e0
+cheat
+(form_goal “!A s1:mem(Pow(A)) s2. Fin(s1) | Fin(s2) ==> Fin(Inter(s1,s2))”));
+
+val SATIS_Inter = prove_store("SATIS_Inter",
+e0
+(rw[SATIS_def,IN_Inter] >> cheat)
+(form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))) w s1 s2.
+ SATIS(M,w,Inter(s1,s2)) <=> SATIS(M,w,s1) & SATIS(M,w,s2)”))
+
+
+
+val only_see_whole_world = prove_store("only_see_whole_world",e0
+(cheat)
+(form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))).osee(M, Whole(W)) = Whole(W)”));
+
+val SATIS_Empty = prove_store("SATIS_Empty",
+e0
+(rw[SATIS_def,Empty_def])
+(form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))) w.
+ SATIS(M,w,Empty(form(A)))”));
+
+
+val BIGCONJ_EXISTS = prove_store("BIGCONJ_EXISTS",
+e0
+(ind_with (Fin_induct |> qspecl [‘form(A)’]) >>
+ rw[SATIS_Empty] >> rpt strip_tac 
+ >-- (qexists_tac ‘Top(A)’ >> rw[satis_Top]) >>
+ qexists_tac ‘Conj(x,ff)’>>
+ arw[satis_Conj,SATIS_def,Ins_def] >>
+ rw[imp_or_distr] >> rpt strip_tac >> dimp_tac >>
+ rpt strip_tac >> arw[] (* 2 *)
+ >-- (first_x_assum irule >> arw[])
+ >-- (first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+     fs[]) >>
+ first_x_assum (qspecl_then [‘f’] strip_assume_tac) >>
+ first_x_assum irule >> arw[])
+(form_goal 
+ “!s.Fin(s) ==> ?ff. 
+  !W M:mem(Pow(W * W) * Exp(W,Pow(A))) w. 
+   satis(M,w,ff) <=> SATIS(M,w,s)”));
+
+
+
 
 
 val Prop_5_9 = prove_store("Prop_5_9",
@@ -1505,51 +1550,46 @@ e0
     “IN(osee(M:mem(Pow(W * W) * Exp(W,Pow(A))),Y),Repu(w))”)
  >> pop_assum strip_assume_tac >>
  qby_tac ‘FIP(Union(D0,Ys))’ >-- 
- (irule FIP_closed_under_Inter >> rpt strip_tac (* 3 *)
+ (irule FIP_closed_under_Inter >> rpt strip_tac (* 5 *)
   >-- (rfs[Prop_5_5_2] >>
       irule Inter_IN_ufilter >> fs[Repu_ufilter]) 
-  >-- rfs[] >>
-      qexists_tac ‘Inter(ss,ss')’  
-      >-- rw[] (*need SATIS_Inter, up to here*)
-
-
-cheat >-- cheat >>
-  rfs[] >>
-  qsuff_tac ‘?u. (!e1. IN(e1,u) ==> !e2. IN(e2,u) ==> ~(Inter(e1,e2) = Empty(W))) &IN(a,u) & IN(b,u)’
-  >-- (strip_tac >> first_x_assum irule >> arw[]) >>
-  qby_tac ‘?u. Rm(UE(M),w,u) & SATIS(UE(M),u,ss)’
-  >-- (drule $ iffLR Fsab_def >>
-      first_x_assum (qsspecl_then [‘ss’] assume_tac) >>
-      rfs[] >> drule $ iffLR Sab_def >>
-      pop_assum mp_tac >> rw[GSYM Sucm_def]) >>
-  pop_assum strip_assume_tac >> qexists_tac ‘Repu(u)’ >>
-  qby_tac ‘!e1. IN(e1,Repu(u)) ==> !e2. IN(e2,Repu(u))
-  ==> ~(Inter(e1,e2) = Empty(W))’
-  >-- cheat (*basic about UF*) >> 
-  arw[] >>
-  qby_tac ‘IN(a,Repu(u))’ 
-  >-- (qsuff_tac ‘?us. SS(us,Repu(u)) & Fin(us) & SS(BIGINTER(us),a) ’
-       >-- cheat >>
-       qexists_tac ‘IMAGE(SW(M),ss)’ >>
-       qby_tac ‘Fin(IMAGE(SW(M),ss))’ 
-       >-- (irule IMAGE_FINITE >> arw[]) >> arw[] >>
-       qby_tac ‘SS(IMAGE(SW(M), ss), Repu(u))’ 
-       >-- (rw[SS_def] >> drule $ iffLR SATIS_def >>
-           fs[GSYM Prop_5_8] >> 
-           qsuff_tac ‘!a. IN(a, IMAGE(SW(M), ss)) ==>
-                      ?f. IN(f,ss) & a = Sw(M,f)’
-           >-- (rpt strip_tac >>
-               first_x_assum drule >> fs[] >> first_x_assum irule >> arw[]) >>
-           rpt strip_tac >> fs[IMAGE_def,SW_def] >>
-           qexists_tac ‘a''’ >> arw[Sw_def]) >> arw[] >>
-      rw[SS_def] >> rpt strip_tac >>
-      arw[SATIS_def] >> rpt strip_tac >>
-      fs[IN_BIGINTER] >> 
-      first_x_assum (qspecl_then [‘Sw(M,f)’] assume_tac) >>
-      fs[Sw_def,SW_def] >> first_x_assum irule >>
-      irule IN_App_IMAGE >> arw[]) >>
-  qby_tac ‘IN(b,Repu(u))’ 
-  >-- (fs[Prop_5_6] >> first_x_assum irule >> arw[]) >> arw[]) >>
+  >-- (rfs[] >>
+      qexists_tac ‘Inter(ss,ss')’ >> rpt strip_tac 
+      >-- (irule Fin_Inter >> arw[]) 
+      >-- (irule SS_Trans >>
+          qexists_tac ‘ss’ >> arw[Inter_SS]) >>
+      arw[IN_Inter,SATIS_Inter]) 
+  >-- (arw[GSYM IN_NONEMPTY] >>
+      qexists_tac ‘Whole(W)’ >>
+      rw[only_see_whole_world] >>
+      qsspecl_then [‘w’] assume_tac Repu_ufilter >>
+      drule Whole_IN_ufilter >> arw[]) 
+  >-- (arw[GSYM IN_NONEMPTY] >>
+      qexistsl_tac [‘Whole(W)’,‘Empty(form(A))’] >>
+      rw[Fin_Empty,Empty_SS,SATIS_def,Whole_def,Empty_def])
+  >-- (rfs[Fsab_def] >>
+      drule BIGCONJ_EXISTS >> fs[] >>
+      arw[GSYM IN_NONEMPTY,IN_Inter] >>
+      first_x_assum (qspecl_then [‘ss’] assume_tac) >>
+      rfs[] >> fs[Sab_def] >>
+      first_assum (drule o iffRL) >>
+      qby_tac ‘SS(Ys,Repu(x))’
+      >-- fs[Sucm_def,Prop_5_6,SS_def] >>
+      fs[SS_def] >> 
+      qby_tac ‘IN(b,Repu(x))’ 
+      >-- (first_assum irule >> arw[]) >>
+      qby_tac ‘a = Sw(M,ff)’
+      >-- arw[GSYM IN_EXT_iff,Sw_def,SW_def] >> 
+      qby_tac ‘IN(Inter(a,b),Repu(x))’
+      >-- (irule Inter_IN_ufilter >> arw[Repu_ufilter] >>
+          irule $ iffRL Prop_5_8 >> 
+          arw[]) >>
+      qsspecl_then [‘x’] assume_tac Repu_ufilter >>
+      drule IN_UF_NONEMPTY >>
+      first_x_assum drule >>
+      fs[GSYM IN_NONEMPTY] >>
+      qexists_tac ‘a'’ >> fs[IN_Inter] >>
+      rfs[]))>>
  qby_tac ‘?w'. SS(Union(D0,Ys),Repu(w'))’
  >-- (irule Prop_5_3 >> arw[]) >> 
  pop_assum strip_assume_tac >>     
@@ -1561,11 +1601,12 @@ cheat >-- cheat >>
      >-- (arw[SS_def] >> rpt strip_tac >> first_x_assum drule >> arw[]) >>
      irule SS_Trans >>
      qexists_tac ‘Union(D0,Ys)’ >> arw[] >>
-     (* union ss lemma *) cheat) >>
+     rw[SS_Union]) >>
  rw[SATIS_def,GSYM Prop_5_8] >> 
  rpt strip_tac >>
  qsuff_tac ‘IN(Sw(M, f), D0)’ 
- >-- cheat (*subset easy*) >>
+ >-- (strip_tac >> fs[SS_def,IN_Union] >> 
+     first_x_assum irule >> arw[]) >>
  arw[] >>
  qexists_tac ‘Sing(f)’ >> rw[Fin_Sing] >>
  arw[SS_def,Sing_def,Sg_def] >>
@@ -1573,8 +1614,43 @@ cheat >-- cheat >>
  rw[Sw_def,SW_def,GSYM Sing_def,SATIS_Sing])
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))). Msat(UE(M))”));
 
+val PE_Conj = PE_rules |> conjE2 |> conjE2 |> conjE2 |> conjE1
+
+val PE_BIGCONJ = prove_store("PE_BIGCONJ",
+e0
+(ind_with (Fin_induct |> qspecl [‘form(A)’]) >>
+ rw[SATIS_Empty] >> rpt strip_tac 
+ >-- (qexists_tac ‘Top(A)’ >> rw[satis_Top,PE_rules]) >>
+ qby_tac
+ ‘!f. IN(f,xs0) ==> PE(f)’
+ >-- (rpt strip_tac >>
+     first_x_assum (qspecl_then [‘f’] assume_tac) >>
+     rfs[Ins_def]) >>
+ first_x_assum drule >> fs[] >> 
+ qby_tac ‘PE(x)’ 
+ >-- (last_x_assum irule >> rw[Ins_def]) >>
+ qexists_tac ‘Conj(x,ff)’ >> rpt strip_tac (* 2 *)
+ >-- (irule PE_Conj >> arw[]) >> 
+ arw[satis_Conj,SATIS_def,Ins_def] >>
+ rw[imp_or_distr] >> rpt strip_tac >> dimp_tac >>
+ rpt strip_tac >> arw[] (* 2 *)
+ >-- (first_x_assum irule >> arw[])
+ >-- (first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+     fs[]) >>
+ first_x_assum (qspecl_then [‘f’] strip_assume_tac) >>
+ first_x_assum irule >> arw[])
+(form_goal 
+ “!s.Fin(s) ==> 
+     (!f. IN(f,s) ==> PE(f)) ==>
+?ff. PE(ff) & 
+  !W M:mem(Pow(W * W) * Exp(W,Pow(A))) w. 
+   satis(M,w,ff) <=> SATIS(M,w,s)”));
+
 
 (* Z v1 v2 iff ∀ φ. PE φ ∧ M1, v1 􏲖 φ ⇒ M2, v2 􏲖 φ is a simulation. *)
+
+val PE_Diam = PE_rules |> conjE2 |> conjE2
+                       |> conjE2 |> conjE2 |> conjE2
 
 val Thm_6_22 = prove_store("Thm_6_22",
 e0
@@ -1591,9 +1667,31 @@ e0
      first_x_assum (drule o iffLR) >>
      first_x_assum (qspecl_then [‘Var(p)’] assume_tac) >>
      fs[PE_rules]) >> arw[] >> rpt strip_tac >>
- (*qby_tac ‘?d. !phi. IN(phi,d) <=> 
-              PE(phi) & satis(M,w1',phi)’ >-- cheat >>*)
- cheat)
+ qby_tac ‘?d. !phi. IN(phi,d) <=> 
+              PE(phi) & satis(M1,v,phi)’ >-- cheat >>
+ pop_assum strip_assume_tac >> fs[Msat_def] >> 
+ rfs[] >> 
+ qsuff_tac ‘Sab(d,Sucm(M2,w2'),M2)’ 
+ >-- (rw[Sab_def] >> strip_tac >> qexists_tac ‘x’ >>
+     fs[Sucm_def] >> fs[SATIS_def] >> rpt strip_tac >>
+     first_x_assum irule >> arw[]) >> 
+ fs[Msat_def] >> first_x_assum irule >>
+ rw[Fsab_def,Sab_def] >> rpt strip_tac >>
+ drule PE_BIGCONJ >>
+ qby_tac ‘!f. IN(f,ss) ==> PE(f)’ 
+ >-- (rpt strip_tac >> fs[SS_def] >>
+     first_x_assum drule >> rfs[]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ pop_assum (assume_tac o GSYM) >> 
+ arw[] >> 
+ rw[Sucm_def,GSYM satis_def] >> first_x_assum irule >>
+ strip_tac >-- (irule PE_Diam >> arw[]) >>
+ rw[satis_def] >> qexists_tac ‘v’ >> arw[] >> 
+ pop_assum (assume_tac o GSYM) >> arw[SATIS_def] >>
+ rpt strip_tac >> fs[SS_def] >>
+ qby_tac ‘IN(f,d)’ >-- (first_x_assum irule >> arw[]) >>
+ rfs[])
 (form_goal “!M1 M2.Msat(M1) & Msat(M2) ==> 
  !w1:mem(W1) w2:mem(W2). (!f:mem(form(A)).PE(f) ==> satis(M1,w1,f) ==> satis(M2,w2,f)) ==>
  ?R. Sim(R,M1,M2) & Holds(R,w1,w2)”));

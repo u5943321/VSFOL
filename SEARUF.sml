@@ -1308,7 +1308,7 @@ e0
 val FIP_Sing = prove_store("FIP_Sing",
 e0
 (rw[FIP_def] >> rpt strip_tac >>
- fs[])
+ fs[SS_Sing,BIGINTER_Sing])
 (form_goal “!W a. ~(a = Empty(W)) ==> FIP(Sing(a)) ”));
 
 
