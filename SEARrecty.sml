@@ -1485,19 +1485,27 @@ e0
 
 val Fin_Inter = prove_store("Fin_Inter",
 e0
-cheat
+(rpt strip_tac (* 2 *)
+ >-- (irule Fin_SS >> qexists_tac ‘s1’ >> arw[Inter_SS]) >>
+ irule Fin_SS >> qexists_tac ‘s2’ >> arw[Inter_SS])
 (form_goal “!A s1:mem(Pow(A)) s2. Fin(s1) | Fin(s2) ==> Fin(Inter(s1,s2))”));
 
-val SATIS_Inter = prove_store("SATIS_Inter",
+
+val SATIS_Union = prove_store("SATIS_Union",
 e0
-(rw[SATIS_def,IN_Inter] >> cheat)
+(rw[SATIS_def,IN_Union] >> rpt strip_tac >> 
+ dimp_tac >> rpt strip_tac (* 3 *)
+ >-- (first_x_assum irule >> arw[]) 
+ >-- (first_x_assum irule >> arw[]) 
+ >-- (first_x_assum drule >> arw[]) >>
+ first_x_assum drule >> arw[])
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))) w s1 s2.
- SATIS(M,w,Inter(s1,s2)) <=> SATIS(M,w,s1) & SATIS(M,w,s2)”))
+ SATIS(M,w,Union(s1,s2)) <=> SATIS(M,w,s1) & SATIS(M,w,s2)”))
 
 
 
 val only_see_whole_world = prove_store("only_see_whole_world",e0
-(cheat)
+(rw[GSYM IN_EXT_iff,Whole_def,osee_def])
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))).osee(M, Whole(W)) = Whole(W)”));
 
 val SATIS_Empty = prove_store("SATIS_Empty",
@@ -1529,11 +1537,21 @@ e0
 
 
 
+val SS_Union_of = prove_store("SS_Union_of",
+e0
+(rw[SS_def,IN_Union] >> rpt strip_tac >>
+ first_x_assum drule >> arw[] )
+(form_goal “!A s1:mem(Pow(A)) s2 s. SS(s1,s) & SS(s2,s) ==> SS(Union(s1,s2),s)”));
 
 val Prop_5_9 = prove_store("Prop_5_9",
 e0
 (strip_tac >> rw[Msat_def] >> rpt strip_tac >>
- qcases ‘EMPTY(W)’ >-- cheat >>
+ qcases ‘EMPTY(W)’ >-- 
+ (fs[Fsab_def] >>
+ first_x_assum (qspecl_then [‘Empty(form(A))’] assume_tac) >>
+ fs[Fin_Empty,Empty_SS,Sab_def] >>
+ qsspecl_then [‘x’] assume_tac Repu_ufilter >>
+ fs[ufilter_def,filter_def]) >>
  qby_tac
  ‘?D0. !ws. IN(ws,D0) <=>
   ?ss. Fin(ss) & SS(ss,fs) & 
@@ -1554,11 +1572,10 @@ e0
   >-- (rfs[Prop_5_5_2] >>
       irule Inter_IN_ufilter >> fs[Repu_ufilter]) 
   >-- (rfs[] >>
-      qexists_tac ‘Inter(ss,ss')’ >> rpt strip_tac 
-      >-- (irule Fin_Inter >> arw[]) 
-      >-- (irule SS_Trans >>
-          qexists_tac ‘ss’ >> arw[Inter_SS]) >>
-      arw[IN_Inter,SATIS_Inter]) 
+      qexists_tac ‘Union(ss,ss')’ >> rpt strip_tac 
+      >-- (irule $ iffRL Fin_Union >> arw[]) 
+      >-- (irule SS_Union_of >> arw[]) >>
+      rw[IN_Inter] >> arw[] >>rw[SATIS_Union]) 
   >-- (arw[GSYM IN_NONEMPTY] >>
       qexists_tac ‘Whole(W)’ >>
       rw[only_see_whole_world] >>
@@ -1646,6 +1663,46 @@ e0
   !W M:mem(Pow(W * W) * Exp(W,Pow(A))) w. 
    satis(M,w,ff) <=> SATIS(M,w,s)”));
 
+val PE_Disj = PE_rules |> conjE2 |> conjE2 
+                       |> conjE2 |> conjE2
+                       |> conjE1
+
+val PE_BIGDISJ = prove_store("PE_BIGDISJ",
+e0
+(ind_with (Fin_induct |> qspecl [‘form(A)’]) >>
+ rw[SATIS_Empty,Empty_def] >> rpt strip_tac 
+ >-- (qexists_tac ‘Bot(A)’ >> rw[satis_Bot,PE_rules] >>
+      rpt strip_tac >> ccontra_tac >>
+      pop_assum (x_choose_then "a" assume_tac) >>
+      (*tactic BUG!!!!!!! if fs[], then 
+         ERR
+     ("sort of the variable to be abstract has extra variable(s)", [], [W],
+      []) raised*)
+      arw[]) >>
+ qby_tac
+ ‘!f. IN(f,xs0) ==> PE(f)’
+ >-- (rpt strip_tac >>
+     first_x_assum (qspecl_then [‘f’] assume_tac) >>
+     rfs[Ins_def]) >>
+ first_x_assum drule >> fs[] >> 
+ qby_tac ‘PE(x)’ 
+ >-- (last_x_assum irule >> rw[Ins_def]) >>
+ qexists_tac ‘Disj(x,ff)’ >> rpt strip_tac (* 2 *)
+ >-- (irule PE_Disj >> arw[]) >> 
+ arw[satis_def,SATIS_def,Ins_def] >>
+ rw[imp_or_distr] >> rpt strip_tac >> dimp_tac >>
+ rpt strip_tac >> arw[] (* 4 *)
+ >-- (qexists_tac ‘x’ >> arw[])
+ >-- (qexists_tac ‘f’ >> arw[])
+ >-- rfs[] >>
+ disj2_tac >> qexists_tac ‘f’ >> arw[])
+(form_goal 
+ “!s.Fin(s) ==> 
+     (!f. IN(f,s) ==> PE(f)) ==>
+?ff. PE(ff) & 
+  !W M:mem(Pow(W * W) * Exp(W,Pow(A))) w. 
+   satis(M,w,ff) <=> ?f.IN(f,s) & satis(M,w,f)”));
+
 
 (* Z v1 v2 iff ∀ φ. PE φ ∧ M1, v1 􏲖 φ ⇒ M2, v2 􏲖 φ is a simulation. *)
 
@@ -1668,7 +1725,10 @@ e0
      first_x_assum (qspecl_then [‘Var(p)’] assume_tac) >>
      fs[PE_rules]) >> arw[] >> rpt strip_tac >>
  qby_tac ‘?d. !phi. IN(phi,d) <=> 
-              PE(phi) & satis(M1,v,phi)’ >-- cheat >>
+              PE(phi) & satis(M1,v,phi)’ >-- 
+ (accept_tac (IN_def_P_ex |> GSYM |> qspecl [‘form(A)’] 
+ |> fVar_sInst_th “P(phi:mem(form(A)))”
+    “PE(phi:mem(form(A))) & satis(M1,v:mem(W1),phi)”)) >>
  pop_assum strip_assume_tac >> fs[Msat_def] >> 
  rfs[] >> 
  qsuff_tac ‘Sab(d,Sucm(M2,w2'),M2)’ 
@@ -1730,14 +1790,48 @@ val Ent_def = qdefine_psym("Ent",[‘phi:mem(form(A))’,‘psi:mem(form(A))’]
 
 val PEC_def = proved_th $
 e0
-cheat
+(rpt strip_tac >>
+ accept_tac
+ (IN_def_P |> qspecl [‘form(A)’] 
+ |> fVar_sInst_th “P(phi:mem(form(A)))”
+    “PE(phi) & Ent(f,phi:mem(form(A)))”))
 (form_goal “!A f:mem(form(A)). ?!pec.
  !phi. IN(phi,pec) <=> PE(phi) & Ent(f,phi)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "PEC" [‘f’]
 
 val Fin_ENT_PE = prove_store("Fin_ENT_PE",
 e0
-cheat
+(qsuff_tac
+ ‘!fs. Fin(fs) ==> (!f. IN(f,fs) ==> PE(f))==> 
+ ?phi:mem(form(A)).PE(phi) &
+       !W M w:mem(W).SATIS(M,w,fs) <=> satis(M,w,phi)’
+ >-- (rpt strip_tac >> first_x_assum irule >> arw[]) >>
+ ind_with (Fin_induct |> qspecl [‘form(A)’]) >>
+ rw[Empty_def] >> strip_tac (* 2 *)
+ >-- (rw[SATIS_Empty] >> qexists_tac ‘Top(A)’ >>
+     rw[PE_rules,satis_Top]) >>
+ rw[Ins_def] >> rpt strip_tac >>
+ qby_tac 
+ ‘!f. IN(f,xs0) ==> PE(f)’ 
+ >-- (rpt strip_tac >> first_x_assum irule >> arw[]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ rw[SATIS_def,Ins_def] >> 
+ qexists_tac ‘Conj(x,phi)’ >>
+ rw[satis_Conj] >>
+ rpt strip_tac (* 2 *)
+ >-- (irule PE_Conj >> arw[] >> 
+     last_x_assum irule >> arw[]) >>
+ dimp_tac >> rpt strip_tac (* 4 *)
+ >-- (first_x_assum irule >> rw[]) 
+ >-- (first_x_assum (irule o iffLR) >>
+     rw[SATIS_def] >> rpt strip_tac >>
+     first_x_assum irule >> arw[])
+ >-- fs[] >>
+ qsuff_tac ‘SATIS(M,w,xs0)’ 
+ >-- (rw[SATIS_def] >> rpt strip_tac >>
+     first_x_assum irule >> arw[]) >>
+ arw[])
 (form_goal
  “!fs. Fin(fs) & (!f. IN(f,fs) ==> PE(f))==> 
  ?phi:mem(form(A)).PE(phi) &
@@ -1752,13 +1846,14 @@ e0
 
 val SATIS_PEC = prove_store("SATIS_PEC",
 e0
-cheat
+(rw[SATIS_def] >> rpt strip_tac >>
+ fs[PEC_def,Ent_def] >> first_x_assum irule >> arw[])
 (form_goal “!f M:mem(Pow(W * W) * Exp(W,Pow(A))) w.
  satis(M,w,f) ==> SATIS(M,w,PEC(f)) ”));
 
 val satis_Neg = prove_store("satis_Neg",
 e0
-cheat
+(rw[satis_def])
 (form_goal
  “!M:mem(Pow(W * W) * Exp(W,Pow(A))) w.satis(M, w, Neg(f)) <=> ~satis(M, w, f)”));
 
@@ -1767,6 +1862,127 @@ e0
 cheat
 (form_goal “!f1:mem(form(A)) f2.Neg(f1) = Neg(f2) <=> f1 = f2”));
 
+
+val SS_Ins_Del = prove_store("SS_Ins_Del",
+e0
+(rw[SS_def,Ins_def,Del_def] >> 
+ rpt strip_tac >> first_x_assum drule >> rfs[])
+(form_goal “!A a:mem(A) ss G.SS(ss, Ins(a, G)) ==> SS(Del(ss, a), G)
+”));
+
+(*
+val Fin_Bij = prove_store("Fin_Bij",
+e0
+()
+(form_goal “”));
+
+
+val Fin_Inj_Whole = prove_store("Fin_Inj_Whole",
+e0
+(strip_tac >>
+ ind_with (Fin_induct |> qspecl [‘B’]) >>
+ )
+(form_goal “!B s. Fin(s) ==> s = Whole(B) ==>
+ !A f:A->B. Inj(f) ==> Fin(Whole(A))”));
+*)
+
+val IMAGE_eq_Empty = prove_store("IMAGE_eq_Empty",
+e0
+(cheat)
+(form_goal “!A B f:A->B ss. IMAGE(f,ss) = Empty(B) <=>
+ ss = Empty(A)”));
+
+val Ins_Del = prove_store("Ins_Del",
+e0
+(rw[GSYM IN_EXT_iff,Ins_def,Del_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- arw[] >>
+ arw[] >> 
+ qcases ‘x = a’ >> arw[])
+(form_goal “!A s a:mem(A). IN(a,s) ==>Ins(a, Del(s, a)) = s ”));
+
+val NOTIN_Del = prove_store("NOTIN_Del",
+e0
+(rw[GSYM IN_EXT_iff,Del_def] >>
+ rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ ccontra_tac >> fs[])
+(form_goal “!A a:mem(A) s. ~IN(a,s) ==> Del(s,a) = s”));
+
+val Del_Fin = prove_store("Del_Fin",
+e0
+(rpt strip_tac >>
+ qcases ‘IN(a,s)’ 
+ >-- (drule Fin_Ins >>
+     first_x_assum (qspecl_then [‘a’] assume_tac) >>
+     drule Ins_Del >> fs[]) >> 
+ drule NOTIN_Del >> fs[])
+(form_goal “!A s a:mem(A). Fin(Del(s,a)) ==>Fin(s)”));
+
+
+val Inj_IMAGE_Del = prove_store("Inj_IMAGE_Del",
+e0
+(rw[GSYM IN_EXT_iff,Del_def,IMAGE_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 3 *)
+ >-- (arw[] >> qexists_tac ‘a'’ >> arw[]) 
+ >-- (ccontra_tac >> fs[Inj_def] >>
+     first_x_assum drule >> fs[]) >>
+ qexists_tac ‘a'’ >> arw[] >> ccontra_tac >> fs[]
+)
+(form_goal “!A B f:A->B ss a.Inj(f) ==> IMAGE(f, Del(ss, a)) = 
+ Del(IMAGE(f,ss),App(f,a)) ”));
+
+val Fin_Inj0 = prove_store("Fin_Inj0",
+e0
+(strip_tac >> ind_with (Fin_induct |> qspecl [‘B’]) >>
+ flip_tac >> rw[IMAGE_eq_Empty] >>
+ rpt strip_tac (* 2 *)
+ >-- arw[Fin_Empty] >> 
+ qcases ‘IN(x,xs0)’ 
+ >-- (drule Ins_absorb >> fs[] >>
+     first_x_assum drule >> first_x_assum irule >> arw[]) >>
+ qby_tac ‘?!a. IN(a,ss) & App(f,a) = x’ 
+ >-- (fs[GSYM IN_EXT_iff,IMAGE_def,Ins_def] >>
+     first_x_assum (qspecl_then [‘x’] assume_tac) >>
+     fs[] >>
+     uex_tac >> qexists_tac ‘a’ >> arw[] >>
+     rpt strip_tac >> 
+     fs[Inj_def] >> first_x_assum irule >> arw[]) >>
+ pop_assum (strip_assume_tac o uex_expand) >> 
+ first_x_assum (qsspecl_then [‘f’,‘Del(ss,a)’] assume_tac) >>
+ rfs[] >>
+ qsuff_tac ‘IMAGE(f, Del(ss, a)) = xs0’ 
+ >-- (strip_tac >> first_x_assum drule >>
+     drule Del_Fin >> arw[]) >>
+ drule Inj_IMAGE_Del >> arw[] >>
+ drule Del_Ins >> arw[])
+(form_goal “!B s. Fin(s) ==> !A f:A->B ss. s = IMAGE(f,ss) ==>
+ Inj(f) ==> Fin(ss)”));
+
+val Fin_Inj = prove_store("Fin_Inj",
+e0
+(rpt strip_tac >>
+ drule Fin_Inj0 >> 
+ first_x_assum irule >>
+ qexists_tac ‘f’ >> arw[])
+(form_goal “!A B f:A->B. Inj(f) ==>
+ !ss:mem(Pow(A)) . Fin(IMAGE(f,ss)) ==>
+ Fin(ss)”));
+
+
+(*
+val Fin_IMAGE = prove_store("Fin_IMAGE",
+e0
+cheat
+(form_goal “!A ss:mem(Pow(A)). Fin(ss) ==>
+ !B f:A->B. Fin(IMAGE(f,ss))”));
+*)
+
+
+
+val NEG_Inj = prove_store("NEG_Inj",
+e0
+cheat
+(form_goal “!A. Inj(NEG(A))”));
 
 val Thm_6_25_l2r = prove_store("Thm_6_25_l2r",
 e0
@@ -1808,11 +2024,20 @@ e0
                  “IN(Neg(f0),Del(ss,f:mem(form(A))))”
               |> uex2ex_rule) >> 
      pop_assum strip_assume_tac >>
-     qby_tac ‘Fin(ss0)’ >-- (*FINITE_Inj*) cheat >>
+     qby_tac ‘Fin(ss0)’ >-- 
+     (irule Fin_Inj >>
+     qexistsl_tac [‘form(A)’,‘NEG(A)’] >>
+     rw[NEG_Inj] >> irule Fin_SS >>
+     qexists_tac ‘Del(ss,f)’ >>
+     rw[SS_def,GSYM Neg_def,IMAGE_def] >> 
+     rpt strip_tac (* 2 *)
+     >-- rfs[] >>
+     irule Fin_Del >> arw[]) >>
      qby_tac
      ‘!psi0.IN(Neg(psi0),G) ==> PE(psi0) & ~satis(M,w,psi0)’
      >-- (arw[] >> rw[Neg_eq_eq] >> rpt strip_tac >> rfs[] >> arw[]) >>
-     qby_tac ‘SS(Del(ss,f),G)’ >-- cheat >> 
+     qby_tac ‘SS(Del(ss,f),G)’ >--
+     (irule SS_Ins_Del >> arw[])  >> 
      qby_tac ‘!f0. IN(f0,ss0) ==> PE(f0)’ 
      >-- (rpt strip_tac >> drule $ iffLR SS_def >> 
           first_x_assum (drule o iffLR) >> 
@@ -1822,7 +2047,8 @@ e0
           drule $ iffLR SS_def >> first_x_assum irule >> arw[]) >>
      qby_tac ‘?ff. PE(ff) & !V M1:mem(Pow(V * V) * Exp(V,Pow(A))) v.
               satis(M1,v,ff) <=> ?f0. IN(f0,ss0) & satis(M1,v,f0)’
-     >-- cheat >> pop_assum strip_assume_tac >>
+     >-- (irule PE_BIGDISJ >> arw[]) >>
+     pop_assum strip_assume_tac >>
      qby_tac ‘IN(ff,PEC(f))’ 
      >-- (rw[PEC_def] >> arw[] >> rw[Ent_def] >>
           arw[] >> rpt strip_tac >> ccontra_tac >>
@@ -1854,7 +2080,7 @@ e0
          >-- (qsuff_tac ‘SS(Del(ss,f),G)’
              >-- (rw[SS_def] >> rpt strip_tac >>
                  first_x_assum irule >> arw[]) >>
-             cheat (* SS(ss, Ins(f, G)) ==> SS(Del(ss, f), G)*)) >>
+             arw[]) >>
          pop_assum mp_tac >> arw[] >> strip_tac >>
          fs[Neg_eq_eq]) >>
      first_x_assum drule >> fs[])>>
