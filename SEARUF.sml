@@ -1677,13 +1677,6 @@ obtained from disjI from
 
 *)
 
-val cond_unique_lemma = proved_th $
-e0
-(rpt strip_tac >> uex_tac >>
- qexists_tac ‘b’ >> arw[] >> rpt strip_tac >> arw[])
-(form_goal “!A a:mem(A). P(a) ==> !B b:mem(B).?!b'. P(a) & b = b'”)
-
-
 
 val cond_unique_lemma = proved_th $
 e0
@@ -1693,36 +1686,6 @@ e0
   (!a:mem(A). P1(a) ==> ?!b.Q1(a,b)) & 
   (!a. ~P1(a) & P2(a) ==> ?!b. Q2(a,b) )”)
 
-
-
-val conj1 = #1 o dest_conj
-val conj2 = #2 o dest_conj
-
-
-val iant = #1 o dest_imp
-val iconc = #2 o dest_imp
-
-val strip_conj =
-   let
-      fun aux acc f =
-         aux (aux acc (conj2 f)) (conj1 f)
-         handle _ => f :: acc
-   in
-      aux []
-   end
-
-val disj1 = #1 o dest_disj
-val disj2 = #2 o dest_disj
-
-
-val strip_disj =
-   let
-      fun aux acc f =
-         aux (aux acc (disj2 f)) (disj1 f)
-         handle _ => f :: acc
-   in
-      aux []
-   end
 
 
 
@@ -1749,7 +1712,7 @@ by rw assuming conjuncts
 *)
 
 
-fun conjIs thl = List.foldl (uncurry (C conjI)) (List.hd thl) (List.tl thl)
+
 
 
 (*
@@ -1762,14 +1725,10 @@ fun rw_fm_with f =
 
 
 
-fun djE (f1,th1) (f2,th2) = (mk_disj f1 f2,disjE (assume (mk_disj f1 f2)) th1 th2)
-
 
 (*fun djEs fthl = List.foldl (uncurry djE) (List.hd fthl) (rev (List.tl fthl))*)
 
 
-
-fun djEs fthl = List.foldl (uncurry (C djE)) (List.hd fthl) (List.tl fthl)
 
 
 
@@ -1787,31 +1746,38 @@ repeatly assume all disjuncts and turn bigdisjunction into T
 *)
 
 
-val disj_neg_absorb = proved_th $
+
+val TAUT' = proved_th $
 e0
-(dimp_tac >> strip_tac >> qcases ‘A’ >> qcases ‘B’ >> arw[] (* 4 *)
+(qcases ‘A(x)’ >> arw[])
+(form_goal “A(x:mem(X)) | ~A(x)”)
+
+
+val disj_neg_absorb' = proved_th $
+e0
+(dimp_tac >> strip_tac >> qcases ‘A(x)’ >> qcases ‘B(x)’ >> arw[] (* 4 *)
  >> first_x_assum opposite_tac)
-(form_goal “(A | (~A & B)) <=> A | B”)
+(form_goal “(A(x:mem(X)) | (~A(x) & B(x))) <=> A(x) | B(x)”)
 
-(*tactic bug, if fs on disj_neg_absorb, then will complain disj not in list*)
 
-val disj_of_negconj = proved_th $
+
+val disj_of_negconj' = proved_th $
 e0
 (dimp_tac >> strip_tac >> arw[] >> strip_tac >>
- qcases ‘A’ >> qcases ‘B’ >> arw[] 
- >-- (qsuff_tac ‘A | B’ >-- arw[] >> disj1_tac >> arw[]) 
- >-- (qsuff_tac ‘A | B’ >-- arw[] >> disj1_tac >> arw[]) 
- >-- (qsuff_tac ‘A | B’ >-- arw[] >> disj1_tac >> arw[]) >>
- (qsuff_tac ‘A | B’ >-- arw[] >> disj2_tac >> arw[]))
-(form_goal “(~A & ~B) <=> ~(A | B)”)
+ qcases ‘A(x)’ >> qcases ‘B(x)’ >> arw[] 
+ >-- (qsuff_tac ‘A(x) | B(x)’ >-- arw[] >> disj1_tac >> arw[]) 
+ >-- (qsuff_tac ‘A(x) | B(x)’ >-- arw[] >> disj1_tac >> arw[]) 
+ >-- (qsuff_tac ‘A(x) | B(x)’ >-- arw[] >> disj1_tac >> arw[]) >>
+ (qsuff_tac ‘A(x) | B(x)’ >-- arw[] >> disj2_tac >> arw[]))
+(form_goal “(~A(x:mem(X)) & ~B(x)) <=> ~(A(x) | B(x))”)
 
-fun drop_last_cj f = 
-    let val cjs = strip_conj f
-        val (last,cjs') = (hd (rev cjs),rev (tl (rev cjs)))
-    in (mk_conjl cjs',last)
-    end
 
-(*drop_last_cj “~P1 & ~P2 & P3”*)
+val CONJ_ASSOC' = proved_th $
+e0
+(dimp_tac >> strip_tac >> arw[])
+(form_goal “(A(x:mem(X)) & B(x)) & C(x) <=> 
+           A(x:mem(X)) & B(x) & C(x) ”)
+
 
 
 fun define_fun f = 
@@ -1844,16 +1810,72 @@ fun define_fun f =
         val todjEs = zip conds casesunified
         val (djf,djEedth0) = djEs todjEs 
         val djEedth = djEedth0 |> disch djf |> rewr_rule[disj_assoc] 
-        fun fc0 f = let val djs = strip_disj f
+        fun thsfc thl = basic_fconv no_fconv 
+                                   (first_fconv (List.map rewr_fconv thl))
+        val fc0 = thsfc [GSYM CONJ_ASSOC,disj_of_negconj,
+                                      disj_neg_absorb,TAUT]
+        val provecond = 
+        fun fc0 f0 = 
+            let val fth = REWR_FCONV [GSYM CONJ_ASSOC,disj_of_negconj,
+                                      disj_neg_absorb',TAUT] f0 
+
+(gen_rewrite_fconv basic_fconv Net.empty fempty [TAUT]) “P(a) | ~P(a)” 
+ 
+basic_fconv no_conv
+           (rewrites_fconv (add_frewrites fempty [TAUT']))
+“P(a) | ~P(a)” 
+
+basic_fconv no_conv
+(fn f => first_fconv (fmatch f (add_frewrites fempty [TAUT'])) f)
+“P(a) | ~P(a)” 
+
+List.hd (fmatch “P(a) | ~P(a)” (add_frewrites fempty [TAUT'])) “P(a) | ~P(a)” 
+
+first_fconv (fmatch f (add_frewrites fempty [TAUT])) f
+val f = “P(a) | ~P(a)” 
+
+REWR_FCONV [TAUT] “P(a) | ~P(a)” 
+
+(fmatch f (add_frewrites fempty [TAUT]))
+
+basic_fconv no_conv
+(first_fconv (List.map rewr_fconv (rw_fcanon TAUT)))
+“P(a) | ~P(a)” 
+
+
+basic_fconv no_conv
+(rewr_fconv TAUT)
+“P(a) | ~P(a)” 
+
+
+
+
+
+rewr_fconv (eqT_intro TAUT) “P(a) | ~P(a)” 
+
+basic_fconv no_conv  
+REWR_FCONV[ disj_neg_absorb] “(P1 | (~P1 & P2))”
+
+basic_fconv no_fconv (rewr_fconv disj_neg_absorb)
+fc0 “(P1(a:mem(N)) | (~P1(a) & P2(a)))”
+
+val f0 = “(P1(a) | (~P1(a) & P2(a))) | (~P1(a) & ~P2(a))”
+
+
+
+val f0 = “(P1 | (~P1 & P2)) | (~P1 & ~P2)”
+
+val djs = strip_disj f
                         val (dj1,dj2) = (el 1 djs,el 2 djs) 
                         val dj2' = 
 
+rewr_rule [] (assume “A | ~A”)
 (basic_fconv no_conv (rewr_fconv disj_neg_absorb))
                   thenfc ()
         val djf |> basic_fconv no_conv (rewr_fconv disj_neg_absorb)
 
 
-val f = “(((P1 | (~P1 & P2)) | (~P1 & ~P2 & P3)) | (~P1 & ~P2 & ~P2 & P4)) |
+val f0 = “(((P1 | (~P1 & P2)) | (~P1 & ~P2 & P3)) | (~P1 & ~P2 & ~P3 & P4)) |
          (~P1 & ~P2 & ~P3 & ~P4)”
 
 

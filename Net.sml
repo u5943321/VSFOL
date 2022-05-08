@@ -197,10 +197,18 @@ local
            val Vnet = fnet_assoc fV net
            val nets =
             case label
-             of fV => let val (_,ts) = dest_fvar fm
+             of fV => (*let val (_,ts) = dest_fvar fm
                             val net0 = fnet_assoc label net
                         in itlist tmtchs (rev ts) [net0]
-                        end
+                        end  *)
+                        (*  [fnet_assoc label net] *)
+                      (*[net] *)
+                let val (_,ts) = dest_fvar fm
+                    val net0 = fnet_assoc label net
+                in 
+                   itlist tmtchs (rev ts) [net0]
+                   handle _ => [net]
+                end 
               | Pr _ => let val (_,ts) = dest_pred fm
                             val net0 = fnet_assoc label net
                         in itlist tmtchs (rev ts) [net0]
@@ -294,14 +302,35 @@ and exec [] (fLEAF L)  = fLEAF(c::L)
 in fenter [] fm N
 end;
 
+
+datatype flabel0
+    = Q0 of string
+    | Cn0 of string
+    | fV0
+    | Pr0 of string
+    | tV0
+    | tFn0 of string
+
+
 datatype 'a fnet0
     = fleaf of 'a list
-    | fnode of (flabel * 'a fnet0) list;
+    | fnode of (flabel0 * 'a fnet0) list;
+
+fun flabel2flabel0 lb = 
+    case lb of 
+        Q s => Q0 s
+      | Cn s => Cn0 s
+      | fV => fV0
+      | Pr s => Pr0 s
+      | tV => tV0
+      | tFn s => tFn0 s
+
 
 fun show_net (fLEAF l) = fleaf l
   | show_net (fNODE dict) =
-    let val nets = Binarymap.listItems dict
+    let val nets = List.map (fn (lb,c) => (flabel2flabel0 lb,c)) (Binarymap.listItems dict)
         val nets0 = List.map (fn (a,b) => (a,show_net b)) nets
     in fnode nets0
     end
+
 end
