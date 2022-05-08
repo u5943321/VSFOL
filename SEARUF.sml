@@ -1312,14 +1312,6 @@ e0
 (form_goal “!W a. ~(a = Empty(W)) ==> FIP(Sing(a)) ”));
 
 
-(*
-
-fun dest_n_exists n f = 
-    if n = 0 then ([],f) else 
-    let val (l,b) = dest_n_exists (n-1) f
-        val (ns,b1) = dest_exists b
-    in (l @ [ns],b1)
-    end
 
 val Pr_uex = prove_store("Pr_uex",
 e0
@@ -1374,8 +1366,6 @@ val fnames = ["*","p1","p2"]
 
 val iseqr = “P()”
 
-fun generate_eqr_cond n sorts Pname = 
-    let val 
 
 val arg1 = List.map (dest_var o rastt) 
                     ["AB","p1:AB->A","p2:AB->B"]
@@ -1444,6 +1434,37 @@ ER_def
 split the check into several functions
 
 *)
+
+fun mk_tinst l = mk_inst l [] 
+
+fun addprims l = 
+            case l of [] => l
+                    | (n,s) :: t =>
+                      let val new = (n^"'",s)
+                      in
+                          new :: 
+                          (List.map 
+                               (dest_var o 
+                                (substt ((n,s),mk_var new)) o mk_var) (addprims t))
+                      end
+
+
+fun mk_existss nsl f = 
+    case nsl of 
+        [] => f
+      | (h as (n,s)) :: t =>
+        mk_exists n s (mk_existss t f)
+
+
+
+fun dest_n_exists n f = 
+    if n = 0 then ([],f) else 
+    let val (l,b) = dest_n_exists (n-1) f
+        val (ns,b1) = dest_exists b
+    in (l @ [ns],b1)
+    end
+
+
 fun newspec (arg1:(string * sort) list,
              arg2:(string * sort) list,eqr) 
             (arg:(string * sort) list,Q)
@@ -1481,13 +1502,13 @@ fun newspec (arg1:(string * sort) list,
         val transcl = mk_foralls (arg1 @ arg2 @ arg3)
                                  transbody
         val eqvcls = mk_conj reflcl (mk_conj symcl transcl)
-        val _ = eq_form (eqvcls,concl Reqv) orelse
-                raise simple_fail "newspec.Reqv concl"
-        val _ = HOLset.isSubset(cont Reqv,cont uexth) orelse
-                raise simple_fail "newspec.Reqv cont"
+        val _ = eq_form (eqvcls,concl eqvth) orelse
+                raise simple_fail "newspec.eqvth concl"
+        val _ = HOLset.isSubset(cont eqvth,cont uexth) orelse
+                raise simple_fail "newspec.eqvth cont"
         val _ = List.all (fn asm => List.exists
-                                        (fn a => eq_form(a,asm)) (ant uexth)) (ant Reqv) orelse
-                raise simple_fail "newspec.Reqv ant"
+                                        (fn a => eq_form(a,asm)) (ant uexth)) (ant eqvth) orelse
+                raise simple_fail "newspec.eqvth ant"
         (*check the uexth*)
         val maint = List.map mk_var arg
         val mainprimv = addprims arg
@@ -1517,13 +1538,23 @@ fun newspec (arg1:(string * sort) list,
                            essps vl
         val _ = HOLset.isSubset(inputvars0,inputvars) orelse 
                 raise simple_fail "there are necessary input variables missing"
-        val (newspvs,b) = dest_n_exists n (concl uexth)
+        val (newspvs,b) = dest_n_exists (length arg1) (concl uexth)
         val (main,impf) = dest_conj b 
         val recoverex = mk_existss newspvs main
-        val sorts = List.map snd newspvs
+        val sts = List.map snd newspvs
         val (ct,asm) = (cont uexth,ant uexth)
 (*List.FOLD!!!!!!!!*)
-        fun itmk fnl vl f = 
+
+(*
+        fun itmk fnl vl f =
+            List.foldl 
+            (fn (nfsy,f0) => 
+                let val _ = new_fun nfsy (hd sts,vl)
+                    val ft = mk_fun nfsy (List.map mk_var vl)
+                    val (ns,b) = dest_exists f0
+                in substf (ns,ft) b
+                end) f fnl  *)
+        fun itmk fnl vl f = List.foldl 
             case fnl of 
                 [] => (fnl,f)
               | h :: t =>
@@ -1532,7 +1563,7 @@ fun newspec (arg1:(string * sort) list,
                     val (ns,b) = dest_exists f
                     val f0 = substf (ns,ft) b
                 in itmk (tl fnl) vl f0
-                end
+                end 
         val (_,conc) = itmk fnames vl recoverex
     in
         mk_thm(ct,asm,conc)
@@ -1550,3 +1581,342 @@ AX5 |> qspecl [‘N’]
 |> fVar_sInst_th “P(n:mem(N),X)”
    “nPow(B,n,X)”
 *)
+
+
+(*
+
+Γ, A |- phi
+
+a0:S0 /\ a1:S1 /\ a2:S2 ..../\ Assuptimes ==> phi
+
+
+!X Y f:X->Y. id(Y) o f = f 
+
+into
+
+∀X Y f. isob(X) & isob(Y) & isar(f,X,Y) ==> (id Y) o f = f
+
+
+γ1, A1 |- f1   γ2,A2 |- f2
+--------------------
+γ1 ∪ γ2, A1 @ A2 |- f1 & f2
+
+
+(a0:S0 /\ a1:S1 /\ a2:S2 ..../\ Assuptimes ==> phi) &
+a0:S0 /\ a1:S1 /\ a2:S2 ..../\ Assuptimes ==> phi
+
+--------
+a0:S0 /\ a1:S1 /\ a2:S2 ..../\ Assuptimes ==> phi & phi2
+
+
+
+
+
+
+*)
+
+
+
+
+
+(*workflow:
+Define function A -> B.
+
+take clause 1, generate subset s1 of A such that !a. IN(a,s1) <=> P1(a).
+take clause 2, generate subset s2 of A such that !a. IN(a,s2) <=> P2(a), 
+intersect it with complement of s1, get s2'.
+
+!a. IN(a,Union(s1 U s2', Compl(s1 U s2'))) ==>
+    
+
+
+
+
+
+!a. (P1(a) | (~P1(a) & P2(a)) | (~P1(a) & ~P2(a)))
+
+!a. ?!b. (P1(a) & b = t1(a)) | 
+         (~P1(a) & P2(a) & b = t2(a)) |
+         (~P1(a) & ~P2(a) & b = t3(a))
+
+obtained from turn ant into true from:
+
+!a. IN(a,Union(Union(s1,s2'), Compl(s1 U s2'))) ==> 
+    ?!b. (P1(a) & b = t1(a)) | 
+         (~P1(a) & P2(a) & b = t2(a)) |
+         (~P1(a) & ~P2(a) & b = t3(a))
+
+obtained from pack up def of Union 
+
+!a. IN(a,s1) | IN(a,s2) | IN(a,Compl(s1 U s2')) ==> 
+    ?!b. (P1(a) & b = t1(a)) | 
+         (~P1(a) & P2(a) & b = t2(a)) |
+         (~P1(a) & ~P2(a) & b = t3(a))
+
+obtained from distr of:
+
+
+!a. (IN(a,s1) ==> ?!b. (P1(a) & b = t1(a)) | 
+         (~P1(a) & P2(a) & b = t2(a)) |
+         (~P1(a) & ~P2(a) & b = t3(a))) &
+    (IN(a,s2') ==>  ?!b. (P1(a) & b = t1(a)) | 
+         (~P1(a) & P2(a) & b = t2(a)) |
+         (~P1(a) & ~P2(a) & b = t3(a)))) |
+    (IN(a,Compl(s1 U s2')) ==> ?!b. (P1(a) & b = t1(a)) | 
+         (~P1(a) & P2(a) & b = t2(a)) |
+         (~P1(a) & ~P2(a) & b = t3(a))) 
+
+obtained from disjI from
+
+!a. IN(a,s1) ==> ?!b. (P1(a) & b = t1(a))  & 
+    IN(a,s2') ==> ?!b. (~P1(a) & P2(b) = t1(a)) & 
+    IN(a,Compl(s1 U s2') ==> ?!b. ~P1(a) & ~P2(a) & b = t3(a) )
+    
+
+
+
+*)
+
+val cond_unique_lemma = proved_th $
+e0
+(rpt strip_tac >> uex_tac >>
+ qexists_tac ‘b’ >> arw[] >> rpt strip_tac >> arw[])
+(form_goal “!A a:mem(A). P(a) ==> !B b:mem(B).?!b'. P(a) & b = b'”)
+
+
+
+val cond_unique_lemma = proved_th $
+e0
+(rpt strip_tac >> uex_tac >>
+ qexists_tac ‘b’ >> arw[] >> rpt strip_tac >> arw[])
+(form_goal “!A B.
+  (!a:mem(A). P1(a) ==> ?!b.Q1(a,b)) & 
+  (!a. ~P1(a) & P2(a) ==> ?!b. Q2(a,b) )”)
+
+
+
+val conj1 = #1 o dest_conj
+val conj2 = #2 o dest_conj
+
+
+val iant = #1 o dest_imp
+val iconc = #2 o dest_imp
+
+val strip_conj =
+   let
+      fun aux acc f =
+         aux (aux acc (conj2 f)) (conj1 f)
+         handle _ => f :: acc
+   in
+      aux []
+   end
+
+val disj1 = #1 o dest_disj
+val disj2 = #2 o dest_disj
+
+
+val strip_disj =
+   let
+      fun aux acc f =
+         aux (aux acc (disj2 f)) (disj1 f)
+         handle _ => f :: acc
+   in
+      aux []
+   end
+
+
+
+val f = “!a. (P1(a) ==> App(f,a) = (Suc(a))) &
+             (~P1(a) & P2(a) ==> App(f,a) = Suc(Suc(a))) &
+             (~P1(a) & ~P2(a) ==> App(f,a) = a)”
+
+val f = “!a. (P1(a) ==> App(f,a) = (Suc(a))) &
+             (~P1(a) & P2(a) ==> App(f,a) = Suc(Suc(a))) &
+             (~P1(a) & ~P2(a) ==> App(f,a) = a)”
+
+
+(P1(a) | (~P1(a) & P2(a))) | 
+~(P1(a) |  (~P1(a) & P2(a)) )
+
+Prove (~P1(a) & ~P2(a) & ... & ~Pn(a) <=>
+      ~P1(a) & ~(~P1(a) & P2(a)) & ... P  )
+
+(*
+Prove ~P1(a) & ~(~P1(a) & P2(a)) <=> ~P1(a) & ~P2(a)
+
+by rw assuming conjuncts
+
+*)
+
+
+fun conjIs thl = List.foldl (uncurry (C conjI)) (List.hd thl) (List.tl thl)
+
+
+(*
+fun rw_fm_with f = 
+    let val th = assume f 
+        val tthl = rw_tcanon th
+        val fthl = rw_fcanon th
+    basic_fconv (rewr_conv (assume f)) (rewr_fconv (assume f))
+*)
+
+
+
+fun djE (f1,th1) (f2,th2) = (mk_disj f1 f2,disjE (assume (mk_disj f1 f2)) th1 th2)
+
+
+(*fun djEs fthl = List.foldl (uncurry djE) (List.hd fthl) (rev (List.tl fthl))*)
+
+
+
+fun djEs fthl = List.foldl (uncurry (C djE)) (List.hd fthl) (List.tl fthl)
+
+
+
+(*
+((P1 | ~P1 & P2) | ~P1 & ~P2 & P3) | ~P1 & ~P2 & ~P3
+
+turned into
+
+(P1 | P2) | (~P1 & )
+
+repeatly assume all disjuncts and turn bigdisjunction into T
+
+
+
+*)
+
+
+val disj_neg_absorb = proved_th $
+e0
+(dimp_tac >> strip_tac >> qcases ‘A’ >> qcases ‘B’ >> arw[] (* 4 *)
+ >> first_x_assum opposite_tac)
+(form_goal “(A | (~A & B)) <=> A | B”)
+
+(*tactic bug, if fs on disj_neg_absorb, then will complain disj not in list*)
+
+val disj_of_negconj = proved_th $
+e0
+(dimp_tac >> strip_tac >> arw[] >> strip_tac >>
+ qcases ‘A’ >> qcases ‘B’ >> arw[] 
+ >-- (qsuff_tac ‘A | B’ >-- arw[] >> disj1_tac >> arw[]) 
+ >-- (qsuff_tac ‘A | B’ >-- arw[] >> disj1_tac >> arw[]) 
+ >-- (qsuff_tac ‘A | B’ >-- arw[] >> disj1_tac >> arw[]) >>
+ (qsuff_tac ‘A | B’ >-- arw[] >> disj2_tac >> arw[]))
+(form_goal “(~A & ~B) <=> ~(A | B)”)
+
+fun drop_last_cj f = 
+    let val cjs = strip_conj f
+        val (last,cjs') = (hd (rev cjs),rev (tl (rev cjs)))
+    in (mk_conjl cjs',last)
+    end
+
+(*drop_last_cj “~P1 & ~P2 & P3”*)
+
+
+fun define_fun f = 
+    let val (inputvar as (n,s),clauses) = dest_forall f
+        val inputt = mk_var(n,s)
+        val setvar = s |> dest_sort |> #2 |> hd
+        val cll = strip_conj clauses
+        val conds = List.map iant cll
+        val outputs = List.map (#2 o dest_eq o iconc) cll
+        val culemma = cond_unique_lemma |> specl [setvar,inputt]
+        val fvar0 = mk_fvar "P" [inputt]
+        val cases = List.map 
+                        (fn (cond,output) =>
+                            culemma 
+                                |> fVar_sInst_th fvar0 cond
+                                |> undisch |> sspecl [output])
+                             (zip conds outputs)
+        val vconseqs = List.map (dest_uex o concl) cases
+        val conseqs = List.map #2 vconseqs
+        val djconseq = mk_disjl conseqs 
+        val iffs = List.map (fn f => mk_dimp f djconseq) conseqs
+        val eqvTs = List.map 
+                        (fn (cond,iff) => 
+                                         (REWR_FCONV [assume cond])
+                                        iff |> rewr_rule[]) 
+                        (zip conds iffs)
+        val casesunified = List.map 
+                               (fn (cl,eqth) =>
+                               conv_rule (once_depth_fconv no_fconv (rewr_fconv eqth)) cl) (zip cases eqvTs)
+        val todjEs = zip conds casesunified
+        val (djf,djEedth0) = djEs todjEs 
+        val djEedth = djEedth0 |> disch djf |> rewr_rule[disj_assoc] 
+        fun fc0 f = let val djs = strip_disj f
+                        val (dj1,dj2) = (el 1 djs,el 2 djs) 
+                        val dj2' = 
+
+(basic_fconv no_conv (rewr_fconv disj_neg_absorb))
+                  thenfc ()
+        val djf |> basic_fconv no_conv (rewr_fconv disj_neg_absorb)
+
+
+val f = “(((P1 | (~P1 & P2)) | (~P1 & ~P2 & P3)) | (~P1 & ~P2 & ~P2 & P4)) |
+         (~P1 & ~P2 & ~P3 & ~P4)”
+
+
+ [disj_neg_absorb]
+
+basic_fconv no_conv (rewr_fconv disj_neg_absorb) “(P1(a) | ~P1(a) & P2(a))”
+
+
+
+
+val cond = el 2 conds 
+val iff = el 2 iffs
+basic_fconv no_conv (rewr_fconv (eqT_intro (assume cond))) iff
+
+
+rewr_fconv (assume cond) “P1(a:mem(N))”
+
+(assume)
+
+        val djequivths = List.map
+                             (fn (cond,concl) => djconseq )
+
+ cases |> concl |> dest_exists
+
+ val conseq = 
+        val _ = 
+        val cjccases = conjIs cases
+
+
+conjIs cases
+
+
+
+        val define_subsets = 
+            List.map (fn cond => IN_def_P |> specl [setvar] 
+                                          |> fVar_sInst_th fvar0 cond) conds
+
+
+IN_def_P |> specl [setvar] 
+                                 |> fVar_sInst_th fvar0
+                                    
+
+
+“(!a. A1(a) ==> App(f,a) = ... &
+ (!a. A2(a) ==> App(f,a) = ... &
+ !a.~(A1 | A2 | ... | An (a)) ==> App(f,a) = ...”
+
+
+
+
+
+(*carve out a subset of A * B ?
+
+
+*)
+
+
+
+
+fun itmk fnl sts vl f = 
+    List.fold
+        (fn (fsynfsort as (fsyn,fsort),f) =>
+            let val _ = new_fun fsyn fsort)
+
+
+“(!a. P(a) ==> t = t) ==> ?!f:A->B. !a.”

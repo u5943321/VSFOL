@@ -163,11 +163,6 @@ val Nd0_def = qdefine_fsym("Nd0",[‘n:mem(N)’,‘a:mem(A)’,
  ‘f:N -> Pow(N * A)’]) ‘injUU(injN(A,Suc(n)),injUU(injA(a),injN2U(f)))’ 
 
 
-val f = 
- “(nas = Lf0(A) ==> IN(nas,trees)) &
-  (!f. (!m.IN(App(f,m),trees)) ==>
-   !n a. IN(Nd0(n,a,f),trees))”
-
 val istree_cl = 
  “(nas = Lf0(A) ==> IN(nas,istrees)) &
   (!f n a. (!m.IN(App(f,m),istrees)) & nas = Nd0(n,a,f) ==>
@@ -204,22 +199,22 @@ val istree_cases = istree_cases1 |> store_as "istree_cases";
 val istree_rules = istree_rules3 |> store_as "istree_rules";
 
 
+val istree_def = qdefine_psym("istree",[‘t:mem(Pow(N * A))’])
+‘IN(t,istrees(A))’ |> gen_all 
+
 
 val Tree_def = Thm_2_4  |> qspecl [‘Pow(N * A)’]
-                         |> fVar_sInst_th “P(f:mem(Pow(N * A)))”
-                         “istree(f:mem(Pow(N * A)))”
-                         |> qSKOLEM "Tree" [‘A’]
-                         |> qSKOLEM "iT" [‘A’]
-                         |> gen_all
+                        |> fVar_sInst_th “P(f:mem(Pow(N * A)))”
+                        “istree(f:mem(Pow(N * A)))”
+                        |> qSKOLEM "Tree" [‘A’]
+                        |> qSKOLEM "iT" [‘A’]
+                        |> gen_all
 
 
-val iT_Inj = recsp_def |> spec_all 
+val iT_Inj = Tree_def |> spec_all 
                       |> conjE1 |> gen_all
                       |> store_as "iT_Inj"; 
 
-
-val istree_def = qdefine_psym("istree",[‘t:mem(Pow(N * A))’])
-‘IN(t,istrees(A))’ |> gen_all 
 
 
 val istree_induct = prove_store("istree_induct",
@@ -262,10 +257,10 @@ val Lf_def = proved_th $
 e0
 (strip_tac >> uex_tac >>
  qspecl_then [‘A’] strip_assume_tac Tree_def >>
- first_assum (qspecl_then [‘Lf0(A)’] assume_tac) >>
+ first_x_assum (qspecl_then [‘Lf0(A)’] assume_tac) >>
  fs[istree_Lf0,GSYM istree_def] >>
  qexists_tac ‘b’ >> arw[Rept_def] >>
- fs[Inj_def])
+ fs[Inj_def] )
 (form_goal “!A. ?!t.Rept(t) = Lf0(A)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "Lf" [‘A’] |> gen_all
 |> store_as "Lf_def";
@@ -586,10 +581,144 @@ cheat
  (!n. ~(n = O) & ~(n = num1) ==> App(f,n) = x0)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "X2arg" [‘x1’,‘x2’,‘x0’]
 
+(*encode a form*)
+val encafm_def = qdefine_psym("encafm",[‘x0:mem(X)’,‘n:mem(N)’,‘aopt:mem(A+1)’,‘targ:N -> Tree(A+1)’,‘xarg:N ->X’])
+‘(n = O & aopt = NONE(A) & 
+ targ = TNull(A+1) & xarg = Conat(x0)) |
+ (?a. n = num1 & aopt = SOME(a) & 
+ targ = TNull(A+1) & xarg = Conat(x0)) | 
+ (?f0 x. n = num2 & aopt = NONE(A) & 
+ targ = T1arg(f0) & xarg = X1arg(x,x0)) | 
+ (?f1 f2 x1 x2. n = num3 & aopt = NONE(A) & 
+ targ = T2arg(f1,f2) & xarg = X2arg(x1,x2,x0)) | 
+ (?f0 x. n = num4 & aopt = NONE(A) & 
+ targ = T1arg(f0) & xarg = X1arg(x,x0))’
+
+(*component 1 of 4, automatic on this?*)
+val c41_def = qdefine_fsym("c41",[‘tuple:mem(A * B * C * D)’])
+‘Fst(tuple)’
+
+
+val c42_def = qdefine_fsym("c42",[‘tuple:mem(A * B * C * D)’])
+‘Fst(Snd(tuple))’
+
+
+val c43_def = qdefine_fsym("c43",[‘tuple:mem(A * B * C * D)’])
+‘Fst(Snd(Snd(tuple)))’
+
+
+val c44_def = qdefine_fsym("c44",[‘tuple:mem(A * B * C * D)’])
+‘Snd(Snd(Snd(tuple)))’
+
+val encafm'_def = qdefine_psym("encafm'",[‘x0:mem(X)’,‘tpl: mem(N * (A+1) * Exp(N,Tree(A+1)) * Exp(N,X))’])
+‘encafm(x0,c41(tpl),c42(tpl),tof(c43(tpl)),tof(c44(tpl)))’
+
+
+
+val fmFncrs_def = qdefine_psym("encafm'",[‘x0:mem(X)’,‘tpl: mem(N * (A+1) * Exp(N,Tree(A+1)) * Exp(N,X))’])
+‘encafm(x0,c41(tpl),c42(tpl),tof(c43(tpl)),tof(c44(tpl)))’
+
+
+(*
+P2fun_uex 
+ |> qspecl [‘N * (A+1) * Exp(N,Tree(A+1)) * Exp(N,X)’,‘X’]
+ |> conv_rule (redepth_fconv no_conv forall_cross_fconv)
+*)
+
+val tuple4_def = qdefine_fsym("tuple4",[‘a:mem(A)’,‘b:mem(B)’,‘c:mem(C)’,‘d:mem(D)’]) ‘Pair(a,Pair(b,Pair(c,d)))’
+
+val funcompr_dom4 = proved_th $
+e0
+(rpt strip_tac >> assume_tac (P2fun_uex |> qspecl [‘A * B * C * D’,‘X’]
+           |> fVar_sInst_th “P(abcd:mem(A * B * C * D),x:mem((X)))” “P(c41(abcd:mem(A * B * C * D)),c42(abcd),c43(abcd),c44(abcd),x:mem(X))”
+           |> conv_rule (redepth_fconv no_conv forall_cross_fconv) |> rewr_rule[c41_def,c42_def,c43_def,c44_def,Pair_def']|> rewr_rule[GSYM tuple4_def]) >>
+first_assum drule >> arw[])
+(form_goal 
+“!A B C D X.(!a:mem(A) b:mem(B) c:mem(C) d:mem(D). 
+ ?!x:mem(X). P(a,b,c,d,x)) ==>
+ ?!f:A * B * C * D ->X. 
+ !a b c d. P(a,b,c,d,App(f,tuple4(a,b,c,d)))”)
+
+
+val funcompr_dom4' = proved_th $
+e0
+(rpt strip_tac >>
+ assume_tac 
+ (funcompr_dom4 
+ |> qspecl [‘A’,‘B’,‘Exp(C,D)’,‘Exp(E,F)’,‘X’]
+ |> fVar_sInst_th 
+    “P(a:mem(A),b:mem(B),f1:mem(Exp(C,D)),f2:mem(Exp(E,F)),x:mem(X))” 
+    “P(a:mem(A),b:mem(B),tof(f1:mem(Exp(C,D))),tof(f2:mem(Exp(E,F))),x:mem(X))”) >>
+qsuff_tac
+ ‘?!f:A * B * Exp(C,D) * Exp(E,F) ->X. !a b f1 f2.
+ P(a,b,tof(f1),tof(f2), App(f,tuple4(a,b,f1,f2)))’
+>-- (strip_tac >>
+    qby_tac
+   ‘!f: A * B * Exp(C,D) * Exp(E,F) ->X a b.
+ (!f1 f2. 
+ P(a,b,tof(f1),tof(f2), App(f,tuple4(a,b,f1,f2)))) <=> 
+ (!f1 f2. P(a,b,f1,f2, App(f,tuple4(a,b,Tpm(f1),Tpm(f2)))))’
+    >-- cheat >>
+    fs[]) >> 
+first_x_assum irule >> rpt strip_tac >>
+arw[])
+(form_goal 
+“!A B C D E F X.(!a:mem(A) b:mem(B) f1:C->D f2:E->F. 
+ ?!x:mem(X). P(a,b,f1,f2,x)) ==>
+ ?!f:A * B * Exp(C,D) * Exp(E,F) ->X. 
+ !a b c d. P(a,b,c,d,App(f,tuple4(a,b,Tpm(c),Tpm(d))))”)
+
+
+fun 
+
+
+
+
+rpt strip_tac >>
+qcases ‘n = O & aopt = NONE(A) & targ = TNull(A+1) & xarg = Conat(x0)’
+
+“!n aopt targ xarg.?!x. (n = O & aopt = NONE(A) & targ = TNull(A+1) & xarg = Conat(x0) &
+     x = x0:mem(X)) |
+     (?a. n = num1 & aopt = SOME(a) & targ = TNull(A+1) & xarg = Conat(x0) &
+     x = App(vf:A->X,a)) | 
+     (?f1 x1. n = num2 & aopt = NONE(A) & targ = f1 & xarg = X1arg(x1,x0) &
+     x = App(nf:X->X,x1)) |
+     (?f1 f2 x1 x2. 
+      n = num3 & aopt = NONE(A) & targ = T2arg(f1,f2) & 
+      xarg = X2arg(x1,x2,x0) & x = App(djf:X * X ->X,Pair(x1,x2))) |
+     (?f1 x1. n = num4 & aopt = NONE(A) & targ = f1 & xarg = X1arg(x1,x0) &
+     x = App(dmf:X->X,x1)) | 
+     (~encafm(x0,n,aopt,targ,xarg) & x = x0)”
 
 val fmFn_def = proved_th $
 e0
-cheat
+(rpt strip_tac >>
+ 
+ funcompr_dom4'
+ |> qspecl [‘N’,‘A + 1’,‘N’,‘Tree(A+1)’,‘N’,‘X’,‘X’]
+ |> fVar_sInst_th 
+    “P(n:mem(N),aopt:mem(A + 1),
+       targ:N->Tree(A+1),xarg:N->X,x:mem(X))”
+    “(n = O & aopt = NONE(A) & targ = TNull(A+1) & xarg = Conat(x0) &
+     x = x0:mem(X)) |
+     (?a. n = num1 & aopt = SOME(a) & targ = TNull(A+1) & xarg = Conat(x0) &
+     x = App(vf:A->X,a)) | 
+     (?f1 x1. n = num2 & aopt = NONE(A) & targ = f1 & xarg = X1arg(x1,x0) &
+     x = App(nf:X->X,x1)) |
+     (?f1 f2 x1 x2. 
+      n = num3 & aopt = NONE(A) & targ = T2arg(f1,f2) & 
+      xarg = X2arg(x1,x2,x0) & x = App(djf:X * X ->X,Pair(x1,x2))) |
+     (?f1 x1. n = num4 & aopt = NONE(A) & targ = f1 & xarg = X1arg(x1,x0) &
+     x = App(dmf:X->X,x1)) | 
+     (~encafm(x0,n,aopt,targ,xarg) & x = x0)”
+
+
+ |> qspecl [‘N, (A+1) * Exp(N,Tree(A+1)) * Exp(N,X)’,‘X’]
+ |> fVar_sInst_th “P(tup:mem(N * (A+1) * Exp(N,Tree(A+1)) * Exp(N,X)), x:mem(X))”
+    “encafm'(x0,tup:mem(N * (A+1) * Exp(N,Tree(A+1)) * Exp(N,X))) & ”
+
+
+)
 (form_goal
  “!X x0:mem(X) A vf:A->X nf:X->X djf:X*X->X dmf:X->X.
   ?!Fn:N * (A + 1) * Exp(N,Tree(A+1)) * Exp(N,X) -> X.
@@ -602,7 +731,9 @@ cheat
     Fnap(Fn,num3,NONE(A),T2arg(f1,f2),X2arg(x1,x2,x0)) = 
        App(djf,Pair(x1,x2))) &
   (!f0 x. Fnap(Fn,num4,NONE(A),T1arg(f0),X1arg(x,x0)) = 
-       App(dmf,x))  ”)
+       App(dmf,x))  & 
+  (!n aopt targ xarg. ~encafm(x0,n,aopt,targ,xarg) ==>
+  Fnap(Fn,n,aopt,targ,xarg) = x0)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "fmFn" [‘x0’,‘vf’,‘nf’,‘djf’,‘dmf’]
 
 
@@ -754,6 +885,18 @@ val Repf_def = qdefine_fsym("Repf",[‘f:mem(form(A))’]) ‘App(repf(A),f)’
 
 val repf_Inj = form_def |> conjE1 |> store_as "repf_Inj";
 
+
+
+
+val Inj_ex_uex = prove_store("Inj_ex_uex",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- first_x_assum (accept_tac o uex2ex_rule) >>
+ uex_tac >> qexists_tac ‘a’ >> arw[] >> rpt strip_tac >>
+ fs[Inj_def] >> first_x_assum irule >> arw[])
+(form_goal “!A B f:A->B. Inj(f) ==>
+ !b. (?!a.App(f,a) = b) <=> (?a.App(f,a) = b)”));
+
 val Bot_def = proved_th $
 e0
 (rw[Repf_def] >> assume_tac repf_Inj >>
@@ -872,6 +1015,22 @@ e0
 (form_goal “!a:mem(Tree(A+1)).
  (?!b. a = Repf(b)) <=> isfm(a)”));
 
+
+val Inj_restrict = prove_store("Inj_restrict",
+e0
+(rpt strip_tac >>
+ assume_tac (P2fun_uex |> qspecl [‘D’,‘C’] 
+                    |> fVar_sInst_th “P(d:mem(D),c:mem(C))”
+                       “App(f0:D0->C0 o i1:D->D0, d) = App(i2:C->C0, c)”) >>
+ first_x_assum drule >> flip_tac >>
+ fs[GSYM App_App_o,FUN_EXT])
+(form_goal 
+ “!D D0 i1:D->D0. Inj(i1) ==> 
+  !C C0 i2:C->C0. Inj(i2) ==>
+  !f0:D0->C0.
+   (!d.?!c. App(f0 o i1,d) = App(i2,c)) ==>
+  ?!f:D->C.i2 o f = f0 o i1”));
+
 val DISJ_def = Inj_restrict |> qsspecl [‘Prla(repf(A),repf(A))’]
                             |> C mp (Prla_Inj |> qsspecl [‘repf(A)’]
                                               |> C mp repf_Inj
@@ -933,7 +1092,19 @@ e0
      App(dmf,App(fmrec(x0,vf,nf,djf,dmf),f))) ”));
 
 
+fun flip_fconv f = 
+    let val eqths = List.map eq_sym (!EqSorts)
+        val fc = first_fconv (List.map rewr_fconv eqths)
+    in  (once_depth_fconv no_conv fc) f
+    end
+
 val form_def' = form_def |> conv_rule flip_fconv
+
+
+val Repf_eq_eq = prove_store("Repf_eq_eq",
+e0
+(cheat)
+(form_goal “!f1:mem(form(A)) f2. Repf(f1) = Repf(f2) <=> f1 = f2”))
 
 val form_induct = prove_store("form_induct",
 e0
@@ -969,8 +1140,8 @@ e0
      fs[] >> 
      qsuff_tac ‘f = Neg(f1)’ 
      >-- (strip_tac >> arw[] >> first_x_assum irule >> arw[]) >>
-     rw[GSYM Repf_eq_eq] >> arw[Neg_def,NEG_def] >>
-      arw[]) >> strip_tac (* 2 *)
+     rw[GSYM Repf_eq_eq] >> arw[Neg_def,NEG_def]
+      (*arw[] *)) >> strip_tac (* 2 *)
 >-- (rpt gen_tac >> disch_tac >> pop_assum strip_assume_tac >>
     qby_tac ‘isfm(Disj0(f1, f2))’ 
     >-- (irule isfm_Disj0 >> arw[]) >>
@@ -1005,21 +1176,62 @@ rw[GSYM Repf_eq_eq] >> arw[Diam_def,DIAM_def])
   (!f0:mem(form(A)). P(f0) ==> P(Diam(f0))) ==>
   !f0:mem(form(A)). P(f0)”));
 
-
-
-
-
-local 
-val l = proved_th $
+val Confn_def = proved_th $
 e0
-()
-(form_goal “”)
-Inj_restrict |> qsspecl [‘repf(A)’]
-|> rewr_rule[repf_Inj]
-|> qsspecl [‘Id(X)’]
-|> rewr_rule[Id_Inj,Id_def]
-|> qspecl [‘Trec(fmFn(x0:mem(X), vf:A->X, nf, djf, dmf), x0)’]
-|> rewr_rule[App_App_o,GSYM Repf_def,IdL]
+cheat
+(form_goal “!A X x:mem(X). ?!f:A->X. 
+ !a. App(f,a) = x”)
+|> spec_all |>uex2ex_rule |> qSKOLEM "Confn" [‘A’,‘x’]
+|> gen_all
+
+val distfn_def = qdefine_fsym("distfn",[‘A’])
+‘fmrec(O, Confn(A, num1), Confn(N, num2), Confn(N * N, num3),
+          Confn(N, num4))’
+
+val distfn_clauses = fmrec_clauses |> qspecl [‘N’,‘O’,‘A’,‘Confn(A,num1)’,‘Confn(N,num2)’,‘Confn(N * N,num3)’,‘Confn(N,num4)’]
+                           |> rewr_rule[Confn_def,GSYM distfn_def]
+
+(*
+val num_dist = prove_store("num_dist",
+e0
+cheat
+(form_goal “”));
+*)
+
+val Var_NOT = prove_store("Bot_NOT",
+e0
+(rpt strip_tac >> ccontra_tac (* 4 *)
+ >-- (qby_tac 
+     ‘App(distfn(A),Var(p)) = App(distfn(A),Bot(A))’ 
+     >-- arw[] >>
+     fs[distfn_clauses,num1_def,Suc_NONZERO])
+ >-- (qby_tac 
+     ‘App(distfn(A),Var(p)) = App(distfn(A),Neg(f))’ 
+     >-- arw[] >>
+     fs[distfn_clauses,num1_def,num2_def,GSYM Suc_NONZERO,Suc_eq_eq]) 
+ >-- (qby_tac 
+     ‘App(distfn(A),Var(p)) = App(distfn(A),Diam(f))’ 
+     >-- arw[] >>
+     fs[distfn_clauses,num1_def,num2_def,num3_def,num4_def,GSYM Suc_NONZERO,Suc_eq_eq])
+ >-- (qby_tac 
+     ‘App(distfn(A),Var(p)) = App(distfn(A),Disj(f1,f2))’ 
+     >-- arw[] >>
+     fs[distfn_clauses,num1_def,num2_def,num3_def,num4_def,GSYM Suc_NONZERO,Suc_eq_eq]))
+(form_goal “!A. (!p.~(Var(p) = Bot(A))) &
+ (!p:mem(A) f. ~(Var(p) = Neg(f))) &
+ (!p:mem(A) f. ~(Var(p) = Diam(f))) &
+ (!p:mem(A) f1 f2. ~(Var(p) = Disj(f1,f2)))”));
+
+
+
+val Neg_NOT = prove_store("Neg_NOT",
+e0
+cheat
+(form_goal “!A. (!f:mem(form(A)).~(Neg(f) = Bot(A))) &
+ (!f p:mem(A). ~(Neg(f) = Var(p))) &
+ (!f f0:mem(form(A)). ~(Neg(f) = Diam(f0))) &
+ (!f:mem(form(A)) f1 f2. ~(Neg(f) = Disj(f1,f2)))”));
+
 
 (*
 Vars are 

@@ -911,6 +911,8 @@ fun gen_rewrite_fconv (rw_func:conv-> fconv -> fconv) net fnet thl =
            (rewrites_fconv (add_frewrites fnet thl));
 
 
+fun REWR_CONV thl = (gen_rewrite_conv top_depth_conv Net.empty thl)
+
 
 fun REWR_FCONV thl = (gen_rewrite_fconv basic_fconv Net.empty fempty thl)
 
