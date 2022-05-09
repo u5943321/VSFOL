@@ -80,7 +80,53 @@ e0
 
 
 
-fun define_fun f = 
+
+e.g.   (f = g o h) ⇒ f = j
+
+  input:  “p ⇒ q”
+
+  assume p, means to use theorem
+
+  let val pth = p ⊢ p..    (* f = g o h ⊢ f = g o h *)
+
+    REWRITE_fCONV [pth] q
+
+    output is:  p ⊢ q ⇔ q'    (* f = g o h ⊢ f = j ⇔ g o h = j *)
+
+    by using DISCH to get ⊢ (p ⇒ (q = q'))
+
+
+    and then MP with
+
+       (p ⇒ (q ⇔ q')) ⇒ ((p ⇒ q) ⇔ (p ⇒ q'))
+
+    to get:
+
+        ⊢ (p ⇒ q) ⇔ (p ⇒ q')
+
+val imp_dimp_distr = proved_th $
+e0
+(dimp_tac >> rpt strip_tac >> dimp_tac >> rpt strip_tac (* 4 *)
+ >-- (first_x_assum (irule o iffLR) >> arw[] >> 
+      first_x_assum irule >> arw[]) 
+ >-- (first_x_assum (irule o iffRL) >> arw[] >> 
+      first_x_assum irule >> arw[]) 
+ >-- (first_x_assum (irule o iffLR) >> arw[]) >>
+ first_x_assum (irule o iffRL) >> arw[] )
+(form_goal “(A ==> (B <=> C)) <=> ((A ==> B) <=> (A ==> C))”)
+
+fun cond_rw_fconv impf = 
+    let val (ante,conc) = dest_imp impf
+        val anteth = assume ante
+        val ciffc' = REWR_FCONV [anteth] conc
+        val disched = disch ante ciffc'
+        val specdistrth = conv_rule 
+                              (rewr_fconv imp_dimp_distr) (disched)
+    in specdistrth
+    end
+
+
+fun define_lambda_fun f = 
     let val (inputvar as (n,s),clauses) = dest_forall f
         val inputt = mk_var(n,s)
         val setvar = s |> dest_sort |> #2 |> hd
@@ -121,8 +167,53 @@ fun define_fun f =
                                   |> fVar_sInst_th fvar1 rel
                                   |> C mp (allI inputvar djEedth')
                                   |> GSYM
+        val (funcv,fundef0) = dest_uex (concl specp2fun) 
+        val (inputa, def0) = dest_forall fundef0
+        val addT = T_imp1 def0 |> GSYM
+        val T2djs = conv_rule (once_depth_fconv no_conv
+                                                (rewr_fconv (GSYM provedjf)))
+                                                addT
+        (*T2djs can be hand instead*)
+        val distrdjs = conv_rule (basic_fconv no_conv
+                                               disj_imp_distr_fconv)
+                                 T2djs
+        val (old,newcls) = dest_dimp (concl distrdjs)
+        val cjs = strip_conj newcls
+        val impeqths = List.map cond_rw_fconv cjs
+        val ncl2ncls' = REWR_FCONV impeqths newcls
+        val wholeiff = iff_trans distrdjs ncl2ncls'
+                       |> forall_iff inputa
+                       |> uex_iff funcv
+        val newdef = dimp_mp_l2r specp2fun wholeiff
+    in newdef
+    end
 
 
+def0 becomes T2djs 
+
+
+(REWR_FCONV [hd impeqths]) (assume (hd cjs))  newcls
+
+
+ val it =
+   ((P1(a) ==>
+       (P1(a) & App(f, a) = Suc(a) |
+         (~P1(a) & P2(a)) & App(f, a) = Suc(Suc(a))) |
+       (~P1(a) & ~P2(a)) & App(f, a) = a) &
+     (~P1(a) & P2(a) ==>
+       (P1(a) & App(f, a) = Suc(a) |
+         (~P1(a) & P2(a)) & App(f, a) = Suc(Suc(a))) |
+       (~P1(a) & ~P2(a)) & App(f, a) = a)) &
+   (~P1(a) & ~P2(a) ==>
+     (P1(a) & App(f, a) = Suc(a) | (~P1(a) & P2(a)) & App(f, a) = Suc(Suc(a))) |
+     (~P1(a) & ~P2(a)) & App(f, a) = a): form
+
+
+
+        val cjs' = 
+
+        val ants = List.map (#1 o dest_imp) cjs 
+        val 
 
         fun thsfc thl = basic_fconv no_fconv 
                                    (first_fconv (List.map rewr_fconv thl))
