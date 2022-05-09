@@ -81,29 +81,6 @@ e0
 
 
 
-e.g.   (f = g o h) ⇒ f = j
-
-  input:  “p ⇒ q”
-
-  assume p, means to use theorem
-
-  let val pth = p ⊢ p..    (* f = g o h ⊢ f = g o h *)
-
-    REWRITE_fCONV [pth] q
-
-    output is:  p ⊢ q ⇔ q'    (* f = g o h ⊢ f = j ⇔ g o h = j *)
-
-    by using DISCH to get ⊢ (p ⇒ (q = q'))
-
-
-    and then MP with
-
-       (p ⇒ (q ⇔ q')) ⇒ ((p ⇒ q) ⇔ (p ⇒ q'))
-
-    to get:
-
-        ⊢ (p ⇒ q) ⇔ (p ⇒ q')
-
 val imp_dimp_distr = proved_th $
 e0
 (dimp_tac >> rpt strip_tac >> dimp_tac >> rpt strip_tac (* 4 *)
@@ -188,38 +165,3 @@ fun define_lambda_fun f =
     in newdef
     end
 
-
-def0 becomes T2djs 
-
-
-(REWR_FCONV [hd impeqths]) (assume (hd cjs))  newcls
-
-
- val it =
-   ((P1(a) ==>
-       (P1(a) & App(f, a) = Suc(a) |
-         (~P1(a) & P2(a)) & App(f, a) = Suc(Suc(a))) |
-       (~P1(a) & ~P2(a)) & App(f, a) = a) &
-     (~P1(a) & P2(a) ==>
-       (P1(a) & App(f, a) = Suc(a) |
-         (~P1(a) & P2(a)) & App(f, a) = Suc(Suc(a))) |
-       (~P1(a) & ~P2(a)) & App(f, a) = a)) &
-   (~P1(a) & ~P2(a) ==>
-     (P1(a) & App(f, a) = Suc(a) | (~P1(a) & P2(a)) & App(f, a) = Suc(Suc(a))) |
-     (~P1(a) & ~P2(a)) & App(f, a) = a): form
-
-
-
-        val cjs' = 
-
-        val ants = List.map (#1 o dest_imp) cjs 
-        val 
-
-        fun thsfc thl = basic_fconv no_fconv 
-                                   (first_fconv (List.map rewr_fconv thl))
-        val fc0 = thsfc [GSYM CONJ_ASSOC,disj_of_negconj,
-                                      disj_neg_absorb,TAUT]
-        val provecond = fc
-        fun fc0 f0 = 
-            let val fth = REWR_FCONV [GSYM CONJ_ASSOC,disj_of_negconj,
-                                      disj_neg_absorb',TAUT] f0 
