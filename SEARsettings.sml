@@ -50,6 +50,28 @@ e0
  (!a b1 b2. Holds(R,a,b1) & Holds(R,a,b2) ==> b1 = b2)”)
 
 
+(*
+val Fun_expand = proved_th $
+e0
+(rpt strip_tac >> rw[Fun_def] >>
+ rw[uex_def “?!y:mem(B).Holds(R,x,y)”] >> 
+ dimp_tac >> strip_tac (* 2 *)
+ >-- (rpt strip_tac (* 2 *)
+     >-- (first_x_assum (qspecl_then [‘a’] assume_tac) >> 
+          pop_assum strip_assume_tac >> qexists_tac ‘y’ >> arw[]) 
+     >-- (first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+          first_assum rev_drule >>
+          first_assum (qspecl_then [‘b2’] assume_tac) >>
+          first_assum drule >> arw[])) >>
+ rpt strip_tac >> last_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+ qexists_tac ‘b’ >> arw[] >> rpt strip_tac >-- rw[] >> first_x_assum irule >>
+ qexists_tac ‘x’ >> arw[])
+(form_goal
+“!A B R:A~>B. isFun(R) <=>
+ (!a.?b.Holds(R,a,b)) & 
+ (!a b1 b2. Holds(R,a,b1) & Holds(R,a,b2) ==> b1 = b2)”)
+*)
+
 val _ = new_sort "fun" [("A",mk_sort "set" []),("B",mk_sort "set" [])]
 val _ = new_sort_infix "fun" "->"
 

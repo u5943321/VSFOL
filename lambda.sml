@@ -165,3 +165,6 @@ fun define_lambda_fun f =
     in newdef
     end
 
+(*inst_thm (mk_inst [] [("P",“P(a:mem(A))”)]) (assume “P”) 
+ 
+*)

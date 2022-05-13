@@ -44,8 +44,10 @@ fun inst_thm env th =
             val G = var_bigunion (List.map (fvt o (inst_term (vd_of env)) o mk_var) G0)
             val A = List.map (inst_form env) (ant th)
             val C = inst_form env (concl th)
+           (* val _ = HOLset.isSubset(HOLset.union(fvfl A,fvf C),G) orelse raise simple_fail "extra variable caused by inst_thm"*)
+            val G1 = HOLset.union(G,fvfl (C :: A))
         in
-            thm(G,A,C)
+            thm(G1,A,C)
         end
     else raise simple_fail "bad environment"
 
