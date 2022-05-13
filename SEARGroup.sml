@@ -59,23 +59,37 @@ val np_Suc = Nrec_Suc |> qsspecl [‘e:mem(G)’,‘Ap1(m:G * G->G,x)’,‘n:me
 
 
 
-(*extend lambda tool into !z. ?n. .... ==> *)
-val Num_ex = proved_th $
-e0
-(cheat)
-(form_goal “!z. Lez(Oz,z) ==> ?!n. z = Asz(n,O)”)
-
-local 
-val th0 = proved_th $
-e0
-cheat
-(form_goal “?n:mem(N).T”)
-in 
-val Num_def = SKOLEM th0 "Num" [("z",mem_sort (rastt "Z"))] (Num_ex |> spec_all |> undisch |> uex2ex_rule) |> disch_all |> gen_all
-end
-
 val Ltz_def = qdefine_psym("Ltz",[‘z1:mem(Z)’,‘z2:mem(Z)’])
 ‘Lez(z1,z2) & ~(z1 = z2)’ |> gen_all
+
+(*extend lambda tool into !z. ?n. .... ==> 
+absolute value of a int *)
+
+(*
+val Abv_ex = proved_th $
+e0
+(cheat)
+(form_goal 
+ “!z. (Lez(Oz,z) ==> ?!n. z = Asz(n,O))  &
+      (Ltz(z,Oz) ==> ?!n. z = Asz(O,n)) ”)
+*)
+
+val Abv_def = proved_th $
+e0
+(cheat)
+(form_goal 
+ “!z. ?!n. (Lez(Oz,z) & z = Asz(n,O)) | 
+           (Ltz(z,Oz) & z = Asz(O,n))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "Abv" [‘z’] 
+|> gen_all
+
+val Abv_nonneg = prove_store("Abv_nonneg",
+e0
+cheat
+(form_goal 
+ “!z. Lez(Oz,z) ==> z = Asz(Abv(z),O) ”));
+
+
 
 val zp_def = proved_th $
 e0
@@ -83,8 +97,8 @@ cheat
 (form_goal 
 “!g:mem(Grp(G)). ?!f:G * Z -> G.
  !gz. 
- (Lez(Oz,Snd(gz)) ==> App(f,gz) = App(np(mof(g),eof(g),Fst(gz)),Num(Snd(gz)))) &
- (Ltz(Snd(gz),Oz) ==> App(f,gz) = App(iof(g),App(np(mof(g),eof(g),Fst(gz)),Num(Negz(Snd(gz))))) )”)
+ (Lez(Oz,Snd(gz)) ==> App(f,gz) = App(np(mof(g),eof(g),Fst(gz)),Abv(Snd(gz)))) &
+ (Ltz(Snd(gz),Oz) ==> App(f,gz) = App(iof(g),App(np(mof(g),eof(g),Fst(gz)),Abv(Negz(Snd(gz))))) )”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "zp" [‘g’]
 
 val gpw_def = qdefine_fsym("gpw",[‘g:mem(Grp(G))’,‘x:mem(G)’,‘z:mem(Z)’])
@@ -100,7 +114,7 @@ val cyc_def = qdefine_psym("cyc",[‘g:mem(Grp(G))’])
 
 val ghom_def = qdefine_psym("ghom",[‘f:G1->G2’,‘g1:mem(Grp(G1))’,
                                                ‘g2:mem(Grp(G2))’])
-‘!a b. App(f,gmul(g1,a,b)) = gmul(g2,App(f,a),App(f,b))’
+‘!a b. App(f,gmul(g1,a,b)) = gmul(g2,App(f,a),App(f,b))’ |> gen_all
 
 (*
 By the Division Theorem, it is possible to find integers 𝑞 and 𝑟 such that 𝑛=𝑚𝑞+𝑟 with 0≤𝑟<𝑚.
@@ -126,65 +140,145 @@ e0
 cheat
 (form_goal “!a b. Addz(a,b) = a <=> b = Oz”));
 
+val N2Z_def = fun_tm_compr ("n",mem_sort (rastt "N")) (rastt "Asz(n,O)")
+|> qSKOLEM "N2Z" []
+
+val n2z_def = qdefine_fsym("n2z",[‘n:mem(N)’]) ‘App(N2Z,n)’ |> gen_all
+
 val division_theorem = prove_store("division_theorem",
 e0
 cheat
 (form_goal 
  “!a b:mem(Z).~(b = Oz) ==> ?!q r. a = Addz(Mulz(q,b),r) & 
-  Lez(Oz,r) & Lez(r,b)”));
+  Lez(Oz,r) & Ltz(r,n2z(Abv(b)))”));
+
+val n2z_nonneg = prove_store("n2z_nonneg",
+e0
+cheat
+(form_goal “!z. Lez(Oz,z) ==> n2z(Abv(z)) = z”));
+
+
+val gmul_gpw = prove_store("gmul_gpw",
+e0
+cheat
+(form_goal “!G g:mem(Grp(G)) a z1 z2. gmul(g,gpw(g,a,z1),gpw(g,a,z2)) = gpw(g,a,Addz(z1,z2))”));
+
+
+val Mulz_Negz_2 = prove_store("Mulz_Negz_2",
+e0
+cheat
+(form_goal “!a b. Mulz(a,Negz(b)) = Negz(Mulz(a,b))”));
 
 val sub_cyc_cyc = prove_store("sub_cyc_cyc",
 e0
-(rpt strip_tac >>
+((*rpt strip_tac >>
  qcases ‘!x:mem(H). x = eof(h)’
  >-- cheat >>
  fs[cyc_def] >>
  qby_tac ‘?m. ?x0. App(i,x0) = gpw(g,a,m) & Ltz(Oz,m) & 
-   !m'. ?x0. App(i,x0) = gpw(g,a,m') & Ltz(Oz,m') ==> Lez(m,m')  ’
+   !m'. (?x0. App(i,x0) = gpw(g,a,m') & Ltz(Oz,m')) ==> Lez(m,m')  ’
  >-- cheat >>
  pop_assum strip_assume_tac >>
  qexists_tac ‘x0’ >> strip_tac >>
  qby_tac ‘?n. App(i,x) = gpw(g,a,n)’ 
  >-- cheat >> pop_assum strip_assume_tac >>
- qby_tac ‘~(m = )’
- qby_tac
- ‘?q r. n = Addz(Mulz(m,q),r)’ 
- >-- cheat >>
- pop_assum strip_assume_tac >> 
+ qby_tac ‘~(m = Oz)’
+ >-- (fs[Ltz_def] >> ccontra_tac >> fs[]) >>
+ qsspecl_then [‘n’,‘m’] assume_tac division_theorem >>
+ first_x_assum drule >>
+ pop_assum (strip_assume_tac o uex2ex_rule) >>
+ pop_assum (strip_assume_tac o uex2ex_rule) >> 
  qsuff_tac ‘r = Oz’ 
  >-- (strip_tac >> fs[Addz_Oz] >> qexists_tac ‘q’ >>
      drule Inj_eq_eq >> first_x_assum (irule o iffLR) >> arw[] >>
-     drule ghom_gpw >> arw[] >> rw[gpow_Mulz]) >>
+     drule ghom_gpw >> arw[] >> rw[GSYM gpow_Mulz] >>
+     qsspecl_then [‘m’,‘q’] assume_tac Mulz_comm >> arw[]) >>
  qsuff_tac ‘?x0. App(i,x0) = gpw(g,a,r)’ 
- >-- strip_tac >>
-     first_x_assum (qspecl_then [‘r’] assume_tac) >> 
-     ccontra_tac >> 
-     
-
-
- qsuff_tac ‘n = Mulz(m, q)’ 
- >-- (* fs[] why loop?*) (once_arw[] >> rw[Addz_eq_O]) >>
- 
-     )
+ >-- (strip_tac >>
+     qby_tac ‘n2z(Abv(m)) = m’
+     >-- (irule n2z_nonneg >> fs[Ltz_def] >> fs[]) >>
+     first_x_assum (qspecl_then [‘r’] assume_tac) >>  
+     ccontra_tac >>
+     qsuff_tac ‘Lez(m, r)’ (*Ltz(r, m) is already in assum*) 
+     >-- cheat >>
+     first_x_assum irule >> (*arw[Ltz_def] does not respond, tactic bug*)
+     rw[Ltz_def] >> (*arw[] here does not eliminate Oz <= r, why?*)
+     qexists_tac ‘x0'’ >> arw[] >> flip_tac >> arw[]) >>
+ qexists_tac ‘gmul(h,x,gpw(h,x0,Negz(q)))’ >>
+ drule $ iffLR ghom_def >> drule ghom_gpw >> arw[] >>
+ rw[gmul_gpw,GSYM gpow_Mulz,Mulz_Negz_2] >>
+ qsuff_tac 
+ ‘Addz(Addz(Mulz(q, m), r), Negz(Mulz(m, q))) = r’ 
+ >-- (strip_tac >> arw[]) >>
+ cheat why slow *) cheat )
 (form_goal “!H h:mem(Grp(H)) G g:mem(Grp(G)) i:H -> G.
- ghom(i,h,g) & Inj(i) & cyc(g) ==> cyc(h)”)
+ ghom(i,h,g) & Inj(i) & cyc(g) ==> cyc(h)”));
+
+(*analogue of that of functions, have a fun_tm_compr version of defining sets*)
+
+(*exists a function Grp(G) -> Pow(Pow(G)), sending each group to the set of its subgroups. *)
+
+val issgrp_def = qdefine_psym("issgrp",[‘h:mem(Pow(G))’,‘g:mem(Grp(G))’])
+‘IN(eof(g),h) & 
+ (!a b. IN(a,h) & IN(b,h) ==> IN(gmul(g,a,b),h)) &
+ (!a. IN(a,h) ==> IN(ginv(g,a),h))’
+
+val lcst_def = proved_th $
+e0
+cheat
+(form_goal “!G g H a:mem(G). 
+ ?!lc. !x. IN(x,lc) <=> ?h. IN(h,H) & x = gmul(g,a,h)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "lcst" [‘g’,‘a’,‘H’]
+
+val rcst_def = proved_th $
+e0
+cheat
+(form_goal “!G g H a:mem(G). 
+ ?!lc. !x. IN(x,lc) <=> ?h. IN(h,H) & x = gmul(g,h,a)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "rcst" [‘g’,‘H’,‘a’]
+
+
+val isnml_def = qdefine_psym("isnml",[‘h:mem(Pow(G))’,‘g:mem(Grp(G))’])
+‘issgrp(h,g) & !a. rcst(g,a,h) = lcst(g,h,a)’
+
+val cstR_def = 
+AX1 |> qspecl [‘G’,‘G’] |> uex2ex_rule
+    |> fVar_sInst_th “P(g1:mem(G),g2:mem(G))”
+    “lcst(g:mem(Grp(G)),g1,H) = lcst(g:mem(Grp(G)),g2,H)”
+    |> qSKOLEM "cstR" [‘g’,‘H’] 
+    |> store_as "cstR_def";
+
+
+val cstR_Refl = prove_store("cst_Refl",
+e0
+(cheat)
+(form_goal
+ “Refl(cstR(g,H:mem(Pow(G))))”));
+
+
+val cstR_Sym = prove_store("cst_Sym",
+e0
+(cheat)
+(form_goal
+ “Sym(cstR(g,H:mem(Pow(G))))”));
+
+val ZR_ER = prove_store("ZR_ER",
+e0
+(cheat)
+(form_goal “ER(cstR(g,H:mem(Pow(G))))”));
 
 
 
-[‘h:mem(Pow(G))’,‘g:mem(Grp(G))’])
-‘is’
+(*the set Pow(G) is not naturally equipped with a group structure and therefore there makes no sense to construct quotient group as subgroup of sth, alternative solution is to do HOL approach, think it will be less pretty *)
 
+(*Qc for quotient carrier*)
 
-
-
-val Grp0_def = define_pred
-“!G e:mem(G) m: G * G ~> G i:G ~>G. 
- Grp0(G,e,m,i) <=> Assoc(m) & 
- (!x. App(m,Pair(x,e)) = x & App(m,Pair(e,x)) = x) &
- ”
-
-
-
+val Qc_def = Thm_2_4 |> qspecl [‘Pow(G)’]
+                    |> fVar_sInst_th “P(s:mem(Pow(G)))”
+                    “?a. s = rsi(cstR(g,H:mem(Pow(G))),a)”
+                    |> qSKOLEM "Qc" [‘g’,‘H’]
+                    |> qSKOLEM "iQc" [‘g’,‘H’]
+                    |> store_as "Qc_def";
 
 
 
