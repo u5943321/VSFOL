@@ -239,7 +239,7 @@ cheat
 
 
 val isnml_def = qdefine_psym("isnml",[‘h:mem(Pow(G))’,‘g:mem(Grp(G))’])
-‘issgrp(h,g) & !a. rcst(g,a,h) = lcst(g,h,a)’
+‘issgrp(h,g) & !a. rcst(g,h,a) = lcst(g,a,h)’
 
 val cstR_def = 
 AX1 |> qspecl [‘G’,‘G’] |> uex2ex_rule
@@ -262,7 +262,7 @@ e0
 (form_goal
  “Sym(cstR(g,H:mem(Pow(G))))”));
 
-val ZR_ER = prove_store("ZR_ER",
+val ZR_cstR = prove_store("ZR_cstR",
 e0
 (cheat)
 (form_goal “ER(cstR(g,H:mem(Pow(G))))”));
@@ -280,6 +280,188 @@ val Qc_def = Thm_2_4 |> qspecl [‘Pow(G)’]
                     |> qSKOLEM "iQc" [‘g’,‘H’]
                     |> store_as "Qc_def";
 
+val Rcs_def = qdefine_fsym("Rcs",[‘cs:mem(Qc(g:mem(Grp(G)),H:mem(Pow(G))))’])
+‘App(iQc(g,H),cs)’
+
+
+(*
+val Qc_mem_ex = proved_th $
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?a:Qc(g:mem(Grp(G)),H:mem(Pow(G))).  ’)
+(form_goal “!g H:mem(Pow(G)) x. IN(x,H) ==>
+ ?a:Qc(g:mem(Grp(G)),H:mem(Pow(G))).T”)
+
+rastt "k:mem(Qc(g,H))"
+
+rastt "Qc(g,H)"
+
+mk_var ("a",(mem_sort (rastt "Qc(g,H)")))
+*)
+
+val mof_resp = prove_store("mof_resp",
+e0
+(rw[resp_def] >> 
+ fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
+ rw[prrel_def] >> rpt strip_tac >> fs[cstR_def,GSYM gmul_def,GSYM mul_def] >>
+ fs[isnml_def] >>
+ cheat)
+(form_goal “isnml(h,g) ==> resp(mof(g:mem(Grp(G))),prrel(cstR(g,H),cstR(g,H)),cstR(g,H))”));
+
+val qmul_conds = proved_th $
+e0
+(cheat >>
+ irule Quo_cong >> arw[])
+(form_goal
+“isnml(H,g) ==> ER(prrel(cstR(g,H) ,cstR(g,H))) &
+      ER(cstR(g,H)) &
+ resp(mof(g:mem(Grp(G))),prrel(cstR(g,H),cstR(g,H)),cstR(g,H)) &
+      Inj(ipow2(iQc(g,H), iQc(g,H))) &
+      Inj(iQc(g,H)) & Quo(prrel(cstR(g,H),cstR(g,H)), ipow2(iQc(g,H), iQc(g,H))) & Quo(cstR(g,H), iQc(g,H))”)
+
+(*if H nonempty then have element*)
+
+val quoeth = proved_th $
+e0
+cheat
+(form_goal “!A. ?f:A * A->A. T”)
+
+
+val Quo_fun_iff = prove_store("Quo_fun_iff",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (rfs[rext_def] >> 
+     first_x_assum 
+     (qspecl_then [‘q1’] (x_choosel_then ["a0","b0"] assume_tac)) >>
+     fs[App_App_o] >> 
+     irule $ iffRL rsi_eq_ER >> arw[] >>
+     fs[resp_def] >> 
+     first_x_assum (qspecl_then [‘a0’,‘a’] assume_tac) >>
+     rfs[] >> first_x_assum irule >> 
+     irule $ iffLR rsi_eq_ER >> arw[]) >>
+ rw[rext_def,App_App_o] >>
+ fs[Quo_def] >>
+ qby_tac ‘?!q.  App(i1, q1) =  App(i1, q)’ >-- cheat
+ (* cheat : injectivity*) >>
+ rfs[] >> qexistsl_tac [‘a’,‘App(f,a)’] >> rw[] >>
+ first_x_assum irule >> arw[])
+(form_goal
+“!A B f:A->B r1:A~>A r2:B~>B
+ Q1 Q2 i1:Q1->Pow(A) i2:Q2->Pow(B). 
+ ER(r1) & ER(r2) & resp(f,r1,r2) & Inj(i1) & Inj(i2) &
+ Quo(r1,i1) & Quo(r2,i2) ==>
+ (!qf:Q1->Q2.
+ (!q1:mem(Q1). Holds(rext(f,r1,r2),App(i1,q1),App(i2 o qf,q1))) <=> 
+ (!a q1. App(i1,q1) = rsi(r1,a) ==> App(i2,App(qf,q1)) = rsi(r2,App(f,a))))”))
+
+
+
+
+val Quo_fun_alt = prove_store("Quo_fun_alt",
+e0
+(rpt gen_tac >> disch_tac >> drule Quo_fun >> 
+ drule Quo_fun_iff >> fs[] >>
+ qexists_tac ‘qf’ >> arw[])
+(form_goal
+“!A B f:A->B r1:A~>A r2:B~>B
+ Q1 Q2 i1:Q1->Pow(A) i2:Q2->Pow(B). 
+ ER(r1) & ER(r2) & resp(f,r1,r2) & Inj(i1) & Inj(i2) &
+ Quo(r1,i1) & Quo(r2,i2) ==>
+ ?qf.
+ (!a q1. App(i1,q1) = rsi(r1,a) ==> App(i2,App(qf,q1)) = rsi(r2,App(f,a)))”))
+
+
+(*
+val rext_def' = proved_th $
+e0
+(cheat)
+(form_goal
+ “ Holds(rext(f:A->B, r1, r2), s1, s2) <=>
+        ?ra rb.
+          s1 = rsi(r1, ra) & s2 = rsi(r2, rb) & App(f, ra) = rb”)
+
+*)
+
+
+
+
+val qtop_def00 = 
+Quo_fun_alt |> qspecl [‘G * G’,‘G’,
+                ‘mof(g:mem(Grp(G)))’,
+                ‘prrel(cstR(g,H),cstR(g,H:mem(Pow(G))))’,
+                ‘cstR(g,H:mem(Pow(G)))’,
+                ‘Qc(g,H:mem(Pow(G))) * Qc(g,H:mem(Pow(G)))’,‘Qc(g,H:mem(Pow(G)))’,
+                ‘ipow2(iQc(g, H),iQc(g, H:mem(Pow(G))))’,
+                ‘iQc(g, H:mem(Pow(G)))’]
+|> C mp (undisch qmul_conds)
+|> SKOLEM (quoeth |> qspecl [‘Qc(g,H:mem(Pow(G)))’])
+           "qtop" [("g",mem_sort (rastt "Grp(G)")),("H",mem_sort (rastt "Pow(G)"))]
+|> conv_rule (depth_fconv no_conv forall_cross_fconv)
+|> rewr_rule[GSYM IN_EXT_iff,IN_rsi,cstR_def]       
+|>  conv_rule (depth_fconv no_conv forall_cross_fconv)
+|> rewr_rule[ipow2_def]
+|> rewr_rule[prrel_def]
+|> rewr_rule[cstR_def]
+|> rewr_rule[GSYM gmul_def,GSYM mul_def]
+|> rewr_rule[IN_EXT_iff]
+|> qspecl [‘a:mem(G)’,‘b:mem(G)’,‘cs1:mem(Qc(g, H))’,‘cs2:mem(Qc(g, H))’]
+|> rewr_rule[GSYM Rcs_def]
+|> gen_all
+|> disch_all |> gen_all
+
+(*representative function allows us to pick up representatives up to equivalence?*)
+
+
+val cs_Rcs = prove_store("cs_Rcs",
+e0
+(cheat)
+(form_goal
+ “!a.?!cs:mem(Qc(g,H)). Rcs(cs) = rsi(cstR(g,H:mem(Pow(G))),a)”));
+
+val csof_def = P2fun |> qspecl [‘G’,‘Qc(g:mem(Grp(G)),H:mem(Pow(G)))’]
+                   |> fVar_sInst_th “P(a:mem(G),cs:mem(Qc(g:mem(Grp(G)),H:mem(Pow(G)))))”
+                      “Rcs(cs:mem(Qc(g:mem(Grp(G)),H:mem(Pow(G))))) = rsi(cstR(g,H:mem(Pow(G))),a)”
+                   |> C mp cs_Rcs
+                   |> qSKOLEM "csof" [‘g’,‘H’]
+                   |> store_as "csof_def";
+
+
+val Csof_def = qdefine_fsym ("Csof",
+                             [‘g:mem(Grp(G))’,‘H:mem(Pow(G))’,‘a:mem(G)’])
+                            ‘App(csof(g,H),a)’
+                            |> gen_all |> store_as "Csof_def";
+
+val qgrp_isgrp = prove_store("qgrp_isgrp",
+
+
+
+val qmul_def = qdefine_fsym("qmul",[‘g:mem(Grp(G))’,‘H:mem(Pow(G))’,
+                                    ‘cs1:mem(Qc(g:mem(Grp(G)),H:mem(Pow(G))))’,
+                                    ‘cs2:mem(Qc(g:mem(Grp(G)),H:mem(Pow(G))))’])
+                           ‘App(qtop(g,H),Pair(cs1,cs2))’
+
+val qtop_char = prove_store("qtop_char",
+e0
+()
+(form_goal
+ “!G g H:mem(Pow(G)) a b. 
+ qmul(g,H,Csof(g,H,a),Csof(g,H,b)) = Csof(g,H,gmul(g,a,b))”)
+
+|> 
+|> spec_all
+
+        
+        |> rewr_rule[App_App_o,GSYM IN_EXT_iff,IN_rsi,cstR_def]  
+        |> rewr_rule[prrel_def,cstR_def,ipow2_def]
+
+
+        |> qspecl [‘aH:mem(Qc(g, H))’,‘bH:mem(Qc(g, H))’]
+
+        |> conv_rule (redepth_fconv no_conv forall_cross_fconv)
+        |> conv_rule exists_cross_fconv
+        
+ 
 
 
 
