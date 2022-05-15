@@ -542,6 +542,38 @@ cheat
 “!G g H:mem(Pow(G)). isnml(H,g) ==> 
  isgrp(Pair(Tpm(qtop(g,H)),Pair(Tpm(qinv(g,H)), Csof(g,H,eof(g)))))”)
 
+val isgrp_mem_Grp = prove_store("isgrp_mem_Grp",
+e0
+cheat
+(form_goal
+     “!G g0.isgrp(g0) ==> ?!g:mem(Grp(G)). g0 = RepG(g)”));
+
+
+val Qc_mem_ex = prove_store("Qc_mem_ex",
+e0
+(rpt strip_tac >>
+qsuff_tac
+ ‘?a0 a. a0 = App(iQc(g,H),a) ’ 
+>-- cheat >>
+(*TODO: simplifier, if swap order of a0, a, does not work*)
+rw[GSYM Qc_def] >>
+qexistsl_tac [‘rsi(cstR(g, H), eof(g))’,‘eof(g)’] >> rw[])
+(form_goal
+“!G g H. ?a:mem(Qc(g:mem(Grp(G)),H:mem(Pow(G)))). T”));
+
+
+val Grp_Qc_ex = prove_store("Grp_Qc_ex",
+e0
+cheat
+(form_goal “!G g H. ?a:mem(Grp(Qc(g:mem(Grp(G)),H:mem(Pow(G))))). T”))
+
+val Qg_def = isgrp_mem_Grp |> qspecl [‘Qc(g:mem(Grp(G)),H:mem(Pow(G)))’,‘Pair(Tpm(qtop(g:mem(Grp(G)),H)),Pair(Tpm(qinv(g,H)), Csof(g,H,eof(g))))’]
+|> C mp (undisch $ spec_all (qg_isgrp))
+|> uex2ex_rule 
+|> SKOLEM (Grp_Qc_ex |> spec_all) "Qg" [("g",mem_sort (rastt "Grp(G)")),
+                                         ("H",mem_sort (rastt "Pow(G)"))]
+|> disch_all |> gen_all 
+
 
      
 val first_iso_thm = prove_store("first_iso_thm",
@@ -549,14 +581,92 @@ e0
 cheat
 (form_goal “!G1 G2 f:G1->G2 g1 g2. hom(f,g1,g2) & Surj(f) ==>
  ?phi:Qc(g1,ker(f,g1,g2)) -> G2. Inj(phi) & 
- hom(phi, qg(g1,ker(f,g1,g2)), g2)”));
+ hom(phi, Qg(g1,ker(f,g1,g2)), g2)”));
+
+val FIN_def = qdefine_psym("FIN",[‘X’]) ‘Fin(Whole(X))’ |> gen_all
 
 
-
-     
-val first_iso_thm = prove_store("first_iso_thm",
+val Z_mem_ex = proved_th $
 e0
 cheat
-(form_goal “!G1 G2 f:G1->G2 g1 g2. hom(f,g1,g2) & Surj(f) ==>
- ?Q phi:Q -> G2. Inj(phi) & 
- hom(phi, qg(g1,ker(f,g1,g2)), g2)”));
+(form_goal “?z:mem(Z).T”)
+
+val Divz_def = division_theorem |> spec_all |> undisch 
+                               |> uex2ex_rule
+                               |> SKOLEM Z_mem_ex "Divz" 
+                               [("a",mem_sort (rastt "Z")),
+                                ("b",mem_sort (rastt "Z"))]
+
+
+val Remz_def = Divz_def |> uex2ex_rule
+                      |> SKOLEM Z_mem_ex "Remz" 
+                      [("a",mem_sort (rastt "Z")),
+                       ("b",mem_sort (rastt "Z"))]
+
+val divides_def = qdefine_psym("divides",[‘b:mem(Z)’,‘a:mem(Z)’])
+                              ‘Remz(a,b) = Oz’
+
+val CD_def = qdefine_fsym("CD",[‘A’]) ‘Card(Whole(A))’ 
+
+val Lagrange_lemma = prove_store("Lagrange_lemma",
+e0
+(cheat)
+(form_goal
+ “!G g:mem(Grp(G)) H. issgrp(H) ==> 
+ !a b. Card(rcst(g,H,a)) = Card(rcst(g,H,b))”));
+
+(* how to state ... *)
+
+val Eqcs_def = proved_th $
+e0
+cheat
+(form_goal “!A R: A~> A. ?!eqcs:mem(Pow(Pow(A))). 
+ !eqc. IN(eqc,eqcs) <=> (?a. eqc = rsi(R,a))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "Eqcs" [‘R’] |> gen_all
+
+val ER_partition = prove_store("ER_partition",
+e0
+cheat
+(form_goal “!A R:A ~> A. ER(R) ==> !a. ?!eqc. IN(eqc, Eqcs(R)) & IN(a,eqc)”));
+
+val Lagrange_theorem = prove_store("Lagrange_theorem",
+e0
+cheat
+(form_goal
+ “!G g:mem(Grp(G)) H. FIN(G) & issgrp(H,g) ==> 
+   divides(n2z(Card(H)),n2z(Card(Whole(G))))”));
+
+
+(*center*)
+val ctr_def = proved_th $
+e0
+cheat
+(form_goal 
+ “!G g:mem(Grp(G)). ?!ctr. (!z. IN(z,ctr) <=> !x. gmul(g,z,x) = gmul(g,x,z))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "ctr" [‘g’]
+  
+val abel_def = qdefine_psym("abel",[‘g:mem(Grp(G))’])
+‘!a b. gmul(g,a,b) = gmul(g,b,a)’
+
+val Qg_ctr_cyc_abel = prove_store("Qg_ctr_cyc_abel",
+e0
+cheat
+(form_goal
+ “!G g:mem(Grp(G)). cyc(Qg(g,ctr(g))) ==> abel(g)”));
+
+
+(*
+If 𝑝 is a prime and 𝑃 is a group of prime power order 𝑝𝛼 for some 𝛼≥1, then 𝑃 has a nontrivial center: 𝑍(𝑃)≠1.
+*)
+
+val prime_def = qdefine_psym("prime",[‘p:mem(Z)’])
+‘!q. divides(q,p) <=> (Abv(q) = Suc(O) | Abv(q) = Abv(p))’
+
+
+(*need power for the arithematic*)
+val prime_zp_order_nontrivial_ctr = 
+prove_store("prime_zp_order_nontrivial_ctr",
+e0
+cheat
+(form_goal “!p. CD(g) =  ==> ?z. IN(z,ctr(g)) & ~(z = eof(g))”));
+
