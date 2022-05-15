@@ -311,8 +311,7 @@ e0
 
 val qmul_conds = proved_th $
 e0
-(cheat >>
- irule Quo_cong >> arw[])
+(cheat)
 (form_goal
 “isnml(H,g) ==> ER(prrel(cstR(g,H) ,cstR(g,H))) &
       ER(cstR(g,H)) &
@@ -432,49 +431,132 @@ val Csof_def = qdefine_fsym ("Csof",
                             ‘App(csof(g,H),a)’
                             |> gen_all |> store_as "Csof_def";
 
-val qgrp_isgrp = prove_store("qgrp_isgrp",
-
-
 
 val qmul_def = qdefine_fsym("qmul",[‘g:mem(Grp(G))’,‘H:mem(Pow(G))’,
                                     ‘cs1:mem(Qc(g:mem(Grp(G)),H:mem(Pow(G))))’,
                                     ‘cs2:mem(Qc(g:mem(Grp(G)),H:mem(Pow(G))))’])
                            ‘App(qtop(g,H),Pair(cs1,cs2))’
 
+
+
+                           
+val Rcs_Csof = 
+csof_def |> qspecl [‘a:mem(G)’,‘App(csof(g, H), a:mem(G))’] 
+|> rewr_rule[GSYM Csof_def]|>  gen_all
+
+
+(*
+val cs
+rw[Rcs_Csof,IN_rsi] 
+“!x x0:mem(G).Holds(cstR(g,H),x0,x) <=> IN(x, Rcs(Csof(g, H, x0)))”
+*)
+
+(*TODO: iffLR dest the deepest one... *)
+
 val qtop_char = prove_store("qtop_char",
 e0
-()
+(rpt strip_tac >> drule qtop_def00 >>
+  pop_assum (qsspecl_then [‘a’,‘b’,‘Csof(g:mem(Grp(G)), H:mem(Pow(G)), a)’,
+                          ‘Csof(g:mem(Grp(G)), H:mem(Pow(G)), b)’] 
+                             assume_tac) >>
+ qsuff_tac
+ ‘!x.
+    IN(x, Rcs(mul(qtop(g, H), Csof(g, H, a), Csof(g, H, b)))) <=>
+    lcst(g, gmul(g, a, b), H) = lcst(g, x, H)’
+ >-- (strip_tac >> rw[qmul_def,GSYM mul_def] >> 
+     irule $ iffLR Inj_eq_eq >>
+     qexistsl_tac [‘Pow(G)’,‘iQc(g,H)’] >>
+     rw[GSYM Rcs_def,Qc_def] >>
+     rw[GSYM IN_EXT_iff] >> arw[] >> 
+     rw[GSYM cstR_def] >> rw[Rcs_Csof,IN_rsi]) >>
+ first_x_assum irule >>
+ cheat (*should be easy*))
 (form_goal
- “!G g H:mem(Pow(G)) a b. 
- qmul(g,H,Csof(g,H,a),Csof(g,H,b)) = Csof(g,H,gmul(g,a,b))”)
+ “!G g H:mem(Pow(G)). isnml(H,g) ==> !a b. 
+ qmul(g,H,Csof(g,H,a),Csof(g,H,b)) = Csof(g,H,gmul(g,a,b))”));
 
-|> 
-|> spec_all
+(*just preimage*)
+val ker_def = proved_th $
+e0
+cheat
+(form_goal “!G1 G2 f:G1->G2 g1:mem(Grp(G1)) g2:mem(Grp(G2)). 
+ ?!k:mem(Pow(G1)). !x. IN(x,k) <=> App(f,x) = eof(g2)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "ker" [‘f’,‘g1’,‘g2’]
 
-        
-        |> rewr_rule[App_App_o,GSYM IN_EXT_iff,IN_rsi,cstR_def]  
-        |> rewr_rule[prrel_def,cstR_def,ipow2_def]
+(*
+ Suppose that G1 and G2 are groups. Suppose that f is
+a homomorphism from G1 to G2. Suppose f is onto from G1 to G2. Suppose K is the
+kernel of f. Then, K is a normal subgroup of G1; there is a homomorphism g from G1/K
+onto G2; and, g is injective.
 
-
-        |> qspecl [‘aH:mem(Qc(g, H))’,‘bH:mem(Qc(g, H))’]
-
-        |> conv_rule (redepth_fconv no_conv forall_cross_fconv)
-        |> conv_rule exists_cross_fconv
-        
- 
-
-
-
-(*define topspace type to be 
- a set, and a function Pow(X) -> 2, or a mono to Pow(X). or an element of Pow(Pow(X)).
-
- a topospace is a mono to Pow(X).
-
-there is a biginter function Pow(Pow(X)) -> Pow(X)
-
- a presheaf is a function that associate each mem of the domain of the mono a set, and hence associate the mono with a family of sets. 
-
-so 
-
-Psh(OX:Opens >--> Pow(X), B--> W)
 *)
+
+
+
+val iof_resp = prove_store("iof_resp",
+e0
+(cheat)
+(form_goal “isnml(h,g) ==> resp(iof(g:mem(Grp(G))),cstR(g,H),cstR(g,H))”));
+
+val qinv_conds = proved_th $
+e0
+(cheat)
+(form_goal
+“isnml(H,g:mem(Grp(G))) ==>
+ ER(cstR(g, H)) &
+      ER(cstR(g, H)) &
+      resp(iof(g), cstR(g, H), cstR(g, H)) &
+      Inj(iQc(g, H)) &
+      Inj(iQc(g, H)) &
+      Quo(cstR(g, H), iQc(g, H)) & Quo(cstR(g, H), iQc(g, H))”)
+
+
+val has_endo = proved_th $
+e0
+cheat
+(form_goal “!A. ?f:A ->A. T”)
+
+val qinv_def00 = 
+Quo_fun_alt |> qspecl [‘G’,‘G’,
+                ‘iof(g:mem(Grp(G)))’,
+                ‘cstR(g,H:mem(Pow(G)))’,
+                ‘cstR(g,H:mem(Pow(G)))’,
+                ‘Qc(g,H:mem(Pow(G)))’,‘Qc(g,H:mem(Pow(G)))’,
+                ‘iQc(g, H:mem(Pow(G)))’,
+                ‘iQc(g, H:mem(Pow(G)))’]
+|> C mp (undisch qinv_conds)
+|> SKOLEM (has_endo |> qspecl [‘Qc(g,H:mem(Pow(G)))’])
+           "qinv" [("g",mem_sort (rastt "Grp(G)")),("H",mem_sort (rastt "Pow(G)"))]
+|> rewr_rule[GSYM Rcs_Csof]
+|> qspecl [‘a:mem(G)’,‘Csof(g,H,a:mem(G))’]
+|> rewr_rule[GSYM Rcs_def,GSYM ginv_def]
+
+
+
+
+
+val qg_isgrp = proved_th $
+e0
+cheat
+(form_goal
+“!G g H:mem(Pow(G)). isnml(H,g) ==> 
+ isgrp(Pair(Tpm(qtop(g,H)),Pair(Tpm(qinv(g,H)), Csof(g,H,eof(g)))))”)
+
+
+     
+val first_iso_thm = prove_store("first_iso_thm",
+e0
+cheat
+(form_goal “!G1 G2 f:G1->G2 g1 g2. hom(f,g1,g2) & Surj(f) ==>
+ ?phi:Qc(g1,ker(f,g1,g2)) -> G2. Inj(phi) & 
+ hom(phi, qg(g1,ker(f,g1,g2)), g2)”));
+
+
+
+     
+val first_iso_thm = prove_store("first_iso_thm",
+e0
+cheat
+(form_goal “!G1 G2 f:G1->G2 g1 g2. hom(f,g1,g2) & Surj(f) ==>
+ ?Q phi:Q -> G2. Inj(phi) & 
+ hom(phi, qg(g1,ker(f,g1,g2)), g2)”));
