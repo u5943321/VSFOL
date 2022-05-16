@@ -541,6 +541,7 @@ e0
  rw[Empty_Union] >> first_x_assum irule >> arw[])
 (form_goal “!A s:mem(Pow(A)). Fin(s) ==> !t. SS(t,s) ==> Fin(t) ”));
 
+
 val disj_assoc = prove_store("disj_assoc",
 e0
 (dimp_tac >> qcases ‘A’ >> fs[])

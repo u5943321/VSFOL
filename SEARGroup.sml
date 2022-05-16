@@ -662,6 +662,11 @@ If 𝑝 is a prime and 𝑃 is a group of prime power order 𝑝𝛼 for some �
 val prime_def = qdefine_psym("prime",[‘p:mem(Z)’])
 ‘!q. divides(q,p) <=> (Abv(q) = Suc(O) | Abv(q) = Abv(p))’
 
+(*sort info must be like this since negative power for z is undefined, need Q*)
+val Powz_def = qdefine_fsym("Powz",[‘n:mem(N)’,‘z:mem(Z)’]) 
+‘App(np(mulz,n2z(Suc(O)),z),n)’
+
+
 
 (*need power for the arithematic*)
 val prime_zp_order_nontrivial_ctr = 

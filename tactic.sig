@@ -110,4 +110,20 @@ val flip_tac: tactic
 val lflip_tac: tactic
 val rflip_tac: tactic
 val uex_tac:tactic
+
+val add_frewrites: fconv fnet -> thm list -> fconv fnet
+val add_trewrites: (term -> thm) tnet -> thm list -> (term -> thm) tnet
+val cond_rewr_conv: thm -> term -> thm
+val cond_rewr_fconv: thm -> form -> thm
+val gen_rewrite_conv:
+   (conv -> conv) -> (term -> thm) tnet -> thm list -> conv
+val gen_rewrite_fconv:
+   (conv -> fconv -> fconv) ->
+     (term -> thm) tnet -> fconv fnet -> thm list -> fconv
+val rewrites_conv: conv tnet -> term -> thm
+val rewrites_fconv: fconv fnet -> form -> thm
+val ONCE_REWR_FCONV: thm list -> fconv
+val REWR_CONV: thm list -> conv
+val REWR_FCONV: thm list -> fconv
+
 end
