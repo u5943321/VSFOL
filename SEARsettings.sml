@@ -2291,6 +2291,19 @@ val nPow_def = qdefine_psym ("nPow",[‘B’,‘n:mem(N)’,‘Pn’])
     (!Cn. Asset(App(f,n),Cn) ==> Eqv(Cn,Pn))’
     |> store_as "nPow_def";
 
+
+(*
+
+Axiom 5 (Collection): For any set A and any property P which can obtain of an element of A and a set, there exists a set B, function p:B→A, and a B-indexed family of sets M:B↬Y such that (1) P(p(b),Mb) holds for any b∈B, and (2) for any a∈A, if there exists a set X with P(a,X), then a∈im(p).
+
+*)
+
+(*
+
+
+*)
+
+
 val AX5 = store_ax("AX5",
 “!A.?B p:B->A Y M:B~>Y.  
  (!b Mb.

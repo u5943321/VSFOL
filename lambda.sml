@@ -117,11 +117,13 @@ fun cond_rw_fconv impf =
     end
 
 
-
+(*
 val f0 = “!a. (a = num1 ==> App(f,a) = num1) &
              (a = num2 ==> App(f,a) = num2) &
              (a = num3 ==> App(f,a) = num3) & 
              (ELSE ==> App(f,a) = O)”
+
+val f = normalise_lambda_input f0
 
 val f = “ !a .
      (a = num1 ==> App(f, a) = num1) &
@@ -149,7 +151,7 @@ REWR_FCONV [assume “~(a = num1)”] “a = num1”
 
 
 val f1 = normalise_lambda_input f0
- define_lambda_fun f1 
+
 
 
 val f = “!a. (P1(a) ==> App(f,a) = (Suc(a))) &
@@ -158,71 +160,9 @@ val f = “!a. (P1(a) ==> App(f,a) = (Suc(a))) &
              (~P1(a) & ~P2(a) & ~P3(a) ==> App(f,a) = O)”
 
 
+*)
+
 fun define_lambda_fun f = 
-    let val (inputvar as (n,s),clauses) = dest_forall f
-        val inputt = mk_var(n,s)
-        val setvar = s |> dest_sort |> #2 |> hd
-        val cll = strip_conj clauses
-        val conds = List.map iant cll
-        val outputs = List.map (#2 o dest_eq o iconc) cll
-        val outputset = outputs |> hd |> sort_of |> dest_sort |> #2 |> hd
-        val culemma = cond_unique_lemma |> specl [setvar,inputt]
-        val fvar0 = mk_fvar "P" [inputt]
-        val cases = List.map 
-                        (fn (cond,output) =>
-                            culemma 
-                                |> fVar_sInst_th fvar0 cond
-                                |> undisch |> sspecl [output])
-                             (zip conds outputs)
-        val vconseqs = List.map (dest_uex o concl) cases
-        val conseqs = List.map #2 vconseqs
-        val djconseq = mk_disjl conseqs 
-        val iffs = List.map (fn f => mk_dimp f djconseq) conseqs
-        val eqvTs = List.map 
-                        (fn (cond,iff) => 
-                                         (REWR_FCONV [assume cond])
-                                        iff |> rewr_rule[]) 
-                        (zip conds iffs)
-        val casesunified = List.map 
-                               (fn (cl,eqth) =>
-                               conv_rule (once_depth_fconv no_fconv (rewr_fconv eqth)) cl) (zip cases eqvTs)
-        val todjEs = zip conds casesunified
-        val (djf,djEedth0) = djEs todjEs 
-        val djEedth = djEedth0 |> disch djf |> rewr_rule[disj_assoc] 
-        val provedjf = REWR_FCONV [GSYM CONJ_ASSOC,disj_of_negconj,
-                                      disj_neg_absorb,TAUT] djf
-        val djEedth' = djEedth |> rewr_rule[provedjf,GSYM disj_assoc] 
-        val (outputv,rel) = dest_uex (concl djEedth')
-        val outputt = mk_var outputv
-        val fvar1 = mk_fvar "P" [inputt,outputt]
-        val specp2fun = P2fun_uex |> specl [setvar,outputset]
-                                  |> fVar_sInst_th fvar1 rel
-                                  |> C mp (allI inputvar djEedth')
-                                  |> GSYM
-        val (funcv,fundef0) = dest_uex (concl specp2fun) 
-        val (inputa, def0) = dest_forall fundef0
-        val addT = T_imp1 def0 |> GSYM
-        val T2djs = conv_rule (once_depth_fconv no_conv
-                                                (rewr_fconv (GSYM provedjf)))
-                                                addT
-        (*T2djs can be hand instead*)
-        val distrdjs = conv_rule (basic_fconv no_conv
-                                               disj_imp_distr_fconv)
-                                 T2djs
-        val (old,newcls) = dest_dimp (concl distrdjs)
-        val cjs = strip_conj newcls
-        val impeqths = List.map cond_rw_fconv cjs
-        val ncl2ncls' = REWR_FCONV impeqths newcls
-        val wholeiff = iff_trans distrdjs ncl2ncls'
-                       |> forall_iff inputa
-                       |> uex_iff funcv
-        val newdef = dimp_mp_l2r specp2fun wholeiff
-    in newdef
-    end
-
-
-
-fun define_lambda_fun' f = 
     let val (inputvar as (n,s),clauses) = dest_forall f
         val inputt = mk_var(n,s)
         val setvar = s |> dest_sort |> #2 |> hd
@@ -322,13 +262,7 @@ fun normalise_lambda_input fm0 =
     in uncurry mk_forall ns cjcls1 
     end
 
-
-(fn (n,ante) => conj_assoc_fm 
-            (mk_conj (mk_conjl (List.take ())) ante))
-                         (fn ante => )
-
- List.take ([1,2,3],1)
-
+val define_lambda = define_lambda_fun o normalise_lambda_input
 
 (*inst_thm (mk_inst [] [("P",“P(a:mem(A))”)]) (assume “P”) 
  

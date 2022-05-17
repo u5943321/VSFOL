@@ -181,7 +181,8 @@ e0
  pop_assum strip_assume_tac >>
  qexists_tac ‘x0’ >> strip_tac >>
  qby_tac ‘?n. App(i,x) = gpw(g,a,n)’ 
- >-- cheat >> pop_assum strip_assume_tac >>
+ >-- cheat >>
+ pop_assum strip_assume_tac >>
  qby_tac ‘~(m = Oz)’
  >-- (fs[Ltz_def] >> ccontra_tac >> fs[]) >>
  qsspecl_then [‘n’,‘m’] assume_tac division_theorem >>
@@ -210,7 +211,7 @@ e0
  qsuff_tac 
  ‘Addz(Addz(Mulz(q, m), r), Negz(Mulz(m, q))) = r’ 
  >-- (strip_tac >> arw[]) >>
- cheat why slow *) cheat )
+ cheat *) cheat)
 (form_goal “!H h:mem(Grp(H)) G g:mem(Grp(G)) i:H -> G.
  ghom(i,h,g) & Inj(i) & cyc(g) ==> cyc(h)”));
 
@@ -262,10 +263,11 @@ e0
 (form_goal
  “Sym(cstR(g,H:mem(Pow(G))))”));
 
-val ZR_cstR = prove_store("ZR_cstR",
+val ER_cstR = prove_store("ER_cstR",
 e0
 (cheat)
-(form_goal “ER(cstR(g,H:mem(Pow(G))))”));
+(form_goal “!G g H.ER(cstR(g,H:mem(Pow(G))))”));
+
 
 
 
@@ -279,6 +281,8 @@ val Qc_def = Thm_2_4 |> qspecl [‘Pow(G)’]
                     |> qSKOLEM "Qc" [‘g’,‘H’]
                     |> qSKOLEM "iQc" [‘g’,‘H’]
                     |> store_as "Qc_def";
+
+val iQc_Inj = Qc_def |> conjE1 |> gen_all
 
 val Rcs_def = qdefine_fsym("Rcs",[‘cs:mem(Qc(g:mem(Grp(G)),H:mem(Pow(G))))’])
 ‘App(iQc(g,H),cs)’
@@ -574,7 +578,50 @@ val Qg_def = isgrp_mem_Grp |> qspecl [‘Qc(g:mem(Grp(G)),H:mem(Pow(G)))’,‘P
                                          ("H",mem_sort (rastt "Pow(G)"))]
 |> disch_all |> gen_all 
 
+val resp1_def = qdefine_psym("resp1",[‘f:A->B’,‘R:A~>A’]) ‘resp(f,R,id(B))’
 
+val resp1_property = prove_store("resp1_property",
+e0
+cheat
+(form_goal “!A B f:A->B R. resp1(f,R) <=> 
+ (!a1 a2. Holds(R,a1,a2) ==> App(f,a1) = App(f,a2))”));
+
+val Inj_INV = prove_store("Inj_INV",
+e0
+cheat
+(form_goal “!A B f:A->B. Inj(f) ==>
+ !a0:mem(A). ?!ivf:B->A.!b.(!a.App(f,a) = b ==> App(ivf,b) = a) &
+ ((!a. ~(App(f,a) = b)) ==> App(ivf,b) = a0)”));
+
+val fun_mem_ex = proved_th $
+e0
+cheat
+(form_goal “!A a0:mem(A) B. ?f:B->A.T”)
+
+
+val LINV_def = Inj_INV |> spec_all |> undisch |> spec_all
+                       |> uex2ex_rule 
+                       |> SKOLEM (fun_mem_ex |> qspecl [‘A’,‘a0:mem(A)’,‘B’])
+                       "LINV" [dest_var (rastt "f:A->B"),
+                               dest_var (rastt "a0:mem(A)")]
+
+
+(*
+
+val Quot_def =  qdefine_psym ("Quot",[‘r:A~>A’,‘i:Q->Pow(A)’])
+‘!s. (?!q. s = App(i:Q->Pow(A),q)) <=> (?a. s = rsi(r:A~>A,a))’
+|> gen_all |> store_as "Quo_def";
+
+val Quo_UMP  = prove_store("Quo_UMP",
+e0
+()
+(form_goal 
+ “!A B f:A->B R:A~>A. ER(R) & resp1(f,R) ==> 
+!Q i:Q->Pow(A). Inj(i) & Quo(R,i) ==>
+?!f: Q -> B. !q a. App(i,q) = rsi(R,a) ==> App(i,)”));
+Quo_fun_alt
+
+*)
      
 val first_iso_thm = prove_store("first_iso_thm",
 e0
@@ -615,7 +662,7 @@ e0
  “!G g:mem(Grp(G)) H. issgrp(H) ==> 
  !a b. Card(rcst(g,H,a)) = Card(rcst(g,H,b))”));
 
-(* how to state ... *)
+
 
 val Eqcs_def = proved_th $
 e0
@@ -637,6 +684,8 @@ cheat
    divides(n2z(Card(H)),n2z(Card(Whole(G))))”));
 
 
+
+(*
 (*center*)
 val ctr_def = proved_th $
 e0
@@ -655,6 +704,9 @@ cheat
  “!G g:mem(Grp(G)). cyc(Qg(g,ctr(g))) ==> abel(g)”));
 
 
+
+
+
 (*
 If 𝑝 is a prime and 𝑃 is a group of prime power order 𝑝𝛼 for some 𝛼≥1, then 𝑃 has a nontrivial center: 𝑍(𝑃)≠1.
 *)
@@ -668,6 +720,7 @@ val Powz_def = qdefine_fsym("Powz",[‘n:mem(N)’,‘z:mem(Z)’])
 
 
 
+
 (*need power for the arithematic*)
 val prime_zp_order_nontrivial_ctr = 
 prove_store("prime_zp_order_nontrivial_ctr",
@@ -675,3 +728,98 @@ e0
 cheat
 (form_goal “!p. CD(g) =  ==> ?z. IN(z,ctr(g)) & ~(z = eof(g))”));
 
+*)
+
+isgrp(g:bigproduct) ==> P(g)
+
+!g:mem(Grp(G)).P(g)
+
+g H 
+
+want a term of sort Qg(g,H):mem(Grp(Qc(g,H)))
+
+val snocrel_def = qdefine_fsym("snocrel",[‘r:mem(Pow(A * A))’,‘a:mem(A)’])
+‘r’
+
+(*should require a is not already in the rel*)
+
+
+
+
+
+
+(*
+Makkai
+
+g = g' & H = H'
+------------
+(!f.P(f:Qc(g,H)->A)) <=>
+(!f. P(f:Qc(g',H')->A) )
+
+Qc(g,H)
+
+*)
+(*
+
+Beth(wo:mem(Pow(A * A)),s:set) <=>
+?B b:mem(Pow(B)). beth0(wo,b) & Eqv(s,Asset(b))
+
+Beth(wo:mem(Pow(A * A)),b:mem(Pow(B)))
+
+Eqv(Asset(s),N) ==> beth0({},s) &
+
+require a is not in wo0
+beth0(wo0,s0) & wo = snocrel(wo0,a) & 
+Eqv(Asset(s),Pow(Asset(s0))) ==>
+beth0(wo,s) &
+
+(*wo is not a successor ordinal, but still well order*)
+(!wo0 a. ~wo = snocrel(wo,a) & WO(wo)) &
+
+(* f indexes a family of wo-beth number relation*)
+!J f:J->Pow(A * A) * Pow(B). 
+ (!j:mem(J). beth0(f(j)) & 
+  (!wo0. wo0 ⊆ wo & wo0 <> wo <=> ?j. Fst(f(j)) = wo0)) &
+
+(* s is the sup of the set of beth numbers indexed by J*)
+
+(!s0 j.Snd(App(f,j)) = s0 ==> Card(s0) <= Card(s)) &
+(!s'. (!s0 j.Snd(App(f,j)) = s0 ==> Card(s0) <= Card(s')) ==>
+ Card(s) <= Card(s') ) ==>
+
+beth(wo,s)
+
+
+*)
+
+local
+val Lind_cl = 
+ “(p = Pair(Empty(A * A),s:mem(Pow(B))) & Card(s) = CD(N) ==> IN(p,beth0)) &
+  (!p0:mem(Pow(A * A) * Pow(B)) a:mem(A).
+   IN(p0,beth0) & Card(s) = CD(Pow(asset(Snd(p0)))) &
+        p = Pair(snocrel(Fst(p0),a),s)
+    ==> IN(p,Lind)) &
+  (!p0 ps. p0 = BIGUNION(ps) &  )”
+in
+val (Lind_incond,x1) = mk_incond Lind_cl;
+val Lindf_ex = mk_fex Lind_incond x1;
+val Lindf_def = mk_fdef "Lindf" Lindf_ex;
+val Lindf_monotone = mk_monotone Lindf_def;
+val Lind's_def = mk_prim Lindf_def;
+val Linds_def = mk_LFP (rastt "Lind's(a0:mem(A),f0:X * A->A)");
+val Linds_cond = mk_cond Linds_def Lind's_def;
+val Linds_SS = mk_SS Linds_def Lind's_def;
+val Lind_rules0 = mk_rules Lindf_monotone Linds_SS Linds_cond;
+val Lind_cases0 = mk_cases Lindf_monotone Lind_rules0 Linds_cond;
+val Lind_ind0 = mk_ind Linds_cond;
+val Lind_ind1 = mk_ind1 Lindf_def Lind_ind0;
+val Lind_ind2 = mk_ind2 Lind_ind1; 
+val Lind_cases1 = mk_case1 Lindf_def Lind_cases0; 
+val Lind_rules1 = mk_rules1 Lindf_def Lind_rules0; 
+val Lind_rules2 = mk_rules2 Lind_rules1; 
+val Lind_rules3 = mk_rules3 Lind_rules2;
+end
+
+val Lind_ind = Lind_ind2 |> store_as "Lind_ind";
+val Lind_cases = Lind_cases1 |> store_as "Lind_cases";
+val Lind_rules = Lind_rules3 |> store_as "Lind_rules";
