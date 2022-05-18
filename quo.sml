@@ -286,6 +286,18 @@ e0
  phi o gqm(g1,ker(f,g1,g2)) = f”));
 
 
+val sgmul_def = proved_th $
+e0
+cheat
+(form_goal “!G g H K:mem(Pow(G)). ?!HK. !hk. IN(hk,HK) <=> 
+ ?h k. IN(h,H) & IN(k,K) & hk = gmul(g,h,k)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "sgmul" [‘g’,‘H’,‘K’]
+ 
+val second_iso_thm = prove_store("second_iso_thm",
+e0
+()
+(form_goal “”));
+
 (*
 rastt "Qg(g1,H1:mem(Pow(G)))";
 val it = Qg(g1, H1): term
