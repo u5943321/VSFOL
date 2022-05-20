@@ -318,6 +318,17 @@ e0
  IN(h1,rsg(H)) ==> !h2. IN(h2,rsg(H)) ==> 
  IN(gmul(g,h1,h2),rsg(H))”));
 
+
+val ginv_IN_rsg = prove_store("ginv_IN_rsg",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘g’,‘H’] assume_tac rsg_issgrp >> 
+ fs[issgrp_def] >>
+ first_x_assum irule >> arw[])
+(form_goal “!G g:mem(Grp(G)) H:mem(sgrp(g)) h.
+ IN(h,rsg(H)) ==> 
+ IN(ginv(g,h),rsg(H))”));
+
 val gmul_lcs_smul = prove_store("gmul_lcs_smul",
 e0
 (rpt strip_tac >>
@@ -488,10 +499,19 @@ e0
  !q1 q2 a b.abs(prrel(r1,r2),ipow2(i1,i2),Pair(q1,q2),Pair(a,b)) = 
  Pair(abs(r1,i1,q1,a),abs(r2,i2,q2,b))”));
 
+val qgR_Rcss_abs_cong = prove_store("qgR_Rcss_abs_cong",
+e0
+(rpt strip_tac >> irule abs_cong >>
+ rw[qgR_Rcss_cong,qgR_ER,Quot_qgR_Rcss])
+(form_goal 
+ “!G g:mem(Grp(G)) H:mem(nsgrp(g)) a b.
+  abs(prrel(qgR(H), qgR(H)),ipow2(Rcss(H), Rcss(H)),
+     Pair(ecs(H), ecs(H)),Pair(a,b)) = 
+ Pair(abs(qgR(H),Rcss(H),ecs(H),a),
+      abs(qgR(H),Rcss(H),ecs(H),b))”));
 
 
-
-val qmap_def =
+val mulcs_def =
 Quot_UMP
 |> qspecl [‘G * G’,
            ‘prrel(qgR(H:mem(nsgrp(g:mem(Grp(G))))),qgR(H))’]
@@ -509,5 +529,136 @@ Quot_UMP
 |> uex2ex_rule |> qSKOLEM "mulcs" [‘H’]
 |> rewr_rule[App_App_o]
 |> qspecl [‘Pair(a:mem(G),b:mem(G))’]
-|> rewr_rule[GSYM mul_def,GSYM gmul_def,GSYM cs_def,GSYM abs_def]
+|> rewr_rule[GSYM mul_def,GSYM gmul_def,GSYM cs_def,GSYM abs_def,qgR_Rcss_abs_cong]
+|> qgenl [‘G’,‘g’,‘H’,‘a’,‘b’] |> store_as "mulcs_def"
+
+val sinv_def = proved_th $
+e0
+(rpt strip_tac >> accept_tac
+ (IN_def_P |> qspecl [‘G’] 
+ |> fVar_sInst_th “P(a:mem(G))”
+    “?x:mem(G). IN(x,s) & a = ginv(g,x)”))
+(form_goal “!G g:mem(Grp(G)) s.
+ ?!invs. !a. IN(a,invs) <=> 
+ ?x. IN(x,s) & a = ginv(g,x)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "sinv" [‘g’,‘s’]
+|> gen_all 
+
+val gmul_lcancel = prove_store("gmul_lcancel",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ qsuff_tac ‘gmul(g,ginv(g,x),gmul(g, x, y)) = 
+          gmul(g,ginv(g,x),gmul(g, x, z))’ 
+ >-- rw[GSYM gmul_assoc,gmul_ginv,gmul_e] >> 
+ arw[])
+(form_goal “!G g x y z:mem(G). 
+ gmul(g,x,y) = gmul(g,x,z) <=> y = z”));
+
+
+val gmul_rcancel = prove_store("gmul_rcancel",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ qsuff_tac ‘gmul(g,gmul(g, y, x),ginv(g,x)) = 
+          gmul(g,gmul(g, z, x),ginv(g,x))’ 
+ >-- rw[gmul_assoc,gmul_ginv,gmul_e] >> 
+ arw[])
+(form_goal “!G g x y z:mem(G). 
+ gmul(g,y,x) = gmul(g,z,x) <=> y = z”));
+
+val ginv_oneside = prove_store("ginv_oneside",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >--
+ (qsuff_tac ‘a1 = ginv(g,a)’ 
+ >-- (strip_tac >> arw[gmul_ginv]) >>
+ irule $ iffLR gmul_lcancel >>
+ qexistsl_tac [‘g’,‘a’] >> arw[gmul_ginv]) >>
+ qsuff_tac ‘a = ginv(g,a1)’ 
+ >-- (strip_tac >> arw[gmul_ginv]) >>
+ irule $ iffLR gmul_lcancel >>
+ qexistsl_tac [‘g’,‘a1’] >> arw[gmul_ginv])
+(form_goal “!G g a:mem(G) a1. gmul(g,a,a1) = eof(g) <=>
+ gmul(g,a1,a) = eof(g)”));
+
+
+val is_ginv = prove_store("is_ginv",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac (* 3 *)
+ >-- arw[gmul_ginv] 
+ >-- (irule $ iffLR gmul_lcancel >>
+     qexistsl_tac [‘g’,‘a’] >> arw[gmul_ginv]) >>
+ irule $ iffLR gmul_rcancel >>
+ qexistsl_tac [‘g’,‘a’] >> arw[gmul_ginv])
+(form_goal “!G g a:mem(G) a1. a1 = ginv(g,a) <=> 
+ (gmul(g,a,a1) = eof(g) | gmul(g,a1,a) = eof(g))”));
+
+val ginv_gmul = prove_store("ginv_gmul",
+e0
+(rpt strip_tac >> flip_tac >>
+ rw[is_ginv] >>
+ once_rw[GSYM gmul_assoc] >> disj1_tac >>
+ qby_tac
+ ‘gmul(g, gmul(g, a, b), ginv(g, b)) = 
+  gmul(g, a, gmul(g, b, ginv(g, b)))’
+ >-- rw[gmul_assoc] >>
+ arw[] >> rw[gmul_ginv,gmul_e])
+(form_goal “!G g:mem(Grp(G)) a b.
+ ginv(g,gmul(g,a,b)) = gmul(g,ginv(g,b),ginv(g,a))”));
+
+val ginv_ginv = prove_store("ginv_ginv",
+e0
+(rpt strip_tac >> flip_tac >> rw[is_ginv] >>
+ rw[gmul_ginv])
+(form_goal “!G g a:mem(G). ginv(g,ginv(g,a)) = a”));
+
+val ginv_lcs = prove_store("ginv_lcs",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘g’,‘H’,‘a’] assume_tac nsgrp_rcs_lcs >>
+ rw[GSYM IN_EXT_iff,lcs_def,sinv_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (arw[] >> 
+     pop_assum (K all_tac) >> 
+     qexists_tac ‘gmul(g,ginv(g,h),a)’ >>
+     rw[ginv_gmul,ginv_gmul,ginv_ginv] >>
+     drule ginv_IN_rsg >>
+     drule nsgrp_swap_r2l >> arw[]) >>
+ arw[] >> rw[ginv_gmul] >>
+ drule ginv_IN_rsg >> 
+ drule nsgrp_swap_r2l >> arw[])
+(form_goal “!G g:mem(Grp(G)) H:mem(nsgrp(g)) a.
+  lcs(ginv(g, a), rnsg(H)) = sinv(g,lcs(a, rnsg(H)))”));
+
+val iof_resp = prove_store("iof_resp",
+e0
+(rw[resp1_property] >> 
+ fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
+ rpt strip_tac >>
+ rw[App_App_o,GSYM abs_def,GSYM cs_def] >> 
+ fs[qgR_def] >> 
+ rw[GSYM rcss_eq_eq,rcss_cs] >> 
+ irule $ iffRL rsi_eq_ER >> rw[qgR_ER,qgR_def] >>
+ arw[GSYM ginv_def,ginv_lcs])
+(form_goal “!G g:mem(Grp(G)) H:mem(nsgrp(g)).
+ resp1(Abs(qgR(H),Rcss(H),ecs(H)) o iof(g:mem(Grp(G))),
+       qgR(H))”));
+
+val invcs_def =
+Quot_UMP
+|> qspecl [‘G’,
+           ‘qgR(H:mem(nsgrp(g:mem(Grp(G)))))’]
+|> C mp (qgR_ER |> spec_all)
+|> qspecl [‘css(H:mem(nsgrp(g:mem(Grp(G)))))’,
+           ‘Abs(qgR(H),Rcss(H),ecs(H)) o iof(g:mem(Grp(G)))’]
+|> C mp (spec_all iof_resp)
+|> qspecl [‘css(H:mem(nsgrp(g:mem(Grp(G)))))’,
+           ‘Rcss(H:mem(nsgrp(g:mem(Grp(G)))))’]
+|> C mp (spec_all Quot_qgR_Rcss)
+|> qspecl [‘ecs(H:mem(nsgrp(g:mem(Grp(G)))))’]
+|> uex2ex_rule |> qSKOLEM "invcs" [‘H’]
+|> rewr_rule[App_App_o]
+|> qspecl [‘a:mem(G)’]
+|> rewr_rule[GSYM cs_def,GSYM abs_def,GSYM ginv_def]
+|> qgenl [‘G’,‘g’,‘H’,‘a’] |> store_as "invcs_def"
+
+
 
