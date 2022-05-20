@@ -1653,10 +1653,31 @@ fun fun_tm_compr (ivar as (n,s)) otm =
         val p1 = mk_eq ovt otm
         val th1 = fVar_sInst_th p p1 th0
         val lemma = unique_lemma |> allE cod |> allE otm
+                                 |> add_cont (fvt (mk_var ivar))
                                  |> allI ivar
         val th2 = mp th1 lemma
     in th2
     end
+
+
+fun fun_tm_compr_uex (ivar as (n,s)) otm = 
+    let val isort = s
+        val osort = sort_of otm
+        val avoids = HOLset.union(fvt otm,fvt (mk_var ivar))
+        val ovt = pvariantt avoids (mk_var ("y",osort))
+        val dom = isort |> dest_sort |> snd |> hd
+        val cod = osort |> dest_sort |> snd |> hd 
+        val th0 = P2fun_uex |> specl [dom,cod] 
+        val p = mk_fvar "P" [mk_var ivar,ovt]
+        val p1 = mk_eq ovt otm
+        val th1 = fVar_sInst_th p p1 th0
+        val lemma = unique_lemma |> allE cod |> allE otm
+                                 |> add_cont (fvt (mk_var ivar))
+                                 |> allI ivar
+        val th2 = mp th1 lemma
+    in th2
+    end
+
 (*under test
 example:
 val ivar = dest_var $ rastt "a:mem(A)"

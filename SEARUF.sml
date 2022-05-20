@@ -251,12 +251,6 @@ val CUI_def = qdefine_psym("CUI",[‘ss:mem(Pow(Pow(A)))’])
         SS(ss0, ss) & Fin(ss0) & ~(ss0 = Empty(Pow(A))) ==>
         IN(BIGINTER(ss0),ss)’
 
-val IN_Sing = prove_store("IN_Sing",
-e0
-(rw[Sing_def,Sg_def])
-(form_goal “!A a0 a:mem(A). IN(a,Sing(a0)) <=> a = a0”));
-
-
 val IN_Union = prove_store("IN_Union",
 e0
 (rw[Union_def,UNION_def])
