@@ -856,32 +856,75 @@ e0
 (rpt strip_tac >> flip_tac >> rw[is_ginv,gmul_e] )
 (form_goal “!G g:mem(Grp(G)). ginv(g,eof(g)) = eof(g)”));
 
-val sgrp_mem_ex = proved_th $
+val e_sgrp = proved_th $
 e0
 (rw[issgrp_def,IN_Sing,gmul_e] >>
  rpt strip_tac >> arw[ginv_e,gmul_e])
 (form_goal “!G g:mem(Grp(G)).issgrp(Sing(eof(g)),g)”)
 
-val esg_def = sgrp_def |> conjE2 |> qspecl [‘Sing(eof(g:mem(Grp(G))))’]
-             |> rewr_rule[sgrp_mem_ex]
-             |> qSKOLEM "esg" [‘g’] |> gen_all
+val Rsg_Inj = sgrp_def |> spec_all |> conjE1 
+                       |> gen_all
+
+val sg_ex_uex = mp 
+                  (Inj_ex_uex |> qsspecl [‘Rsg(g:mem(Grp(G)))’])
+                  (spec_all Rsg_Inj) |> GSYM
+
+val sg_uex = sgrp_def |> spec_all 
+                      |> conjE2 
+                      |> spec_all 
+                      |> iffLR |> undisch 
+                      |> GSYM 
+                      |> mp (iffLR sg_ex_uex
+                                   |> qspecl [‘a:mem(Pow(G))’])
+                      |> disch_all |> gen_all 
+                       
+
+
+val esg_def = 
+sg_uex |> qsspecl [‘Sing(eof(g:mem(Grp(G))))’,‘g:mem(Grp(G))’]
+            |> rewr_rule[e_sgrp]
+            |> uex2ex_rule
+            |> qSKOLEM "esg" [‘g’] |> gen_all
 
 
 
-val nsgrp_mem_ex = proved_th $
+val sg_def = qdefine_fsym("sg",[‘h:mem(Pow(G))’,‘g:mem(Grp(G))’]) ‘App(LINV(Rsg(g),esg(g)),h)’ |> gen_all
+
+val e_nsgrp = proved_th $
 e0
 (rw[isnml_def] >> cheat)
 (form_goal “!G g:mem(Grp(G)).isnml(esg(g))”)
 
-val ensg_def = nsgrp_def |> spec_all
-                         |> conjE2
-                         |> qspecl [‘esg(g:mem(Grp(G)))’]
-                         |> rewr_rule[nsgrp_mem_ex]
-                         |> qSKOLEM "ensg" [‘g’] |> gen_all
+val Rnsg_Inj = nsgrp_def |> spec_all 
+                         |> conjE1 |> gen_all
+
+val nsg_ex_uex = mp 
+                  (Inj_ex_uex |> qsspecl [‘Rnsg(g:mem(Grp(G)))’])
+                  (spec_all Rnsg_Inj) |> GSYM
+
+                 
+
+val nsg_uex = nsgrp_def |> spec_all 
+                        |> conjE2 
+                        |> spec_all 
+                        |> iffLR |> undisch 
+                        |> GSYM 
+                        |> mp (iffLR nsg_ex_uex
+                                       |> qspecl [‘a:mem(sgrp(g:mem(Grp(G))))’])
+                        |> disch_all |> gen_all
+                       
+
+val ensg_def = 
+    nsg_uex |> qsspecl [‘g:mem(Grp(G))’,‘esg(g:mem(Grp(G)))’]
+            |> rewr_rule[e_nsgrp]
+            |> uex2ex_rule
+            |> qSKOLEM "ensg" [‘g’] |> gen_all
+
+val nsg_def = qdefine_fsym("nsg",[‘h:mem(sgrp(g:mem(Grp(G))))’]) ‘App(LINV(Rnsg(g),ensg(g)),h)’ |> gen_all
 
 val ker_def = qdefine_fsym("ker",[‘f:mem(hom(g1:mem(Grp(G1)),
                                          g2:mem(Grp(G2))))’])
-‘App(LINV(Rnsg(g1),ensg(g1)) o LINV(Rsg(g1),esg(g1)),kers(f))’ |> gen_all
+‘nsg(sg(kers(f),g1))’ |> gen_all
 
 val kers_issgrp = prove_store("kers_issgrp",
 e0
@@ -890,7 +933,7 @@ e0
 
 val qhom_def = qdefine_fsym("qhom",[‘f:mem(hom(g1:mem(Grp(G1)),
                                          g2:mem(Grp(G2))))’])
-‘LINV()’
+‘LINV(ih(g1,g2),)’
 
 val first_iso_thm = prove_store("first_iso_thm",
 e0
