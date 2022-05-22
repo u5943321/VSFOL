@@ -1650,6 +1650,8 @@ e0
  “!G g:mem(Grp(G)) H:mem(sgrp(g)) a b.
   Card(lcs(a,H)) = Card(lcs(b,H))”));
 
+val Lagrange_theorem = 
+
 val sgrp_Grp = prove_store("sgrp_Grp",
 e0
 ()
