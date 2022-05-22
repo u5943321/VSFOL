@@ -6,11 +6,6 @@ val mul_def = qdefine_fsym("mul",[‘m:G * G ->G’,‘g1:mem(G)’,‘g2:mem(G)
 val asc_def = qdefine_psym("asc",[‘m:A * A -> A’])
 ‘!a1 a2 a3. mul(m,mul(m,a1,a2),a3) = mul(m,a1,mul(m,a2,a3))’
 
-(*
-App(m,Pair(App(m,Pair(a1,a2)),a3)) = 
-App(m,Pair(a1,App(m,Pair(a2,a3))))’ |> gen_all
-*)
-
 val isunit_def = qdefine_psym("isunit",[‘m:A * A -> A’,‘e:mem(A)’])
 ‘!a. mul(m,e,a) = a & mul(m,a,e) = a’
 
@@ -50,7 +45,7 @@ val ginv_def = qdefine_fsym("ginv",[‘g:mem(Grp(G))’,‘x:mem(G)’])
 ‘App(iof(g),x)’
 
 
-val ghom_def = qdefine_psym("ghom",[‘f:G1->G2’,‘g1:mem(Grp(G1))’,
+val isghom_def = qdefine_psym("isghom",[‘f:G1->G2’,‘g1:mem(Grp(G1))’,
                                                ‘g2:mem(Grp(G2))’])
 ‘!a b. App(f,gmul(g1,a,b)) = gmul(g2,App(f,a),App(f,b))’ |> gen_all
 
@@ -292,6 +287,25 @@ e0
 (form_goal “!G g:mem(Grp(G)) a.
  gmul(g,a,eof(g)) = a & 
  gmul(g,eof(g),a) = a”));
+
+
+val gmul_e = prove_store("gmul_e",
+e0
+(rpt gen_tac >> rw[gmul_def] >>
+ qsspecl_then [‘g’] assume_tac RepG_isgrp >>
+ fs[isgrp_def,isunit_def,GSYM mof_def,GSYM eof_def])
+(form_goal “!G g:mem(Grp(G)) a.
+ gmul(g,a,eof(g)) = a & 
+ gmul(g,eof(g),a) = a”));
+
+
+val gmul_ginv = prove_store("gmul_ginv",
+e0
+cheat
+(form_goal 
+     “!G g:mem(Grp(G)) a.
+              gmul(g,ginv(g,a),a)= eof(g) &
+              gmul(g,a,ginv(g,a))= eof(g)”));
 
 val rsg_issgrp = prove_store("rsg_issgrp",
 e0
@@ -783,13 +797,13 @@ e0
  App(qmap(H),a) = cs(a,H)”));
 
 
-val qmap_ghom = prove_store("qmap_ghom",
+val qmap_isghom = prove_store("qmap_isghom",
 e0
 (rpt strip_tac >>
- rw[ghom_def] >> rpt strip_tac >>
+ rw[isghom_def] >> rpt strip_tac >>
  rw[qmap_cs,gmul_qgrp])
 (form_goal “!G g:mem(Grp(G)) H:mem(nsgrp(g)).
- ghom(qmap(H),g,qgrp(H))”));
+ isghom(qmap(H),g,qgrp(H))”));
 
 
 val ker_def = proved_th $
@@ -804,13 +818,33 @@ e0
  ?!k:mem(Pow(G1)). !x. IN(x,k) <=> App(f,x) = eof(g2)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "ker" [‘f’,‘g1’,‘g2’]
 
-val hom_def = 
+val ghom_def = 
     Thm_2_4 |> qspecl [‘Exp(G1,G2)’]
             |> fVar_sInst_th “P(f:mem(Exp(G1,G2)))”
-            “ghom(tof(f:mem(Exp(G1,G2))),g1,g2)”
-            |> qSKOLEM "hom" [‘g1’,‘g2’]
+            “isghom(tof(f:mem(Exp(G1,G2))),g1,g2)”
+            |> qSKOLEM "ghom" [‘g1’,‘g2’]
             |> qSKOLEM "ih" [‘g1’,‘g2’]
             |> gen_all
+
+val ih_Inj = ghom_def |> spec_all 
+                         |> conjE1 |> gen_all
+
+val ghom_ex_uex = 
+    mp 
+       (Inj_ex_uex
+       |> qsspecl [‘ih(g1:mem(Grp(G1)),g2:mem(Grp(G2)))’])
+                  (spec_all ih_Inj) |> GSYM
+
+val ghom_uex = ghom_def |> spec_all 
+                        |> conjE2 
+                        |> spec_all 
+                        |> iffLR |> undisch 
+                        |> GSYM 
+                        |> mp (iffLR ghom_ex_uex
+                                     |> qspecl [‘a:mem(Exp(G1,G2))’])
+                        |> disch_all 
+                        |> qgenl [‘G1’,‘g1’,‘G2’,‘g2’,‘a’]
+
 
 val constf_def = fun_tm_compr_uex 
                        (dest_var (rastt "a:mem(A)"))
@@ -820,14 +854,25 @@ val constf_def = fun_tm_compr_uex
                        |> gen_all
                        |> store_as "constf_def";
 
-val constf_ghom = prove_store("constf_ghom",
+val constf_isghom = prove_store("constf_isghom",
 e0
-(rw[ghom_def,constf_def,gmul_e])
+(rw[isghom_def,constf_def,gmul_e])
 (form_goal “!G1 g1:mem(Grp(G1)) G2 g2:mem(Grp(G2)).
- ghom(constf(G1,eof(g2)),g1,g2)”));
+ isghom(constf(G1,eof(g2)),g1,g2)”));
+
+
+val eghm_def = 
+ghom_uex |> qspecl [‘G1’,‘g1:mem(Grp(G1))’,‘G2’,‘g2:mem(Grp(G2))’,‘Tpm(constf(G1,eof(g2:mem(Grp(G2)))))’]
+            |> rewr_rule[tof_Tpm_inv,constf_isghom]
+            |> uex2ex_rule
+            |> qSKOLEM "eghm" [‘g1’,‘g2’] |> gen_all
+
+
+val ghm_def = qdefine_fsym("ghm",[‘h:G1->G2’,‘g1:mem(Grp(G1))’,‘g2:mem(Grp(G2))’]) ‘App(LINV(ih(g1,g2),eghm(g1,g2)),Tpm(h))’ |> gen_all
+
 
 val homfun_def = 
-qdefine_fsym("homfun",[‘h:mem(hom(g1:mem(Grp(G1)),g2:mem(Grp(G2))))’]) ‘tof(App(ih(g1,g2),h))’ |> gen_all
+qdefine_fsym("homfun",[‘h:mem(ghom(g1:mem(Grp(G1)),g2:mem(Grp(G2))))’]) ‘tof(App(ih(g1,g2),h))’ |> gen_all
 
 val PREIM_def = proved_th $
 e0
@@ -844,12 +889,7 @@ e0
 
 
 (*kernel set, kernel should always be regarded as a normal subgroup*)
-val kers_def = qdefine_fsym("kers",[‘f:mem(hom(g1:mem(Grp(G1)),g2:mem(Grp(G2))))’]) ‘PREIM(homfun(f),Sing(eof(g2)))’
-
-val IN_Sing = prove_store("IN_Sing",
-e0
-(rw[Sing_def,Sg_def])
-(form_goal “!A a0 a:mem(A). IN(a,Sing(a0)) <=> a = a0”));
+val kers_def = qdefine_fsym("kers",[‘f:mem(ghom(g1:mem(Grp(G1)),g2:mem(Grp(G2))))’]) ‘PREIM(homfun(f),Sing(eof(g2)))’
 
 val ginv_e = prove_store("ginv_e",
 e0
@@ -922,20 +962,28 @@ val ensg_def =
 
 val nsg_def = qdefine_fsym("nsg",[‘h:mem(sgrp(g:mem(Grp(G))))’]) ‘App(LINV(Rnsg(g),ensg(g)),h)’ |> gen_all
 
-val ker_def = qdefine_fsym("ker",[‘f:mem(hom(g1:mem(Grp(G1)),
+
+val ker_def = qdefine_fsym("ker",[‘f:mem(ghom(g1:mem(Grp(G1)),
                                          g2:mem(Grp(G2))))’])
 ‘nsg(sg(kers(f),g1))’ |> gen_all
 
 val kers_issgrp = prove_store("kers_issgrp",
 e0
 (cheat)
-(form_goal “!G1 G2 g1:mem(Grp(G1)) g2:mem(Grp(G2)) f:mem(hom(g1,g2)). issgrp(kers(f))”));
+(form_goal “!G1 G2 g1:mem(Grp(G1)) g2:mem(Grp(G2)) f:mem(ghom(g1,g2)). issgrp(kers(f))”));
 
-val qhom_def = qdefine_fsym("qhom",[‘f:mem(hom(g1:mem(Grp(G1)),
-                                         g2:mem(Grp(G2))))’])
-‘LINV(ih(g1,g2),)’
 
-val first_iso_thm = prove_store("first_iso_thm",
+
+
+
+val qhom_def = qdefine_fsym("qhom",[‘H:mem(nsgrp(g:mem(Grp(G))))’])
+‘ghm(qmap(H),g, qgrp(H))’ |> gen_all
+
+
+
+
+(*
+val first_iso_thm0 = prove_store("first_iso_thm0",
 e0
 (rpt strip_tac >>
  )
@@ -943,8 +991,371 @@ e0
  “!G1 G2 g1:mem(Grp(G1)) g2:mem(Grp(G2)) f:mem(hom(g1,g2)).
   ?!fb:mem(hom(qgrp(ker(f)),g2)).
   Inj(homfun(fb)) &
-  homfun(fb) o qmap(ker(f)) = homfun(f)
-  ”));
+  homfun(fb) o qmap(ker(f)) = homfun(f)”));
+*)
+
+val homfun_isghom = prove_store("homfun_isghom",
+e0
+(rw[ghom_def,homfun_def] >> rpt strip_tac >>
+ qexists_tac ‘f’ >> rw[])
+(form_goal “!G1 g1:mem(Grp(G1)) G2 g2:mem(Grp(G2)) f:mem(ghom(g1,g2)). isghom(homfun(f),g1,g2)”));
+
+
+val homfun_gmul = prove_store("homfun_gmul",
+e0
+(rpt strip_tac >>
+ irule $ iffLR isghom_def >> rw[homfun_isghom])
+(form_goal “!G1 g1:mem(Grp(G1)) G2 g2:mem(Grp(G2)) f:mem(ghom(g1,g2)) x y.
+ App(homfun(f),gmul(g1, x, y)) = 
+ gmul(g2, App(homfun(f), x), App(homfun(f), y))”));
+
+(*conjugate*)
+val cjg_def = 
+qdefine_fsym("cjg",[‘g:mem(Grp(G))’,‘a:mem(G)’,‘h:mem(G)’])
+‘gmul(g,a,gmul(g,h,ginv(g,a)))’
+
+val lsmul_def = proved_th $
+e0
+(rpt strip_tac >> assume_tac 
+ (IN_def_P |> qspecl [‘G’] 
+ |> fVar_sInst_th “P(a:mem(G))”
+    “?y. IN(y,s) & a = gmul(g:mem(Grp(G)),x,y)”) >> arw[])
+(form_goal “!G g:mem(Grp(G)) x s.?!xs. !a. IN(a,xs) <=> 
+ ?y. IN(y,s) & a = gmul(g,x,y)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "lsmul" [‘g’,‘x’,‘s’]
+|> gen_all 
+
+
+val rsmul_def = proved_th $
+e0
+(rpt strip_tac >> assume_tac 
+ (IN_def_P |> qspecl [‘G’] 
+ |> fVar_sInst_th “P(a:mem(G))”
+    “?x. IN(x,s) & a = gmul(g:mem(Grp(G)),x,y)”) >> arw[])
+(form_goal “!G g:mem(Grp(G)) s y.?!sy. !a. IN(a,sy) <=> 
+ ?x. IN(x,s) & a = gmul(g,x,y)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "rsmul" [‘g’,‘s’,‘y’]
+|> gen_all 
+
+
+val rcs_rsmul = prove_store("rcs_rsmul",
+e0
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,rcs_def,rsmul_def])
+(form_goal “!G g:mem(Grp(G)) H:mem(sgrp(g)) a.
+ rcs(H,a) = rsmul(g,rsg(H),a)”));
+
+
+val lcs_lsmul = prove_store("lcs_lsmul",
+e0
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,lcs_def,lsmul_def])
+(form_goal “!G g:mem(Grp(G)) H:mem(sgrp(g)) a.
+ lcs(a,H) = lsmul(g,a,rsg(H))”));
+
+
+val lsmul_gmul = prove_store("lsmul_gmul",
+e0
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,lsmul_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (arw[] >> qexists_tac ‘y'’ >> arw[gmul_assoc]) >>
+ arw[] >> qexists_tac ‘gmul(g,b,y)’ >> arw[gmul_assoc] >>
+ qexists_tac ‘y’ >> arw[])
+(form_goal “!G g:mem(Grp(G)) a b s:mem(Pow(G)).
+ lsmul(g,a,lsmul(g,b,s)) = lsmul(g,gmul(g,a,b),s)”));
+
+
+val rsmul_gmul = prove_store("rsmul_gmul",
+e0
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,rsmul_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (arw[] >> qexists_tac ‘x''’ >> arw[gmul_assoc]) >>
+ arw[] >> qexists_tac ‘gmul(g,x',a)’ >> arw[gmul_assoc] >>
+ qexists_tac ‘x'’ >> arw[])
+(form_goal “!G g:mem(Grp(G)) s:mem(Pow(G)) a b.
+ rsmul(g,rsmul(g,s,a),b) = rsmul(g,s,gmul(g,a,b))”));
+
+val lsmul_e = prove_store("lsmul_e",
+e0
+(rw[GSYM IN_EXT_iff,lsmul_def,gmul_e] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] >>
+ qexists_tac ‘x’ >> arw[])
+(form_goal “!G g:mem(Grp(G)) s:mem(Pow(G)).
+ lsmul(g,eof(g),s) = s”));
+
+
+val rsmul_e = prove_store("rsmul_e",
+e0
+(rw[GSYM IN_EXT_iff,rsmul_def,gmul_e] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] >>
+ qexists_tac ‘x’ >> arw[])
+(form_goal “!G g:mem(Grp(G)) s:mem(Pow(G)).
+ rsmul(g,s,eof(g)) = s”));
+
+val lsmul_rsmul_comm = prove_store("rsmul_lsmul_comm",
+e0
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,rsmul_def,lsmul_def] >>
+ strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (arw[] >> qexists_tac ‘gmul(g,y,b)’ >>
+     rw[gmul_assoc] >> qexists_tac ‘y’ >> arw[]) >>
+ arw[] >> qexists_tac ‘gmul(g,a,x')’ >>
+ arw[gmul_assoc] >> qexists_tac ‘x'’ >> arw[])
+(form_goal “!G g:mem(Grp(G)) a s:mem(Pow(G)) b.
+ rsmul(g,lsmul(g,a,s),b) = lsmul(g,a,rsmul(g,s,b))”));
+
+val scjg_def = qdefine_fsym("scjg",[‘g:mem(Grp(G))’,‘a:mem(G)’,‘s:mem(Pow(G))’]) ‘lsmul(g,a,rsmul(g,s,ginv(g,a)))’
+
+val isnml_alt = prove_store("isnml_alt",
+e0
+(rw[isnml_def,scjg_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (rw[GSYM rcs_rsmul] >> arw[] >>
+      rw[lcs_lsmul,lsmul_gmul,gmul_ginv,lsmul_e]) >>
+ rw[rcs_rsmul,lcs_lsmul] >> 
+ first_x_assum (qspecl_then [‘a’] assume_tac) >>
+ qby_tac
+ ‘rsmul(g,lsmul(g, a, rsmul(g, rsg(H), ginv(g, a))),a) = 
+  rsmul(g,rsg(H),a)’
+ >-- arw[] >>
+ fs[lsmul_rsmul_comm,rsmul_gmul,gmul_ginv,rsmul_e])
+(form_goal
+ “!G g:mem(Grp(G)) H:mem(sgrp(g)). isnml(H) <=>
+  !a. scjg(g,a,rsg(H)) = rsg(H)”));
+
+val scjg_cjg = prove_store("scjg_cjg",
+e0
+(rpt strip_tac >> 
+ rw[scjg_def,cjg_def,lsmul_def,rsmul_def] >>
+ dimp_tac >> rpt strip_tac >> arw[] (* 2 *)
+ >-- (qexists_tac ‘x'’ >> arw[]) >>
+ qexists_tac ‘gmul(g,h,ginv(g,a))’ >> rw[] >>
+ qexists_tac ‘h’ >> arw[])
+(form_goal “!G g:mem(Grp(G)) a H.
+  !x.IN(x,scjg(g,a,H)) <=> ?h. IN(h,H) & x = cjg(g,a,h)”));
+
+val SS_scjg = prove_store("SS_scjg",
+e0
+(rpt strip_tac >> rw[SS_def,scjg_cjg] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (first_x_assum irule >> qexists_tac ‘x’>> arw[]) >>
+ arw[] >> first_x_assum irule >> arw[])
+(form_goal “!G g:mem(Grp(G)) a s.
+SS(scjg(g,a,s),s) <=> !x. IN(x,s) ==> IN(cjg(g,a,x),s)”));
+
+val SS_rsmul = prove_store("SS_rsmul",
+e0
+(rpt strip_tac >> rw[SS_def,rsmul_def] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘x’ >> arw[] >>
+     first_x_assum irule >> arw[]) >>
+ first_x_assum (qspecl_then [‘eof(g)’,‘gmul(g,a,eof(g))’]
+   assume_tac) >>
+ qby_tac
+ ‘?x. IN(x, s1) & gmul(g, a, eof(g)) = gmul(g, x, eof(g))’ 
+ >-- (qexists_tac ‘a’ >> arw[]) >>
+ first_x_assum drule >>
+ fs[gmul_e])
+(form_goal
+ “!G g:mem(Grp(G)) s1 s2. SS(s1,s2) <=> 
+  !a.SS(rsmul(g,s1,a),rsmul(g,s2,a))”));
+
+
+
+val SS_lsmul = prove_store("SS_lsmul",
+e0
+(rpt strip_tac >> rw[SS_def,lsmul_def] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘y’ >> arw[] >>
+     first_x_assum irule >> arw[]) >>
+ first_x_assum (qspecl_then [‘eof(g)’,‘gmul(g,eof(g),a)’]
+   assume_tac) >>
+ qby_tac
+ ‘?x. IN(x, s1) & gmul(g, eof(g),a) = gmul(g, eof(g),x)’ 
+ >-- (qexists_tac ‘a’ >> arw[]) >>
+ first_x_assum drule >>
+ fs[gmul_e])
+(form_goal
+ “!G g:mem(Grp(G)) s1 s2. SS(s1,s2) <=> 
+  !a.SS(lsmul(g,a,s1),lsmul(g,a,s2))”));
+
+
+val isnml_cjg = prove_store("isnml_cjg",
+e0
+(rw[isnml_alt] >> 
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (rw[SS_scjg] >> rpt strip_tac >> last_x_assum mp_tac >> 
+     rw[GSYM IN_EXT_iff,lsmul_def,rsmul_def] >>
+     rpt strip_tac >>
+     first_x_assum (irule o iffLR) >>
+     qexists_tac ‘a’ >> rw[scjg_cjg] >>
+     qexists_tac ‘x’ >> arw[]) >>
+ irule SS_SS_eq >> arw[] >>
+ first_x_assum (qspecl_then [‘ginv(g,a)’] assume_tac) >>
+ drule $ iffLR SS_rsmul >>
+ first_x_assum (qspecl_then [‘ginv(g,a)’] assume_tac) >>
+ fs[scjg_def] >> 
+ fs[lsmul_rsmul_comm,ginv_ginv,rsmul_gmul,gmul_ginv,
+    rsmul_e] >>
+ drule $ iffLR SS_lsmul >>
+ first_x_assum (qspecl_then [‘a’] assume_tac) >>
+ fs[lsmul_gmul,gmul_ginv,lsmul_e])
+(form_goal
+ “!G g:mem(Grp(G)) H:mem(sgrp(g)). isnml(H) <=>
+ !a.SS(scjg(g,a,rsg(H)),rsg(H))”));
+
+
+val IN_gmul_rsmul = prove_store("IN_gmul_rsmul",
+e0
+(rpt strip_tac >> rw[rsmul_def] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘a’ >> arw[]) >>
+ first_x_assum (qspecl_then [‘eof(g)’] assume_tac) >>
+ fs[gmul_e])
+(form_goal “!G g:mem(Grp(G)) H:mem(Pow(G)) a. 
+ IN(a,H) <=> !b.IN(gmul(g,a,b),rsmul(g,H,b))”));
+
+
+val IN_gmul_lsmul = prove_store("IN_gmul_lsmul",
+e0
+(rpt strip_tac >> rw[lsmul_def] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘b’ >> arw[]) >>
+ first_x_assum (qspecl_then [‘eof(g)’] assume_tac) >>
+ fs[gmul_e])
+(form_goal “!G g:mem(Grp(G)) H:mem(Pow(G)) b. 
+ IN(b,H) <=> !a.IN(gmul(g,a,b),lsmul(g,a,H))”));
+
+val gmul_IN_rsmul = prove_store("gmul_IN_rsmul",
+e0
+(rpt strip_tac >> rw[rsmul_def] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘gmul(g,a,b)’ >>
+     arw[gmul_assoc,gmul_ginv,gmul_e]) >>
+ arw[gmul_ginv,gmul_e,gmul_assoc])
+(form_goal “!G g:mem(Grp(G)) H:mem(Pow(G)) a b. 
+ IN(gmul(g,a,b),H) <=> IN(a,rsmul(g,H,ginv(g,b)))”));
+
+
+val gmul_IN_lsmul = prove_store("gmul_IN_lsmul",
+e0
+(rpt strip_tac >> rw[rsmul_def] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘gmul(g,a,b)’ >>
+     arw[gmul_assoc,gmul_ginv,gmul_e]) >>
+ arw[gmul_ginv,gmul_e,gmul_assoc])
+(form_goal “!G g:mem(Grp(G)) H:mem(Pow(G)) a b. 
+ IN(gmul(g,a,b),H) <=> IN(a,rsmul(g,H,ginv(g,b)))”));
+
+val rnsg_isnml = prove_store("rnsg_isnml",
+e0
+(rw[nsgrp_def,rnsg_def] >>
+ rpt strip_tac >> qexists_tac ‘H’ >> rw[])
+(form_goal 
+ “!G g:mem(Grp(G)) H:mem(nsgrp(g)). 
+  isnml(rnsg(H))”));
+
+val rnsg_rcs_lcs = prove_store("rnsg_rcs_lcs",
+e0
+(rpt strip_tac >> irule $ iffLR isnml_def >>
+ rw[rnsg_isnml])
+(form_goal “!G g:mem(Grp(G)) H:mem(nsgrp(g)) a.
+ rcs(rnsg(H),a) = lcs(a,rnsg(H))”));
+
+ 
+val SS_ex_lsmul = prove_store("SS_ex_lsmul",
+e0
+(rpt strip_tac >> rw[SS_def,lsmul_def] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘eof(g)’ >> arw[gmul_e] >>
+     rpt strip_tac >> qexists_tac ‘y’ >> arw[] >>    
+     first_x_assum irule >> arw[]) >>
+ first_x_assum (qspecl_then [‘gmul(g,a,a')’]
+   assume_tac) >>
+ qby_tac
+ ‘?y. IN(y, s1) & gmul(g, a, a') = gmul(g, a, y)’ 
+ >-- (qexists_tac ‘a'’ >> arw[]) >>
+ first_x_assum drule >>
+ fs[gmul_lcancel] >> rfs[])
+(form_goal
+ “!G g:mem(Grp(G)) s1 s2. SS(s1,s2) <=> 
+  ?a.SS(lsmul(g,a,s1),lsmul(g,a,s2))”));
+
+
+val same_cs_cond = prove_store("same_cs_cond",
+e0
+(rpt strip_tac >> rw[GSYM rcss_eq_eq,rcss_cs] >>
+ qsspecl_then [‘g’,‘H’] assume_tac qgR_ER >>
+ drule rsi_eq_ER >> arw[qgR_def] >>
+ pop_assum_list (map_every (K all_tac)) >>
+ dimp_tac >> rpt strip_tac 
+ (* 2 *)
+ >-- (rw[gmul_IN_rsmul,ginv_ginv,GSYM rcs_rsmul,
+        rnsg_rcs_lcs] >> 
+     pop_assum (assume_tac o GSYM) >> arw[] >>
+     rw[lcs_lsmul,lsmul_def] >> 
+     qexists_tac ‘eof(g)’ >> rw[e_IN_rsg,gmul_e]) >>
+ irule SS_SS_eq >> strip_tac
+ >-- (drule $ iffLR IN_gmul_rsmul >> 
+     first_x_assum (qspecl_then [‘b’] assume_tac) >>
+     fs[gmul_assoc,gmul_ginv,gmul_e] >>
+     fs[GSYM rcs_rsmul,rnsg_rcs_lcs] >>
+     fs[lcs_lsmul,lsmul_def,SS_def] >>
+     rpt strip_tac >>
+     qexists_tac ‘gmul(g,y,y')’ >>
+     fs[gmul_assoc] >> 
+     irule gmul_IN_rsg  >> arw[]) >>
+ qby_tac
+ ‘IN(gmul(g, ginv(g,ginv(g,a)), ginv(g, b)), rsg(rnsg(H)))’
+ >-- arw[ginv_ginv] >>
+ fs[GSYM ginv_gmul] >>
+ drule ginv_IN_rsg >> fs[ginv_ginv] >> 
+ drule $ iffLR IN_gmul_rsmul >> 
+ first_x_assum (qspecl_then [‘a’] assume_tac) >>
+ fs[gmul_assoc,gmul_ginv,gmul_e] >>
+ fs[GSYM rcs_rsmul,rnsg_rcs_lcs] >>
+ fs[lcs_lsmul,lsmul_def,SS_def] >>
+ rpt strip_tac >>
+ qexists_tac ‘gmul(g,y,y')’ >>
+ fs[gmul_assoc] >> 
+ irule gmul_IN_rsg  >> arw[])
+(form_goal “!G g:mem(Grp(G)) H:mem(nsgrp(g)) a b.
+ cs(a,H) = cs(b,H) <=> 
+ IN(gmul(g,a,ginv(g,b)),rsg(rnsg(H))) ”));
+
+val first_iso_thm = prove_store("first_iso_thm",
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?fb:css(ker(f)) -> G2.
+  fb o qmap(ker(f)) = homfun(f)’ >--
+ rpt strip_tac >>
+ qby_tac ‘isghom(fb,qgrp(ker(f)),g2)’
+ >-- (rw[isghom_def] >> rpt strip_tac >>
+     qsspecl_then [‘g1’,‘ker(f)’,‘a’]
+     (x_choose_then "x" assume_tac)
+     css_rep_ex >>
+     qsspecl_then [‘g1’,‘ker(f)’,‘b’]
+     (x_choose_then "y" assume_tac)
+     css_rep_ex >>
+     arw[gmul_qgrp] >> arw[GSYM qmap_cs,GSYM App_App_o] >>
+     rw[homfun_gmul]) >>
+ qby_tac ‘Inj(fb)’ 
+ >-- rw[Inj_def] >> rpt strip_tac >>
+     qsspecl_then [‘g1’,‘ker(f)’,‘x1’]
+     (x_choose_then "a" assume_tac)
+     css_rep_ex >>
+     qsspecl_then [‘g1’,‘ker(f)’,‘x2’]
+     (x_choose_then "b" assume_tac)
+     css_rep_ex >> fs[] >>
+     rfs[GSYM qmap_cs,GSYM App_App_o] >>
+     fs[qmap_cs]
+     
+cheat >>
+ qby_tac ‘’
+ )
+(form_goal 
+ “!G1 G2 g1:mem(Grp(G1)) g2:mem(Grp(G2)) f:mem(ghom(g1,g2)).
+  ?!fb:mem(ghom(qgrp(ker(f)),g2)).
+  Inj(homfun(fb)) &
+  homfun(fb) o qmap(ker(f)) = homfun(f)”));
 
 
 val second_iso_thm = prove_store("second_iso_thm",
@@ -952,3 +1363,4 @@ e0
 ()
 (form_goal “!G g:mem(Grp(G)) H:sgrp(g) K:nsgrp(g).
  ?phi:hom(qgrp(),qgrp(grp(smul(g,rsg(),rsg())))). giso(phi) ”));
+*)
