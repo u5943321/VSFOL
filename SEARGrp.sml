@@ -1581,10 +1581,107 @@ e0
   Inj(homfun(fb)) &
   homfun(fb) o qmap(ker(f)) = homfun(f)”));
 
+val Card_bij = prove_store("Card_bij",
+e0
+(cheat)
+(form_goal “!A B s1 s2.Card(s1) = Card(s2) <=>
+ ?f:A->B. !b. IN(b,s2) ==> ?!a. IN(a,s1) & App(f,a) = b”));
+
+val Lagrange_lemma = prove_store("Lagrange_lemma",
+e0
+(rpt strip_tac >>
+ rw[Card_bij] >>
+ qby_tac
+ ‘!x.?!y.
+ (?h.IN(h, rsg(H)) & x = gmul(g, a, h) & y = gmul(g, b, h)) |
+ (!h. IN(h, rsg(H)) ==> ~(x = gmul(g, a, h))) & y = eof(g)’
+ >-- (strip_tac >>
+      qcases ‘?h. IN(h,rsg(H)) & x = gmul(g,a,h)’
+      >-- (pop_assum strip_assume_tac >>
+          uex_tac >>
+          qexists_tac ‘gmul(g,b,h)’ >>
+          arw[] >> rw[gmul_lcancel] >>
+          rpt strip_tac (* 3 *)
+          >-- (disj1_tac >> qexists_tac ‘h’ >> arw[]) 
+          >-- arw[] >>
+          first_x_assum (qspecl_then [‘h’] assume_tac) >>
+          rfs[]) >>
+      qby_tac
+      ‘!h. IN(h,rsg(H)) ==> ~(x = gmul(g,a,h))’ 
+      >-- (rpt strip_tac >>
+          ccontra_tac >>
+          qsuff_tac ‘?h. IN(h,rsg(H)) &(x = gmul(g,a,h))’ 
+          >-- arw[] >>
+          qexists_tac ‘h’ >> arw[]) >>
+      arw[] >>
+      uex_tac >> qexists_tac ‘eof(g)’ >>
+      arw[] >> rpt strip_tac >> arw[] >>
+      qsuff_tac ‘?h. IN(h,rsg(H)) &(x = gmul(g,a,h))’ 
+      >-- arw[] >> qexists_tac ‘h’ >> arw[]) >> 
+ drule 
+ (P2fun' |> qspecl [‘G’,‘G’]
+ |> fVar_sInst_th “P(x:mem(G),y:mem(G))”
+    “(?h.IN(h:mem(G),rsg(H:mem(sgrp(g)))) & x = gmul(g,a,h) & y = gmul(g,b,h)) | (!h. IN(h:mem(G),rsg(H)) ==> ~(x = gmul(g,a,h))) &
+       y = eof(g)”) >>
+ qsuff_tac
+ ‘?f:G->G.
+  !h.IN(h,rsg(H)) ==> App(f,gmul(g,a,h)) = gmul(g,b,h)’
+ >-- (rpt strip_tac >>
+     qexists_tac ‘f’ >> rpt strip_tac >>
+     uex_tac >>
+     fs[lcs_lsmul,lsmul_def] >>
+     qexists_tac ‘gmul(g,a,y)’ >> rpt strip_tac (* 3 *)
+     >-- (qexists_tac ‘y’ >> arw[]) 
+     >-- (first_x_assum irule >> arw[]) >> 
+     fs[] >> rfs[] >>
+     first_x_assum drule >>
+     arw[gmul_lcancel] >> 
+     irule $ iffLR gmul_lcancel >>
+     qexistsl_tac [‘g’,‘b’] >> 
+     pop_assum (assume_tac o GSYM) >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘f’ >>
+ rpt strip_tac >>
+ first_x_assum (qspecl_then [‘gmul(g,a,h)’] assume_tac) >>
+ fs[gmul_lcancel] >>
+ first_x_assum (qspecl_then [‘h’] assume_tac)  >>
+ rfs[])
+(form_goal
+ “!G g:mem(Grp(G)) H:mem(sgrp(g)) a b.
+  Card(lcs(a,H)) = Card(lcs(b,H))”));
+
+val sgrp_Grp = prove_store("sgrp_Grp",
+e0
+()
+(form_goal
+ “!G g:mem(Grp(G)) sh:mem(sgrp(g)).
+  ?H h:mem(Grp(H)).
+  ”));
+
+val isgiso_def = qdefine_psym("isgiso",[‘f:mem(ghom(g1:mem(Grp(G1)),g2:mem(Grp(G2))))’]) ‘Bij(homfun(f))’
+|> gen_all 
+
 
 val second_iso_thm = prove_store("second_iso_thm",
 e0
 ()
 (form_goal “!G g:mem(Grp(G)) H:sgrp(g) K:nsgrp(g).
+ 
+ ?phi:hom(qg(sg2G(H),),qgrp(grp(smul(g,rsg(),rsg())))). isgiso(phi) ”));
+
+
+val second_iso_thm = prove_store("second_iso_thm",
+e0
+()
+(form_goal “!G g:mem(Grp(G)) sh:sgrp(g) sk:nsgrp(g)
+  H h:mem(Grp(H)) ih:mem(ghom(h,g))
+  HK hk:mem(Grp(HK)) ihk:mem(ghom(hk,g)) 
+  HiK:mem(nsgrp())  
+
+
+ ?
+
+
+ hh: hk
  ?phi:hom(qgrp(),qgrp(grp(smul(g,rsg(),rsg())))). giso(phi) ”));
 *)
