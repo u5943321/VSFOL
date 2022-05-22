@@ -208,13 +208,6 @@ val llf_def = llf_uex |> uex2ex_rule |> qSKOLEM "llf" [‘X’]
 
 
 
-val Tpm_eq_eq = prove_store("Tpm_eq_eq",
-e0
-(rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] >> 
- irule $ iffLR FUN_EXT >>
- once_rw[GSYM Tpm_def] >> arw[])
-(form_goal “!A B f1:A->B f2. Tpm(f1) = Tpm(f2) <=> f1 = f2”));
-
 val llf_monotone = prove_store("llf_monotone",
 e0
 (rw[monotone_def,llf_def,SS_def] >> rpt strip_tac >> arw[Tpm_eq_eq] >>
@@ -316,13 +309,6 @@ val isll_rules = ll_rules |> rewr_rule[GSYM isll_def]
 val isll_lcons0 = isll_rules |> spec_all |> conjE2 
                              |> spec_all |> undisch |> gen_all
                              |> disch_all |> gen_all
-
-val Tpm_tof_inv = prove_store("Tpm_tof_inv",
-e0
-(flip_tac >> rpt strip_tac >> irule is_Tpm >>
- rw[tof_def])
-(form_goal
- “!A B f:mem(Exp(A,B)). Tpm(tof(f))  = f”));
 
 
 val Repll_eq_eq = prove_store("Repll_eq_eq",
@@ -780,14 +766,6 @@ accept_tac (IN_def_P_ex |> qspecl [‘Exp(N,A+1)’]
  qexists_tac ‘b1’ >> rw[])
 (form_goal
  “!f:B->(B * A) + 1 z. isll(Tpm(toabs(f,z)))”));
-
-val tof_eq_eq = prove_store("tof_eq_eq",
-e0
-(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
- qby_tac ‘Tpm(tof(f)) = Tpm(tof(g))’ >-- arw[]>> fs[Tpm_tof_inv] )
-(form_goal
- “!A B f:mem(Exp(A,B)) g. tof(f)  = tof(g) <=> f = g”));
-
 
 
 
