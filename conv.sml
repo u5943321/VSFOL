@@ -228,7 +228,12 @@ fun rdimp_fconv fc f =
 
 
 
+(*delete subst_bound in forall_fconv 
+  since the bound variables have already gone in view_form.
 
+let val th0 = fc (subst_bound (mk_var(n,s)) b)
+
+*)
 
 fun forall_fconv fc f = 
     case view_form f of

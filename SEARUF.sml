@@ -49,8 +49,6 @@ e0
 (rw[Inter_def,INTER_def])
 (form_goal “!A s1 s2 a. IN(a:mem(A),Inter(s1,s2)) <=> IN(a,s1) & IN(a,s2)”));
 
-val EMPTY_def = qdefine_psym("EMPTY",[‘A’])
-‘!x:mem(A).F’
 
 val COMPL_def = proved_th $ 
 e0

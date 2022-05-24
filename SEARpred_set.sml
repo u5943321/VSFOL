@@ -36,3 +36,57 @@ val IN_Sing = prove_store("IN_Sing",
 e0
 (rw[Sing_def,Sg_def])
 (form_goal “!A a0 a:mem(A). IN(a,Sing(a0)) <=> a = a0”));
+
+ 
+val EMPTY_def = qdefine_psym("EMPTY",[‘A’])
+‘!x:mem(A).F’
+
+val BU_ex = prove_store("BU_ex",
+e0
+(strip_tac >>
+ qsuff_tac
+ ‘?BU:Pow(Pow(A)) -> Pow(A). 
+  !sss a:mem(A). IN(a,App(BU,sss)) <=>
+  ?ss.IN(ss,sss) & IN(a,ss)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘BU’ >> arw[] >>
+     rpt strip_tac >> irule $ iffLR FUN_EXT >> strip_tac >>
+     irule IN_EXT >> arw[]) >>
+ irule 
+ (P2fun' |> qspecl [‘Pow(Pow(A))’,‘Pow(A)’]
+ |> fVar_sInst_th “P(sss:mem(Pow(Pow(A))),u:mem(Pow(A)))”
+    “!a:mem(A). IN(a,u) <=>
+           (?ss.IN(ss,sss) & IN(a,ss))”) >>
+ strip_tac >>
+ accept_tac (IN_def_P |> qspecl [‘A’] |> fVar_sInst_th “P(a:mem(A))”
+ “ (?ss.IN(ss,x) & IN(a:mem(A),ss))”)
+ )
+(form_goal
+ “!A. ?!BU:Pow(Pow(A)) -> Pow(A). 
+  !sss a:mem(A). IN(a,App(BU,sss)) <=>
+  ?ss.IN(ss,sss) & IN(a,ss)”));
+ 
+
+val BU_def = BU_ex |> spec_all |> uex2ex_rule
+                         |> qSKOLEM "BU" [‘A’]
+                         |> gen_all
+                         |> store_as "BU_def"; 
+
+
+val BIGUNION_def = qdefine_fsym("BIGUNION",[‘sss:mem(Pow(Pow(A)))’])
+‘App(BU(A),sss)’ |> gen_all |> store_as "BIGUNION_def";
+
+
+val IN_BIGUNION = BU_def |> rewr_rule[GSYM BIGUNION_def] 
+                         |> store_as "IN_BIGUNION";
+
+ 
+
+
+val Inj_ex_uex = prove_store("Inj_ex_uex",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- first_x_assum (accept_tac o uex2ex_rule) >>
+ uex_tac >> qexists_tac ‘a’ >> arw[] >> rpt strip_tac >>
+ fs[Inj_def] >> first_x_assum irule >> arw[])
+(form_goal “!A B f:A->B. Inj(f) ==>
+ !b. (?!a.App(f,a) = b) <=> (?a.App(f,a) = b)”));

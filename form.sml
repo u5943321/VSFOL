@@ -811,6 +811,11 @@ end
 
 (*think doing it the HOL way*)
 
+(*view_form copy dest_abs, use helper function instead of subst_bound, and avoid pvariant,
+  since the subst procedure see all the free variables.
+
+*)
+
 fun view_form f =
     case f of
         Conn sfs => vConn sfs

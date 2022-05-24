@@ -305,15 +305,6 @@ val repf_Inj = form_def |> conjE1 |> store_as "repf_Inj";
 val Repf_def = qdefine_fsym("Repf",[‘f:mem(form(A))’]) ‘App(repf(A),f)’
                            |> gen_all 
 
-val Inj_ex_uex = prove_store("Inj_ex_uex",
-e0
-(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
- >-- first_x_assum (accept_tac o uex2ex_rule) >>
- uex_tac >> qexists_tac ‘a’ >> arw[] >> rpt strip_tac >>
- fs[Inj_def] >> first_x_assum irule >> arw[])
-(form_goal “!A B f:A->B. Inj(f) ==>
- !b. (?!a.App(f,a) = b) <=> (?a.App(f,a) = b)”));
-
 fun flip_fconv f = 
     let val eqths = List.map eq_sym (!EqSorts)
         val fc = first_fconv (List.map rewr_fconv eqths)
