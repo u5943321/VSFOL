@@ -103,7 +103,16 @@ val iswof_ex = mk_fex iswo_incond x1;
 val iswof_def = mk_fdef "iswof" iswof_ex;
 val iswof_monotone = proved_th $
 e0
-(cheat)
+(rpt strip_tac >>
+ rw[SS_def,iswof_def] >> rpt strip_tac (* 3 *)
+ >-- arw[] 
+ >-- (disj2_tac >> disj1_tac >>
+     qexistsl_tac [‘od0’,‘a'’] >> arw[] >>
+     fs[SS_def] >> first_x_assum irule >> arw[]) >>
+ disj2_tac >> disj2_tac >>
+ qexists_tac ‘s’ >> arw[] >> 
+ rpt strip_tac >> first_x_assum drule >>
+ fs[SS_def] >> first_x_assum irule >> arw[])
 (form_goal 
 “!s1 s2.SS(s1,s2) ==> 
   SS(App(iswof(A), s1), App(iswof(A), s2))”)
@@ -126,6 +135,15 @@ val iswo_ind = iswo_ind2 |> store_as "iswo_ind";
 val iswo_cases = iswo_cases1 |> store_as "iswo_cases";
 val iswo_rules = iswo_rules3 |> store_as "iswo_rules";
 
+
+val iswo_snocm = iswo_rules |> conjE2 
+                            |> conjE1 
+
+
+val iswo_BIGUNION = iswo_rules |> conjE2 
+                               |> conjE2
+
+
 val WO_def = Thm_2_4 |> qspecl [‘Pow(A * A)’] 
                     |> fVar_sInst_th 
                        “P(od:mem(Pow(A * A)))” 
@@ -134,6 +152,11 @@ val WO_def = Thm_2_4 |> qspecl [‘Pow(A * A)’]
                     |> qSKOLEM "iWO" [‘A’]
                     |> gen_all
 
+
+val from_WO = WO_def |> spec_all |> conjE2 
+                     |> GSYM 
+                     |> rewr_rule[GSYM Rwo_def]
+                     |> gen_all
 
 (*if as constructors, will have 
 O | Suc ord | U (ord set)
@@ -248,13 +271,6 @@ e0
 (form_goal “!A wo.Rwo(wo) = Empty(A * A) <=> 
  wo = zord(A)”));
 
-val iswo_snocm = iswo_rules |> conjE2 
-                            |> conjE1 
-
-
-val iswo_BIGUNION = iswo_rules |> conjE2 
-                               |> conjE2
-
 val iswo_Rwo = WO_def |> spec_all |> conjE2
                       |> rewr_rule[GSYM Rwo_def]
                       |> store_as "iswo_Rwo";
@@ -319,10 +335,6 @@ e0
 
 
 
-val from_WO = WO_def |> spec_all |> conjE2 
-                     |> GSYM 
-                     |> rewr_rule[GSYM Rwo_def]
-                     |> gen_all
 
 val wo_induct = prove_store("wo_induct",
 e0
@@ -420,7 +432,17 @@ val beth0f_ex = mk_fex beth0_incond x1;
 val beth0f_def = mk_fdef "beth0f" beth0f_ex;
 val beth0f_monotone = proved_th $
 e0
-(cheat)
+(rpt strip_tac >> fs[SS_def,beth0f_def] >>
+ rpt strip_tac (* 3 *)
+ >-- (disj1_tac >> qexists_tac ‘s’ >> arw[]) 
+ >-- (disj2_tac >> disj1_tac >>
+     qexistsl_tac [‘p0’,‘wo0’,‘b0’,‘s’,‘a'’] >>
+     arw[] >>
+     fs[] >> first_x_assum irule >> arw[]) >>
+ disj2_tac >> disj2_tac >>
+ qexists_tac ‘ps’ >> arw[] >>
+ rpt strip_tac >> first_x_assum drule >> 
+ first_x_assum irule >> arw[])
 (form_goal 
 “!s1 s2.SS(s1,s2) ==> 
   SS(App(beth0f(A,B), s1), App(beth0f(A,B), s2))”)
@@ -645,20 +667,12 @@ val AX5 = store_ax("AX5",
  !a:mem(A) X. P(a,X) ==> ?b. App(p,b) = a”)
 
 
-val AX5_conseq = prove_store("AX5_conseq",
-e0
-()
-(form_goal
- “!A a:mem(A). ?S. P(a,S) ==>
-  ?X. (!a. ?x. )”));
-
-
 
 (*
 isBeth(App(p, b'), m2s(rsi(M, b')))
 .App(p, b') = wo
 *)
-val Beth_ex = prove("Beth_ex",
+val Beth_ex = prove_store("Beth_ex",
 e0
 (strip_tac >> ind_with (wo_induct |> spec_all) >>
  strip_tac (* 2 *)
@@ -702,9 +716,9 @@ e0
      qsuff_tac
      ‘isbeth(lord(IMAGE(p1(WO(A), Pow(Y)), ps)),
               BIGUNION(IMAGE(p2(WO(A), Pow(Y)), ps)))’
-     >-- strip_tac >>
+     >-- (strip_tac >>
          qexistsl_tac [‘m2s(BIGUNION(IMAGE(p2(WO(A), Pow(Y)), ps)))’,‘Y’,‘BIGUNION(IMAGE(p2(WO(A), Pow(Y)), ps))’] >>
-         rw[msEqv_m2s] >>
+         rw[msEqv_m2s]) >>
      qby_tac
       ‘IMAGE(p1(WO(A), Pow(Y)), ps) = ods’ 
      >-- cheat >> fs[] >>
