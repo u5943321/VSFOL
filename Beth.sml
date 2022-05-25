@@ -69,9 +69,6 @@ e0
 *)
 
 val snocm_def = qdefine_fsym("snocm",[‘r:mem(Pow(A * A))’,‘a:mem(A)’]) ‘r2m(snocrel(m2r(r),a))’ 
-
-
-
  
 val ischain_def = 
     qdefine_psym("ischain",
@@ -173,9 +170,13 @@ e0
 (strip_tac >> qexists_tac ‘zord(A)’ >> rw[])
 (form_goal “!A. ?wo:mem(WO(A)).T”)
 
+
 val sord_def = proved_th $
 e0
-(cheat)
+(rpt strip_tac >> rw[Rwo_def] >>
+ irule $ iffRL Inj_ex_uex >> rw[WO_def,GSYM Rwo_def] >>
+ flip_tac >> rw[from_WO] >>
+ irule iswo_snocm >> arw[Rwo_iswos])
 (form_goal 
  “!A wo a:mem(A). ~INr(a,m2r(Rwo(wo))) ==>
   ?!wo1.Rwo(wo1) = snocm(Rwo(wo),a)”)
@@ -189,7 +190,11 @@ e0
 (*add the condition of being an infinite chain?*)
 val lord_def = proved_th $
 e0
-(cheat)
+(rpt strip_tac >> rw[Rwo_def] >>
+ irule $ iffRL Inj_ex_uex >> rw[WO_def,GSYM Rwo_def] >>
+ flip_tac >> rw[from_WO] >>
+ irule iswo_BIGUNION >> arw[] >> rpt strip_tac >>
+ fs[IMAGE_def,GSYM Rwo_def,Rwo_iswos])
 (form_goal 
  “!A s. SSchain(IMAGE(iWO(A),s)) ==>
   ?!lo.Rwo(lo) = BIGUNION(IMAGE(iWO(A),s))”)
@@ -217,12 +222,8 @@ e0
  “(!wo:mem(WO(A)).P(wo)) <=> 
   (!od:mem(Pow(A * A)). IN(od,iswos(A)) ==>
     IN(od,iswos(A)) & 
-    (!wo.Rwo(wo) = od ==> P(wo)))
-  ”));
+    (!wo.Rwo(wo) = od ==> P(wo)))”));
 
-(*
-val ind = iswo_ind
-*)
 
 fun mk_induct ind = 
     let val (svar as (n,s),b) = dest_forall (concl ind) 
@@ -258,11 +259,20 @@ val iswo_Rwo = WO_def |> spec_all |> conjE2
                       |> rewr_rule[GSYM Rwo_def]
                       |> store_as "iswo_Rwo";
 
+val Rwo_eq_eq = prove_store("Rwo_eq_eq",
+e0
+(rpt strip_tac >> rw[Rwo_def] >> irule Inj_eq_eq >>
+ rw[WO_def])
+(form_goal “!A wo1 wo2:mem(WO(A)).Rwo(wo1) = Rwo(wo2) <=>
+ wo1 = wo2”));
+
 val Rwo_snocm_iff_sord = prove_store("Rwo_snocm_iff_sord",
 e0
-(cheat)
-(form_goal “!A wo0 wo a:mem(A).Rwo(wo) = snocm(Rwo(wo0),a) <=> 
- wo = sord(wo0,a)”));
+(rpt strip_tac >> flip_tac >>
+ drule $ GSYM sord_def >> arw[Rwo_eq_eq])
+(form_goal “!A wo0 wo a:mem(A).~INr(a, m2r(Rwo(wo0))) ==>
+ (Rwo(wo) = snocm(Rwo(wo0),a) <=> 
+ wo = sord(wo0,a))”));
 
 (*
 val all_wo_IMAGE = prove_store("all_wo_IMAGE",
@@ -271,6 +281,48 @@ e0
 (form_goal “SSchain(s) & Rwo(wo) = BIGUNION(s) <=> 
  wo = lord(PREIM())”));
 *)
+
+val pres_refl_chain = prove_store("preserve_chain",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (fs[ischain_def] >> rpt strip_tac >>
+     first_x_assum (qspecl_then [‘App(f,a1)’,‘App(f,a2)’] 
+                                assume_tac) >>
+     drule App_IN_IMAGE >>
+     rev_drule App_IN_IMAGE >>
+     fs[]) >>
+ fs[ischain_def] >> rpt strip_tac >> fs[IMAGE_def] >>
+ first_x_assum (qspecl_then [‘a’,‘a'’] assume_tac) >>
+ rfs[])
+(form_goal “!A r1:A~>A B r2:B~>B f:A->B.
+ (!a1 a2.Holds(r1,a1,a2) <=> Holds(r2,App(f,a1),App(f,a2)))
+  ==>
+ !ac. ischain(r2,IMAGE(f,ac)) <=> ischain(r1,ac) 
+ ”));
+
+
+val iWO_pres_refl_chain = prove_store("iWO_pres_refl_chain",
+e0
+(rw[LEo_def,Leo_def,SSr_def])
+(form_goal 
+“!od1 od2.Holds(LEo(A),od1,od2) <=> 
+          Holds(SSr(A * A),Rwo(od1),Rwo(od2))”));
+
+val SSchain_iWO_chain_LEo = prove_store("SSchain_iWO_chain_LEo",
+e0
+(rpt strip_tac >> rw[SSchain_def] >>
+ irule pres_refl_chain >> 
+ rw[GSYM Rwo_def,iWO_pres_refl_chain])
+(form_goal
+ “!A wos. SSchain(IMAGE(iWO(A),wos)) <=>
+  ischain(LEo(A),wos)”));
+
+
+
+val from_WO = WO_def |> spec_all |> conjE2 
+                     |> GSYM 
+                     |> rewr_rule[GSYM Rwo_def]
+                     |> gen_all
 
 val wo_induct = prove_store("wo_induct",
 e0
@@ -289,8 +341,8 @@ e0
      >-- (first_x_assum irule >> arw[]) >>
      qsuff_tac ‘wo = sord(b,a')’
      >-- (strip_tac >> arw[] >>
-         last_x_assum irule >> arw[]) >>
-     rw[GSYM Rwo_snocm_iff_sord] >> rfs[]) >>
+         last_x_assum irule >> arw[]) >> rfs[] >>
+     drule $ GSYM Rwo_snocm_iff_sord >> arw[]) >>
  strip_tac >> strip_tac >> 
  qby_tac
  ‘IN(BIGUNION(s'), iswos(A))’
@@ -319,8 +371,21 @@ e0
      qby_tac ‘?a. IN(a,ods) & Rwo(od) = Rwo(a)’ 
      >-- (qexists_tac ‘od’ >> arw[]) >>
      first_x_assum (drule o iffLR) >>
-     qexists_tac ‘Rwo(od)’ >> arw[]) >>
-cheat)
+     qexists_tac ‘Rwo(od)’ >> arw[]) >> 
+ qsuff_tac ‘?ods.IMAGE(iWO(A),ods) = s'’ 
+ >-- (strip_tac >> qexists_tac ‘ods’ >> arw[] >>
+     rw[GSYM SSchain_iWO_chain_LEo] >> arw[] >>
+     irule $ iffLR Inj_eq_eq >>
+     qexistsl_tac [‘Pow(A*A)’,‘iWO(A)’] >>
+     rw[GSYM Rwo_def,WO_def] >>
+     flip_tac >> arw[] >>
+     pop_assum (assume_tac o GSYM) >> arw[] >>
+     irule lord_def >> fs[]) >> 
+ flip_tac >>
+ irule ex_eq_IMAGE >> rw[GSYM Rwo_def] >>
+ rpt strip_tac >>
+ first_x_assum drule >>
+ arw[from_WO])
 (form_goal 
  “!A. P(zord(A)) &
       (!od a:mem(A). P(od) ==> P(sord(od,a))) &
@@ -331,17 +396,6 @@ cheat)
 
 val msEqv_def = qdefine_psym("msEqv",[‘s:mem(Pow(A))’,‘S’])
 ‘Eqv(m2s(s),S)’ |> gen_all
-
-
-
- 
-val SSchain_iWO_chain_LEo = prove_store("SSchain_iWO_chain_LEo",
-e0
-cheat
-(form_goal
- “!A wos. SSchain(IMAGE(iWO(A),wos)) <=>
-  ischain(LEo(A),wos)”));
-
 
 
 
@@ -481,15 +535,100 @@ val isbeth_lord = beth0_rules |> conjE2 |> conjE2
 
 (*if A can be injected into B , then Pow(A) can be injected into Pow(B)?*)
 
-
-
-val Inj_IMAGE_beth = prove_store("Inj_IMAGE_beth",
+val Inj_IMAGE_msEqv = prove_store("Inj_IMAGE_msEqv",
 e0
 (cheat)
+(form_goal
+ “!A s:mem(Pow(A)) B.msEqv(s,B) ==>
+  !C f:A->C. Inj(f) ==> msEqv(IMAGE(f,s),B) ”));
+
+val Eqv_msEqv= prove_store("Eqv_msEqv",
+e0
+(cheat)
+(form_goal “!S1 S2.
+  Eqv(S1,S2) ==> 
+  (!A s:mem(Pow(A)).msEqv(s,S1) <=> msEqv(s,S2))”));
+
+val Eqv_SYM = prove_store("Eqv_SYM",
+e0
+cheat
+(form_goal “!A B. Eqv(A,B) ==> Eqv(B,A)”))
+
+
+val Eqv_REFL = prove_store("Eqv_REFL",
+e0
+cheat
+(form_goal “!A. Eqv(A,A)”))
+
+
+val Eqv_TRANS = prove_store("Eqv_TRANS",
+e0
+cheat
+(form_goal “!A B. Eqv(A,B) ==>
+ !C. Eqv(B,C) ==> Eqv(A,C)”))
+
+
+val Inj_m2s_Eqv = prove_store("Inj_m2s_Eqv",
+e0
+(cheat)
+(form_goal “!A B f:A->B. Inj(f) ==>
+ !s. Eqv(m2s(s),m2s(IMAGE(f,s)))”));
+
+val Eqv_Pow = prove_store("Eqv_Pow",
+e0
+(cheat)
+(form_goal
+ “!A B. Eqv(A,B) ==> Eqv(Pow(A),Pow(B))”));
+
+local
+val l = 
+isbeth_induct |> fVar_sInst_th “P(pair:mem(WO(A) * Pow(B)))”
+ “!C f:B->C. Inj(f) ==> isbeth(Fst(pair:mem(WO(A) * Pow(B))),IMAGE(f,Snd(pair)))”
+             |> rewr_rule[Pair_def'] 
+in
+val Inj_IMAGE_beth = prove_store("Inj_IMAGE_beth",
+e0
+(strip_tac >> strip_tac >>
+ match_mp_tac l >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> irule isbeth_zord >>
+     irule Inj_IMAGE_msEqv >> arw[]) >>
+ strip_tac (* 2 *)
+ >-- (rpt strip_tac >>
+     irule isbeth_sord >>
+     first_x_assum drule >>
+     qexists_tac ‘IMAGE(f,b0)’ >> arw[] >>
+     irule $ iffLR Eqv_msEqv >>
+     fs[msEqv_def] >> 
+     drule Inj_m2s_Eqv >>
+     first_x_assum (qspecl_then [‘s’] assume_tac) >>
+     qexists_tac ‘m2s(s)’ >> 
+     drule Eqv_SYM >> arw[] >>
+     qsuff_tac ‘Eqv(Pow(m2s(b0)),Pow(m2s(IMAGE(f, b0))))’ 
+     >-- (strip_tac >> rev_drule Eqv_TRANS >>
+         first_x_assum drule >> arw[]) >>
+     irule Eqv_Pow >> irule Inj_m2s_Eqv >> arw[]) >>
+ rpt strip_tac >>
+ rw[IMAGE_BIGUNION,GSYM IMAGE_o,p2_comm] >>
+ rw[IMAGE_o] >> 
+ qby_tac
+ ‘IMAGE(p1(WO(A), Pow(B)), ps) = 
+  IMAGE(p1(WO(A), Pow(C)),
+   IMAGE(Prla(Id(WO(A)), Image(f)), ps))’
+ >-- cheat >> arw[] >>
+ irule isbeth_lord >> 
+ qby_tac
+ ‘SSchain(IMAGE(iWO(A) o p1(WO(A), Pow(C)),
+          IMAGE(Prla(Id(WO(A)), Image(f)), ps)))’ 
+ >-- arw[GSYM IMAGE_o,o_assoc,p1_Prla,IdL] >>
+ arw[] >> rpt gen_tac >> 
+ rw[IMAGE_Prla,Id_def] >> rpt strip_tac >> 
+ arw[Image_IMAGE] >> 
+ first_x_assum irule >> arw[])
 (form_goal 
- “!A wo:mem(WO(A)) B beth:mem(Pow(B)). 
+ “!A B wo:mem(WO(A)) beth:mem(Pow(B)). 
   isbeth(wo,beth) ==>
- !C f:B->C. isbeth(wo,IMAGE(f,beth))”));
+ !C f:B->C. Inj(f) ==> isbeth(wo,IMAGE(f,beth))”));
+end
 
 val mEqv_def = qdefine_psym("mEqv",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’]) ‘Eqv(m2s(s1),m2s(s2))’ |> gen_all
 
@@ -596,35 +735,3 @@ e0
  qexists_tac ‘b’ >> arw[])
 (form_goal 
 “!A wo:mem(WO(A)). ?s. isBeth(wo,s)”));
-(*
-
-Beth(wo:mem(Pow(A * A)),s:set) <=>
-?B b:mem(Pow(B)). beth0(wo,b) & Eqv(s,Asset(b))
-
-Beth(wo:mem(Pow(A * A)),b:mem(Pow(B)))
-
-Eqv(Asset(s),N) ==> beth0({},s) &
-
-require a is not in wo0
-beth0(wo0,s0) & wo = snocrel(wo0,a) & 
-Eqv(Asset(s),Pow(Asset(s0))) ==>
-beth0(wo,s) &
-
-(*wo is not a successor ordinal, but still well order*)
-(!wo0 a. ~wo = snocrel(wo,a) & WO(wo)) &
-
-(* f indexes a family of wo-beth number relation*)
-!J f:J->Pow(A * A) * Pow(B). 
- (!j:mem(J). beth0(f(j)) & 
-  (!wo0. wo0 ⊆ wo & wo0 <> wo <=> ?j. Fst(f(j)) = wo0)) &
-
-(* s is the sup of the set of beth numbers indexed by J*)
-
-(!s0 j.Snd(App(f,j)) = s0 ==> Card(s0) <= Card(s)) &
-(!s'. (!s0 j.Snd(App(f,j)) = s0 ==> Card(s0) <= Card(s')) ==>
- Card(s) <= Card(s') ) ==>
-
-beth(wo,s)
-
-
-*)

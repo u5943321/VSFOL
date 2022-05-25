@@ -94,5 +94,87 @@ e0
 
 val IMAGE_o = prove_store("IMAGE_o",
 e0
-(cheat)
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,IMAGE_def] >> strip_tac >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘App(f,a)’ >> arw[GSYM App_App_o] >>
+     qexists_tac ‘a’ >> arw[]) >>
+ qexists_tac ‘a'’ >> arw[App_App_o])
 (form_goal “!A B f:A->B C g:B->C s:mem(Pow(A)). IMAGE(g o f,s) = IMAGE(g,IMAGE(f,s))”));
+
+
+
+val ex_eq_IMAGE = prove_store("ex_eq_IMAGE",
+e0
+(rpt strip_tac >>
+ strip_assume_tac
+ (IN_def_P_ex |> qspecl [‘A’] 
+ |> fVar_sInst_th “P(a:mem(A))”
+    “IN(App(f:A->B,a),s)”) >>
+ qexists_tac ‘s'’ >>
+ pop_assum (assume_tac o GSYM) >>
+ rw[GSYM IN_EXT_iff] >> strip_tac >> 
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (rw[IMAGE_def] >> arw[] >> 
+     first_x_assum drule >>
+     pop_assum strip_assume_tac >> 
+     qexists_tac ‘a’ >> fs[]) >>
+ fs[IMAGE_def] >> rfs[])
+(form_goal “!A B f:A->B s:mem(Pow(B)).
+ (!b. IN(b,s) ==> ?a. b = App(f,a)) ==>
+ ?s0:mem(Pow(A)). s = IMAGE(f,s0) ”));
+
+val App_IN_IMAGE = prove_store("App_IN_IMAGE",
+e0
+(rw[IMAGE_def] >> rpt strip_tac >>
+ qexists_tac ‘a’ >> arw[])
+(form_goal “!A B f:A->B s a. IN(a,s) ==> IN(App(f,a),IMAGE(f,s))”));
+
+
+val IMAGE_BIGUNION = prove_store("IMAGE_BIGUNION",
+e0
+(cheat)
+(form_goal
+ “!A B f:A->B ss.IMAGE(f,BIGUNION(ss)) = BIGUNION(IMAGE(Image(f),ss))”));
+
+
+val App_Prla = prove_store("App_Prla",
+e0
+(rpt strip_tac >> rw[Prla_def,App_Pa_Pair] >>
+ rw[App_App_o,p12_of_Pair] )
+(form_goal “!A B f:A->B X Y g:X->Y a x.App(Prla(f,g),Pair(a,x)) = 
+Pair(App(f,a),App(g,x))”));
+
+val p2_comm = prove_store("p2_comm",
+e0
+(rw[GSYM FUN_EXT] >>
+ rpt strip_tac >>
+ qsspecl_then [‘a’] strip_assume_tac Pair_has_comp >>
+ arw[App_App_o,App_Prla,p12_of_Pair])
+(form_goal “!A B C f:B->C. f o p2(A,B) = p2(A,C) o Prla(Id(A),f)”));
+
+
+val p1_comm = prove_store("p1_comm",
+e0
+(cheat)
+(form_goal “!A B C f:A->C. f o p1(A,B) = p1(C,B) o Prla(f,Id(B))”));
+
+
+
+val p1_Prla = prove_store("p1_Prla",
+e0
+(cheat)
+(form_goal “!A X f:A->X B Y g:B->Y. p1(X,Y) o Prla(f,g) = f o p1(A,B)”));
+
+val IMAGE_Prla = prove_store("IMAGE_Prla",
+e0
+(rpt strip_tac >> rw[IMAGE_def] >> 
+ fconv_tac (redepth_fconv no_conv exists_cross_fconv) >>
+ rw[App_Prla,Pair_eq_eq])
+(form_goal “!A X f:A->X B Y g:B->Y x y s.
+ IN(Pair(x,y), IMAGE(Prla(f,g),s)) <=> 
+ ?a b. IN(Pair(a,b),s) & x = App(f,a) & y = App(g,b)”));
+
+val Image_IMAGE = prove_store("Image_IMAGE",
+e0
+(rw[GSYM IN_EXT_iff,IMAGE_def,Image_def])
+(form_goal “!A B f:A->B s. App(Image(f),s) = IMAGE(f,s)”));
