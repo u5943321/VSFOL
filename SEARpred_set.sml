@@ -90,3 +90,9 @@ e0
  fs[Inj_def] >> first_x_assum irule >> arw[])
 (form_goal “!A B f:A->B. Inj(f) ==>
  !b. (?!a.App(f,a) = b) <=> (?a.App(f,a) = b)”));
+
+
+val IMAGE_o = prove_store("IMAGE_o",
+e0
+(cheat)
+(form_goal “!A B f:A->B C g:B->C s:mem(Pow(A)). IMAGE(g o f,s) = IMAGE(g,IMAGE(f,s))”));
