@@ -1858,6 +1858,14 @@ e0
 (form_goal “!tv1 tv2. tv1 = tv2 <=>
  (tv1 = true <=> tv2 = true)”));
 
+
+val tf_eq_true = prove_store("tf_eq_true",
+e0
+(rw[GSYM FUN_EXT] >> rpt strip_tac >>
+ rw[GSYM tv_eq_true] )
+(form_goal “!A tf1 tf2. tf1 = tf2 <=>
+ (!a:mem(A). App(tf1,a) = true <=> App(tf2,a) = true)”));
+
 val OR_def = proved_th $
 e0
 (cheat)

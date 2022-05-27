@@ -1,23 +1,5 @@
 
 (*member to relation*)
-val m2r_def = AX1 |> qspecl [‘A’,‘A’]
-                  |> fVar_sInst_th “P(x:mem(A),y:mem(A))”
-                  “IN(Pair(x,y),od:mem(Pow(A * A)))”
-                  |> uex2ex_rule 
-                  |> qSKOLEM "m2r" [‘od’] 
-                  |> qspecl [‘a1:mem(A)’,‘a2:mem(A)’]
-                  |> gen_all
-
-val r2m_def = 
-    IN_def_P |> qspecl [‘A * A’]
-             |> fVar_sInst_th “P(a12:mem(A * A))”
-             “Holds(R:A~>A,Fst(a12),Snd(a12))” 
-             |> uex2ex_rule 
-             |> qSKOLEM "r2m" [‘R’] 
-             |> qspecl [‘Pair(a1:mem(A),a2:mem(A))’]
-             |> rewr_rule [Pair_def']
-             |> gen_all
-
 
 val isleast_def = qdefine_psym("isleast",[‘R:A~>A’,‘s:mem(Pow(A))’,‘l:mem(A)’])
 ‘IN(l,s) & !a. IN(a,s) ==> Holds(R,l,a)’
@@ -47,7 +29,7 @@ but thhen realise do not need the precond to define the rel
 val snocrel_def = 
 AX1 |> qspecl [‘A’,‘A’] 
     |> fVar_sInst_th “P(a1:mem(A),a2:mem(A))”
-    “ Holds(R:A~>A,a1,a2) | (INr(a1,R) & a2 = a)”
+    “ Holds(R:A~>A,a1,a2) | (INr(a1,R) & a2 = a) | (a1 = a & a2 = a)”
     |> uex2ex_rule |> qSKOLEM "snocrel" [‘R’,‘a’]
     |> qspecl [‘a1:mem(A)’,‘a2:mem(A)’]
     |> gen_all
@@ -135,6 +117,44 @@ val iswo_ind = iswo_ind2 |> store_as "iswo_ind";
 val iswo_cases = iswo_cases1 |> store_as "iswo_cases";
 val iswo_rules = iswo_rules3 |> store_as "iswo_rules";
 
+val iswo_induct = mk_induct iswo_ind
+
+val iswo_def = qdefine_psym("iswo",[‘od:mem(Pow(A*A))’])
+‘IN(od,iswos(A))’
+
+val relon_def = 
+    IN_def_P |> qspecl [‘A’] 
+             |> fVar_sInst_th “P(a:mem(A))”
+                “?a1:mem(A).IN(Pair(a,a1),r) |
+                            IN(Pair(a1,a),r)” 
+
+val INr_m2r_INmr = prove_store("INr_INmr",
+e0
+(rw[INr_def,INmr_def,m2r_def])
+(form_goal “!A od0 a.INr(a:mem(A), m2r(od0)) <=> 
+ INmr(a, od0)”));
+
+val snocm_eq_eq = prove_store("snocm_eq_eq",
+e0
+()
+(form_goal “!A od1 a1:mem(A) od2 a2.
+ ~INmr(a1,od1) & ~INmr(a2,od2) ==>
+ (snocm(od1,a1) = snocm(od2,a2) <=> od1 = od2 & a1 = a2)”));
+
+val iswo_alt = prove_store("iswo_alt",
+e0
+(rw[iswo_def] >> strip_tac >>
+ ind_with iswo_induct >> rw[] >>
+ rpt strip_tac (* 3 *)
+ >-- disj2_tac >> disj1_tac >>
+     
+ )
+(form_goal
+ “!A od. iswo(od) ==> 
+  od = Empty(A * A) | 
+  (?!od0 a. ~INmr(a,od0) & od = snocm(od0,a)) |
+  od = BIGUNION(Pss(od))”));
+
 
 val iswo_snocm = iswo_rules |> conjE2 
                             |> conjE1 
@@ -153,16 +173,17 @@ val WO_def = Thm_2_4 |> qspecl [‘Pow(A * A)’]
                     |> gen_all
 
 
-val from_WO = WO_def |> spec_all |> conjE2 
-                     |> GSYM 
-                     |> rewr_rule[GSYM Rwo_def]
-                     |> gen_all
-
 (*if as constructors, will have 
 O | Suc ord | U (ord set)
 !!!!!!!!! *)
 val Rwo_def = qdefine_fsym("Rwo",[‘wo:mem(WO(A))’])
 ‘App(iWO(A),wo)’ |> gen_all
+
+val from_WO = WO_def |> spec_all |> conjE2 
+                     |> GSYM 
+                     |> rewr_rule[GSYM Rwo_def]
+                     |> gen_all
+
 
 
 val Rwo_iswos = prove_store("Rwo_iswos",
@@ -334,8 +355,7 @@ e0
   ischain(LEo(A),wos)”));
 
 
-
-
+(*
 val wo_induct = prove_store("wo_induct",
 e0
 (strip_tac >> disch_tac >>
@@ -404,6 +424,76 @@ e0
       (!ods. ischain(LEo(A),ods) &
              (!od.IN(od,ods) ==> P(od))
              ==> P(lord(ods))) ==>
+      !wo:mem(WO(A)).P(wo)”));*)
+
+val wo_induct = prove_store("wo_induct",
+e0
+(strip_tac >> disch_tac >>
+ match_mp_tac $ iffRL all_P_WO >>
+ ind_with iswo_induct >>
+ rw[iswo_rules,Rwo_Empty_iff_zord] >> 
+ strip_tac (* 2 *)
+ >-- (strip_tac (* 2 *)
+     >-- (rpt strip_tac >> arw[]) >>
+     rpt gen_tac >> strip_tac >>
+     qby_tac ‘IN(snocm(od0, a'), iswos(A))’ 
+     >-- (irule iswo_snocm >> arw[]) >> arw[] >>
+     rpt strip_tac >> fs[iswo_Rwo] >> 
+     qby_tac ‘P(b)’ 
+     >-- (first_x_assum irule >> arw[]) >>
+     qsuff_tac ‘wo = sord(b,a')’
+     >-- (strip_tac >> arw[] >>
+         last_x_assum irule >> arw[]) >> rfs[] >>
+     drule $ GSYM Rwo_snocm_iff_sord >> arw[]) >>
+ strip_tac >> strip_tac >> 
+ qby_tac
+ ‘IN(BIGUNION(s'), iswos(A))’
+ >-- (irule iswo_BIGUNION >> arw[] >>
+     rpt strip_tac >> 
+     first_x_assum drule >> arw[]) >> arw[] >>
+ rpt strip_tac >>
+ qsuff_tac 
+ ‘?ods. wo = lord(ods) &
+        ischain(LEo(A),ods) &
+        IMAGE(iWO(A),ods) = s'’
+ >-- (rpt strip_tac >> arw[] >>
+     last_x_assum strip_assume_tac >>
+     first_x_assum irule >> arw[] >>
+     rpt strip_tac >>
+     qsuff_tac ‘?od0. IN(od0,s') & Rwo(od) = od0’ 
+     >-- (strip_tac >> 
+          last_x_assum drule >> 
+          pop_assum strip_assume_tac >>
+          first_x_assum irule >>
+          arw[]) >>
+     qpick_x_assum ‘IMAGE(iWO(A), ods) = s'’ 
+     mp_tac >> rw[GSYM IN_EXT_iff,IMAGE_def] >>
+     strip_tac >> rw[IN_EXT_iff] >>
+     fs[GSYM Rwo_def,IN_EXT_iff] >>
+     qby_tac ‘?a. IN(a,ods) & Rwo(od) = Rwo(a)’ 
+     >-- (qexists_tac ‘od’ >> arw[]) >>
+     first_x_assum (drule o iffLR) >>
+     qexists_tac ‘Rwo(od)’ >> arw[]) >> 
+ qsuff_tac ‘?ods.IMAGE(iWO(A),ods) = s'’ 
+ >-- (strip_tac >> qexists_tac ‘ods’ >> arw[] >>
+     rw[GSYM SSchain_iWO_chain_LEo] >> arw[] >>
+     irule $ iffLR Inj_eq_eq >>
+     qexistsl_tac [‘Pow(A*A)’,‘iWO(A)’] >>
+     rw[GSYM Rwo_def,WO_def] >>
+     flip_tac >> arw[] >>
+     pop_assum (assume_tac o GSYM) >> arw[] >>
+     irule lord_def >> fs[]) >> 
+ flip_tac >>
+ irule ex_eq_IMAGE >> rw[GSYM Rwo_def] >>
+ rpt strip_tac >>
+ first_x_assum drule >>
+ arw[from_WO])
+(form_goal 
+ “!A. P(zord(A)) &
+      (!od a:mem(A). P(od) & ~INr(a,m2r(Rwo(od))) ==> P(sord(od,a))) &
+      (!ods. ischain(LEo(A),ods) &
+             (!od.IN(od,ods) ==> P(od))
+             ==> P(lord(ods))) ==>
       !wo:mem(WO(A)).P(wo)”));
 
 val msEqv_def = qdefine_psym("msEqv",[‘s:mem(Pow(A))’,‘S’])
@@ -419,10 +509,13 @@ val beth0_cl =
             IN(p0,beths) & 
             p0 = Pair(wo0,b0) & 
             msEqv(s,Pow(m2s(b0))) &
+            ~INr(a,m2r(Rwo(wo0))) &
           p = Pair(sord(wo0,a),s) ==>
           IN(p,beths)) &
   (!ps. (!p.IN(p,ps) ==> IN(p,beths)) &
+        ~(ps = Empty(WO(A) * Pow(B))) & 
         SSchain(IMAGE(iWO(A) o p1(WO(A),Pow(B)),ps)) &
+        l
         p = Pair(lord(IMAGE(p1(WO(A),Pow(B)),ps)),
                  BIGUNION(IMAGE(p2(WO(A),Pow(B)),ps))) ==>
    IN(p,beths))”
@@ -481,16 +574,22 @@ e0
  match_mp_tac isbeth_ind0 >>
  arw[] >>
  pop_assum strip_assume_tac >>
- rpt strip_tac >> arw[] >>
- first_x_assum irule >> qexists_tac ‘b0’ >> arw[])
+ rpt strip_tac >> arw[] (* 2 *)
+ >--(first_x_assum irule >> arw[] >>
+ qexists_tac ‘b0’ >> arw[]) >>
+ first_x_assum (qspecl_then [‘ps’] assume_tac) >>
+ rfs[] )
 (form_goal
  “(!s:mem(Pow(B)).msEqv(s,N) ==> P(Pair(zord(A),s))) & 
   (!wo0 b0:mem(Pow(B)) s:mem(Pow(B)). 
-   P(Pair(wo0, b0)) & msEqv(s, Pow(m2s(b0))) ==>
-   !a:mem(A).P(Pair(sord(wo0,a),s))) & 
+   P(Pair(wo0, b0)) & msEqv(s, Pow(m2s(b0)))
+   ==>
+   !a:mem(A). ~INr(a,m2r(Rwo(wo0))) ==> 
+    P(Pair(sord(wo0,a),s))) & 
   (!ps : mem(Pow(WO(A) * Pow(B))).
     (!a b. IN(Pair(a, b), ps) ==> P(Pair(a, b))) &
-    SSchain(IMAGE(iWO(A) o p1(WO(A), Pow(B)), ps)) ==>
+    SSchain(IMAGE(iWO(A) o p1(WO(A), Pow(B)), ps)) &
+    ~(ps = Empty(WO(A) * Pow(B))) ==>
     P(Pair(lord(IMAGE(p1(WO(A), Pow(B)), ps)),
            BIGUNION(IMAGE(p2(WO(A), Pow(B)), ps))))) ==>
       !wo:mem(WO(A)) beth:mem(Pow(B)).
@@ -538,6 +637,8 @@ beth0_rules |> conjE2 |> conjE1
              |> strip_all_and_imp
              |> gen_all 
              |> disch “msEqv(b1:mem(Pow(B)), Pow(m2s(b0:mem(Pow(B)))))”
+             |> gen_all
+             |> disch “~INr(a0:mem(A), m2r(Rwo(wo0)))”
              |> gen_all
              |> disch_all |> gen_all
              |> rewr_rule[GSYM isbeth_def]
@@ -602,6 +703,8 @@ e0
 (form_goal
  “!A B. Eqv(A,B) ==> Eqv(Pow(A),Pow(B))”));
 
+
+(*
 local
 val l = 
 isbeth_induct |> fVar_sInst_th “P(pair:mem(WO(A) * Pow(B)))”
@@ -617,7 +720,7 @@ e0
  strip_tac (* 2 *)
  >-- (rpt strip_tac >>
      irule isbeth_sord >>
-     first_x_assum drule >>
+     first_x_assum drule >> arw[] >>
      qexists_tac ‘IMAGE(f,b0)’ >> arw[] >>
      irule $ iffLR Eqv_msEqv >>
      fs[msEqv_def] >> 
@@ -651,8 +754,210 @@ e0
   isbeth(wo,beth) ==>
  !C f:B->C. Inj(f) ==> isbeth(wo,IMAGE(f,beth))”));
 end
+*)
+
+
+
+val contain_Pow = prove_store("contain_Pow",
+e0
+(cheat)
+(form_goal “!A s:mem(Pow(A)) S. 
+ msEqv(s,Pow(S)) ==>
+ ?s0:mem(Pow(A)). msEqv(s0,S) ”));
 
 val mEqv_def = qdefine_psym("mEqv",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’]) ‘Eqv(m2s(s1),m2s(s2))’ |> gen_all
+
+val snocm_NONEMPTY = prove_store("snocm_NONEMPTY",
+e0
+(rw[GSYM IN_EXT_iff,snocm_def,Empty_def]>>
+ fconv_tac (redepth_fconv no_conv forall_cross_fconv) >>
+ rw[r2m_def,snocrel_def] >> ccontra_tac >>
+ first_x_assum (qspecl_then [‘a’,‘a’] assume_tac) >>
+ fs[]  )
+(form_goal “~(Empty(A * A) = snocm(r, a))”));
+
+
+val Empty_NOT_mEqv_N = prove_store("Empty_NOT_mEqv_N",
+e0
+cheat
+(form_goal “!A. ~ mEqv(Empty(A), Whole(N))”));
+
+val l = 
+isbeth_induct |> fVar_sInst_th “P(pair:mem(WO(A) * Pow(B)))”
+ “Fst(pair:mem(WO(A) * Pow(B))) = zord(A) ==> 
+ mEqv(Snd(pair),Whole(N))”
+             |> rewr_rule[Pair_def'] 
+val isbeth_zord_iff = prove_store("isbeth_zord_iff",
+e0
+(match_mp_tac l >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> cheat (*trivial *)) >>
+ strip_tac (*  2*)
+ >-- (rpt strip_tac >> 
+     fs[GSYM Rwo_eq_eq,zord_def] >>
+     drule sord_def >> fs[GSYM snocm_NONEMPTY]) >>
+ rpt strip_tac >> fs[IMAGE_o] >>
+ drule lord_def >> fs[GSYM Rwo_eq_eq] >>
+ pop_assum (K all_tac) >>
+ fs[zord_def] >>
+ fs[GSYM IN_NONEMPTY] >>
+ qsspecl_then [‘a’] (x_choosel_then ["wo","beth"] assume_tac)
+ Pair_has_comp >>
+ fs[] >>
+ qsuff_tac
+ ‘!’
+ 
+
+
+
+
+ qsuff_tac ‘mEqv(Empty(B),Whole(N))’ 
+ >-- rw[Empty_NOT_mEqv_N] >>
+ first_assum irule >>
+ 
+
+rpt strip_tac >> dimp_tac >> strip_tac (* 2 *) >--
+ fs[isbeth_def] >>
+ drule $ iffLR beth0_cases >>
+ pop_assum strip_assume_tac (* 3 *)
+ >-- (fs[msEqv_def,Pair_eq_eq] >> 
+     drule eq_m2s_Eqv >> irule Eqv_TRANS >>
+     qexists_tac ‘m2s(s')’ >> arw[]) 
+ >-- (fs[Pair_eq_eq,GSYM Rwo_eq_eq,zord_def] >>
+     drule sord_def >> fs[snocm_NONEMPTY]) >>
+ fs[Pair_eq_eq,GSYM Rwo_eq_eq,zord_def] >> 
+ fs[IMAGE_o] >>
+ drule lord_def >> fs[] >>
+ 
+
+
+ fs[IMAGE_Empty_Empty,BIGUNION_Empty_Empty',IMAGE_def,
+    GSYM IN_NONEMPTY] >>
+ first_x_assum (qspecl_then [‘App(iWO(A), Fst(a))’]
+ assume_tac) >>
+ qby_tac ‘’
+ 
+ 
+ 
+     
+     )
+(form_goal
+ “!wo s:mem(Pow(B)).isbeth(wo, s) ==> 
+ wo = zord(A) ==> mEqv(s,Whole(N))”));
+
+
+val isbeth_zord_iff = prove_store("isbeth_zord_iff",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *) >--
+ fs[isbeth_def] >>
+ drule $ iffLR beth0_cases >>
+ pop_assum strip_assume_tac (* 3 *)
+ >-- (fs[msEqv_def,Pair_eq_eq] >> 
+     drule eq_m2s_Eqv >> irule Eqv_TRANS >>
+     qexists_tac ‘m2s(s')’ >> arw[]) 
+ >-- (fs[Pair_eq_eq,GSYM Rwo_eq_eq,zord_def] >>
+     drule sord_def >> fs[snocm_NONEMPTY]) >>
+ fs[Pair_eq_eq,GSYM Rwo_eq_eq,zord_def] >> 
+ fs[IMAGE_o] >>
+ drule lord_def >> fs[] >>
+ 
+
+
+ fs[IMAGE_Empty_Empty,BIGUNION_Empty_Empty',IMAGE_def,
+    GSYM IN_NONEMPTY] >>
+ first_x_assum (qspecl_then [‘App(iWO(A), Fst(a))’]
+ assume_tac) >>
+ qby_tac ‘’
+ 
+ 
+ 
+     
+     )
+(form_goal
+ “!A B s:mem(Pow(B)).isbeth(zord(A), s) <=> msEqv(s,N)”));
+
+local
+val l = 
+isbeth_induct |> fVar_sInst_th “P(pair:mem(WO(A) * Pow(B)))”
+“!C s2:mem(Pow(C)). mEqv(Snd(pair),s2) <=> 
+ isbeth(Fst(pair:mem(WO(A) * Pow(B))),s2)”
+|> rewr_rule[Pair_def'] 
+in
+val mEqv_beth = prove_store("mEqv_beth",
+e0
+(strip_tac >> strip_tac >>
+ match_mp_tac l >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+      >-- (irule isbeth_zord >> fs[mEqv_def,msEqv_def] >>
+           irule Eqv_TRANS >> qexists_tac ‘m2s(s)’ >>
+           arw[] >> irule Eqv_SYM >> arw[]) >>
+      drule $ iffLR beth0_cases
+      cheat (*by cases*)) >>
+ strip_tac (* 2 *)
+ >-- (rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+      >-- (irule isbeth_sord >> 
+          last_x_assum (assume_tac o GSYM) >>
+          arw[] >> 
+          qby_tac ‘msEqv(s2, Pow(m2s(b0)))’
+          >-- cheat >>
+          drule contain_Pow >> 
+          pop_assum strip_assume_tac >> 
+          qexists_tac ‘s0’ >> fs[msEqv_def,mEqv_def] >>
+          strip_tac (* 2 *)
+          >-- cheat >>
+          irule Eqv_SYM >> arw[]
+          (*if C contains a copy of Pow(b0), then C contains a copy of b0*)) >>
+      qcases ‘INr(a,m2r(Rwo(wo0)))’ 
+      >-- qby_tac ‘sord(wo0, a) = wo0’ >-- cheat >>
+          fs[] >> first_assum $ drule o iffRL >> 
+          qsuff_tac ‘mEqv(b0,s)’ 
+          >-- cheat >>
+          arw[] >> 
+          cheat
+      (*if quotient then such case does not exist*)
+      qby_tac ‘?b:mem(Pow(C)).isbeth(wo0,b) & msEqv(s2,Pow(m2s(b)))’ >-- cheat >>
+       pop_assum strip_assume_tac >>
+       cheat
+
+      qby_tac ‘isbeth(sord(wo0, a), s)’ 
+      >-- (irule isbeth_sord >>
+          qexists_tac ‘b0’ >> arw[]) >> arw[] >>
+      rpt strip_tac >>
+      irule isbeth_sord >>
+      qexists_tac ‘b0’ 
+     qexists_tac ‘s2’ >> rw[msEq] >>
+
+     first_x_assum drule >>
+     qexists_tac ‘s2’ >> arw[] >>
+     irule $ iffLR Eqv_msEqv >>
+     fs[msEqv_def] >> 
+     drule Inj_m2s_Eqv >>
+     first_x_assum (qspecl_then [‘s’] assume_tac) >>
+     qexists_tac ‘m2s(s)’ >> 
+     drule Eqv_SYM >> arw[] >>
+     qsuff_tac ‘Eqv(Pow(m2s(b0)),Pow(m2s(IMAGE(f, b0))))’ 
+     >-- (strip_tac >> rev_drule Eqv_TRANS >>
+         first_x_assum drule >> arw[]) >>
+     irule Eqv_Pow >> irule Inj_m2s_Eqv >> arw[]) >>
+ rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- qsuff_tac ‘?c f:’ 
+
+cheat >>
+first_x_assum (irule o iffRL) >>
+qexists_tac ‘lord(IMAGE(p1(WO(A), Pow(B)), ps))’  >> arw[] >>
+
+
+)
+(form_goal 
+ “!A B wo:mem(WO(A)) s1:mem(Pow(B)). 
+  isbeth(wo,s1) ==>
+ (!C s2:mem(Pow(C)). mEqv(s1,s2) <=> 
+ isbeth(wo,s2))”));
+end
+
+val mEqv_BIGUNION = prove_store("mEqv_BIGUNION",
+e0
+()
+(form_goal “!”));
 
 val msEqv_Pow = prove_store("msEqv_Pow",
 e0
@@ -666,12 +971,22 @@ val AX5 = store_ax("AX5",
  (!b.P(App(p,b),m2s(rsi(M,b)))) & 
  !a:mem(A) X. P(a,X) ==> ?b. App(p,b) = a”)
 
+val Sg_Inj = prove_store("Sg_Inj",
+e0
+(rw[Inj_def,Sg_def,GSYM IN_EXT_iff] >>
+ rpt strip_tac >> 
+ first_x_assum (qspecl_then [‘x1’] assume_tac) >>
+ fs[])
+(form_goal “!A.Inj(Sg(A))”));
 
 
 (*
 isBeth(App(p, b'), m2s(rsi(M, b')))
 .App(p, b') = wo
 *)
+
+
+
 val Beth_ex = prove_store("Beth_ex",
 e0
 (strip_tac >> ind_with (wo_induct |> spec_all) >>
@@ -683,9 +998,13 @@ e0
  strip_tac (* 2 *)
  >-- (rpt strip_tac >> fs[isBeth_def] >>
      qby_tac
-     ‘?beth':mem(Pow(Pow(B))). isbeth(od,beth')’
+     ‘?beth':mem(Pow(Pow(B))). isbeth(od,beth') & 
+      IMAGE(Sg(B), beth) = beth'’
      (*image of injection of beth into Pow*)
-     >-- cheat >>
+     >-- (qspecl_then [‘B’] assume_tac Sg_Inj >>
+         drule Inj_IMAGE_beth >>
+         first_x_assum drule >> 
+         qexists_tac ‘IMAGE(Sg(B), beth)’ >> arw[]) >>
      pop_assum strip_assume_tac >>
      drule isbeth_sord >> 
      qsuff_tac
@@ -695,12 +1014,153 @@ e0
      rw[msEqv_m2s] >>
      fs[Pair_def'] >>
      first_x_assum irule >> arw[]) >>
-     qby_tac ‘msEqv(beth', s)’ >-- cheat >> 
+     qby_tac ‘msEqv(beth', s)’ 
+     >-- (drule Inj_IMAGE_msEqv >>
+         qspecl_then [‘B’] assume_tac Sg_Inj >>
+         first_x_assum drule >> 
+         drule eq_m2s_Eqv >>
+         fs[msEqv_def] >>
+         irule Eqv_TRANS >>
+         qexists_tac ‘m2s(IMAGE(Sg(B), beth))’ >>
+         arw[] >> irule Eqv_SYM >> arw[]
+         (*or revise eq_pred rule*)) >> 
      rev_drule msEqv_Pow >>  
      pop_assum strip_assume_tac >>
-     qexists_tac ‘s1’ >> cheat (* need some lemma *)) >>
+     qexists_tac ‘s1’ >> 
+     qsuff_tac ‘Eqv(Pow(s),Pow(m2s(beth')))’
+     >-- (strip_tac >>
+         drule Eqv_msEqv >> fs[]) >>
+     irule Eqv_Pow >> 
+     drule eq_m2s_Eqv >>
+     fs[msEqv_def] >> irule Eqv_SYM >> arw[]) >>
  rpt strip_tac >>
  rw[isBeth_def] >>
+ strip_assume_tac
+ (AX5 |> qspecl [‘WO(A)’] 
+ |> fVar_sInst_th “P(a:mem(WO(A)),X)”
+     “isBeth(a:mem(WO(A)),X)”) >> 
+ (* {(wo,rsi(M,b)) | App(p,b) = wo} *)
+ qby_tac
+ ‘?ps:mem(Pow(WO(A) * Pow(Y))).
+  !wo beth. 
+   IN(Pair(wo,beth),ps) <=> 
+   IN(wo,ods) & ?b.App(p,b) = wo & beth = rsi(M,b)’
+ >-- (strip_assume_tac
+ (IN_def_P_ex |> qspecl [‘WO(A) * Pow(Y)’]
+ |> fVar_sInst_th “P(pair:mem(WO(A) * Pow(Y)))”
+    “?wo:mem(WO(A)) beth:mem(Pow(Y)). pair = Pair(wo,beth) &
+     IN(wo,ods) &
+     ?b. App(p,b) = wo & beth = rsi(M:B~>Y,b)”) >>
+ qexists_tac ‘s’ >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ rpt strip_tac >> rw[Pair_eq_eq] >>
+ dimp_tac >> rpt strip_tac >> arw[] (* 2 *)
+ >-- (qexists_tac ‘b’ >> arw[]) >>
+ qexistsl_tac [‘wo’,‘rsi(M, b)’] >> arw[] >>
+ qexists_tac ‘b’ >> arw[]) >>
+ pop_assum strip_assume_tac >> 
+ qby_tac
+ ‘IMAGE(p1(WO(A), Pow(Y)), ps) = ods’ 
+ >-- (rw[GSYM IN_EXT_iff,IMAGE_def] >>
+        strip_tac >>
+        fconv_tac 
+        (redepth_fconv no_conv exists_cross_fconv) >>
+        arw[p12_of_Pair] >> 
+        dimp_tac >> rpt strip_tac >> arw[] >>
+        qexistsl_tac [‘x’] >> arw[] >>
+        first_x_assum drule >>
+        pop_assum strip_assume_tac >>
+        first_x_assum drule >>
+        pop_assum strip_assume_tac >>
+        qexistsl_tac [‘rsi(M,b)’,‘b’] >> arw[]) >>
+ 
+ (strip_tac >>
+     qsspecl_then [‘ps’] assume_tac isbeth_lord >>
+     
+     fs[] >>
+
+
+     qsuff_tac
+     ‘isbeth(lord(IMAGE(p1(WO(A), Pow(Y)), ps)),
+              BIGUNION(IMAGE(p2(WO(A), Pow(Y)), ps)))’
+     >-- (strip_tac >>
+         qexistsl_tac [‘m2s(BIGUNION(IMAGE(p2(WO(A), Pow(Y)), ps)))’,‘Y’,‘BIGUNION(IMAGE(p2(WO(A), Pow(Y)), ps))’] >>
+         rw[msEqv_m2s]) >>
+
+     >> fs[] >>
+     (*fs behaviour why??? *)
+     first_x_assum irule >> 
+     qby_tac
+     ‘!wo b. IN(Pair(wo,b),ps) ==> isbeth(wo,b)’
+     >-- (arw[] >> rpt strip_tac >> arw[] >>
+         first_x_assum (qspecl_then [‘b'’] assume_tac) >>
+         fs[isBeth_def] >> rfs[] >>
+         irule 
+
+
+cheat (*need equiv lemma*)) >>
+     arw[] >> fs[SSchain_iWO_chain_LEo,IMAGE_o] >>
+     qby_tac 
+     ‘IMAGE(p1(WO(A), Pow(Y)), ps) = ods’ 
+     >-- cheat >>
+     arw[]) >>
+ )
+(form_goal 
+“!A wo:mem(WO(A)). ?s. isBeth(wo,s)”));
+
+
+
+
+
+(*original*)
+val Beth_ex = prove_store("Beth_ex",
+e0
+(strip_tac >> ind_with (wo_induct |> spec_all) >>
+ strip_tac (* 2 *)
+ >-- (qexists_tac ‘N’ >> rw[isBeth_def] >>
+     qexistsl_tac [‘N’,‘Whole(N)’] >> 
+     rw[msEqv_Whole] >> irule isbeth_zord >>
+     rw[msEqv_Whole]) >>
+ strip_tac (* 2 *)
+ >-- (rpt strip_tac >> fs[isBeth_def] >>
+     qby_tac
+     ‘?beth':mem(Pow(Pow(B))). isbeth(od,beth') & 
+      IMAGE(Sg(B), beth) = beth'’
+     (*image of injection of beth into Pow*)
+     >-- (qspecl_then [‘B’] assume_tac Sg_Inj >>
+         drule Inj_IMAGE_beth >>
+         first_x_assum drule >> 
+         qexists_tac ‘IMAGE(Sg(B), beth)’ >> arw[]) >>
+     pop_assum strip_assume_tac >>
+     drule isbeth_sord >> 
+     qsuff_tac
+     ‘?s:mem(Pow(Pow(B))). msEqv(s, Pow(m2s(beth')))’
+     >-- (strip_tac >>
+     qexistsl_tac [‘m2s(s')’,‘Pow(B)’,‘s'’] >>
+     rw[msEqv_m2s] >>
+     fs[Pair_def'] >>
+     first_x_assum irule >> arw[]) >>
+     qby_tac ‘msEqv(beth', s)’ 
+     >-- (drule Inj_IMAGE_msEqv >>
+         qspecl_then [‘B’] assume_tac Sg_Inj >>
+         first_x_assum drule >> 
+         drule eq_m2s_Eqv >>
+         fs[msEqv_def] >>
+         irule Eqv_TRANS >>
+         qexists_tac ‘m2s(IMAGE(Sg(B), beth))’ >>
+         arw[] >> irule Eqv_SYM >> arw[]
+         (*or revise eq_pred rule*)) >> 
+     rev_drule msEqv_Pow >>  
+     pop_assum strip_assume_tac >>
+     qexists_tac ‘s1’ >> 
+     qsuff_tac ‘Eqv(Pow(s),Pow(m2s(beth')))’
+     >-- (strip_tac >>
+         drule Eqv_msEqv >> fs[]) >>
+     irule Eqv_Pow >> 
+     drule eq_m2s_Eqv >>
+     fs[msEqv_def] >> irule Eqv_SYM >> arw[]) >>
+ rpt strip_tac >>
+ rw[isBeth_def] >> 
  strip_assume_tac
  (AX5 |> qspecl [‘WO(A)’] 
  |> fVar_sInst_th “P(a:mem(WO(A)),X)”
@@ -721,14 +1181,29 @@ e0
          rw[msEqv_m2s]) >>
      qby_tac
       ‘IMAGE(p1(WO(A), Pow(Y)), ps) = ods’ 
-     >-- cheat >> fs[] >>
+     >-- (rw[GSYM IN_EXT_iff,IMAGE_def] >>
+         strip_tac >>
+         fconv_tac 
+         (redepth_fconv no_conv exists_cross_fconv) >>
+         arw[p12_of_Pair] >> 
+         dimp_tac >> rpt strip_tac >> arw[] >>
+         qexistsl_tac [‘x’] >> arw[] >>
+         first_x_assum drule >>
+         pop_assum strip_assume_tac >>
+         first_x_assum drule >>
+         pop_assum strip_assume_tac >>
+         qexistsl_tac [‘rsi(M,b)’,‘b’] >> arw[]) >> fs[] >>
      (*fs behaviour why??? *)
      first_x_assum irule >> 
      qby_tac
      ‘!wo b. IN(Pair(wo,b),ps) ==> isbeth(wo,b)’
      >-- (arw[] >> rpt strip_tac >> arw[] >>
          first_x_assum (qspecl_then [‘b'’] assume_tac) >>
-         fs[isBeth_def] >> cheat (*need equiv lemma*)) >>
+         fs[isBeth_def] >> rfs[] >>
+         irule 
+
+
+cheat (*need equiv lemma*)) >>
      arw[] >> fs[SSchain_iWO_chain_LEo,IMAGE_o] >>
      qby_tac 
      ‘IMAGE(p1(WO(A), Pow(Y)), ps) = ods’ 

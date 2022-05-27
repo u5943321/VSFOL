@@ -684,3 +684,127 @@ EQ_fsym "Qg" [refl(rastt "g1:mem(Grp(G))"),assume “H1 = H2:mem(Pow(G))”]
 
 top_depth_conv (rewr_conv (assume “H1 = H2:mem(Pow(G))”)) (rastt "Qg(g1, H1:mem(Pow(G)))")
 *)
+
+
+
+val Quot_Quo = prove_store("Quot_Quo",
+e0
+(rpt strip_tac >> rw[Quot_def,Quo_def] >>
+ qcases ‘Inj(i)’ >> arw[] >>
+drule Inj_ex_uex >> flip_tac >> arw[])
+(form_goal 
+“∀A r:A~>A Q i:Q-> Pow(A).
+ Quot(r,i) <=> Inj(i) & Quo(r,i) ”));
+
+
+(*does not need injection to prove ER_Quot_nonempty*)
+val ER_Quot_nonempty = prove_store("ER_Quot_nonempty",
+e0
+(rpt strip_tac >> 
+ fs[Quot_def] >>
+ first_x_assum (qsspecl_then [‘App(i,q)’] assume_tac) >>
+ qby_tac ‘?a.App(i,q) = rsi(r,a)’ 
+ >-- (first_x_assum (irule o iffLR) >> qexists_tac ‘q’ >>
+     rw[]) >> 
+ pop_assum strip_assume_tac >> arw[] >>
+ drule ER_rsi_nonempty >> qexists_tac ‘a’ >> arw[])
+(form_goal
+ “∀A r:A~>A Q i:Q-> Pow(A).ER(r) & Quot(r,i) ==>
+ !q. ?a. IN(a,App(i,q))”));
+
+val Quot_cong = prove_store("Quot_cong",
+e0
+(rpt strip_tac >> rw[Quot_Quo] >>
+ rpt strip_tac 
+ >-- (irule ipow2_Inj_Inj >> rpt strip_tac (* 4 *)
+     >-- fs[Quot_def] 
+     >-- (irule ER_Quot_nonempty >> qexists_tac ‘r2’ >>
+         arw[]) 
+     >-- (irule ER_Quot_nonempty >> qexists_tac ‘r1’ >>
+         arw[]) >>
+     fs[Quot_def]) >>
+ fs[Quot_Quo] >> irule Quo_cong >> arw[])
+(form_goal 
+“∀A r1:A~>A Q1 i1:Q1-> Pow(A) B r2:B~>B Q2 i2:Q2 -> Pow(B). 
+ ER(r1) & ER(r2) &
+ Quot(r1,i1) & Quot(r2,i2) ⇒
+ Quot(prrel(r1,r2),ipow2(i1,i2))”));
+
+
+val abs_cong = prove_store("abs_cong",
+e0
+(rpt strip_tac >>
+ rw[abs_def,Abs_def,App_App_o,GSYM rsi_def] >> 
+ qby_tac ‘Quot(prrel(r1,r2),ipow2(i1, i2))’ 
+ >-- (irule Quot_cong >> arw[]) >>
+ fs[Quot_def] >>
+ first_x_assum (qspecl_then [‘rsi(prrel(r1, r2), Pair(a, b))’]
+ assume_tac) >>
+ qby_tac ‘?q.rsi(prrel(r1, r2), Pair(a, b)) =
+ App(ipow2(i1, i2),q)’ 
+ >-- (first_x_assum $ irule o iffRL >>
+     qexists_tac ‘Pair(a,b)’ >> rw[]) >>
+ pop_assum (x_choosel_then ["q12"] assume_tac) >>
+ qsspecl_then [‘q12’] (x_choosel_then ["q01","q02"] assume_tac) Pair_has_comp >>
+ fs[] >>
+ drule Inj_LINV >> arw[GSYM App_App_o,Id_def] >>
+ rw[Pair_eq_eq] >> 
+ pop_assum (K all_tac) >> pop_assum (K all_tac) >>
+ pop_assum mp_tac >> pop_assum (K all_tac) >>
+ strip_tac >>
+ qby_tac
+ ‘?q2. rsi(r2,b) = App(i2,q2)’
+ >-- (first_x_assum (irule o iffRL) >> qexists_tac ‘b’ >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘?q1. rsi(r1,a) = App(i1,q1)’
+ >-- (first_x_assum (irule o iffRL) >> qexists_tac ‘a’ >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ arw[] >>
+ qpick_x_assum ‘Inj(ipow2(i1, i2))’ (K all_tac) >>
+ drule Inj_LINV >> arw[GSYM App_App_o,Id_def] >>
+ rev_drule Inj_LINV >> arw[GSYM App_App_o,Id_def] >>
+ qsuff_tac ‘App(i1,q01) = App(i1,q1') & App(i2,q02) = App(i2,q2')’ 
+ >-- (rpt strip_tac (* 2 *)
+     >-- (irule $ iffLR Inj_eq_eq >> qexistsl_tac [‘Pow(A)’,‘i1’] >> arw[]) >>
+     irule $ iffLR Inj_eq_eq >> qexistsl_tac [‘Pow(B)’,‘i2’] >> arw[]) >>
+ irule Pow_conj_eq >> rpt strip_tac (* 3 *)
+ >-- (irule ER_Quot_nonempty >> qexists_tac ‘r2’ >> arw[Quot_def])
+ >-- (irule ER_Quot_nonempty >> qexists_tac ‘r1’ >> arw[Quot_def]) >>
+ qpick_x_assum
+ ‘rsi(prrel(r1, r2), Pair(a, b)) = App(ipow2(i1, i2), Pair(q01, q02))’
+ mp_tac >>
+ rw[GSYM IN_EXT_iff,IN_rsi] >> 
+ forall_cross_tac >> arw[prrel_def,ipow2_def,GSYM IN_rsi] >>
+ rpt strip_tac >> arw[])
+(form_goal
+ “∀A r1:A~>A Q1 i1:Q1-> Pow(A) B r2:B~>B Q2 i2:Q2 -> Pow(B). 
+ ER(r1) & ER(r2) &
+ Quot(r1,i1) & Quot(r2,i2) ⇒
+ !q1 q2 a b.abs(prrel(r1,r2),ipow2(i1,i2),Pair(q1,q2),Pair(a,b)) = 
+ Pair(abs(r1,i1,q1,a),abs(r2,i2,q2,b))”));
+
+
+val Rep_of_abs = prove_store("Rep_of_abs",
+e0
+(rpt strip_tac >> 
+ rw[abs_def,Abs_def,App_App_o,GSYM rsi_def] >>
+ fs[Quot_def] >>
+ qby_tac ‘?a0. rsi(r,a) = rsi(r,a0)’ 
+ >-- (qexists_tac ‘a’ >> rw[]) >>
+ first_x_assum (drule o iffRL) >>
+ fs[] >> rw[GSYM App_App_o,o_assoc] >>
+ drule Inj_LINV >> arw[IdR])
+(form_goal “!A r:A~>A Q i:Q->Pow(A). 
+ Quot(r,i) ==> !q0 a.App(i,abs(r,i,q0,a)) = rsi(r,a) ”));
+
+val Quot_rsi_uex = prove_store("Quot_rsi_uex",
+e0
+(rw[Quot_def] >> rpt strip_tac >>
+ drule Inj_ex_uex  >>
+ arw[] >> pop_assum (K all_tac) >>
+ flip_tac >> arw[] >>
+ qexists_tac ‘a’>> rw[])
+(form_goal “!A r:A~>A Q i:Q->Pow(A). 
+ Quot(r,i) ==>
+ !a.?!q. App(i,q) = rsi(r,a)”));

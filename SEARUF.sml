@@ -1,80 +1,6 @@
 (*facts about ultrafilters*)
 
 
-val INTER_def = proved_th $ 
-e0
-(strip_tac >>
- assume_tac
- (P2fun_uex |> qspecl [‘Pow(A) * Pow(A)’,‘Pow(A)’] 
-           |> fVar_sInst_th 
-           “P(s12:mem(Pow(A) * Pow(A)),s:mem(Pow(A)))”
-           “!a. IN(a,s) <=> IN(a:mem(A),Fst(s12)) & IN(a,Snd(s12))”
-           |> conv_rule (depth_fconv no_conv forall_cross_fconv)
-           |> rewr_rule[Pair_def']) >>
- first_x_assum irule >> rpt strip_tac >>
- assume_tac
- (IN_def_P |> qspecl [‘A’] 
- |> fVar_sInst_th “P(a':mem(A))”
-    “IN(a':mem(A),a) & IN(a',b)”) >> arw[])
-(form_goal “!A. ?!f:Pow(A) * Pow(A) -> Pow(A).
- !s1 s2 a. IN(a,App(f,Pair(s1,s2))) <=> IN(a,s1) & IN(a,s2)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "INTER" [‘A’]
-
-val Inter_def = qdefine_fsym("Inter",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(A))’])
-‘App(INTER(A),Pair(s1,s2))’ 
-
-
-
-val UNION_def = proved_th $ 
-e0
-(strip_tac >>
- assume_tac
- (P2fun_uex |> qspecl [‘Pow(A) * Pow(A)’,‘Pow(A)’] 
-           |> fVar_sInst_th 
-           “P(s12:mem(Pow(A) * Pow(A)),s:mem(Pow(A)))”
-           “!a. IN(a,s) <=> IN(a:mem(A),Fst(s12)) | IN(a,Snd(s12))”
-           |> conv_rule (depth_fconv no_conv forall_cross_fconv)
-           |> rewr_rule[Pair_def']) >>
- first_x_assum irule >> rpt strip_tac >>
- assume_tac
- (IN_def_P |> qspecl [‘A’] 
- |> fVar_sInst_th “P(a':mem(A))”
-    “IN(a':mem(A),a) | IN(a',b)”) >> arw[])
-(form_goal “!A. ?!f:Pow(A) * Pow(A) -> Pow(A).
- !s1 s2 a. IN(a,App(f,Pair(s1,s2))) <=> IN(a,s1) | IN(a,s2)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "UNION" [‘A’]
-
-val IN_Inter = prove_store("IN_Inter",
-e0
-(rw[Inter_def,INTER_def])
-(form_goal “!A s1 s2 a. IN(a:mem(A),Inter(s1,s2)) <=> IN(a,s1) & IN(a,s2)”));
-
-
-val COMPL_def = proved_th $ 
-e0
-(strip_tac >>
- assume_tac
- (P2fun_uex |> qspecl [‘Pow(A)’,‘Pow(A)’] 
-           |> fVar_sInst_th 
-           “P(s0:mem(Pow(A)),s:mem(Pow(A)))”
-           “!a. IN(a,s) <=> ~IN(a:mem(A),s0)”) >>
- first_x_assum irule >> rpt strip_tac >>
- assume_tac
- (IN_def_P |> qspecl [‘A’] 
- |> fVar_sInst_th “P(a':mem(A))”
-    “~IN(a':mem(A),x)”) >> arw[])
-(form_goal “!A. ?!f:Pow(A) -> Pow(A).
- !s a. IN(a,App(f,s)) <=> ~IN(a,s)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "COMPL" [‘A’]
-
-val Compl_def = qdefine_fsym("Compl",[‘s:mem(Pow(A))’])
-‘App(COMPL(A),s)’
-
-val IN_Compl = prove_store("IN_Compl",
-e0
-(rw[Compl_def,COMPL_def])
-(form_goal “!A s a. IN(a:mem(A),Compl(s)) <=> ~IN(a,s)”));
-
 
 val filter_def = qdefine_psym("filter",[‘L:mem(Pow(Pow(J)))’])
 ‘~EMPTY(J) & IN(Whole(J),L) & 
@@ -194,9 +120,6 @@ e0
 (form_goal “IN(Compl(X:mem(Pow(J))), Repu(u)) <=> ~IN(X,Repu(u))”));
 
 
-val Union_def = qdefine_fsym("Union",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(A))’])
-‘App(UNION(A),Pair(s1,s2))’
-
 val neg_or_distr = proved_th $
 e0
 (dimp_tac >> strip_tac (* 2 *)
@@ -249,21 +172,11 @@ val CUI_def = qdefine_psym("CUI",[‘ss:mem(Pow(Pow(A)))’])
         SS(ss0, ss) & Fin(ss0) & ~(ss0 = Empty(Pow(A))) ==>
         IN(BIGINTER(ss0),ss)’
 
-val IN_Union = prove_store("IN_Union",
-e0
-(rw[Union_def,UNION_def])
-(form_goal “!A s1 s2 a:mem(A). IN(a,Union(s1,s2)) <=> IN(a,s1) | IN(a,s2)”));
-
 
 val Union_Sing = prove_store("Union_Sing",
 e0
 (rw[GSYM IN_EXT_iff,IN_Union,IN_Sing,Ins_def])
 (form_goal “!A a s.Union(Sing(a:mem(A)),s) = Ins(a,s)”));
-
-val SS_Refl = prove_store("SS_Refl",
-e0
-(rw[SS_def])
-(form_goal “!A s:mem(Pow(A)). SS(s,s)”));
 
 val SS_Ins = prove_store("SS_Ins",
 e0
@@ -484,18 +397,6 @@ e0
 (rw[GSYM IN_EXT_iff,IN_Inter,Empty_def])
 (form_goal “!A s. Inter(s,Empty(A)) = Empty(A)”));
 
-
-val IN_NONEMPTY = prove_store("IN_NONEMPTY",
-e0
-(rw[GSYM IN_EXT_iff,Empty_def] >> rpt strip_tac >>
- dimp_tac >> strip_tac (* 2 *)
- >-- (ccontra_tac >> fs[]) >>
- ccontra_tac >>
- qsuff_tac ‘!a. ~IN(a,s)’ >-- arw[] >>
- strip_tac >> ccontra_tac >>
- qsuff_tac ‘?a. IN(a,s)’ >--arw[] >>
- qexists_tac ‘a’ >> arw[])
-(form_goal “!A s. (?a. IN(a,s)) <=> ~(s = Empty(A))”));
 
 val SS_Sing = prove_store("SS_Sing",
 e0

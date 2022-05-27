@@ -69,8 +69,6 @@ e0
 
 (*inc to option*)
 
-val SOME_def = qdefine_fsym("SOME",[‘a:mem(A)’])
-‘App(i1(A,1),a)’ |> gen_all
 
 val lcons0_def = proved_th $
 e0
@@ -109,25 +107,6 @@ e0
 |> spec_all |> uex2ex_rule |> qSKOLEM "lcons0" [‘x’,‘f0’]
 |> gen_all 
 
-
-
-val NONE_def = qdefine_fsym("NONE",[‘X’])
-‘App(i2(X,1),dot)’
-
-val Null_def = proved_th $
-e0
-(strip_tac >> rw[GSYM NONE_def] >>
- qsuff_tac
- ‘?f:N->X+1.!n. App(f,n) = NONE(X)’
- >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
-     rw[GSYM FUN_EXT] >> rpt strip_tac >> arw[]) >>
- assume_tac (P2fun' |> qspecl [‘N’,‘X + 1’] 
- |> fVar_sInst_th “P(n:mem(N),x1:mem(X+1))” “x1 = NONE(X)”) >>
- first_x_assum irule >> strip_tac >> uex_tac >> qexists_tac ‘NONE(X)’ >>
- rw[] >> rpt strip_tac >> arw[])
-(form_goal “!X. ?!f:N->X+1.!n. App(f,n) = App(i2(X,1),dot)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "Null" [‘X’]
-|> gen_all
 
 val llf_uex = prove_store("llf_uex",
 e0

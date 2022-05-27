@@ -178,3 +178,184 @@ val Image_IMAGE = prove_store("Image_IMAGE",
 e0
 (rw[GSYM IN_EXT_iff,IMAGE_def,Image_def])
 (form_goal “!A B f:A->B s. App(Image(f),s) = IMAGE(f,s)”));
+
+(*
+val eq_m2s_Eqv = prove_store("eq_m2s_Eqv",
+e0
+(cheat)
+(form_goal “!A s1 s2:mem(Pow(A)). s1 = s2 ==>
+ Eqv(m2s(s1),m2s(s2))”));
+*)
+
+
+val IMAGE_Empty_Empty = prove_store("IMAGE_Empty_Empty",
+e0
+(cheat)
+(form_goal “!A B f:A->B s. IMAGE(f,s) = Empty(B) <=> s = Empty(A)”));
+
+
+val BIGUNION_Empty_Empty = prove_store("BIGUNION_Empty_Empty",
+e0
+(cheat)
+(form_goal “!A ss. BIGUNION(ss) = Empty(A) <=> 
+ (!s. IN(s,ss) ==> s = Empty(A))”));
+
+
+val BIGUNION_Empty_Empty' = prove_store("BIGUNION_Empty_Empty'",
+e0
+(cheat)
+(form_goal “!A ss. Empty(A) = BIGUNION(ss)  <=> 
+ (!s. IN(s,ss) ==> s = Empty(A))”));
+
+
+val IN_NONEMPTY = prove_store("IN_NONEMPTY",
+e0
+(rw[GSYM IN_EXT_iff,Empty_def] >> rpt strip_tac >>
+ dimp_tac >> strip_tac (* 2 *)
+ >-- (ccontra_tac >> fs[]) >>
+ ccontra_tac >>
+ qsuff_tac ‘!a. ~IN(a,s)’ >-- arw[] >>
+ strip_tac >> ccontra_tac >>
+ qsuff_tac ‘?a. IN(a,s)’ >--arw[] >>
+ qexists_tac ‘a’ >> arw[])
+(form_goal “!A s. (?a. IN(a,s)) <=> ~(s = Empty(A))”));
+
+
+
+val INTER_def = proved_th $ 
+e0
+(strip_tac >>
+ assume_tac
+ (P2fun_uex |> qspecl [‘Pow(A) * Pow(A)’,‘Pow(A)’] 
+           |> fVar_sInst_th 
+           “P(s12:mem(Pow(A) * Pow(A)),s:mem(Pow(A)))”
+           “!a. IN(a,s) <=> IN(a:mem(A),Fst(s12)) & IN(a,Snd(s12))”
+           |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+           |> rewr_rule[Pair_def']) >>
+ first_x_assum irule >> rpt strip_tac >>
+ assume_tac
+ (IN_def_P |> qspecl [‘A’] 
+ |> fVar_sInst_th “P(a':mem(A))”
+    “IN(a':mem(A),a) & IN(a',b)”) >> arw[])
+(form_goal “!A. ?!f:Pow(A) * Pow(A) -> Pow(A).
+ !s1 s2 a. IN(a,App(f,Pair(s1,s2))) <=> IN(a,s1) & IN(a,s2)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "INTER" [‘A’]
+
+val Inter_def = qdefine_fsym("Inter",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(A))’])
+‘App(INTER(A),Pair(s1,s2))’ 
+
+
+
+val UNION_def = proved_th $ 
+e0
+(strip_tac >>
+ assume_tac
+ (P2fun_uex |> qspecl [‘Pow(A) * Pow(A)’,‘Pow(A)’] 
+           |> fVar_sInst_th 
+           “P(s12:mem(Pow(A) * Pow(A)),s:mem(Pow(A)))”
+           “!a. IN(a,s) <=> IN(a:mem(A),Fst(s12)) | IN(a,Snd(s12))”
+           |> conv_rule (depth_fconv no_conv forall_cross_fconv)
+           |> rewr_rule[Pair_def']) >>
+ first_x_assum irule >> rpt strip_tac >>
+ assume_tac
+ (IN_def_P |> qspecl [‘A’] 
+ |> fVar_sInst_th “P(a':mem(A))”
+    “IN(a':mem(A),a) | IN(a',b)”) >> arw[])
+(form_goal “!A. ?!f:Pow(A) * Pow(A) -> Pow(A).
+ !s1 s2 a. IN(a,App(f,Pair(s1,s2))) <=> IN(a,s1) | IN(a,s2)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "UNION" [‘A’]
+
+val IN_Inter = prove_store("IN_Inter",
+e0
+(rw[Inter_def,INTER_def])
+(form_goal “!A s1 s2 a. IN(a:mem(A),Inter(s1,s2)) <=> IN(a,s1) & IN(a,s2)”));
+
+
+val COMPL_def = proved_th $ 
+e0
+(strip_tac >>
+ assume_tac
+ (P2fun_uex |> qspecl [‘Pow(A)’,‘Pow(A)’] 
+           |> fVar_sInst_th 
+           “P(s0:mem(Pow(A)),s:mem(Pow(A)))”
+           “!a. IN(a,s) <=> ~IN(a:mem(A),s0)”) >>
+ first_x_assum irule >> rpt strip_tac >>
+ assume_tac
+ (IN_def_P |> qspecl [‘A’] 
+ |> fVar_sInst_th “P(a':mem(A))”
+    “~IN(a':mem(A),x)”) >> arw[])
+(form_goal “!A. ?!f:Pow(A) -> Pow(A).
+ !s a. IN(a,App(f,s)) <=> ~IN(a,s)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "COMPL" [‘A’]
+
+val Compl_def = qdefine_fsym("Compl",[‘s:mem(Pow(A))’])
+‘App(COMPL(A),s)’
+
+val IN_Compl = prove_store("IN_Compl",
+e0
+(rw[Compl_def,COMPL_def])
+(form_goal “!A s a. IN(a:mem(A),Compl(s)) <=> ~IN(a,s)”));
+
+
+val Union_def = qdefine_fsym("Union",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(A))’])
+‘App(UNION(A),Pair(s1,s2))’
+
+
+
+val m2r_def = AX1 |> qspecl [‘A’,‘A’]
+                  |> fVar_sInst_th “P(x:mem(A),y:mem(A))”
+                  “IN(Pair(x,y),od:mem(Pow(A * A)))”
+                  |> uex2ex_rule 
+                  |> qSKOLEM "m2r" [‘od’] 
+                  |> qspecl [‘a1:mem(A)’,‘a2:mem(A)’]
+                  |> gen_all
+
+val r2m_def = 
+    IN_def_P |> qspecl [‘A * A’]
+             |> fVar_sInst_th “P(a12:mem(A * A))”
+             “Holds(R:A~>A,Fst(a12),Snd(a12))” 
+             |> uex2ex_rule 
+             |> qSKOLEM "r2m" [‘R’] 
+             |> qspecl [‘Pair(a1:mem(A),a2:mem(A))’]
+             |> rewr_rule [Pair_def']
+             |> gen_all
+
+
+val IN_Union = prove_store("IN_Union",
+e0
+(rw[Union_def,UNION_def])
+(form_goal “!A s1 s2 a:mem(A). IN(a,Union(s1,s2)) <=> IN(a,s1) | IN(a,s2)”));
+ 
+val Union_Empty_Empty = prove_store("Union_Empty_Empty",
+e0
+(rw[GSYM IN_EXT_iff,IN_Union,Empty_def])
+(form_goal “!A. Union(Empty(A),Empty(A)) = Empty(A)”));
+
+
+val SS_Refl = prove_store("SS_Refl",
+e0
+(rw[SS_def])
+(form_goal “!A s:mem(Pow(A)). SS(s,s)”));
+
+
+val NONE_def = qdefine_fsym("NONE",[‘X’])
+‘App(i2(X,1),dot)’
+
+val Null_def = proved_th $
+e0
+(strip_tac >> rw[GSYM NONE_def] >>
+ qsuff_tac
+ ‘?f:N->X+1.!n. App(f,n) = NONE(X)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+     rw[GSYM FUN_EXT] >> rpt strip_tac >> arw[]) >>
+ assume_tac (P2fun' |> qspecl [‘N’,‘X + 1’] 
+ |> fVar_sInst_th “P(n:mem(N),x1:mem(X+1))” “x1 = NONE(X)”) >>
+ first_x_assum irule >> strip_tac >> uex_tac >> qexists_tac ‘NONE(X)’ >>
+ rw[] >> rpt strip_tac >> arw[])
+(form_goal “!X. ?!f:N->X+1.!n. App(f,n) = App(i2(X,1),dot)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "Null" [‘X’]
+|> gen_all
+
+
+val SOME_def = qdefine_fsym("SOME",[‘a:mem(A)’])
+‘App(i1(A,1),a)’ |> gen_all
