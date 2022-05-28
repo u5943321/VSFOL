@@ -321,6 +321,9 @@ val r2m_def =
              |> gen_all
 
 
+
+
+
 val IN_Union = prove_store("IN_Union",
 e0
 (rw[Union_def,UNION_def])
@@ -359,3 +362,119 @@ e0
 
 val SOME_def = qdefine_fsym("SOME",[‘a:mem(A)’])
 ‘App(i1(A,1),a)’ |> gen_all
+
+
+
+val PREIM_def = proved_th $
+e0
+(rpt strip_tac >>
+ assume_tac
+ (IN_def_P |> qspecl [‘A’] 
+ |> fVar_sInst_th “P(a:mem(A))”
+    “?b. IN(b,s) & App(f:A->B,a) = b”) >>
+ arw[])
+(form_goal “!A B f:A->B s.?!s0.
+ !a. IN(a,s0) <=> ?b. IN(b,s) & App(f,a) = b ”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "PREIM" [‘f’,‘s’]
+|> gen_all
+
+
+val Surj_Epi = prove_store("Surj_Epi",
+e0
+(rpt strip_tac >> fs[Surj_def,GSYM FUN_EXT,App_App_o] >>
+ rpt strip_tac >>
+ first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+ pop_assum (assume_tac o GSYM) >> arw[])
+(form_goal “!A B f:A->B. Surj(f) ==>
+ !C g1:B->C g2. g1 o f = g2 o f ==> g1 = g2”));
+
+
+val r2f_def = proved_th $
+e0
+cheat
+(form_goal “!R:A~>B. ?!f:A * B -> 1+1.
+ !a b. App(f,Pair(a,b)) = App(i2(1,1),dot)  <=> Holds(R,a,b)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "r2f" [‘R’] |> gen_all
+
+
+val true_def = qdefine_fsym("true",[]) ‘App(i2(1,1),dot)’
+
+val false_def = qdefine_fsym("false",[]) ‘App(i1(1,1),dot)’
+ 
+val true_ne_false = prove_store("true_ne_false",
+e0
+cheat
+(form_goal “~(true = false)”));
+
+val true_xor_false = prove_store("true_xor_false",
+e0
+cheat
+(form_goal “!tv. tv= true | tv = false”));
+
+val tv_eq_true = prove_store("tv_eq_true",
+e0
+(cheat)
+(form_goal “!tv1 tv2. tv1 = tv2 <=>
+ (tv1 = true <=> tv2 = true)”));
+
+
+val tf_eq_true = prove_store("tf_eq_true",
+e0
+(rw[GSYM FUN_EXT] >> rpt strip_tac >>
+ rw[GSYM tv_eq_true] )
+(form_goal “!A tf1 tf2. tf1 = tf2 <=>
+ (!a:mem(A). App(tf1,a) = true <=> App(tf2,a) = true)”));
+
+val OR_def = proved_th $
+e0
+(cheat)
+(form_goal “?f:(1+1) * (1+1) -> 1+1. 
+ App(f,Pair(true,true)) = true & 
+ App(f,Pair(true,false)) = true &
+ App(f,Pair(false,true)) = true &
+ App(f,Pair(false,false)) = false”)
+|> qSKOLEM "OR" [] 
+
+
+val NOT_def = proved_th $
+e0
+(cheat)
+(form_goal “?f:1+1 -> 1+1. 
+App(f,true) = false & App(f,false) = true”)
+|> qSKOLEM "NOT" [] 
+
+
+val f2r_def = proved_th $
+e0
+cheat
+(form_goal “!A B f:A * B -> 1+1.?!R:A~>B.
+ !a b. Holds(R,a,b) <=> App(f,Pair(a,b)) = true”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "f2r" [‘f’] |> gen_all
+
+
+val ss2f = proved_th $
+e0
+(cheat)
+(form_goal “!A s:mem(Pow(A)).?!f:A -> 1+1.
+ !a. App(f,a) = true <=> IN(a,s)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "ss2f" [‘s’]
+ 
+
+val r2f_def' = r2f_def |> rewr_rule[GSYM true_def]
+
+
+val m2s_def = proved_th $
+e0
+(cheat)
+(form_goal “!X xs:mem(Pow(X)). ?X0 i:X0->X. 
+ Inj(i) & 
+ !x. IN(x,xs) <=> ?x0:mem(X0). x = App(i,x0)”)
+|> spec_all |> qSKOLEM "m2s" [‘xs’] 
+|> qSKOLEM "m2i" [‘xs’] |> gen_all
+
+
+val mEqv_def = qdefine_psym("mEqv",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’]) ‘Eqv(m2s(s1),m2s(s2))’ |> gen_all
+
+
+val msEqv_def = qdefine_psym("msEqv",[‘s:mem(Pow(A))’,‘S’])
+‘Eqv(m2s(s),S)’ |> gen_all

@@ -826,20 +826,6 @@ e0
  isghom(f,g1,g2) <=> homfun(ghm(f,g1,g2)) = f”));
 
 
-val PREIM_def = proved_th $
-e0
-(rpt strip_tac >>
- assume_tac
- (IN_def_P |> qspecl [‘A’] 
- |> fVar_sInst_th “P(a:mem(A))”
-    “?b. IN(b,s) & App(f:A->B,a) = b”) >>
- arw[])
-(form_goal “!A B f:A->B s.?!s0.
- !a. IN(a,s0) <=> ?b. IN(b,s) & App(f,a) = b ”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "PREIM" [‘f’,‘s’]
-|> gen_all
-
-
 (*kernel set, kernel should always be regarded as a normal subgroup*)
 val kers_def = qdefine_fsym("kers",[‘f:mem(ghom(g1:mem(Grp(G1)),g2:mem(Grp(G2))))’]) ‘PREIM(homfun(f),Sing(eof(g2)))’
 

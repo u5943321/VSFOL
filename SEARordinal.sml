@@ -307,7 +307,10 @@ val oiso_iord_abs_cong =
 abs_cong |> qsspecl [‘oiso(A)’,‘iord(A)’,‘oiso(A)’,‘iord(A)’]
          |> rewr_rule[oiso_ER,oiso_iord_Quot]
 
-val Abso_def = qdefine_fsym("Abso",[‘w:mem(WO(A))’])
+val Abso_def = qdefine_fsym("Abso",[‘A’])
+‘Abs(oiso(A), iord(A), zord(A))’
+
+val abso_def = qdefine_fsym("abso",[‘w:mem(WO(A))’])
 ‘abs(oiso(A), iord(A), zord(A), w)’ |> gen_all
 
 val ordltf_def = 
@@ -322,11 +325,26 @@ Quot_UMP |> qsspecl [‘prrel(oiso(A),oiso(A))’]
          |> qSKOLEM "ordltf" [‘A’] 
          |> qspecl [‘Pair(w1:mem(WO(A)),w2:mem(WO(A)))’] 
          |> rewr_rule[oiso_iord_abs_cong,
-                      GSYM Abso_def]
+                      GSYM abso_def]
 
 val ordlt_def = 
 qdefine_psym("ordlt",[‘ord1:mem(ordinal(A))’,‘ord2:mem(ordinal(A))’]) ‘App(ordltf(A), Pair(ord1, ord2)) = true’
 |> gen_all
+
+
+
+val ordle_def = qdefine_psym("ordle",[‘ord1:mem(ordinal(A))’,‘ord2:mem(ordinal(A))’]) 
+ ‘~(ordlt(ord2,ord1))’
+|> gen_all
+
+
+
+val ordlt_orderlt = prove_store("ordlt_orderlt",
+e0
+(rw[ordlt_def,ordltf_def,r2f_def',orderltr_def])
+(form_goal
+ “!A w1 w2:mem(WO(A)). 
+   ordlt(abso(w1),abso(w2)) <=> orderlt(w1,w2) ”));
 
 val ordltr_def = 
 AX1 |> qspecl [‘ordinal(A)’,‘ordinal(A)’] 
@@ -420,12 +438,318 @@ cheat
 |> spec_all |> uex2ex_rule |> qSKOLEM "ordSUC" [‘α’]
 
 
+val orderlt_WF = prove_store("orderlt_WF",
+e0
+(cheat)
+(form_goal “!A B.(?w:mem(WO(A)).IN(w,B)) ==> ?min. IN(min,B) & !b. orderlt(b,min) ==> ~IN(b,B)”));
+
+val Rord_def = qdefine_fsym("Rord",[‘α:mem(ordinal(A))’])
+‘App(iord(A),α)’ |> gen_all
+
+val abso_Abso = prove_store("abso_Abso",
+e0
+(rw[abso_def,Abso_def,abs_def])
+(form_goal “abso(a) = App(Abso(A),a)”));
+
+val ord_rep_ex =  
+Abs_Surj |> qsspecl [‘oiso(A)’,‘iord(A)’] 
+         |> rewr_rule[oiso_iord_Quot] 
+         |> qspecl [‘zord(A)’] 
+         |> rewr_rule[GSYM Abso_def,Surj_def,
+                      GSYM abso_Abso]
+         |> gen_all
 
 
-(*
-val wobound_def = Define`
-  wobound x w = wellorder_ABS (rrestrict (wellorder_REP w) (iseg w x))
-`;*)
+
+
+val Quot_IN_BIGUNION_abso = 
+ Quot_IN_BIGUNION_abs |> qsspecl [‘oiso(A)’] 
+                      |> rewr_rule[oiso_ER] 
+                      |> qsspecl [‘iord(A)’] 
+                      |> rewr_rule[oiso_iord_Quot] 
+                      |> qspecl [‘zord(A)’] 
+                      |> rewr_rule[GSYM abso_def] 
+                      |> gen_all
+
+val ordlt_WF0 = prove_store("ordlt_WF0",
+e0
+(rpt strip_tac >> 
+ qsspecl_then [‘BIGUNION(IMAGE(iord(A),B))’] 
+ assume_tac orderlt_WF >>
+ qsspecl_then [‘w’] (x_choose_then "w0" assume_tac)
+ ord_rep_ex >>
+ qby_tac 
+ ‘IN(w0, BIGUNION(IMAGE(iord(A), B)))’ 
+ >--(irule  $ iffRL Quot_IN_BIGUNION_rep >>
+    qexistsl_tac [‘zord(A)’,‘oiso(A)’] >>
+    rw[oiso_ER,oiso_iord_Quot] >>
+    qexists_tac ‘w’ >> fs[abso_def]) >>
+ qby_tac ‘?w0. IN(w0, BIGUNION(IMAGE(iord(A), B)))’
+ >-- (qexists_tac ‘w0’ >> arw[]) >>
+ first_x_assum drule >>
+ (*think about the pattern in this step*)
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘abso(min)’ >> strip_tac 
+ >-- arw[GSYM Quot_IN_BIGUNION_abso] >>
+ rpt strip_tac >>
+ qsspecl_then [‘b’] (strip_assume_tac o GSYM) ord_rep_ex >> 
+ arw[] >> rw[ordlt_orderlt] >>
+ arw[GSYM Quot_IN_BIGUNION_abso] >>
+ first_x_assum irule >> fs[ordlt_orderlt])
+(form_goal 
+“!A B.(?w:mem(ordinal(A)).IN(w,B)) ==> ?min. IN(min,B) & !b. ordlt(b,min) ==> ~IN(b,B)”));
+
+
+val ord_induction0 = prove_store("ord_induction0",
+e0
+(rpt strip_tac >> ccontra_tac >>
+ qby_tac ‘?a1. IN(a1,Compl(s))’ 
+ >-- (qexists_tac ‘a’ >> arw[IN_Compl]) >>
+ drule ordlt_WF0 >>
+ pop_assum strip_assume_tac >> fs[IN_Compl] >>
+ first_x_assum drule >> fs[])
+(form_goal 
+ “!s.(!min:mem(ordinal(A)). (!b. ordlt(b,min) ==> IN(b,s)) ==> IN(min,s)) ==> !a:mem(ordinal(A)). IN(a,s)”));
+
+
+val ord_induction = prove_store("ord_induction",
+e0
+(strip_assume_tac 
+ (IN_def_P |> GSYM |> qspecl [‘ordinal(A)’] |> uex2ex_rule) >>
+ arw[ord_induction0])
+(form_goal 
+ “(!min:mem(ordinal(A)). (!b. ordlt(b,min) ==> P(b)) ==> P(min)) ==> !a:mem(ordinal(A)). P(a)”));
+
+val option_CASES = prove_store("option_CASES",
+e0
+(cheat)
+(form_goal “!A ao:mem(A+1). ao = NONE(A) | ?a. ao = SOME(a)”));
+
+val preds_omax_SOME_SUC = prove_store("preds_omax_SOME_SUC",
+e0
+cheat
+(form_goal 
+ “!A a b:mem(ordinal(A)).omax(preds(a)) = SOME(b) <=> a = ordSUC(b)”));
+
+
+val ordlt_ZERO = prove_store("ordlt_ZERO",
+e0
+(cheat)
+(form_goal “!A a:mem(ordinal(A)). ordlt(a,zord(A))”));
+
+val ordle_lteq = prove_store("ordle_lteq",
+e0
+cheat
+(form_goal “!A a b:mem(ordinal(A)).
+ ordle(a,b) <=> ordlt(a,b) | a = b”));
+
+val simple_ord_induction = prove_store("simple_ord_induction",
+e0
+(strip_tac >> match_mp_tac ord_induction >>
+ qsuff_tac
+ ‘!a:mem(ordinal(A)). (!b. ordlt(b,a) ==> P(b)) ==> P(a)’ 
+ >-- rw[] >>
+ strip_tac >>
+ qcases ‘a = zord(A)’ 
+ >-- arw[] >>
+ qsspecl_then [‘omax(preds(a))’] 
+ strip_assume_tac option_CASES (* 2 *)
+ >-- (qby_tac ‘ordlt(zord(A),a)’ 
+     >-- cheat >>
+     rpt strip_tac >>
+     last_x_assum irule >> arw[]) >>
+ fs[preds_omax_SOME_SUC] >>
+ rpt strip_tac >> last_x_assum irule >>
+ first_x_assum irule >> rw[ordSUC_def])
+(form_goal 
+ “P(zord(A)) &
+  (!α:mem(ordinal(A)). P(α) ==> P(ordSUC(α))) &
+  (!α. omax(preds(α)) = NONE(ordinal(A)) &
+       ordlt(zord(A),α) &
+       (!β. ordlt(β,α) ==> P(β)) ==> P(α)) ==>
+  !α:mem(ordinal(A)). P(α)”));
+
+
+val ord_RECURSION = prove_store("ord_RECURSION",
+e0
+cheat
+(form_goal
+ “!A B z:mem(B) 
+     sf:ordinal(A) * B-> B 
+     lf:ordinal(A) * Pow(B) -> B.
+  ?h:ordinal(A)->B.
+   App(h,zord(A)) = z &
+   (!α. App(h,ordSUC(α)) = App(sf,Pair(α,App(h,α)))) &
+   !α. ordlt(zord(A),α) & islimit(α) ==>
+   App(h,α) = App(lf,Pair(α,IMAGE(h,preds(α))))”));
+
+
+val INJ_def = 
+qdefine_psym("INJ",
+[‘f:A->B’,‘s:mem(Pow(A))’,‘t:mem(Pow(B))’])
+‘(!x. IN(x,s) ==> IN(App(f,x),t)) &
+(!x y. IN(x,s) & IN(y,s) ==> App(f,x) = App(f,y) ==>
+ x = y)’ |> gen_all
+
+
+val SURJ_def = 
+qdefine_psym("SURJ",
+[‘f:A->B’,‘s:mem(Pow(A))’,‘t:mem(Pow(B))’])
+‘(!x. IN(x,s) ==> IN(App(f,x),t)) &
+(!x. IN(x,t) ==> ?y. IN(y,s) & App(f,y) = x)’ |> gen_all
+
+ 
+val BIJ_def = 
+qdefine_psym
+("BIJ",[‘f:A->B’,‘s:mem(Pow(A))’,‘t:mem(Pow(B))’])
+‘INJ(f,s,t) & SURJ(f,s,t)’ |> gen_all
+
+
+val POW_def = IN_def_P |> qspecl [‘Pow(A)’] 
+                       |> fVar_sInst_th “P(s:mem(Pow(A)))”
+                          “SS(s,s0:mem(Pow(A)))”
+                       |> uex2ex_rule 
+                       |> qSKOLEM "POW" [‘s0’]
+                       |> gen_all
+
+val cardeq_def = 
+qdefine_psym("cardeq",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’])
+‘?f.BIJ(f,s1,s2)’
+
+val Snds_def = qdefine_fsym("Snds",
+[‘abs:mem(Pow(A * B))’])
+‘IMAGE(p2(A,B),abs)’ |> gen_all
+
+val cardeqr_def = 
+AX1 |> qspecl [‘Pow(A)’,‘Pow(B)’] 
+    |> fVar_sInst_th “P(s1:mem(Pow(A)),s2:mem(Pow(B)))”
+       “cardeq(s1:mem(Pow(A)),s2:mem(Pow(B)))” 
+    |> uex2ex_rule 
+    |> qSKOLEM "cardeqr" [‘A’,‘B’]
+    |> gen_all 
+
+val cardeqf_def = qdefine_fsym("cardeqf",
+[‘A’,‘B’]) ‘r2f(cardeqr(A,B))’ |> gen_all
+
+(*predicate to member of power set*)
+val p2m_def =
+IN_def_P 
+|> qspecl [‘A’] 
+|> fVar_sInst_th “P(a:mem(A))”
+   “App(f:A->1+1,a) = true”
+|> uex2ex_rule |> qSKOLEM "p2m" [‘f’] 
+|> gen_all
+
+val POWf_def = fun_tm_compr_uex 
+("s",mem_sort (rastt "Pow(A)"))
+(rastt "POW(s:mem(Pow(A)))")
+|> uex2ex_rule |> qSKOLEM "POWf" [‘A’]
+
+val sf0_ex = proved_th $
+e0
+cheat
+(form_goal
+ “?!sf0:Pow(Pow(B)) -> Pow(Pow(B)).
+  !ss t. IN(t,App(sf0,ss)) <=> 
+      ?s. IN(s,ss) & cardeq(POW(s),t)”)
+|> uex2ex_rule 
+|>qSKOLEM "sf0"[‘B’]
+
+
+val bethf_def = 
+ord_RECURSION  
+|> qspecl [‘A’,‘Pow(Pow(B))’]  
+|> qspecl [‘p2m(Ap1(cardeqf(B,N),Whole(N)))’]
+|> qspecl [‘sf0(B) o p2(ordinal(A),Pow(Pow(B)))’]
+|> qspecl [‘BU(Pow(B)) o p2(ordinal(A),Pow(Pow(Pow(B))))’]
+|> qSKOLEM "bethf" [‘A’,‘B’]
+
+val beth_def = 
+ qdefine_psym("beth",[‘α:mem(ordinal(A))’,‘b:mem(Pow(B))’])
+‘IN(b,App(bethf(A,B),α))’ |> gen_all
+
+
+val beth_cardeq = prove_store("beth_cardeq",
+e0
+cheat
+(form_goal
+ “!α:mem(ordinal(A)).
+  !B1 beth1:mem(Pow(B1)) B2 beth2:mem(Pow(B2)).
+   beth(α,beth1) & beth(α,beth2) ==>
+   cardeq(beth1,beth2)”));
+
+
+val 
+
+
+val beth_ex = prove_store("beth_ex",
+e0
+(strip_tac >>
+ ind_with simple_ord_induction >>
+ rpt strip_tac (* 3 *)
+ >-- (qexistsl_tac [‘N’,‘Whole(N)’] >> cheat) 
+ >-- (*inject b into Pow(Pow(B))*) cheat >>
+ )
+(form_goal  “!A α:mem(ordinal(A)). 
+ ?B b:mem(Pow(B)).beth(α,b)”)
+
+
+
+rastt "Ap1(cardeqf(B,B),Whole(N))"
+
+val beth0_cl = 
+ “(!s:mem(Pow(B)). cardeq(s,Whole(N)) & 
+       p = Pair(zord(A),s) ==>
+      IN(p,beths)) & 
+  (!p0 b1.
+       IN(p0,beths) & 
+       cardeq(b1,Snd(p0)) &
+       p = Pair(ordSUC(Fst(p0)),b1) ==>
+       IN(p,beths)) & 
+  (!p0s α b1.
+       (!α0 b0. IN(Pair(α0,b0),p0s) ==> 
+        IN(Pair(α0,b0),beths) & ordlt(α0,α)) &
+       (!α0. 
+         ) & 
+       islimit(α) & ordlt(zord(A),α) & 
+       cardeq(b1,BIGUNION(Snds(p0s))) &
+       p = Pair(α,b1) ==>
+       IN(p,beths))”
+in
+val (beth0_incond,x1) = mk_incond beth0_cl;
+val beth0f_ex = mk_fex beth0_incond x1;
+val beth0f_def = mk_fdef "beth0f" beth0f_ex;
+val beth0f_monotone = proved_th $
+e0
+(rpt strip_tac >> fs[SS_def,beth0f_def] >>
+ rpt strip_tac (* 3 *)
+ >-- (disj1_tac >> qexists_tac ‘s’ >> arw[]) 
+ >-- (disj2_tac >> disj1_tac >>
+     qexistsl_tac [‘p0’,‘b1’] >>
+     arw[] >> first_x_assum irule >> arw[]) >>
+ disj2_tac >> disj2_tac >>
+ qexistsl_tac [‘p0s’,‘α’,‘b1’] >> arw[] >>
+ rpt strip_tac >> first_x_assum drule >> 
+ first_x_assum irule >> arw[])
+(form_goal 
+“!s1 s2.SS(s1,s2) ==> 
+  SS(App(beth0f(A,B), s1), App(beth0f(A,B), s2))”)
+val beth0's_def = mk_prim beth0f_def;
+val beth0s_def = mk_LFP (rastt "beth0's(A,B)");
+val beth0s_cond = mk_cond beth0s_def beth0's_def;
+val beth0s_SS = mk_SS beth0s_def beth0's_def;
+val beth0_rules0 = mk_rules beth0f_monotone beth0s_SS beth0s_cond;
+val beth0_cases0 = mk_cases beth0f_monotone beth0_rules0 beth0s_cond;
+val beth0_ind0 = mk_ind beth0s_cond;
+val beth0_ind1 = mk_ind1 beth0f_def beth0_ind0;
+val beth0_ind2 = mk_ind2 beth0_ind1;
+val beth0_cases1 = mk_case1 beth0f_def beth0_cases0;
+val beth0_rules1 = mk_rules1 beth0f_def beth0_rules0;
+val beth0_rules2 = mk_rules2 beth0_rules1;
+val beth0_rules3 = mk_rules3 beth0_rules2;
+
+
+
 
 
 

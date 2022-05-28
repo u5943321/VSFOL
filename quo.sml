@@ -119,14 +119,6 @@ e0
  “!A r:A~>A Q i:Q->Pow(A). Quot(r,i) ==>
   !q0. Surj(Abs(r,i,q0))”));
 
-val Surj_Epi = prove_store("Surj_Epi",
-e0
-(rpt strip_tac >> fs[Surj_def,GSYM FUN_EXT,App_App_o] >>
- rpt strip_tac >>
- first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
- pop_assum (assume_tac o GSYM) >> arw[])
-(form_goal “!A B f:A->B. Surj(f) ==>
- !C g1:B->C g2. g1 o f = g2 o f ==> g1 = g2”));
 
 val Quot_ER_Holds = prove_store("Quot_ER_Holds",
 e0
@@ -808,3 +800,69 @@ e0
 (form_goal “!A r:A~>A Q i:Q->Pow(A). 
  Quot(r,i) ==>
  !a.?!q. App(i,q) = rsi(r,a)”));
+
+
+
+val ER_Quot_rsi_char = prove_store("Quot_rsi_char",
+e0
+(rpt strip_tac >> drule $ iffLR Quot_def >> fs[] >>
+dimp_tac >> 
+rpt strip_tac >> arw[] (* 2 *)
+>-- (qby_tac ‘?a0. App(i, q) = rsi(r,a0)’ 
+    >-- (first_x_assum (irule o iffLR) >>
+        qexists_tac ‘q’ >> arw[]) >>
+    pop_assum strip_assume_tac >> arw[] >>
+    fs[] >> drule rsi_eq_ER  >>
+    arw[] >>
+    fs[IN_rsi]) >>
+rw[IN_rsi] >> fs[ER_def,Refl_def])
+(form_goal
+“!A r:A~>A. ER(r) ==>
+ !Q i:Q-> Pow(A).  Quot(r,i) ==>
+ !q a. IN(a,App(i,q)) <=> App(i,q) = rsi(r,a)”));
+
+
+val Quot_IN_BIGUNION_rep = 
+prove_store("Quot_IN_BIGUNION_rep",
+e0
+(rpt strip_tac >> rw[IN_BIGUNION] >>
+ drule $ iffLR Quot_def >>
+ dimp_tac >> rpt strip_tac >> arw[] (* 2 *)
+ >-- (fs[IMAGE_def] >> 
+     qexists_tac ‘a’ >> arw[] >>
+     irule $ iffLR Inj_eq_eq >>
+     qexistsl_tac [‘Pow(A)’,‘i’] >> arw[] >>
+     drule Rep_of_abs  >> arw[] >>
+     drule ER_Quot_rsi_char >>
+     first_x_assum drule >>
+     flip_tac >> 
+     first_x_assum (irule o iffLR) >>
+     rfs[]) >>
+ qexists_tac ‘App(i,a)’ >>
+ drule ER_Quot_rsi_char >> first_x_assum drule >>
+ arw[] >> rw[IMAGE_def] >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘a’ >> arw[]) >>
+ drule Rep_of_abs >>
+ qpick_x_assum ‘abs(r, i, q0, ra) = a’
+ (assume_tac o GSYM) >> arw[])
+(form_goal 
+“!A r:A~>A. ER(r) ==> 
+ !Q i:Q->Pow(A). Quot(r,i) ==>
+ !q0 ra s. IN(ra,BIGUNION(IMAGE(i,s))) <=> 
+    ?a. IN(a,s) & abs(r,i,q0,ra) = a”));
+
+
+
+val Quot_IN_BIGUNION_abs = 
+prove_store("Quot_IN_BIGUNION_abs",
+e0
+(rpt strip_tac >> drule Quot_IN_BIGUNION_rep >>
+ first_x_assum drule >>
+ arw[] >> dimp_tac >> rpt strip_tac >> arw[] >>
+ qexists_tac ‘abs(r, i, q0, ra)’ >> arw[])
+(form_goal 
+“!A r:A~>A. ER(r) ==> 
+ !Q i:Q->Pow(A). Quot(r,i) ==>
+ !q0 ra s. IN(ra,BIGUNION(IMAGE(i,s))) <=> 
+IN(abs(r,i,q0,ra),s)”));
+

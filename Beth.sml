@@ -36,15 +36,6 @@ AX1 |> qspecl [‘A’,‘A’]
 
 (*member of power set to set,
 to prove uniqueness !!!!!*)
-val m2s_def = proved_th $
-e0
-(cheat)
-(form_goal “!X xs:mem(Pow(X)). ?X0 i:X0->X. 
- Inj(i) & 
- !x. IN(x,xs) <=> ?x0:mem(X0). x = App(i,x0)”)
-|> spec_all |> qSKOLEM "m2s" [‘xs’] 
-|> qSKOLEM "m2i" [‘xs’] |> gen_all
-
 (*inductive relaion need b is a member of some set B.
   can prove each finite beth exist,
  then the 
@@ -496,8 +487,6 @@ e0
              ==> P(lord(ods))) ==>
       !wo:mem(WO(A)).P(wo)”));
 
-val msEqv_def = qdefine_psym("msEqv",[‘s:mem(Pow(A))’,‘S’])
-‘Eqv(m2s(s),S)’ |> gen_all
 
 
 
@@ -765,7 +754,6 @@ e0
  msEqv(s,Pow(S)) ==>
  ?s0:mem(Pow(A)). msEqv(s0,S) ”));
 
-val mEqv_def = qdefine_psym("mEqv",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’]) ‘Eqv(m2s(s1),m2s(s2))’ |> gen_all
 
 val snocm_NONEMPTY = prove_store("snocm_NONEMPTY",
 e0
