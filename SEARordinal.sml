@@ -881,13 +881,42 @@ cheat
 (form_goal “!A s:mem(Pow(A)). cardeq(s,s)”));
 
 
+
+
+val IMAGE_Inj_cardeq = prove_store("IMAGE_Inj_cardeq",
+e0
+cheat
+(form_goal “!A B f:A->B. Inj(f) ==>
+ !s:mem(Pow(A)). cardeq(IMAGE(f,s),s)”));
+
+val cardeq_POW = prove_store("cardeq_POW",
+e0
+cheat
+(form_goal “!A s1:mem(Pow(A)) B s2:mem(Pow(B)).
+ cardeq(s1,s2) ==> cardeq(POW(s1),POW(s2))”));
+
 val beth_ex = prove_store("beth_ex",
 e0
 (strip_tac >>
  ind_with simple_ord_induction >>
  rpt strip_tac (* 3 *)
- >-- (qexistsl_tac [‘N’] >> cheat) 
- >-- (*inject b into Pow(Pow(B))*) cheat >>
+ >-- (qexistsl_tac [‘N’] >>
+     rw[Beth_def] >> qexistsl_tac [‘N’,‘Whole(N)’] >>
+     rw[cardeq_REFL] >>
+     rw[beth_zord,cardeq_REFL])
+ >-- (*inject b into Pow(Pow(B))*)
+     (fs[Beth_def,beth_ordSUC] >> 
+     qexistsl_tac [‘m2s(POW(beth))’,‘Pow(B)’,‘POW(beth)’] >>
+     strip_tac >--
+     (qexistsl_tac [‘IMAGE(Sg(B),beth)’] >> 
+     rw[cardeq_REFL] >>
+     qspecl_then [‘B’] assume_tac Sg_Inj >>
+     drule IMAGE_Inj_cardeq >> 
+     drule beth_cardeq >> arw[] >>
+     strip_tac (* 2 *)
+     >-- (irule cardeq_SYM >> arw[]) >>
+     irule cardeq_POW >> irule cardeq_SYM >> arw[]) >>
+     irule cardeq_SYM >> rw[cardeq_Whole_m2s]) >>
  strip_assume_tac
  (AX5 |> qspecl [‘ordinal(A)’] 
  |> fVar_sInst_th “P(α:mem(ordinal(A)),X)”
@@ -917,179 +946,4 @@ e0
   ‘Y’,‘BIGUNION(Snds(pbeths(α, Y)))’] >>
  arw[cardeq_REFL,cardeq_Whole_m2s] >> 
  irule cardeq_SYM >> rw[cardeq_Whole_m2s])
-(form_goal  “!A α:mem(ordinal(A)). 
- ?BN. Beth(α,BN)”));
-
-
-
-rastt "Ap1(cardeqf(B,B),Whole(N))"
-
-val beth0_cl = 
- “(!s:mem(Pow(B)). cardeq(s,Whole(N)) & 
-       p = Pair(zord(A),s) ==>
-      IN(p,beths)) & 
-  (!p0 b1.
-       IN(p0,beths) & 
-       cardeq(b1,Snd(p0)) &
-       p = Pair(ordSUC(Fst(p0)),b1) ==>
-       IN(p,beths)) & 
-  (!p0s α b1.
-       (!α0 b0. IN(Pair(α0,b0),p0s) ==> 
-        IN(Pair(α0,b0),beths) & ordlt(α0,α)) &
-       (!α0. 
-         ) & 
-       islimit(α) & ordlt(zord(A),α) & 
-       cardeq(b1,BIGUNION(Snds(p0s))) &
-       p = Pair(α,b1) ==>
-       IN(p,beths))”
-in
-val (beth0_incond,x1) = mk_incond beth0_cl;
-val beth0f_ex = mk_fex beth0_incond x1;
-val beth0f_def = mk_fdef "beth0f" beth0f_ex;
-val beth0f_monotone = proved_th $
-e0
-(rpt strip_tac >> fs[SS_def,beth0f_def] >>
- rpt strip_tac (* 3 *)
- >-- (disj1_tac >> qexists_tac ‘s’ >> arw[]) 
- >-- (disj2_tac >> disj1_tac >>
-     qexistsl_tac [‘p0’,‘b1’] >>
-     arw[] >> first_x_assum irule >> arw[]) >>
- disj2_tac >> disj2_tac >>
- qexistsl_tac [‘p0s’,‘α’,‘b1’] >> arw[] >>
- rpt strip_tac >> first_x_assum drule >> 
- first_x_assum irule >> arw[])
-(form_goal 
-“!s1 s2.SS(s1,s2) ==> 
-  SS(App(beth0f(A,B), s1), App(beth0f(A,B), s2))”)
-val beth0's_def = mk_prim beth0f_def;
-val beth0s_def = mk_LFP (rastt "beth0's(A,B)");
-val beth0s_cond = mk_cond beth0s_def beth0's_def;
-val beth0s_SS = mk_SS beth0s_def beth0's_def;
-val beth0_rules0 = mk_rules beth0f_monotone beth0s_SS beth0s_cond;
-val beth0_cases0 = mk_cases beth0f_monotone beth0_rules0 beth0s_cond;
-val beth0_ind0 = mk_ind beth0s_cond;
-val beth0_ind1 = mk_ind1 beth0f_def beth0_ind0;
-val beth0_ind2 = mk_ind2 beth0_ind1;
-val beth0_cases1 = mk_case1 beth0f_def beth0_cases0;
-val beth0_rules1 = mk_rules1 beth0f_def beth0_rules0;
-val beth0_rules2 = mk_rules2 beth0_rules1;
-val beth0_rules3 = mk_rules3 beth0_rules2;
-
-
-
-
-
-
-
-val PSS_def = 
-qdefine_psym("PSS",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(A))’])
-‘SS(s1,s2) & ~(s1 = s2)’ |> gen_all
-
-(*proper subsets*)
-val Pss_def =
-IN_def_P |> qspecl [‘Pow(A)’] 
-         |> fVar_sInst_th “P(a:mem(Pow(A)))”
-            “PSS(a,s0:mem(Pow(A)))”
-         |> uex2ex_rule 
-         |> qSKOLEM "Pss" [‘s0’]
-         |> gen_all
-
-
-val INmr_def = qdefine_psym("INmr",[‘a:mem(A)’,
-                                    ‘r:mem(Pow(A*A))’])
-‘?a1. IN(Pair(a,a1),r) | IN(Pair(a1,a),r)’ |> gen_all
-
-
-val INr_def = qdefine_psym("INr",[‘a:mem(A)’,‘R:A~>A’])
-‘?a1. Holds(R,a,a1) | Holds(R,a1,a)’
-
-val snocrel_def = 
-AX1 |> qspecl [‘A’,‘A’] 
-    |> fVar_sInst_th “P(a1:mem(A),a2:mem(A))”
-    “ Holds(R:A~>A,a1,a2) | (INr(a1,R) & a2 = a)”
-    |> uex2ex_rule |> qSKOLEM "snocrel" [‘R’,‘a’]
-    |> qspecl [‘a1:mem(A)’,‘a2:mem(A)’]
-    |> gen_all
-
-
-(*member to relation*)
-val m2r_def = AX1 |> qspecl [‘A’,‘A’]
-                  |> fVar_sInst_th “P(x:mem(A),y:mem(A))”
-                  “IN(Pair(x,y),od:mem(Pow(A * A)))”
-                  |> uex2ex_rule 
-                  |> qSKOLEM "m2r" [‘od’] 
-                  |> qspecl [‘a1:mem(A)’,‘a2:mem(A)’]
-                  |> gen_all
-
-
-val r2m_def = 
-    IN_def_P |> qspecl [‘A * A’]
-             |> fVar_sInst_th “P(a12:mem(A * A))”
-             “Holds(R:A~>A,Fst(a12),Snd(a12))” 
-             |> uex2ex_rule 
-             |> qSKOLEM "r2m" [‘R’] 
-             |> qspecl [‘Pair(a1:mem(A),a2:mem(A))’]
-             |> rewr_rule [Pair_def']
-             |> gen_all
-
-val snocm_def = qdefine_fsym("snocm",[‘r:mem(Pow(A * A))’,‘a:mem(A)’]) ‘r2m(snocrel(m2r(r),a))’ 
- 
-
-(*do not really need the precondition, but want to make sure the condition is checked.*)
-val NOTINmr_snocm = prove_store("NOTINmr_snocm",
-e0
-(rpt strip_tac >> 
-rw[snocm_def,r2m_def,snocrel_def,m2r_def,INr_def,INmr_def])
-(form_goal
- “!A r:mem(Pow(A*A)) a. ~INmr(a,r) ==>
-  !a1 a2. IN(Pair(a1,a2),snocm(r,a)) <=> 
-          IN(Pair(a1,a2),r) | (INmr(a1,r) & a2 = a)”));
-
-local
-val Wo_cl = 
- “(od = Empty(A * A) ==> IN(od,wo)) &
-  (!od0 a.
-      IN(od0,wo) & ~INmr(a,od0) & od = snocm(od0,a) 
-      ==> IN(od,wo)) &
-  (!s. (!od0. IN(od0,s) ==> IN(od0,wo)) & 
-       SSchain(s) &
-       od = BIGUNION(s) ==>
-   IN(od,wo)) ”
-in
-val (Wo_incond,x1) = mk_incond Wo_cl;
-val Wof_ex = mk_fex Wo_incond x1;
-val Wof_def = mk_fdef "Wof" Wof_ex;
-val Wof_monotone = proved_th $
-e0
-(rpt strip_tac >>
- rw[SS_def,Wof_def] >> rpt strip_tac (* 3 *)
- >-- arw[] 
- >-- (disj2_tac >> disj1_tac >>
-     qexistsl_tac [‘od0’,‘a'’] >> arw[] >>
-     fs[SS_def] >> first_x_assum irule >> arw[]) >>
- disj2_tac >> disj2_tac >>
- qexists_tac ‘s’ >> arw[] >> 
- rpt strip_tac >> first_x_assum drule >>
- fs[SS_def] >> first_x_assum irule >> arw[])
-(form_goal 
-“!s1 s2.SS(s1,s2) ==> 
-  SS(App(Wof(A), s1), App(Wof(A), s2))”)
-val Wo's_def = mk_prim Wof_def;
-val Wos_def = mk_LFP (rastt "Wo's(A)");
-val Wos_cond = mk_cond Wos_def Wo's_def;
-val Wos_SS = mk_SS Wos_def Wo's_def;
-val Wo_rules0 = mk_rules Wof_monotone Wos_SS Wos_cond;
-val Wo_cases0 = mk_cases Wof_monotone Wo_rules0 Wos_cond;
-val Wo_ind0 = mk_ind Wos_cond;
-val Wo_ind1 = mk_ind1 Wof_def Wo_ind0;
-val Wo_ind2 = mk_ind2 Wo_ind1;
-val Wo_cases1 = mk_case1 Wof_def Wo_cases0;
-val Wo_rules1 = mk_rules1 Wof_def Wo_rules0;
-val Wo_rules2 = mk_rules2 Wo_rules1;
-val Wo_rules3 = mk_rules3 Wo_rules2;
-end
-
-val oiso_def = 
-qdefine_psym("oiso",[‘f:A->B’,‘r1:mem(Pow(A*A))’,
-                              ‘r2:mem(Pow(B*B))’]) 
-‘!a1 a2. IN(Pair(a1,a2),r1) <=> IN()’
+(form_goal  “!A α:mem(ordinal(A)). ?BN. Beth(α,BN)”));
