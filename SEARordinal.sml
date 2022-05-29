@@ -825,12 +825,91 @@ e0
 
 
 
+(*if contain a set, then for any set not greater than it, contain a copy of such a set*)
+
+val IMAGE_INJ_cardeq = 
+prove_store("IMAGE_INJ_cardeq",
+e0
+cheat
+(form_goal
+ “!A s1 B s2 f:A->B.INJ(f,s1,s2) ==>
+  !s01. SS(s01,s1) ==> cardeq(s01,IMAGE(f,s01))”));
+
+val o_INJ_INJ = prove_store("o_INJ_INJ",
+e0
+cheat
+(form_goal
+ “!A s1 B s2 f:A->B. INJ(f,s1,s2) ==>
+  !C s3 g:B->C.INJ(g,s2,s3) ==>
+  INJ(g o f,s1,s3)”));
+
+val Sg_INJ = prove_store("Sg_INJ",
+e0
+(cheat)
+(form_goal “!B s.INJ(Sg(B), s, POW(s))”));
+
+
+val INJ_SS = prove_store("INJ_SS",
+e0
+(cheat)
+(form_goal “!A s1 B s2 f:A->B. INJ(f,s1,s2) ==> 
+ !s2'. SS(s2,s2') ==> INJ(f,s1,s2') ”));
+
+
 val beth_cardeq = prove_store("beth_cardeq",
 e0
-((*ind_with simple_ord_induction >> 
+(ind_with simple_ord_induction >> 
  rpt strip_tac (* 3 *)
- >-- cheat 
- >-- (*card eq implies card pow eq*) cheat >>
+ >-- (fs[beth_zord] >>
+     dimp_tac >> strip_tac (* 2 *)
+     >-- (drule cardeq_SYM >>
+         rev_drule cardeq_TRANS >>
+         first_x_assum drule >> arw[]) >>
+     drule cardeq_SYM >>
+     drule cardeq_TRANS >>
+     first_x_assum irule >> arw[]) >>
+ >-- (*card eq implies card pow eq*)
+     (fs[beth_ordSUC] >>
+     dimp_tac >> rpt strip_tac (* 2 *)
+     >-- (first_x_assum rev_drule >>
+         fs[] >> 
+         qsspecl_then [‘b0’,‘b0'’] assume_tac cardeq_POW >>
+         first_x_assum drule >>
+         qsspecl_then [‘beth1’,‘POW(b0)’] assume_tac
+         cardeq_TRANS >>
+         rfs[] >>
+         first_x_assum drule >>
+         drule cardeq_TRANS >>
+         first_x_assum irule >>
+         irule cardeq_SYM >> arw[]) >>
+     first_x_assum drule >> arw[] >>>
+     qsuff_tac
+     ‘?b0':mem(Pow(B2)). cardeq(b0,b0')’ 
+     >-- (strip_tac >> qexists_tac ‘b0'’ >> arw[] >>
+         drule cardeq_POW >>
+         rev_drule cardeq_TRANS >>
+         first_x_assum drule >>
+         irule cardeq_TRANS >>
+         qexistsl_tac [‘B1’,‘beth1’] >> arw[] >>
+         irule cardeq_SYM >> arw[]) >>
+     qby_tac ‘cardeq(POW(b0),beth2)’ 
+     >-- (irule cardeq_TRANS >>
+         qexistsl_tac [‘B1’,‘beth1’] >> arw[] >>
+         irule cardeq_SYM >> arw[]) >>
+     qby_tac
+      ‘?f:Pow(B1)->B2.INJ(f,POW(b0),beth2)’ 
+     >-- (fs[cardeq_def,BIJ_def] >> 
+         qexistsl_tac [‘f'''’] >> arw[]) >>
+     pop_assum strip_assume_tac >> 
+     qexists_tac ‘IMAGE(f o Sg(B1),b0)’ >>
+     irule IMAGE_INJ_cardeq >>
+     qexistsl_tac [‘b0’,‘Whole(B2)’] >>
+     rw[SS_Refl] >> 
+     irule o_INJ_INJ >>
+     qexists_tac ‘POW(b0)’ >> 
+     rw[Sg_INJ] >>
+     drule INJ_SS >>
+     first_x_assum irule >> rw[SS_def,Whole_def])
  dimp_tac >> strip_tac >>
  qsspecl_then [‘α’] assume_tac beth_limit >>
  rfs[islimit_def] >> fs[] >>
