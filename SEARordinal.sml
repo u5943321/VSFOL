@@ -856,6 +856,24 @@ e0
  !s2'. SS(s2,s2') ==> INJ(f,s1,s2') ”));
 
 
+val ofcards_def = 
+IN_def_P |> qspecl [‘Pow(A)’] 
+         |> fVar_sInst_th “P(s:mem(Pow(A)))”
+            “?c:mem(Pow(C)).IN(c,cs) &
+             cardeq(c,s:mem(Pow(A)))” 
+         |> uex2ex_rule 
+         |> qSKOLEM "ofcards" [‘cs’,‘A’]
+
+val cardeq_card_bound = prove_store("cardeq_card_bound",
+e0
+cheat
+(form_goal
+ “!A B cs.
+  (!c.IN(c,cs) ==>
+   (?s1:mem(Pow(A)).cardeq(c,s1)) &
+   (?s2:mem(Pow(B)).cardeq(c,s2))) ==>
+ cardeq(BIGUNION(ofcards(cs,A)),BIGUNION(ofcards(cs,B)))”));
+
 val beth_cardeq = prove_store("beth_cardeq",
 e0
 (ind_with simple_ord_induction >> 
@@ -909,10 +927,21 @@ e0
      qexists_tac ‘POW(b0)’ >> 
      rw[Sg_INJ] >>
      drule INJ_SS >>
-     first_x_assum irule >> rw[SS_def,Whole_def])
+     first_x_assum irule >> rw[SS_def,Whole_def]) >>
  dimp_tac >> strip_tac >>
  qsspecl_then [‘α’] assume_tac beth_limit >>
  rfs[islimit_def] >> fs[] >>
+ qsuff_tac
+ ‘cardeq(BIGUNION(Snds(pbeths(α, B1))),
+  BIGUNION(Snds(pbeths(α, B2))))’ 
+ >-- (strip_tac >> 
+     irule cardeq_TRANS >>
+     qexistsl_tac [‘B2’,‘BIGUNION(Snds(pbeths(α, B2)))’] >>
+     strip_tac (* 2 *)
+     >-- (irule cardeq_SYM >> arw[]) >>
+     rev_drule cardeq_TRANS >>
+     first_x_assum irule >> arw[]) >>
+ 
 
 
  pop_assum (K all_tac) >>
