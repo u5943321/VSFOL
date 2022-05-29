@@ -70,11 +70,11 @@ val WO_def = Thm_2_4 |> qspecl [‘Pow(A*A)’]
                      |> gen_all 
 
 
-val Rwo_def = qdefine_fsym("Rwo",[‘wo:mem(WO(A))’])
+val destWO_def = qdefine_fsym("destWO",[‘wo:mem(WO(A))’])
 ‘App(iWO(A),wo)’ |> gen_all
 
 val WIN_def = qdefine_psym("WIN",[‘w:mem(WO(A))’,‘x:mem(A)’,
-‘y:mem(A)’]) ‘Holdm(strict(Rwo(w)),x,y)’ |> gen_all
+‘y:mem(A)’]) ‘Holdm(strict(destWO(w)),x,y)’ |> gen_all
 
 val iseg_def = IN_def_P |> spec_all 
                         |> fVar_sInst_th “P(y:mem(A))”
@@ -83,14 +83,8 @@ val iseg_def = IN_def_P |> spec_all
                         |> qSKOLEM "iseg" [‘w’,‘x’]
                         |> gen_all
 
-(*
-val lt_def = qdefine_psym("lt",[‘r:mem(Pow(A*A))’,
-                                  ‘a1:mem(A)’,‘a2:mem(A)’])
-‘Holdm(r,a1,a2) & ~(a1 = a2)’ |> gen_all
-*)
-
 val elsOf_def = qdefine_fsym("elsOf",[‘w:mem(WO(A))’])
-‘rset(Rwo(w))’ |> gen_all
+‘rset(destWO(w))’ |> gen_all
 
 val NOT_Holdm_Empty = prove_store("NOT_Holdm_Empty",
 e0
@@ -157,12 +151,12 @@ e0
 
 val WO_uex = prove_store("WO_uex",
 e0
-(rpt strip_tac >> rw[Rwo_def] >> 
+(rpt strip_tac >> rw[destWO_def] >> 
  irule $ iffRL Inj_ex_uex >> flip_tac >>
  rw[GSYM WO_def] >> arw[])
 (form_goal
  “!A r:mem(Pow(A*A)). wellorder(r) ==>
-      ?!w. Rwo(w) = r”));
+      ?!w. destWO(w) = r”));
 
 val zwo_def = WO_uex |> qsspecl [‘Empty(A*A)’]
                      |> rewr_rule[Empty_wellorder]
@@ -206,7 +200,7 @@ val rrestrict_def =
              |> qspecl [‘Pair(a1:mem(A),a2:mem(A))’] 
              |> gen_all
 
-val wobound_def = qdefine_fsym("wobound",[‘x:mem(A)’,‘w:mem(WO(A))’]) ‘mkWO(rrestrict(Rwo(w),iseg(w,x)))’
+val wobound_def = qdefine_fsym("wobound",[‘x:mem(A)’,‘w:mem(WO(A))’]) ‘mkWO(rrestrict(destWO(w),iseg(w,x)))’
 |> gen_all
 
 val WIN_wobound = prove_store("WIN_wobound",
@@ -242,12 +236,12 @@ val ordinal_def =
 
 val ordinal_uex = prove_store("ordinal_rsi_uex",
 e0
-(rpt strip_tac >> rw[Rwo_def] >> 
+(rpt strip_tac >> rw[destWO_def] >> 
  irule $ iffRL Inj_ex_uex >> flip_tac >>
  rw[GSYM WO_def] >> arw[])
 (form_goal
  “!A r:mem(Pow(A*A)). wellorder(r) ==>
-      ?!w. Rwo(w) = r”));
+      ?!w. destWO(w) = r”));
 
 
 val r2f_def = proved_th $
@@ -487,7 +481,7 @@ e0
  qby_tac ‘?w0. IN(w0, BIGUNION(IMAGE(iord(A), B)))’
  >-- (qexists_tac ‘w0’ >> arw[]) >>
  first_x_assum drule >>
- (*think about the pattern in this step*)
+ (*think about the pattern in this step about really auto quotient proof*)
  pop_assum strip_assume_tac >>
  qexists_tac ‘abso(min)’ >> strip_tac 
  >-- arw[GSYM Quot_IN_BIGUNION_abso] >>
@@ -656,30 +650,235 @@ cheat
 |>qSKOLEM "sf0"[‘B’]
 
 
+val lf0_ex = proved_th $
+e0
+cheat
+(form_goal
+ “?!lf0:Pow(Pow(Pow(B))) -> Pow(Pow(B)).
+  !ss t. IN(t,App(lf0,ss)) <=> 
+         (~(ss = Empty(Pow(Pow(B))))) &
+         (!s.IN(s,ss) ==> ~(s = Empty(Pow(B)))) &
+         cardeq(BIGUNION(BIGUNION(ss)),t)”)
+|> uex2ex_rule 
+|>qSKOLEM "lf0"[‘B’]
+
+
+(*preds beths*)
+val pbeths_def =
+IN_def_P |> qspecl [‘ordinal(A) * Pow(B)’] 
+         |> fVar_sInst_th “P(pair:mem(ordinal(A) * Pow(B)))”
+            “beth(Fst(pair:mem(ordinal(A) * Pow(B))),Snd(pair)) &
+             ordlt(Fst(pair),α)” 
+         |> uex2ex_rule |> qSKOLEM "pbeths" [‘α’,‘B’]
+
 val bethf_def = 
 ord_RECURSION  
 |> qspecl [‘A’,‘Pow(Pow(B))’]  
 |> qspecl [‘p2m(Ap1(cardeqf(B,N),Whole(N)))’]
 |> qspecl [‘sf0(B) o p2(ordinal(A),Pow(Pow(B)))’]
-|> qspecl [‘BU(Pow(B)) o p2(ordinal(A),Pow(Pow(Pow(B))))’]
+|> qspecl [‘lf0(B) o p2(ordinal(A),Pow(Pow(Pow(B))))’]
 |> qSKOLEM "bethf" [‘A’,‘B’]
 
 val beth_def = 
  qdefine_psym("beth",[‘α:mem(ordinal(A))’,‘b:mem(Pow(B))’])
 ‘IN(b,App(bethf(A,B),α))’ |> gen_all
 
-
+(*
 val beth_cardeq = prove_store("beth_cardeq",
 e0
-cheat
+(ind_with simple_ord_induction >> 
+ rpt strip_tac (* 3 *)
+ >-- cheat 
+ >-- (*card eq implies card pow eq*) cheat >>
+ )
 (form_goal
  “!α:mem(ordinal(A)).
   !B1 beth1:mem(Pow(B1)) B2 beth2:mem(Pow(B2)).
-   beth(α,beth1) & beth(α,beth2) ==>
-   cardeq(beth1,beth2)”));
+   beth(α,beth1) ==>
+   (beth(α,beth2) <=>
+   cardeq(beth1,beth2))”));
+
+*)
+
+val App_cardeqf = prove_store("App_cardeqf",
+e0
+(rw[cardeqf_def,r2f_def',cardeqr_def])
+(form_goal “ App(cardeqf(A, B), Pair(s1:mem(Pow(A)), s2:mem(Pow(B)))) = true <=> 
+ cardeq(s1,s2)”));
 
 
-val 
+val beth_zord = prove_store("beth_zord",
+e0
+(rpt strip_tac >>
+ rw[beth_def] >>
+ rw[bethf_def,p2m_def,Ap1_def,App_cardeqf])
+(form_goal
+ “!B b:mem(Pow(B)). beth(zord(A),b) <=> 
+ cardeq(b,Whole(N))”));
+
+val cardeq_SYM = prove_store("cardeq_SYM",
+e0
+(cheat)
+(form_goal
+ “cardeq(s1:mem(Pow(A)),s2:mem(Pow(B))) ==> cardeq(s2,s1)”));
+
+val beth_ordSUC = prove_store("beth_ordSUC",
+e0
+(rpt strip_tac >>
+ rw[beth_def,bethf_def,App_App_o,App_p2_Pair,sf0_ex] >>
+ dimp_tac >> rpt strip_tac 
+ >-- (qexists_tac ‘s’ >> arw[] >>
+     drule cardeq_SYM >> arw[]) >>
+ qexists_tac ‘b0’ >> arw[] >>
+ drule cardeq_SYM >> arw[])
+(form_goal
+ “!α:mem(ordinal(A)) B b:mem(Pow(B)). beth(ordSUC(α),b) <=>
+ ?b0:mem(Pow(B)). beth(α,b0) & cardeq(b,POW(b0))”));
+
+val IMAGE_bethf_preds_pbeths = 
+prove_store("IMAGE_bethf_preds_pbeths",
+e0
+(rw[GSYM IN_EXT_iff,IN_BIGUNION,IMAGE_def,Snds_def,
+    pbeths_def,preds_def] >>
+ fconv_tac(redepth_fconv no_conv exists_cross_fconv) >>
+ rw[Pair_def',App_p2_Pair] >>  
+ rw[IN_EXT_iff]  >>
+ rw[predsf_def,beth_def] >>
+ strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qexistsl_tac [‘a’,‘x’] >> rfs[]) >>
+ qexists_tac ‘App(bethf(A, B), a')’ >>
+ arw[] >> qexists_tac ‘a'’ >> arw[])
+(form_goal “BIGUNION(IMAGE(bethf(A, B), preds(α))) = 
+            Snds(pbeths(α,B))”));
+
+(*
+val IN_IMAGE_bethf = prove_store("IN_IMAGE_bethf",
+e0
+(rw[IMAGE_def,IN_BIGUNION] >> dimp_tac >> rpt strip_tac >> arw[](*2*)
+ >-- (qexists_tac ‘a’ >> fs[beth_def] >> rfs[]) >>
+ qexists_tac ‘BIGUNION(IMAGE(bethf(A, B), ords))’ >>
+ fs[beth_def,IN_BIGUNION,IMAGE_def] >> strip_tac (* 2 *)
+ >-- qexists_tac ‘ord’ >> arw[] >>
+     )
+(form_goal “IN(s, BIGUNION(IMAGE(bethf(A, B), ords))) <=> 
+ ?ord. IN(ord,ords) & beth(ord,s) ”)); 
+*)
+
+
+val beth_limit = prove_store("beth_limit",
+e0
+(rpt strip_tac >> rw[GSYM IMAGE_bethf_preds_pbeths] >>
+ assume_tac (bethf_def |> conjE2 |> conjE2) >>
+ first_x_assum (qspecl_then [‘α’] assume_tac) >>
+ rfs[] >>
+ arw[beth_def,App_App_o,sf0_ex,App_p2_Pair] >>
+ rw[lf0_ex] >> dimp_tac >> strip_tac >>
+ drule cardeq_SYM >> arw[] (* 2 *)
+ >-- (rpt strip_tac >>
+     fs[IMAGE_def,GSYM beth_def] >>
+     first_x_assum  
+     (qspecl_then [‘App(bethf(A,B),p)’] assume_tac) >>
+     qby_tac ‘~(App(bethf(A, B), p) = Empty(Pow(B)))’ 
+     >-- (first_x_assum irule >>
+         qexists_tac ‘p’ >> arw[preds_def,predsf_def]) >>
+     fs[GSYM IN_NONEMPTY] >>
+     qexists_tac ‘a'’ >> arw[beth_def]) >>
+ rw[GSYM IN_NONEMPTY] >> rpt strip_tac (*2 *)
+ >-- (first_x_assum drule >>
+     qexists_tac ‘App(bethf(A,B),zord(A))’ >>
+     rw[IMAGE_def] >>
+     qexists_tac ‘zord(A)’>> arw[predsf_def,preds_def]) >>
+ pop_assum mp_tac >>
+ rw[IMAGE_def,preds_def,predsf_def]  >>
+ rpt strip_tac>> 
+ first_x_assum drule >> 
+ arw[])
+(form_goal
+ “!α:mem(ordinal(A)).
+ ordlt(zord(A),α) & islimit(α) ==>
+ !B b:mem(Pow(B)).
+ beth(α,b) <=> 
+ (!p. ordlt(p,α) ==> 
+  ?pbeth:mem(Pow(B)).beth(p,pbeth)) &
+ cardeq(b,BIGUNION(Snds(pbeths(α,B))))”));
+
+(*
+val beth_limit = prove_store("beth_limit",
+e0
+(rpt strip_tac >>
+ assume_tac (bethf_def |> conjE2 |> conjE2) >>
+ first_x_assum (qspecl_then [‘α’] assume_tac) >>
+ rfs[] >>
+ arw[beth_def,App_App_o,sf0_ex,App_p2_Pair] >>
+ rw[lf0_ex] >> dimp_tac >> strip_tac >>
+ drule cardeq_SYM >> arw[])
+(form_goal
+ “!α:mem(ordinal(A)).
+ ordlt(zord(A),α) & islimit(α) ==>
+ !B b:mem(Pow(B)).
+ beth(α,b) <=> 
+ cardeq(b,BIGUNION(BIGUNION(IMAGE(bethf(A, B), preds(α)))))”));
+*)
+
+
+
+
+
+
+val beth_cardeq = prove_store("beth_cardeq",
+e0
+((*ind_with simple_ord_induction >> 
+ rpt strip_tac (* 3 *)
+ >-- cheat 
+ >-- (*card eq implies card pow eq*) cheat >>
+ dimp_tac >> strip_tac >>
+ qsspecl_then [‘α’] assume_tac beth_limit >>
+ rfs[islimit_def] >> fs[] >>
+
+
+ pop_assum (K all_tac) >>
+ fs[IMAGE_bethf_preds_pbeths] >> cheat *)
+cheat
+
+
+ )
+(form_goal
+ “!α:mem(ordinal(A)).
+  !B1 beth1:mem(Pow(B1)).
+   beth(α,beth1) ==>
+   !B2 beth2:mem(Pow(B2)).(beth(α,beth2) <=>
+   cardeq(beth1,beth2))”));
+
+val Beth_def = 
+qdefine_psym("Beth",[‘α:mem(ordinal(A))’,‘BN’])
+‘?B beth:mem(Pow(B)). beth(α,beth) & cardeq(beth,Whole(BN))’
+
+
+
+val AX5 = store_ax("AX5",
+“!A.?B p:B->A Y M:B~>Y.  
+ (!b.P(App(p,b),m2s(rsi(M,b)))) & 
+ !a:mem(A) X. P(a,X) ==> ?b. App(p,b) = a”)
+
+
+val cardeq_Whole_m2s = prove_store("cardeq_Whole_m2s",
+e0
+cheat
+(form_goal “!A s.cardeq(Whole(m2s(s)),s:mem(Pow(A)))”));
+
+val cardeq_TRANS = prove_store("cardeq_TRANS",
+e0
+cheat
+(form_goal “!A s1:mem(Pow(A)) B s2:mem(Pow(B)).
+ cardeq(s1,s2) ==>
+ !C s3:mem(Pow(C)).cardeq(s2,s3) ==>
+ cardeq(s1,s3)”));
+
+
+val cardeq_REFL = prove_store("cardeq_REFL",
+e0
+cheat
+(form_goal “!A s:mem(Pow(A)). cardeq(s,s)”));
 
 
 val beth_ex = prove_store("beth_ex",
@@ -687,11 +886,39 @@ e0
 (strip_tac >>
  ind_with simple_ord_induction >>
  rpt strip_tac (* 3 *)
- >-- (qexistsl_tac [‘N’,‘Whole(N)’] >> cheat) 
+ >-- (qexistsl_tac [‘N’] >> cheat) 
  >-- (*inject b into Pow(Pow(B))*) cheat >>
- )
+ strip_assume_tac
+ (AX5 |> qspecl [‘ordinal(A)’] 
+ |> fVar_sInst_th “P(α:mem(ordinal(A)),X)”
+     “Beth(α:mem(ordinal(A)),X)”) >> 
+ rw[Beth_def] >>
+ qsspecl_then [‘α’] assume_tac beth_limit >>
+ rfs[islimit_def] >>
+ qby_tac
+ ‘!p. ordlt(p,α) ==>
+      ?pbeth:mem(Pow(Y)). beth(p,pbeth)’
+ >-- (rpt strip_tac >>
+     first_x_assum drule >>
+     pop_assum strip_assume_tac >>
+     first_x_assum drule >> 
+     pop_assum strip_assume_tac >>
+     first_x_assum (qspecl_then [‘b’] assume_tac) >>
+     qexists_tac ‘rsi(M,b)’ >> 
+     fs[Beth_def] >>
+     qsspecl_then [‘rsi(M,b)’] assume_tac cardeq_Whole_m2s>>
+     drule beth_cardeq >>
+     rfs[] >>
+     irule cardeq_TRANS >>
+     qexistsl_tac 
+     [‘m2s(rsi(M, b))’,‘Whole(m2s(rsi(M, b)))’] >> arw[]) >>
+ qexistsl_tac
+ [‘m2s(BIGUNION(Snds(pbeths(α, Y))))’,
+  ‘Y’,‘BIGUNION(Snds(pbeths(α, Y)))’] >>
+ arw[cardeq_REFL,cardeq_Whole_m2s] >> 
+ irule cardeq_SYM >> rw[cardeq_Whole_m2s])
 (form_goal  “!A α:mem(ordinal(A)). 
- ?B b:mem(Pow(B)).beth(α,b)”)
+ ?BN. Beth(α,BN)”));
 
 
 

@@ -137,12 +137,80 @@ e0
  “!A B f:A->B ss.IMAGE(f,BIGUNION(ss)) = BIGUNION(IMAGE(Image(f),ss))”));
 
 
+(*Parallel product arrow*)
+val Prla_def = 
+    qdefine_fsym ("Prla",[‘f:A->B’,‘g:C->D’])
+    ‘Pa(f o p1(A,C),g o p2(A,C))’
+    |> gen_all |> store_as "Prla_def";
+
+val Prla_Inj = prove_store("Prla_Inj",
+e0
+(rpt strip_tac >> fs[Inj_def,Prla_def] >> 
+ fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
+ rw[App_Pa,Pair_eq_eq,App_App_o,p12_of_Pair] >>
+ rpt strip_tac >> first_assum irule >> arw[])
+(form_goal “!A B f:A->B. Inj(f) ==>
+ !C D g:C->D. Inj(g) ==>
+ Inj(Prla(f,g))”));
+
+
+val Id_Inj = prove_store("Id_Inj",
+e0
+(rw[Inj_def,Id_def])
+(form_goal
+ “!X. Inj(Id(X))”));
+
+
 val App_Prla = prove_store("App_Prla",
 e0
 (rpt strip_tac >> rw[Prla_def,App_Pa_Pair] >>
  rw[App_App_o,p12_of_Pair] )
 (form_goal “!A B f:A->B X Y g:X->Y a x.App(Prla(f,g),Pair(a,x)) = 
 Pair(App(f,a),App(g,x))”));
+
+
+
+val App_Pa_distr = prove_store("App_Pa_distr",
+e0
+(rpt strip_tac >> 
+ qsspecl_then [‘ App(Pa(f, g), x)’] (assume_tac o GSYM) Pair_component >> 
+ once_arw[] >> rw[Pair_eq_eq,GSYM App_App_o,p12_of_Pa])
+(form_goal
+“!X A f:X->A B g:X->B x. App(Pa(f:X->A,g:X->B),x) = Pair(App(f,x),App(g,x))”));
+
+
+val o_assoc = prove_store("o_assoc",
+e0
+(rw[GSYM FUN_EXT,App_App_o])
+(form_goal
+ “!A B f:A->B C g:B->C D h:C->D.
+  (h o g) o f = h o g o f”));
+
+
+val Pa_distr = prove_store("Pa_distr",
+e0
+(rpt strip_tac >> irule is_Pa >> 
+ rw[p12_of_Pa,GSYM o_assoc])
+(form_goal
+“!A X a1:X ->A B a2:X->B.
+  !X0 x:X0->X. Pa(a1,a2) o x = Pa(a1 o x,a2 o x) ”));
+
+
+val Pa_eq_eq = prove_store("Pa_eq_eq",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ qby_tac ‘p1(A,B) o Pa(f1, g1) = p1(A,B) o Pa(f2, g2) &
+          p2(A,B) o Pa(f1, g1) = p2(A,B) o Pa(f2, g2)’
+ >-- arw[] >>
+ qsspecl_then [‘f1’,‘g1’] assume_tac p12_of_Pa >> 
+ qsspecl_then [‘f2’,‘g2’] assume_tac p12_of_Pa >> 
+ rfs[])
+(form_goal
+ “!A X f1:X->A f2:X->A B g1:X->B g2:X->B. 
+  (Pa(f1,g1) = Pa(f2,g2) <=> f1 = f2 & g1 = g2)”));
+
+
+val App_Pa_Pair = App_Pa_distr |> store_as "App_Pa_Pair";
 
 val p2_comm = prove_store("p2_comm",
 e0
@@ -164,6 +232,43 @@ val p1_Prla = prove_store("p1_Prla",
 e0
 (cheat)
 (form_goal “!A X f:A->X B Y g:B->Y. p1(X,Y) o Prla(f,g) = f o p1(A,B)”));
+
+
+fun exists_cross_fconv f = 
+    let val (pv as (n,s),b) = dest_exists f 
+        val pset = s |> dest_sort |> #2  |> hd
+        val (A,B) = dest_cross pset 
+        val pt = mk_var pv
+        val eth = Pair_has_comp |> specl [A,B,pt]
+        val (ocv1 as (ocn1,ocs1),ob1) = dest_exists (concl eth) 
+        val (ocv2 as (ocn2,ocs2),ob2) = dest_exists ob1
+        val avoids = fvf b
+        val ct1 = pvariantt avoids (mk_var ocv1)
+        val ct2 = pvariantt avoids (mk_var ocv2)
+        val (cv1 as (cn1,cs1)) = dest_var ct1
+        val (cv2 as (cn2,cs2)) = dest_var ct2
+        val b1 = substf (ocv1,ct1) ob1
+        val b2 = substf (ocv2,ct2) (substf (ocv1,ct1) ob2)
+        val pair = mk_Pair ct1 ct2 
+        val b' = substf (pv,pair) b
+        val new0 = (mk_exists cn2 cs2 b')
+        val new = mk_exists cn1 cs1 (mk_exists cn2 cs2 b')
+        val l2r = b |> assume 
+                    |> conv_rule (basic_fconv (rewr_conv (assume b2)) no_fconv)
+                    |> existsI cv2 ct2 b'
+                    |> existsI cv1 ct1 new0
+                    |> existsE cv2 (assume b1)
+                    |> existsE cv1 eth
+                    |> existsE pv (assume f)
+                    |> disch f
+        val r2l = b'|> assume 
+                    |> existsI pv pair b
+                    |> existsE cv2 (assume new0)
+                    |> existsE cv1 (assume new)
+                    |> disch new
+    in dimpI l2r r2l
+    end
+
 
 val IMAGE_Prla = prove_store("IMAGE_Prla",
 e0
@@ -319,10 +424,6 @@ val r2m_def =
              |> qspecl [‘Pair(a1:mem(A),a2:mem(A))’]
              |> rewr_rule [Pair_def']
              |> gen_all
-
-
-
-
 
 val IN_Union = prove_store("IN_Union",
 e0

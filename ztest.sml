@@ -58,41 +58,6 @@ fun exists_cross_fconv f =
  val f = “∃b:mem(A* B).P(a:mem(A),b)”;
 *)
  
-fun exists_cross_fconv f = 
-    let val (pv as (n,s),b) = dest_exists f 
-        val pset = s |> dest_sort |> #2  |> hd
-        val (A,B) = dest_cross pset 
-        val pt = mk_var pv
-        val eth = Pair_has_comp |> specl [A,B,pt]
-        val (ocv1 as (ocn1,ocs1),ob1) = dest_exists (concl eth) 
-        val (ocv2 as (ocn2,ocs2),ob2) = dest_exists ob1
-        val avoids = fvf b
-        val ct1 = pvariantt avoids (mk_var ocv1)
-        val ct2 = pvariantt avoids (mk_var ocv2)
-        val (cv1 as (cn1,cs1)) = dest_var ct1
-        val (cv2 as (cn2,cs2)) = dest_var ct2
-        val b1 = substf (ocv1,ct1) ob1
-        val b2 = substf (ocv2,ct2) (substf (ocv1,ct1) ob2)
-        val pair = mk_Pair ct1 ct2 
-        val b' = substf (pv,pair) b
-        val new0 = (mk_exists cn2 cs2 b')
-        val new = mk_exists cn1 cs1 (mk_exists cn2 cs2 b')
-        val l2r = b |> assume 
-                    |> conv_rule (basic_fconv (rewr_conv (assume b2)) no_fconv)
-                    |> existsI cv2 ct2 b'
-                    |> existsI cv1 ct1 new0
-                    |> existsE cv2 (assume b1)
-                    |> existsE cv1 eth
-                    |> existsE pv (assume f)
-                    |> disch f
-        val r2l = b'|> assume 
-                    |> existsI pv pair b
-                    |> existsE cv2 (assume new0)
-                    |> existsE cv1 (assume new)
-                    |> disch new
-    in dimpI l2r r2l
-    end
-
 
 (*depth_fconv no_conv forall_cross_fconv “!a:mem(N * N) b:mem(N * N). P(a,b)”
 not doing the desired thing *)

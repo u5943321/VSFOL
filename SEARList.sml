@@ -104,29 +104,6 @@ val cons1_def =
     |> rewr_rule[Pair_def',cons0_def] 
 
 
-(*Parallel product arrow*)
-val Prla_def = 
-    qdefine_fsym ("Prla",[‘f:A->B’,‘g:C->D’])
-    ‘Pa(f o p1(A,C),g o p2(A,C))’
-    |> gen_all |> store_as "Prla_def";
-
-val Prla_Inj = prove_store("Prla_Inj",
-e0
-(rpt strip_tac >> fs[Inj_def,Prla_def] >> 
- fconv_tac (depth_fconv no_conv forall_cross_fconv) >>
- rw[App_Pa,Pair_eq_eq,App_App_o,p12_of_Pair] >>
- rpt strip_tac >> first_assum irule >> arw[])
-(form_goal “!A B f:A->B. Inj(f) ==>
- !C D g:C->D. Inj(g) ==>
- Inj(Prla(f,g))”));
-
-
-val Id_Inj = prove_store("Id_Inj",
-e0
-(rw[Inj_def,Id_def])
-(form_goal
- “!X. Inj(Id(X))”));
-
 (*iL_isL should be automated*)
 val iL_isL = prove_store("iL_isL",
 e0

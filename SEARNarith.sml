@@ -195,36 +195,6 @@ e0
  “!f:N->N. f o El(O) = El(O) & f o SUC = SUC o f ==> f = Id(N)”));
 
 
-val o_assoc = prove_store("o_assoc",
-e0
-(rw[GSYM FUN_EXT,App_App_o])
-(form_goal
- “!A B f:A->B C g:B->C D h:C->D.
-  (h o g) o f = h o g o f”));
-
-
-val Pa_distr = prove_store("Pa_distr",
-e0
-(rpt strip_tac >> irule is_Pa >> 
- rw[p12_of_Pa,GSYM o_assoc])
-(form_goal
-“!A X a1:X ->A B a2:X->B.
-  !X0 x:X0->X. Pa(a1,a2) o x = Pa(a1 o x,a2 o x) ”));
-
-
-val Pa_eq_eq = prove_store("Pa_eq_eq",
-e0
-(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
- qby_tac ‘p1(A,B) o Pa(f1, g1) = p1(A,B) o Pa(f2, g2) &
-          p2(A,B) o Pa(f1, g1) = p2(A,B) o Pa(f2, g2)’
- >-- arw[] >>
- qsspecl_then [‘f1’,‘g1’] assume_tac p12_of_Pa >> 
- qsspecl_then [‘f2’,‘g2’] assume_tac p12_of_Pa >> 
- rfs[])
-(form_goal
- “!A X f1:X->A f2:X->A B g1:X->B g2:X->B. 
-  (Pa(f1,g1) = Pa(f2,g2) <=> f1 = f2 & g1 = g2)”));
-
 
 
 val Thm1_case1_comm_condition = prove_store(
@@ -269,15 +239,6 @@ e0
 
 
 val is_Nrec = Nrec_unique 
-
-
-val App_Pa_distr = prove_store("App_Pa_distr",
-e0
-(rpt strip_tac >> 
- qsspecl_then [‘ App(Pa(f, g), x)’] (assume_tac o GSYM) Pair_component >> 
- once_arw[] >> rw[Pair_eq_eq,GSYM App_App_o,p12_of_Pa])
-(form_goal
-“!X A f:X->A B g:X->B x. App(Pa(f:X->A,g:X->B),x) = Pair(App(f,x),App(g,x))”));
 
 
 val Thm1_case_1 = prove_store("Thm1_case_1",
@@ -593,7 +554,7 @@ e0
 (form_goal
  “!A B f:A->B a1 a2.a1 = a2 ==> App(f,a1) = App(f,a2)”))
 
-val App_Pa_Pair = App_Pa_distr |> store_as "App_Pa_Pair";
+
 
 
 (* (∀n. 0 + n = n) ∧ ∀m n. SUC m + n = SUC (m + n)*)
