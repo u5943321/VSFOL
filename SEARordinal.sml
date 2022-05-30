@@ -649,7 +649,7 @@ cheat
 |> uex2ex_rule 
 |>qSKOLEM "sf0"[‘B’]
 
-
+(*
 val lf0_ex = proved_th $
 e0
 cheat
@@ -662,6 +662,7 @@ cheat
 |> uex2ex_rule 
 |>qSKOLEM "lf0"[‘B’]
 
+*)
 
 (*preds beths*)
 val pbeths_def =
@@ -670,6 +671,48 @@ IN_def_P |> qspecl [‘ordinal(A) * Pow(B)’]
             “beth(Fst(pair:mem(ordinal(A) * Pow(B))),Snd(pair)) &
              ordlt(Fst(pair),α)” 
          |> uex2ex_rule |> qSKOLEM "pbeths" [‘α’,‘B’]
+
+
+
+(*is selection, takes a *)
+val isseletn_def = qdefine_psym
+("isseletn",[‘ss:mem(Pow(Pow(A)))’,‘slc:mem(Pow(A))’])
+‘?f:A-> Pow(A). BIJ(f,slc,ss)’
+
+val cardleq_def = 
+qdefine_psym("cardleq",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’])
+‘?f:A->B. INJ(f,s1,s2)’ |> gen_all
+
+val ssup_def =
+IN_def_P |> qspecl [‘Pow(B)’] 
+         |> fVar_sInst_th “P(ssup:mem(Pow(B)))”
+            “(!s:mem(Pow(A)).
+              IN(s,ss) ==> cardleq(s,ssup:mem(Pow(B)))) &
+             (!ssup':mem(Pow(B)).
+               (!s.IN(s,ss) ==> cardleq(s,ssup)) ==>
+               cardleq(ssup,ssup'))”
+         |> uex2ex_rule
+         |> qSKOLEM "ssup" [‘ss’,‘B’]
+
+
+val issup_def = 
+qdefine_psym
+("issup",[‘sup:mem(Pow(B))’,‘ss:mem(Pow(Pow(A)))’])
+‘IN(sup,ssup(ss,B))’
+
+val lf0_ex = proved_th $
+e0
+cheat
+(form_goal
+ “?!lf0:Pow(Pow(Pow(B))) -> Pow(Pow(B)).
+  !ss t. 
+    IN(t,App(lf0,ss)) <=> 
+    (~(ss = Empty(Pow(Pow(B))))) &
+    (!s.IN(s,ss) ==> ~(s = Empty(Pow(B)))) &
+    issup(t,BIGUNION(ss))”)
+|> uex2ex_rule 
+|> qSKOLEM "lf0"[‘B’]
+
 
 val bethf_def = 
 ord_RECURSION  
@@ -772,8 +815,7 @@ e0
  first_x_assum (qspecl_then [‘α’] assume_tac) >>
  rfs[] >>
  arw[beth_def,App_App_o,sf0_ex,App_p2_Pair] >>
- rw[lf0_ex] >> dimp_tac >> strip_tac >>
- drule cardeq_SYM >> arw[] (* 2 *)
+ rw[lf0_ex] >> dimp_tac >> strip_tac >> arw[]
  >-- (rpt strip_tac >>
      fs[IMAGE_def,GSYM beth_def] >>
      first_x_assum  
@@ -783,7 +825,7 @@ e0
          qexists_tac ‘p’ >> arw[preds_def,predsf_def]) >>
      fs[GSYM IN_NONEMPTY] >>
      qexists_tac ‘a'’ >> arw[beth_def]) >>
- rw[GSYM IN_NONEMPTY] >> rpt strip_tac (*2 *)
+rw[GSYM IN_NONEMPTY] >> rpt strip_tac (*2 *)
  >-- (first_x_assum drule >>
      qexists_tac ‘App(bethf(A,B),zord(A))’ >>
      rw[IMAGE_def] >>
@@ -800,25 +842,8 @@ e0
  beth(α,b) <=> 
  (!p. ordlt(p,α) ==> 
   ?pbeth:mem(Pow(B)).beth(p,pbeth)) &
- cardeq(b,BIGUNION(Snds(pbeths(α,B))))”));
+ issup(b,Snds(pbeths(α,B)))”));
 
-(*
-val beth_limit = prove_store("beth_limit",
-e0
-(rpt strip_tac >>
- assume_tac (bethf_def |> conjE2 |> conjE2) >>
- first_x_assum (qspecl_then [‘α’] assume_tac) >>
- rfs[] >>
- arw[beth_def,App_App_o,sf0_ex,App_p2_Pair] >>
- rw[lf0_ex] >> dimp_tac >> strip_tac >>
- drule cardeq_SYM >> arw[])
-(form_goal
- “!α:mem(ordinal(A)).
- ordlt(zord(A),α) & islimit(α) ==>
- !B b:mem(Pow(B)).
- beth(α,b) <=> 
- cardeq(b,BIGUNION(BIGUNION(IMAGE(bethf(A, B), preds(α)))))”));
-*)
 
 
 
@@ -864,6 +889,8 @@ IN_def_P |> qspecl [‘Pow(A)’]
          |> uex2ex_rule 
          |> qSKOLEM "ofcards" [‘cs’,‘A’]
 
+
+(*
 val cardeq_card_bound = prove_store("cardeq_card_bound",
 e0
 cheat
@@ -873,6 +900,59 @@ cheat
    (?s1:mem(Pow(A)).cardeq(c,s1)) &
    (?s2:mem(Pow(B)).cardeq(c,s2))) ==>
  cardeq(BIGUNION(ofcards(cs,A)),BIGUNION(ofcards(cs,B)))”));
+*)
+
+ 
+
+
+val issup_cardleq = prove_store("issup_cardleq",
+e0
+()
+(form_goal
+ “!A ss:mem(Pow(Pow(A))) B sup1:mem(Pow(B)).
+ issup(sup1,ss) ==>”));
+
+val issup_cardeq = prove_store("issup_cardeq",
+e0
+(rpt strip_tac >> fs[issup_def,ssup_def] >>
+ dimp_tac >> rpt strip_tac (* 3 *)
+ >-- last_x_assum irule)
+(form_goal
+ “!A ss:mem(Pow(Pow(A))) B sup1:mem(Pow(B)).
+ issup(sup1,ss) ==>
+ !C sup2:mem(Pow(C)).
+ issup(sup2,ss) <=> cardeq(sup1,sup2)”));
+
+val issup_elements_same_card = 
+prove_store("issup_elements_same_card",
+e0
+cheat
+(form_goal
+ “!A ss1:mem(Pow(Pow(A))) B ss2:mem(Pow(Pow(B))).
+  (!s1. IN(s1,ss1) ==> ?s2.IN(s2,ss2) & cardeq(s1,s2)) &
+  (!s2. IN(s2,ss2) ==> ?s1.IN(s1,ss1) & cardeq(s2,s1)) ==>
+  !C sup:mem(Pow(C)). issup(sup,ss1) <=> issup(sup,ss2)”));
+
+val IN_Snds_pbeths = prove_store("IN_Snds_pbeths",
+e0
+(rw[pbeths_def,Snds_def,IMAGE_def] >>
+ rpt strip_tac >> 
+ fconv_tac (redepth_fconv no_conv exists_cross_fconv) >>
+ rw[Pair_def',App_p2_Pair] >> 
+ dimp_tac >> rpt strip_tac >> arw[] (* 2 *)
+ >-- (qexists_tac ‘a'’ >> arw[]) >>
+ qexistsl_tac [‘p’,‘pbeth’] >> arw[] )
+(form_goal
+ “!A α:mem(ordinal(A)) B pbeth.IN(pbeth, Snds(pbeths(α, B))) <=> 
+  ?p. ordlt(p,α) & beth(p,pbeth) ”));
+
+val issup_INJ = prove_store("issup_INJ",
+e0
+(rw[issup_def,ssup_def] >> rpt strip_tac >>
+ last_x_assum drule >>
+ fs[cardleq_def] >> qexists_tac ‘f’ >> arw[])
+(form_goal “!A ss B sup. issup(sup,ss) ==>
+ !s. IN(s,ss) ==>?f:A->B. INJ(f,s,sup)”))
 
 val beth_cardeq = prove_store("beth_cardeq",
 e0
@@ -885,9 +965,9 @@ e0
          first_x_assum drule >> arw[]) >>
      drule cardeq_SYM >>
      drule cardeq_TRANS >>
-     first_x_assum irule >> arw[]) >>
- >-- (*card eq implies card pow eq*)
-     (fs[beth_ordSUC] >>
+     first_x_assum irule >> arw[]) 
+(* >-- card eq implies card pow eq*)
+  >--   (fs[beth_ordSUC] >>
      dimp_tac >> rpt strip_tac (* 2 *)
      >-- (first_x_assum rev_drule >>
          fs[] >> 
@@ -900,7 +980,7 @@ e0
          drule cardeq_TRANS >>
          first_x_assum irule >>
          irule cardeq_SYM >> arw[]) >>
-     first_x_assum drule >> arw[] >>>
+     first_x_assum drule >> arw[] >>
      qsuff_tac
      ‘?b0':mem(Pow(B2)). cardeq(b0,b0')’ 
      >-- (strip_tac >> qexists_tac ‘b0'’ >> arw[] >>
@@ -930,26 +1010,113 @@ e0
      first_x_assum irule >> rw[SS_def,Whole_def]) >>
  dimp_tac >> strip_tac >>
  qsspecl_then [‘α’] assume_tac beth_limit >>
- rfs[islimit_def] >> fs[] >>
- qsuff_tac
- ‘cardeq(BIGUNION(Snds(pbeths(α, B1))),
-  BIGUNION(Snds(pbeths(α, B2))))’ 
- >-- (strip_tac >> 
-     irule cardeq_TRANS >>
-     qexistsl_tac [‘B2’,‘BIGUNION(Snds(pbeths(α, B2)))’] >>
-     strip_tac (* 2 *)
-     >-- (irule cardeq_SYM >> arw[]) >>
-     rev_drule cardeq_TRANS >>
+ rfs[islimit_def] >> fs[] (* 2 *)
+ >-- (drule issup_cardeq >>
+     irule cardeq_SYM >>
+     first_x_assum (irule o iffLR) >>
+     qsspecl_then 
+     [‘Snds(pbeths(α, B1))’,‘Snds(pbeths(α, B2))’]
+     assume_tac issup_elements_same_card >>
+     qsuff_tac
+     ‘issup(beth1, Snds(pbeths(α, B1))) 
+      <=> issup(beth1, Snds(pbeths(α, B2)))’ 
+     >-- rfs[] >>
+     first_x_assum irule >> strip_tac (* 2 *)
+     >-- (rpt strip_tac >>
+         qby_tac
+         ‘?p. ordlt(p,α) & beth(p,s1)’ 
+         >-- (fs[IN_Snds_pbeths] >> qexists_tac ‘p’ >>
+             arw[]) >>
+         pop_assum strip_assume_tac >>
+         first_x_assum drule >>
+         pop_assum strip_assume_tac >>
+         qexists_tac ‘pbeth’ >> 
+         rw[IN_Snds_pbeths] >> strip_tac (* 2 *)
+         >-- (qexists_tac ‘p’ >> arw[]) >>
+         last_x_assum drule >>
+         first_x_assum rev_drule >>
+         first_x_assum (irule o iffLR) >> arw[]) >>
+     rpt strip_tac >>
+     qby_tac
+     ‘?p. ordlt(p,α) & beth(p,s2)’ 
+     >-- (fs[IN_Snds_pbeths] >>
+         qexists_tac ‘p’ >> arw[]) >>
+     pop_assum strip_assume_tac >>
+     qsuff_tac
+     ‘?s1:mem(Pow(B1)). beth(p,s1)’ 
+     >-- (strip_tac >>
+         qexists_tac ‘s1’ >> rw[IN_Snds_pbeths] >>
+         strip_tac (* 2 *)
+         >-- (qexists_tac ‘p’ >> arw[]) >>
+         last_x_assum drule >>
+         first_x_assum drule >>
+         irule cardeq_SYM >>
+         first_x_assum (irule o iffLR) >> arw[]) >>
      first_x_assum irule >> arw[]) >>
- 
-
-
- pop_assum (K all_tac) >>
- fs[IMAGE_bethf_preds_pbeths] >> cheat *)
-cheat
-
-
- )
+ rpt strip_tac (* 2 *)
+ >-- (first_x_assum drule >>
+     pop_assum strip_assume_tac >>
+     first_x_assum drule >>
+     first_x_assum drule >> arw[] >>
+     drule issup_INJ >>
+     qby_tac
+     ‘?f:B1->B1. INJ(f,pbeth,beth1)’ 
+     >-- (first_x_assum irule >> 
+          pop_assum (K all_tac) >>
+          rw[IN_Snds_pbeths] >>
+          qexists_tac ‘p’ >> arw[]) >>
+     pop_assum strip_assume_tac >>
+     qby_tac ‘?g:B1->B2.INJ(g,beth1,beth2)’ 
+     >-- (fs[cardeq_def,BIJ_def] >>
+         qexists_tac ‘f'’ >> arw[]) >>
+     pop_assum strip_assume_tac >>
+     qexists_tac ‘IMAGE(g o f,pbeth)’ >>
+     irule IMAGE_INJ_cardeq >>
+     qexistsl_tac [‘pbeth’,‘beth2’] >>
+     rw[SS_Refl] >> irule o_INJ_INJ >> 
+     qexistsl_tac [‘beth1’] >> arw[]) >>
+ qsspecl_then [‘Snds(pbeths(α, B1))’,‘Snds(pbeths(α, B2))’]
+ assume_tac issup_elements_same_card >>
+ qsuff_tac
+ ‘issup(beth2, Snds(pbeths(α, B1))) <=> 
+  issup(beth2, Snds(pbeths(α, B2)))’
+ >-- (strip_tac >>
+     first_x_assum (irule o iffLR) >>
+     drule issup_cardeq >>
+     arw[]) >>
+ first_x_assum irule >>
+ rpt strip_tac (* 2 *)
+ >-- (drule issup_INJ >>
+     first_x_assum drule >>
+     pop_assum strip_assume_tac >> 
+     qby_tac ‘?g:B1->B2.INJ(g,beth1,beth2)’ 
+     >-- (fs[cardeq_def,BIJ_def] >>
+         qexists_tac ‘f'’ >> arw[]) >>
+     pop_assum strip_assume_tac >> 
+     drule $ iffLR IN_Snds_pbeths >>
+     pop_assum strip_assume_tac >>
+     qexists_tac ‘IMAGE(g o f,s1)’ >>
+     rw[IN_Snds_pbeths] >>
+     qby_tac ‘cardeq(s1, IMAGE(g o f, s1))’ 
+     >-- (irule IMAGE_INJ_cardeq >>
+         qexistsl_tac [‘s1’,‘beth2’] >>
+         rw[SS_Refl] >>
+         irule o_INJ_INJ >> qexists_tac ‘beth1’ >> 
+         arw[]) >>
+     arw[] >>
+     qexists_tac ‘p’ >> arw[] >>
+     last_x_assum drule >>
+     first_x_assum drule >> arw[]) >>
+ fs[IN_Snds_pbeths] >>
+ first_x_assum drule >> 
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘pbeth’ >> 
+ qby_tac ‘cardeq(s2, pbeth)’ 
+ >-- (last_x_assum drule >>
+     first_x_assum rev_drule >>
+     fs[]) >>
+ arw[] >>
+ qexists_tac ‘p’ >> arw[])
 (form_goal
  “!α:mem(ordinal(A)).
   !B1 beth1:mem(Pow(B1)).
@@ -1003,6 +1170,77 @@ cheat
 (form_goal “!A s1:mem(Pow(A)) B s2:mem(Pow(B)).
  cardeq(s1,s2) ==> cardeq(POW(s1),POW(s2))”));
 
+(*
+val issup_ex = prove_store("issup_ex",
+e0
+()
+(form_goal
+ “”));
+*)
+
+val beth_ex = prove_store("beth_ex",
+e0
+(strip_tac >>
+ ind_with simple_ord_induction >>
+ rpt strip_tac (* 3 *)
+ >-- (qexistsl_tac [‘N’] >>
+     rw[Beth_def] >> qexistsl_tac [‘N’,‘Whole(N)’] >>
+     rw[cardeq_REFL] >>
+     rw[beth_zord,cardeq_REFL])
+ >-- (*inject b into Pow(Pow(B))*)
+     (fs[Beth_def,beth_ordSUC] >> 
+     qexistsl_tac [‘m2s(POW(beth))’,‘Pow(B)’,‘POW(beth)’] >>
+     strip_tac >--
+     (qexistsl_tac [‘IMAGE(Sg(B),beth)’] >> 
+     rw[cardeq_REFL] >>
+     qspecl_then [‘B’] assume_tac Sg_Inj >>
+     drule IMAGE_Inj_cardeq >> 
+     drule beth_cardeq >> arw[] >>
+     strip_tac (* 2 *)
+     >-- (irule cardeq_SYM >> arw[]) >>
+     irule cardeq_POW >> irule cardeq_SYM >> arw[]) >>
+     irule cardeq_SYM >> rw[cardeq_Whole_m2s]) >>
+ strip_assume_tac
+ (AX5 |> qspecl [‘ordinal(A)’] 
+ |> fVar_sInst_th “P(α:mem(ordinal(A)),X)”
+     “Beth(α:mem(ordinal(A)),X)”) >> 
+ rw[Beth_def] >>
+ qsspecl_then [‘α’] assume_tac beth_limit >>
+ rfs[islimit_def] >>
+ qby_tac
+ ‘!p. ordlt(p,α) ==>
+      ?pbeth:mem(Pow(Y)). beth(p,pbeth)’
+ >-- (rpt strip_tac >>
+     first_x_assum drule >>
+     pop_assum strip_assume_tac >>
+     first_x_assum drule >> 
+     pop_assum strip_assume_tac >>
+     first_x_assum (qspecl_then [‘b’] assume_tac) >>
+     qexists_tac ‘rsi(M,b)’ >> 
+     fs[Beth_def] >>
+     qsspecl_then [‘rsi(M,b)’] assume_tac cardeq_Whole_m2s>>
+     drule beth_cardeq >>
+     rfs[] >>
+     irule cardeq_TRANS >>
+     qexistsl_tac 
+     [‘m2s(rsi(M, b))’,‘Whole(m2s(rsi(M, b)))’] >> arw[]) >>
+ qsuff_tac
+ ‘?sup.issup(sup:mem(Pow(Y)),Snds(pbeths(α, Y)))’
+ >-- (strip_tac >>
+     qexistsl_tac [‘m2s(sup)’,‘Y’,‘sup’] >>
+     arw[] >>
+     irule cardeq_SYM >> rw[cardeq_Whole_m2s]) >>
+ 
+
+
+ qexistsl_tac
+ [‘m2s(BIGUNION(Snds(pbeths(α, Y))))’,
+  ‘Y’,‘BIGUNION(Snds(pbeths(α, Y)))’] >>
+ arw[cardeq_REFL,cardeq_Whole_m2s] >> 
+ irule cardeq_SYM >> rw[cardeq_Whole_m2s])
+(form_goal  “!A α:mem(ordinal(A)). ?BN. Beth(α,BN)”));
+
+(*
 val beth_ex = prove_store("beth_ex",
 e0
 (strip_tac >>
@@ -1055,3 +1293,67 @@ e0
  arw[cardeq_REFL,cardeq_Whole_m2s] >> 
  irule cardeq_SYM >> rw[cardeq_Whole_m2s])
 (form_goal  “!A α:mem(ordinal(A)). ?BN. Beth(α,BN)”));
+*)
+
+(*
+a function B-> ordinal(A) is a 0-beth family if 
+the preimage of 0 has cardinality N
+
+
+*)
+
+
+(*fibre is preimage of a *)
+val FIB_def = qdefine_fsym("FIB",[‘f:A->B’,‘b:mem(B)’])
+‘PREIM(f,Sing(b))’
+
+
+(*fibre is preimage of a *)
+val mFIB_def = qdefine_fsym("mFIB",[‘f:mem(Exp(A,B))’,‘b:mem(B)’])
+‘PREIM(tof(f),Sing(b))’
+
+
+val bdefz_ex = 
+IN_def_P |> qspecl [‘Exp(B,ordinal(A))’]  
+         |> fVar_sInst_th “P(f:mem(Exp(B,ordinal(A))))”
+            “cardeq(mFIB(f:mem(Exp(B,ordinal(A))),
+                          zord(A)),Whole(N))”
+         |> uex2ex_rule 
+         |> qSKOLEM "bdefz" [‘A’,‘B’]
+
+val bdefs_ex = proved_th $
+e0
+cheat
+(form_goal 
+ “?sf:ordinal(A) * Pow(Exp(B, ordinal(A))) ->
+      Pow(Exp(B, ordinal(A))).
+ !α fams0 fam. 
+  IN(fam,App(sf,Pair(α,fams0))) <=> 
+  ?fam0. IN(fam0,fams0) &
+         (!p. ordle(p,α) ==> 
+              cardeq(mFIB(fam,p),mFIB(fam0,p))) &
+         cardeq(mFIB(fam,ordSUC(α)),POW(mFIB(fam,α)))”)
+|> qSKOLEM "bdefs" [‘A’,‘B’]
+
+
+val bdefl_ex = proved_th $
+e0
+cheat
+(form_goal 
+ “?lf:ordinal(A) * Pow(Pow(Exp(B, ordinal(A))) ->
+      Pow(Exp(B, ordinal(A))).
+ !α famss0 fam. 
+  IN(fam,App(sf,Pair(α,famss0))) <=> 
+  ?fam0. IN(fam0,BIGUNION(famss0)) &
+         (!p. ordlt(p,α) ==> 
+              cardeq(mFIB(fam,p),mFIB(fam0,p))) &
+         cardeq(mFIB(fam,ordSUC(α)),POW(mFIB(fam,α)))”)
+|> qSKOLEM "bdefs" [‘A’,‘B’]
+
+
+val bethf_def = 
+ord_RECURSION  
+|> qspecl [‘A’,‘Pow(Exp(B,ordinal(A)))’,‘bdefz(A,B)’]  
+|> qspecl [‘bdefs(A,B)’]
+|> qspecl [‘lf0(B) o p2(ordinal(A),Pow(Pow(Pow(B))))’]
+|> qSKOLEM "bethf" [‘A’,‘B’]
