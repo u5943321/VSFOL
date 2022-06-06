@@ -235,5 +235,94 @@ fun new_spec argQ arg12eqr
     in mk_newfsym fnames vl uexth
     end
 
+
+
+val Id_uex = prove_store("Id_uex",
+e0
+(cheat)
+(form_goal “?i:A ->A. (!a.App(i,a) = a) & 
+ !i'. (!a.App(i',a) = a) ==> i = i'”));
+
+val uexth = Id_uex
+
+val eth = proved_th $
+e0
+cheat
+(form_goal “?i:A->A.T”)
+
+val vl = [("A",set_sort)]
+
+(*spec of new fsym if the input is a uex theorem with assumptions*)
+
+val fname = "Id"
+
+val argQ = ([dest_var (rastt "i:A->A")],“!a. App(i:A->A,a) = a”)
+
+val arg12eqr = ([dest_var (rastt "i:A->A")],[dest_var (rastt "i':A->A")],
+                “i = i':A->A”)
+
+val eqvth = proved_th $
+e0
+cheat
+(form_goal “(!i:A->A. i = i) &
+ (!i:A->A i':A->A. i = i' ==> i' = i) &
+ (!i:A->A i':A->A i'':A->A. 
+   i = i' & i' = i'' ==> i = i'')”)
+
+new_spec argQ arg12eqr [fname] vl eth eqvth uexth
+
+
+
+val Id_uex0 = prove_store("Id_uex0",
+e0
+(cheat)
+(form_goal “?!i:A ->A. (!a.App(i,a) = a)”));
+
+val uexth0 = Id_uex0
+
+
+
+fun impr_fconv fc f = 
+    case view_form f of
+        vConn("==>",[p,q]) => imp_iff (frefl p) (fc q)       
+      | _ => raise ERR ("imp_fconv.not an implication",[],[],[f])
+
+fun uex_def' f = 
+    let val th0 = uex_def f 
+        val (l,r) = dest_dimp (concl th0) 
+        val r2r' = (once_depth_fconv no_conv (impr_fconv sym_fconv)) r
+        val th1 = iff_trans th0 r2r' 
+    in th1 
+    end
+
+fun uex_expand' th = dimp_mp_l2r th (uex_def' $ concl th)
+
+fun uex_spec fname vl eth uexth0 = 
+    let val uexth = uex_expand' uexth0
+        val (arg,Q) = dest_uex (concl uexth0)
+        val argQ = ([arg],Q)
+        val arg' = dest_var (pvariantt (fvf Q) (mk_var arg)) 
+        val equality = mk_eq (mk_var arg) (mk_var arg') 
+        val arg12eqr = ([arg],[arg'],equality) 
+    in new_spec argQ arg12eqr [fname] vl eth eqvth uexth
+    end
+
+(*simple case of uex_spec, applies only when the assumption list of uex is empty and hence the derivation of soundness existential theorem is automated*)
+
+fun simple_uex_spec fname vl uexth0 = 
+    let val uexth = uex_expand' uexth0
+        val eth0 = ex_P_ex (concl uexth)
+        val eth = mp eth0 uexth
+    in uex_spec fname vl eth uexth0 
+    end
+
+(*simple_uex_spec "Id" [("A",set_sort)] Id_uex0 *)
+
+
+
+uexth
+
+uex_expand uexth0
+
 val argQ = (arg,Q);
 val arg12eqr = (arg1,arg2,eqr)
