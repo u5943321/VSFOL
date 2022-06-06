@@ -816,6 +816,7 @@ end
 
 *)
 
+(*
 fun view_form f =
     case f of
         Conn sfs => vConn sfs
@@ -824,7 +825,25 @@ fun view_form f =
         in vQ(q,n',s',subst_bound (mk_var (n',s')) b)
         end
       | Pred pi => vPred pi
+*)
 
+
+fun view_form f =
+    case f of
+        Conn sfs => vConn sfs
+      | Quant("!",n,s,b) => 
+        let val (v as (n1,s1),b1) = dest_forall f
+        in vQ("!",n1,s1,b1)
+        end
+      | Quant("?",n,s,b) => 
+        let val (v as (n1,s1),b1) = dest_exists f
+        in vQ("?",n1,s1,b1)
+        end
+      | Quant("?!",n,s,b) => 
+        let val (v as (n1,s1),b1) = dest_uex f
+        in vQ("?!",n1,s1,b1)
+        end
+      | Pred pi => vPred pi
 
 fun dest_quant0 f = 
     case f of Quant Qi => Qi

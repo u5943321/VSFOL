@@ -161,13 +161,6 @@ e0
  “!X. Inj(Id(X))”));
 
 
-val App_Prla = prove_store("App_Prla",
-e0
-(rpt strip_tac >> rw[Prla_def,App_Pa_Pair] >>
- rw[App_App_o,p12_of_Pair] )
-(form_goal “!A B f:A->B X Y g:X->Y a x.App(Prla(f,g),Pair(a,x)) = 
-Pair(App(f,a),App(g,x))”));
-
 
 
 val App_Pa_distr = prove_store("App_Pa_distr",
@@ -177,6 +170,17 @@ e0
  once_arw[] >> rw[Pair_eq_eq,GSYM App_App_o,p12_of_Pa])
 (form_goal
 “!X A f:X->A B g:X->B x. App(Pa(f:X->A,g:X->B),x) = Pair(App(f,x),App(g,x))”));
+
+
+val App_Pa_Pair = App_Pa_distr |> store_as "App_Pa_Pair";
+
+val App_Prla = prove_store("App_Prla",
+e0
+(rpt strip_tac >> rw[Prla_def,App_Pa_Pair] >>
+ rw[App_App_o,p12_of_Pair] )
+(form_goal “!A B f:A->B X Y g:X->Y a x.App(Prla(f,g),Pair(a,x)) = 
+Pair(App(f,a),App(g,x))”));
+
 
 
 val o_assoc = prove_store("o_assoc",
@@ -210,7 +214,7 @@ e0
   (Pa(f1,g1) = Pa(f2,g2) <=> f1 = f2 & g1 = g2)”));
 
 
-val App_Pa_Pair = App_Pa_distr |> store_as "App_Pa_Pair";
+
 
 val p2_comm = prove_store("p2_comm",
 e0
@@ -579,3 +583,50 @@ val mEqv_def = qdefine_psym("mEqv",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’]) 
 
 val msEqv_def = qdefine_psym("msEqv",[‘s:mem(Pow(A))’,‘S’])
 ‘Eqv(m2s(s),S)’ |> gen_all
+
+
+val constf_def = fun_tm_compr_uex 
+                       (dest_var (rastt "a:mem(A)"))
+                       (rastt "b:mem(B)")
+                       |> uex2ex_rule
+                       |> qSKOLEM "constf" [‘A’,‘b’]
+                       |> gen_all
+                       |> store_as "constf_def";
+
+
+val FIB_def = qdefine_fsym("FIB",[‘f:A->B’,‘b:mem(B)’])
+‘PREIM(f,Sing(b))’
+
+
+(*fibre is preimage of a *)
+val mFIB_def = qdefine_fsym("mFIB",[‘f:mem(Exp(A,B))’,‘b:mem(B)’])
+‘PREIM(tof(f),Sing(b))’
+
+val mApp_def = qdefine_fsym("mApp",[‘f:mem(Exp(A,B))’,‘a:mem(A)’]) ‘App(tof(f),a)’ |> gen_all
+
+
+val Inj_Image_Inj = prove_store("Inj_Image_Inj",
+e0
+(rw[Inj_def] >> rpt strip_tac >>
+fs[GSYM IN_EXT_iff,Image_def] >>
+strip_tac >> dimp_tac >> strip_tac (* 2 *)
+>-- (first_x_assum 
+    (qspecl_then [‘App(i,x)’] assume_tac) >>
+    qby_tac
+    ‘?a. IN(a, x1) & App(i, x) = App(i, a)’ 
+    >-- (qexists_tac ‘x’ >> arw[]) >>
+    first_x_assum (drule o iffLR) >>
+    pop_assum strip_assume_tac >>
+    first_x_assum drule >> fs[]) >>
+first_x_assum 
+ (qspecl_then [‘App(i,x)’] assume_tac) >>
+qby_tac
+‘?a. IN(a, x2) & App(i, x) = App(i, a)’ 
+>-- (qexists_tac ‘x’ >> arw[]) >>
+first_x_assum (drule o iffRL) >>
+pop_assum strip_assume_tac >>
+first_x_assum drule >> fs[])
+(form_goal
+     “!A B i:A->B. 
+        Inj(i:A->B) ==> Inj(Image(i))”));
+

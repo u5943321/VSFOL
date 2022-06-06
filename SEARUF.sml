@@ -1258,7 +1258,7 @@ val eqvth = Reqv
 
 val fnames = ["*","p1","p2"]
 
-val iseqr = “P()”
+(*val iseqr = “P()”*)
 
 
 val arg1 = List.map (dest_var o rastt) 
@@ -1359,6 +1359,9 @@ fun dest_n_exists n f =
     end
 
 
+
+
+
 fun newspec (arg1:(string * sort) list,
              arg2:(string * sort) list,eqr) 
             (arg:(string * sort) list,Q)
@@ -1427,7 +1430,7 @@ fun newspec (arg1:(string * sort) list,
                 orelse 
                 raise simple_fail "newspec.ill-formed eth"
         (*check the input contains all necessary ones*)
-        val inputvars0 = filter_cont (cont th)
+        val inputvars0 = filter_cont (cont eth)
         val inputvars = List.foldr (fn (s,e) => HOLset.add(e,s)) 
                            essps vl
         val _ = HOLset.isSubset(inputvars0,inputvars) orelse 
@@ -1448,7 +1451,7 @@ fun newspec (arg1:(string * sort) list,
                     val (ns,b) = dest_exists f0
                 in substf (ns,ft) b
                 end) f fnl  *)
-        fun itmk fnl vl f = List.foldl 
+        fun itmk fnl vl f = (*List.foldl  *)
             case fnl of 
                 [] => (fnl,f)
               | h :: t =>
@@ -1836,3 +1839,54 @@ fun itmk fnl sts vl f =
 
 
 “(!a. P(a) ==> t = t) ==> ?!f:A->B. !a.”
+
+
+
+
+
+
+                 
+fun checkER (arg1:(string * sort) list,
+             arg2:(string * sort) list,eqr) 
+            eqvth = 
+let 
+        (*1.check eqvth states eqr is ER*)
+        val argtrefl = List.map mk_var arg1
+        val reflbody = 
+            inst_form (mk_tinst (zip arg2 argtrefl)) eqr
+        val reflcl = mk_foralls arg1 reflbody
+        val (symt1,symt2) = (List.map mk_var arg1,
+                             List.map mk_var arg2)
+        val symconc = 
+            inst_form
+            (mk_tinst((zip arg1 symt2) @ (zip arg2 symt1)))
+            eqr
+        val symbody = 
+            mk_imp eqr symconc
+        val symcl = mk_foralls (arg1 @ arg2) symbody          
+        val arg3 = addprims arg2
+        val (transt1,transt2,transt3) =
+            (List.map mk_var arg1,
+             List.map mk_var arg2,
+             List.map mk_var arg3)
+        val transant2 = 
+            inst_form
+            (mk_tinst((zip arg1 transt2) @ (zip arg2 transt3)))
+            eqr
+        val transconc = 
+            inst_form
+            (mk_tinst((zip arg1 transt1) @ (zip arg2 transt3)))
+            eqr
+        val transbody = mk_imp (mk_conj eqr transant2)
+                               transconc
+        val transcl = mk_foralls (arg1 @ arg2 @ arg3)
+                                 transbody
+        val eqvcls = mk_conj reflcl (mk_conj symcl transcl)
+        val _ = eq_form (eqvcls,concl eqvth) orelse
+                raise simple_fail "newspec.eqvth concl"
+        val _ = HOLset.isSubset(cont eqvth,cont uexth) orelse
+                raise simple_fail "newspec.eqvth cont"
+        val _ = List.all (fn asm => List.exists
+                                        (fn a => eq_form(a,asm)) (ant uexth)) (ant eqvth) orelse
+                raise simple_fail "newspec.eqvth ant"
+in () end

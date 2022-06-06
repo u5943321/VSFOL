@@ -866,3 +866,19 @@ e0
  !q0 ra s. IN(ra,BIGUNION(IMAGE(i,s))) <=> 
 IN(abs(r,i,q0,ra),s)”));
 
+
+
+val Quot_el_same = prove_store("Quot_el_same",
+e0
+(cheat)
+(form_goal
+ “!A r:A~>A.
+    ER(r) ==> 
+    !Q i:Q->Pow(A). 
+      Quot(r,i) ==>
+      !q1 q2. q1 = q2 <=>
+              ?a1 a2.
+                IN(a1,App(i,q1)) & 
+                IN(a2,App(i,q2)) & 
+                Holds(r,a1,a2)
+  ”));
