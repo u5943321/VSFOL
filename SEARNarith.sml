@@ -1636,4 +1636,13 @@ val PRE_def0 = Nind_def |> specl [rastt "N * N"]
 *)                        
 
 
+val Add_eq_eq_l = EQ_MONO_ADD_EQ
+
+
+val Add_eq_eq_r = prove_store("Add_eq_eq_r",
+e0
+(once_rw[Add_comm] >> rw[Add_eq_eq_l])
+(form_goal “!a m n.Add(a,m) = Add(a,n) <=> m = n”));
+
+
 
