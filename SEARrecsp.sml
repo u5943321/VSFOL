@@ -722,18 +722,19 @@ e0
 (form_goal
  “!X x0:mem(X) A vf:A->X nf:X->X djf:X*X->X dmf:X->X.
   ?!Fn:N * (A + 1) * Exp(N,Tree(A+1)) * Exp(N,X) -> X.
-  Fnap(Fn,O,NONE(A),TNull(A+1),Conat(x0)) = x0 &
-  (!a. Fnap(Fn,num1,SOME(a),TNull(A+1),Conat(x0)) = 
-       App(vf,a)) &
-  (!f0 x. Fnap(Fn,num2,NONE(A),T1arg(f0),X1arg(x,x0)) = 
-   App(nf,x)) & 
-  (!f1 f2 x1 x2. 
-    Fnap(Fn,num3,NONE(A),T2arg(f1,f2),X2arg(x1,x2,x0)) = 
-       App(djf,Pair(x1,x2))) &
-  (!f0 x. Fnap(Fn,num4,NONE(A),T1arg(f0),X1arg(x,x0)) = 
+    Fnap(Fn,O,NONE(A),TNull(A+1),Conat(x0)) = x0 &
+    (!a. 
+       Fnap(Fn,num1,SOME(a),TNull(A+1),Conat(x0)) = App(vf,a)) &
+    (!f0 x. 
+       Fnap(Fn,num2,NONE(A),T1arg(f0),X1arg(x,x0)) = App(nf,x)) & 
+    (!f1 f2 x1 x2. 
+       Fnap(Fn,num3,NONE(A),T2arg(f1,f2),X2arg(x1,x2,x0)) = App(djf,Pair(x1,x2)))     &
+    (!f0 x. 
+       Fnap(Fn,num4,NONE(A),T1arg(f0),X1arg(x,x0)) = 
        App(dmf,x))  & 
-  (!n aopt targ xarg. ~encafm(x0,n,aopt,targ,xarg) ==>
-  Fnap(Fn,n,aopt,targ,xarg) = x0)”)
+    (!n aopt targ xarg. 
+       ~encafm(x0,n,aopt,targ,xarg) ==>
+       Fnap(Fn,n,aopt,targ,xarg) = x0)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "fmFn" [‘x0’,‘vf’,‘nf’,‘djf’,‘dmf’]
 
 

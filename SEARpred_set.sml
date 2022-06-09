@@ -667,6 +667,17 @@ val SS_Union1 = SS_Union |> conjE1
 val SS_Union2 = SS_Union |> conjE2;
 
 
+val Ins_def = IN_def_P |> qspecl [‘X’]
+                       |> fVar_sInst_th “P(x:mem(X))”
+                       “x:mem(X) = x0 | IN(x,s0)”
+                       |> uex2ex_rule
+                       |> qSKOLEM "Ins" [‘x0’,‘s0’]
+                       |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
+                       |> store_as "Ins_def";
+
+
+
+
 val Union_Sing = prove_store("Union_Sing",
 e0
 (rw[GSYM IN_EXT_iff,IN_Union,IN_Sing,Ins_def])
@@ -780,13 +791,6 @@ e0
  >> qcases ‘A’ >> fs[])
 (form_goal “~(A & B) <=> (~A | ~B)”));
 
-val Fin_Ins_Ins = prove_store("Fin_Ins_Ins",
-e0
-(rpt strip_tac >> irule Fin_Ins >> irule Fin_Ins >>
- rw[Fin_Empty])
-(form_goal “!A a1 a2.Fin(Ins(a1,Ins(a2,Empty(A))))”));
-
-
  
 val SS_Union_split = prove_store("SS_Union_split",
 e0
@@ -853,17 +857,6 @@ e0
 (form_goal “!A s. SS(s,Empty(A)) <=> s = Empty(A)”));
 
 
-val Fin_SS = prove_store("Fin_SS",
-e0
-(strip_tac >>
- ind_with (Fin_induct |> qspecl [‘A’]) >>
- rw[SS_Empty] >> rpt strip_tac >> arw[Fin_Empty] >>
- fs[GSYM Union_Sing,SS_Union_split,SS_Sing] (* 2 *)
- >-- (rw[Union_Sing] >> irule Fin_Ins >> 
-     first_x_assum irule >> arw[]) >>
- rw[Empty_Union] >> first_x_assum irule >> arw[])
-(form_goal “!A s:mem(Pow(A)). Fin(s) ==> !t. SS(t,s) ==> Fin(t) ”));
-
 
 val disj_assoc = prove_store("disj_assoc",
 e0
@@ -874,36 +867,6 @@ val Union_assoc = prove_store("Union_assoc",
 e0
 (rw[GSYM IN_EXT_iff,IN_Union,disj_assoc])
 (form_goal “!A s1:mem(Pow(A)) s2 s3. Union(Union(s1,s2),s3) = Union(s1,Union(s2,s3))”));
-
-val Fin_Union = prove_store("Fin_Union",
-e0
-(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
- >-- (strip_tac >> irule Fin_SS >> 
-     qexists_tac ‘Union(s1,s2)’ >> arw[SS_Union1]) >>
- arw[SS_Union2] >>
- qsuff_tac ‘!s1:mem(Pow(A)).
- Fin(s1) ==> !s2. Fin(s2) ==> Fin(Union(s1,s2))’
- >-- (rpt strip_tac >> first_x_assum irule >> arw[]) >>
- pop_assum_list  (map_every (K all_tac)) >> 
- ind_with (Fin_induct |> qspecl [‘A’]) >>
- rw[Empty_Union] >> rpt strip_tac >>
- rw[GSYM Union_Sing,Union_assoc] >> 
- rw[Union_Sing] >> first_x_assum drule >>
- irule Fin_Ins >> arw[])
-(form_goal “!A s1:mem(Pow(A)) s2.Fin(Union(s1,s2)) <=> Fin(s1) & Fin(s2)”));
-
- 
-
-
-val Ins_Ins_Fin = prove_store("Ins_Ins_Fin",
-e0
-(qspecl_then [‘A’] assume_tac Fin_Empty >>
- drule Fin_Ins >>
- first_x_assum (qspecl_then [‘s2’] assume_tac) >>
- drule Fin_Ins >> arw[])
-(form_goal “Fin(Ins(s1, Ins(s2, Empty(A))))”));
-
-
 
 val Inter_Whole_Whole = prove_store("Inter_Whole_Whole",
 e0
@@ -947,13 +910,6 @@ val Sing_Ins_Empty = prove_store("Sing_Ins_Empty",
 e0
 (rw[GSYM IN_EXT_iff,IN_Sing,Ins_def,Empty_def])
 (form_goal “!A a:mem(A). Sing(a) = Ins(a,Empty(A))”));
-
-val Fin_Sing = prove_store("Fin_Sing",
-e0
-(rw[Sing_Ins_Empty] >> rpt strip_tac >> irule Fin_Ins >>
-rw[Fin_Empty])
-(form_goal “!A a:mem(A).Fin(Sing(a))”));
-
 
 val EMPTY_Empty_Whole = prove_store("EMPTY_Empty_Whole",
 e0

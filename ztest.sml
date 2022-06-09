@@ -1363,6 +1363,15 @@ e0
 (form_goal
  “!z1 z2 z3. Mulz(z1,Addz(z2,z3)) = Addz(Mulz(z1,z2),Mulz(z1,z3))”));
 
+
+
+
+val RDISTR_Z = prove_store("RDISTR_Z",
+e0
+(cheat)
+(form_goal
+ “!z1 z2 z3. Mulz(Addz(z2,z3),z1) = Addz(Mulz(z2,z1),Mulz(z3,z1))”));
+
 (*[a, b].1Z = [a, b]*)
 
 val Mulz_Ez = prove_store("Mulz_Ez",
@@ -1990,3 +1999,548 @@ iscolist(s) <=>
 !e:set of pairs. e in X ==> e = [] | ?h e0. e = e0 :: h0 &
                             e0 in X
 *)
+
+
+
+
+val N2Z_def = fun_tm_compr ("n",mem_sort (rastt "N")) (rastt "Asz(n,O)")
+|> qSKOLEM "N2Z" []
+
+val n2z_def = qdefine_fsym("n2z",[‘n:mem(N)’]) ‘App(N2Z,n)’ |> gen_all
+
+val Ltz_def = qdefine_psym("Ltz",[‘a:mem(Z)’,‘b:mem(Z)’])
+‘Lez(a,b) & ~(a = b)’ |> gen_all
+
+val Abv_def = proved_th $
+e0
+(cheat)
+(form_goal 
+ “!z. ?!n. (Lez(Oz,z) & z = Asz(n,O)) | 
+           (Ltz(z,Oz) & z = Asz(O,n))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "Abv" [‘z’] 
+|> gen_all
+
+val Abv_nonneg = prove_store("Abv_nonneg",
+e0
+cheat
+(form_goal 
+ “!z. Lez(Oz,z) ==> z = Asz(Abv(z),O) ”));
+
+
+val WOP' = prove_store("WOP'",
+e0
+(rw[GSYM IN_NONEMPTY] >> rpt strip_tac >>
+ assume_tac
+ (WOP 
+ |> qspecl [‘a:mem(N)’] 
+ |> fVar_sInst_th “P(a:mem(N))” “IN(a,s:mem(Pow(N)))”) >>
+ first_x_assum drule >> arw[])
+(form_goal 
+“!s:mem(Pow(N)).
+   ~(s = Empty(N)) ==>
+   ?a0. 
+     IN(a0,s) & 
+     (!a1.
+        IN(a1,s) ==> Le(a0,a1))”));
+
+
+val n2z_Abv = prove_store("n2z_Abv",
+e0
+cheat
+(form_goal “!a.Lez(Oz, a) ==> n2z(Abv(a)) = a”));
+
+val Oz_Mulz = prove_store("Oz_Mulz",
+e0
+(cheat)
+(form_goal “!z.Mulz(Oz, z) = Oz”));
+
+
+val Negz_Oz = prove_store("Negz_Oz",
+e0
+(cheat)
+(form_goal “Negz(Oz) = Oz”));
+
+
+val Addz_Oz = prove_store("Addz_Oz",
+e0
+(cheat)
+(form_goal “!z.Addz(z,Oz) = z”));
+
+(*ZERO_LESS_MULT as for num*)
+val Oz_Ltz_Mulz = prove_store("Oz_Ltz_Mulz",
+e0
+cheat
+(form_goal “!a b. Ltz(a,Oz) & Ltz(b,Oz) ==> Ltz(Oz,Mulz(a,b))”));
+
+
+val int1_def = qdefine_fsym("int1",[]) ‘n2z(Suc(O))’
+ 
+val Negz_Mulz = prove_store("Negz_Mulz",
+e0
+cheat
+(form_goal “!a b.Mulz(Negz(a),b) = Negz(Mulz(a,b))”))
+
+val Mulz_Negz = prove_store("Mulz_Negz",
+e0
+cheat
+(form_goal “!a b.Mulz(a,Negz(b)) = Negz(Mulz(a,b))”))
+
+val Mulz_int1 = prove_store("Mulz_int1",
+e0
+cheat
+(form_goal “!a.Mulz(a,int1) = a”))
+
+val NOT_Lez_Ltz = prove_store("NOT_Lez_Ltz",
+e0
+cheat
+(form_goal “!a b. ~Lez(a,b) <=> Ltz(b,a)”));
+
+val Ltz_Addz_Negz = prove_store("Ltz_Addz_Negz",
+e0
+cheat
+(form_goal
+“!a b.Ltz(a,b) <=> Ltz(Addz(a,Negz(b)),Oz)”));
+
+val Ltz_Lez = prove_store("Ltz_Lez",
+e0
+cheat
+(form_goal
+“!a b.Ltz(a,b) ==> Lez(a,b)”));
+
+val n2z_Oz_Lez = prove_store("n2z_Oz_Lez",
+e0
+cheat
+(form_goal “!a.Lez(Oz,n2z(a))”));
+
+val Negz_Addz_Oz = prove_store("Negz_Addz_Oz",
+e0
+cheat
+(form_goal “!z. Addz(Negz(z), z) = Oz”));
+
+(*use Le_Add_ex *)
+
+
+
+val Lez_Addz_ex = prove_store("Lez_Addz_ex",
+e0
+cheat
+(form_goal
+“!n m.Lez(n, m) ==> ?p. Lez(Oz,p) & Addz(p, n) = m” ));
+
+(*Le_Add*)
+val Lez_Addz = prove_store("Lez_Addz",
+e0
+cheat
+(form_goal “!a b c d. 
+ Lez(a,c) & Lez(b,d) ==> Lez(Addz(a,b),Addz(c,d))”));
+
+
+(*Le_Add*)
+val Oz_Lez_Addz = prove_store("Oz_Lez_Addz",
+e0
+cheat
+(form_goal “!a b.
+ Lez(Oz,a) & Lez(Oz,b) ==> Lez(a,Addz(a,b)) & Lez(b,Addz(a,b))”));
+
+
+
+val Oz_Ltz_Addz = prove_store("Oz_Ltz_Addz",
+e0
+cheat
+(form_goal “!a.
+ Ltz(Oz,a) ==> !b.Ltz(b,Addz(a,b))”));
+
+
+val Ltz_int1_Ltz_Oz = prove_store("Ltz_int1_Ltz_Oz",
+e0
+cheat
+(form_goal “!a.Ltz(int1,a) ==> Ltz(Oz,a)”));
+
+
+val Lez_Oz_Addz_Lez = prove_store("Lez_Oz_Addz_Lez",
+e0
+cheat
+(form_goal “!b.Lez(b,Oz) ==> !a.Lez(Addz(a,b),a)”));
+
+
+val n2z_is_Abv = prove_store("n2z_is_Abv",
+e0
+cheat
+(form_goal “!n z. n2z(n) = z ==> n = Abv(z)”));
+
+val Le_Abv_Abv = prove_store("Le_Abv_Abv",
+e0
+cheat
+(form_goal “!a b.Lez(Oz,a) & Lez(Oz,b)  ==>
+ Le(Abv(a), Abv(b)) <=> Lez(a,b)”));
+
+val Lez_Ltz_TRANS_Ltz = prove_store("Lez_Ltz_TRANS_Ltz",
+e0
+cheat
+(form_goal “!a b. Lez(a,b) ==> !c. Ltz(b,c) ==> Ltz(a,c)”));
+
+(*similar for cases like option constructors, and i12, need a little tool for such theorems directly 
+
+conv_rule (once_depth_fconv no_conv neg_fconv)  ?*)
+
+val NOT_Ltz_Lez = prove_store("NOT_Ltz_Lez",
+e0
+cheat
+(form_goal “!a b. ~Ltz(a,b) <=> Lez(b,a)”));
+
+(*rearrange*)
+val Addz_Rarr = prove_store("Addz_Rarr",
+e0
+cheat
+(form_goal “!a b c. Addz(a,b) = c <=> a = Addz(c,Negz(b))”));
+
+(*Add_eq_eq*)
+val Addz_eq_eq = prove_store("Addz_eq_eq",
+e0
+cheat
+(form_goal “!a b c.Addz(a,b) = Addz(a,c) <=> b = c”))
+
+val Negz_Addz = prove_store("Negz_Addz",
+e0
+cheat
+(form_goal “!a b. Negz(Addz(a,b)) = Addz(Negz(a),Negz(b))”));
+
+
+val Negz_eq_eq = prove_store("Negz_eq_eq",
+e0
+cheat
+(form_goal “!a b. Negz(a) = Negz(b) <=> a = b”));
+ 
+val division_theorem_ex0 = prove_store("division_theorem_ex0",
+e0
+(rpt strip_tac >> x_choosel_then ["s"] strip_assume_tac
+ (IN_def_P_ex |> qspecl [‘N’] |> GSYM
+ |> fVar_sInst_th “P(n:mem(N))”
+    “?k. n2z(n) = Addz(a,Negz(Mulz(k,d)))” ) >>
+ qby_tac ‘~(s = Empty(N))’ 
+ >-- (rw[GSYM IN_NONEMPTY] >> 
+     qcases ‘Lez(Oz,a)’ (* 2 *)
+     >-- (arw[] >> qexistsl_tac [‘Abv(a)’,‘Oz’] >>
+         drule n2z_Abv >> arw[] >> 
+         rw[Oz_Mulz,Negz_Oz,Addz_Oz]) >> 
+     arw[] >> 
+     qby_tac ‘Ltz(Oz,Addz(a, Negz(Mulz(a, d))))’
+     >-- (qby_tac ‘Addz(a, Negz(Mulz(a, d))) = Mulz(a,Addz(int1,Negz(d)))’
+          >-- rw[GSYM Mulz_Negz,LDISTR_Z,Mulz_int1] >> arw[] >> 
+          irule Oz_Ltz_Mulz >> fs[NOT_Lez_Ltz] >> 
+          arw[GSYM Ltz_Addz_Negz]) >>
+     qexistsl_tac [‘Abv(Addz(a, Negz(Mulz(a, d))))’,‘a’] >>
+     drule Ltz_Lez >> drule n2z_Abv >> arw[]) >>
+ drule WOP'     >>
+ pop_assum strip_assume_tac >>
+ rfs[] >> qexistsl_tac [‘k’,‘Addz(a, Negz(Mulz(k, d)))’] >> 
+ qby_tac ‘Lez(Oz, Addz(a, Negz(Mulz(k, d))))’ 
+ >-- (qpick_x_assum ‘n2z(a0) = Addz(a, Negz(Mulz(k, d)))’ 
+      (assume_tac o GSYM) >> arw[n2z_Oz_Lez]) >>
+ arw[] >> once_rw[Addz_comm] >> rw[Addz_assoc,Negz_Addz_Oz,Addz_Oz] >>
+ rw[] >> once_rw[Addz_comm] >> ccontra_tac >>  
+ qabbrev_tac ‘Addz(a, Negz(Mulz(k, d))) = r’ >>  
+ fs[] >>
+ fs[GSYM NOT_Lez_Ltz] >>
+ qby_tac ‘Ltz(Oz,d)’ 
+ >-- (irule Ltz_int1_Ltz_Oz >> fs[NOT_Lez_Ltz]) >>
+ drule n2z_Abv >> fs[] >>  
+ drule $ iffLR Ltz_def >> pop_assum strip_assume_tac >>
+ drule n2z_Abv >> fs[] >>
+ qpick_x_assum ‘Lez(d, r)’ assume_tac >> 
+ drule Lez_Addz_ex >> 
+ pop_assum (x_choosel_then ["r'"] strip_assume_tac) >> 
+ qby_tac ‘Ltz(r',r)’ 
+ >-- (pop_assum (mp_tac o GSYM) >> once_rw[Addz_comm] >> strip_tac >> 
+     arw[] >> irule Oz_Ltz_Addz >> arw[]) >>
+ first_x_assum (qspecl_then [‘Abv(r')’] assume_tac) >>
+ qby_tac ‘a0 = Abv(r)’
+ >-- (irule n2z_is_Abv >> arw[]) >> fs[] >>
+ qsspecl_then [‘r’,‘r'’] assume_tac Le_Abv_Abv >>
+ rfs[] >> fs[] >> drule $ iffRL NOT_Lez_Ltz >>
+ drule n2z_Abv >> fs[] >>
+ qsuff_tac ‘r' = Addz(a,Negz(Mulz(Addz(k,int1),d)))’ 
+ >-- (strip_tac >> 
+      qby_tac ‘?k. r' = Addz(a, Negz(Mulz(k, d)))’ 
+      >-- (qexists_tac ‘Addz(k,int1)’ >> arw[]) >>
+      rfs[]) >> 
+ drule $ iffLR Addz_Rarr >> arw[] >>
+ qpick_x_assum ‘Addz(a, Negz(Mulz(k, d))) = r’
+ (assume_tac o GSYM) >>
+ arw[] >> rw[Addz_assoc,Addz_eq_eq,RDISTR_Z] >>
+ rw[GSYM Negz_Addz,Negz_eq_eq,Addz_eq_eq] >> 
+ once_rw[Mulz_comm] >> rw[Mulz_int1])
+(form_goal 
+“!a d:mem(Z). Ltz(int1,d) ==>
+  ?q r. a = Addz(Mulz(q,d),r) & 
+  Lez(Oz,r) & Ltz(r,n2z(Abv(d)))”));
+
+val Lez_cases = prove_store("Lez_cases",
+e0
+cheat
+(form_goal “!a b. Lez(a,b) <=> Ltz(a,b) | a = b”));
+
+
+val Lez_REFL = prove_store("Lez_REFL",
+e0
+cheat
+(form_goal “!z. Lez(z,z)”));
+
+val Oz_Lez_int1 = prove_store("Oz_Lez_int1",
+e0
+cheat
+(form_goal “Lez(Oz,int1)”));
+
+
+val Oz_Ltz_int1 = prove_store("Oz_Ltz_int1",
+e0
+cheat
+(form_goal “Ltz(Oz,int1)”));
+
+
+val division_theorem_ex1 = prove_store("division_theorem_ex1",
+e0
+(rpt strip_tac >> drule $ iffLR Lez_cases >> 
+ pop_assum strip_assume_tac
+ >-- (drule division_theorem_ex0 >> arw[]) >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ qexistsl_tac [‘a’,‘Oz’] >> rw[Mulz_int1,Addz_Oz,Lez_REFL] >>
+ assume_tac Oz_Lez_int1 >> drule n2z_Abv >> arw[] >>
+ rw[Oz_Ltz_int1])
+(form_goal 
+“!a d:mem(Z). Lez(int1,d) ==>
+  ?q r. a = Addz(Mulz(q,d),r) & 
+  Lez(Oz,r) & Ltz(r,n2z(Abv(d)))”));
+
+
+val Ltz_Negz = prove_store("Ltz_Negz",
+e0
+cheat
+(form_goal “Ltz(Negz(a),Negz(b)) <=> Ltz(b,a)”));
+ 
+val NEQ_Ltz = prove_store("NEQ_Ltz",
+e0
+cheat
+(form_goal 
+ “!a b. ~(a = b) <=> Ltz(a,b) | Ltz(b,a)”));
+
+val Ltz_iff_Lez_int1  = prove_store("Ltz_iff_Lez_int1",
+e0
+cheat
+(form_goal “Ltz(a,b) <=> Lez(Addz(a,int1),b)”));
+
+
+val Negz_Mulz_Negz = prove_store("Negz_Mulz_Negz",
+e0
+cheat
+(form_goal “!a b. Mulz(Negz(a),b) = Mulz(a,Negz(b))”));
+
+
+val n2z_Abv_Negz = prove_store("n2z_Abv_Negz",
+e0
+cheat
+(form_goal “!z.Lez(z,Oz) ==> n2z(Abv(z)) = Negz(z)”));
+
+
+val Oz_Addz = prove_store("Oz_Addz",
+e0
+cheat
+(form_goal “!z.Addz(Oz,z) = z”));
+
+val division_theorem_ex = prove_store("division_theorem_ex",
+e0
+(rpt strip_tac >> fs[NEQ_Ltz] 
+ >-- (fs[Ltz_iff_Lez_int1] >>
+     qby_tac ‘Lez(d,Negz(int1))’ 
+     >-- cheat >>
+     qby_tac ‘Lez(int1,Negz(d))’ 
+     >-- cheat >>
+     drule division_theorem_ex1 >> 
+     pop_assum strip_assume_tac >>
+     qexistsl_tac [‘Negz(q)’,‘r’] >> arw[Negz_Mulz_Negz] >>
+     qby_tac ‘Lez(d,Oz)’ >-- cheat >>
+     qby_tac ‘Lez(Oz,Negz(d))’ >-- cheat >>
+     drule n2z_Abv_Negz >> arw[] >>
+     qby_tac ‘n2z(Abv(Negz(d))) = Negz(d)’ 
+     >-- (irule n2z_Abv >> arw[]) >>
+     fs[] >> arw[GSYM Ltz_iff_Lez_int1]) >>
+ fs[Ltz_iff_Lez_int1,Oz_Addz] >> 
+ drule division_theorem_ex1 >> arw[GSYM Ltz_iff_Lez_int1])
+(form_goal 
+“!d:mem(Z). ~(d = Oz) ==>
+  !a.?q r. a = Addz(Mulz(q,d),r) & 
+  Lez(Oz,r) & Ltz(r,n2z(Abv(d)))”));
+
+
+val Addz_eq_eq' = prove_store("Addz_eq_eq'",
+e0
+cheat
+(form_goal 
+“!a b c.Addz(a,c) = Addz(b,c) <=> a = b”));
+
+
+val Mulz_eq_eq' = prove_store("Mulz_eq_eq'",
+e0
+cheat
+(form_goal 
+“!a b c.Mulz(a,c) = Mulz(b,c) <=> a = b”));
+
+ 
+val between_int1_Oz = prove_store("between_int1_Oz",
+e0
+cheat
+(form_goal “!z.Ltz(Negz(int1),z) & Ltz(z,int1) <=> z = Oz”));
+
+val Addz_Negz_Oz_eq = prove_store("Addz_Negz_Oz_eq",
+e0
+cheat
+(form_goal “!z1 z2.Addz(z1,Negz(z2)) = Oz <=> z1 = z2”));
+
+
+val Mulz_Ltz_Ltz = prove_store("Mulz_Ltz_Ltz",
+e0
+cheat
+(form_goal “!a.Ltz(Oz,a) ==> 
+ !b c. (Ltz(Mulz(a,b),Mulz(a,c)) <=> Ltz(b,c))”));
+
+
+
+
+val Ltz_Oz_Lez_int1 = prove_store("Ltz_Oz_Lez_int1",
+e0
+cheat
+(form_goal “!z.Ltz(Oz,z) <=> Lez(int1,z)”));
+
+val Addz_Rarr_both_sides =  prove_store("Addz_Rarr_both_sides",
+e0
+cheat
+(form_goal “!a b c d. 
+ Addz(a,b) = Addz(c,d) <=> Addz(d,Negz(b)) = Addz(a,Negz(c))”));
+
+
+
+val Lez_Ltz_Addz_Ltz = prove_store("Lez_Ltz_Addz_Ltz",
+e0
+cheat
+(form_goal “!a b. Lez(a,b) ==> !c d. Ltz(c,d) ==>
+ Ltz(Addz(a,c),Addz(b,d))”));
+
+val Lez_Negz = prove_store("Lez_Negz",
+e0
+cheat
+(form_goal “!a b. Lez(Negz(a),Negz(b)) <=> Lez(b,a)”));
+
+
+
+val division_theorem_unique0 = prove_store
+("division_theorem_unique0",
+e0
+(rpt gen_tac >> strip_tac >> rpt gen_tac >> strip_tac >>
+ qsuff_tac ‘q1 = q2’ 
+ >-- (rpt strip_tac >> arw[] >> 
+     fs[Addz_eq_eq,Mulz_eq_eq']) >>
+ flip_tac >>
+ irule $ iffLR Addz_Negz_Oz_eq >> irule $ iffLR between_int1_Oz >>
+ qsuff_tac 
+ ‘Ltz(Mulz(d,Negz(int1)),Mulz(d, Addz(q2, Negz(q1)))) & 
+  Ltz(Mulz(d,Addz(q2, Negz(q1))),Mulz(d,int1))’ 
+ >-- (fs[GSYM Ltz_Oz_Lez_int1] >> 
+     drule Mulz_Ltz_Ltz >> arw[]) >>
+ drule $ iffRL Ltz_Oz_Lez_int1 >> drule $ iffLR Ltz_def >>
+ pop_assum strip_assume_tac >>
+ drule n2z_Abv >> fs[] >>
+ rw[Mulz_int1,Mulz_Negz] >> 
+ qby_tac ‘Addz(r1,Negz(r2)) = Addz(Mulz(q2, d),Negz(Mulz(q1,d))) ’
+ >-- (rw[GSYM Addz_Rarr_both_sides] >> arw[]) >>
+ qby_tac ‘Ltz(Negz(d),Negz(r2))’ 
+ >-- arw[Ltz_Negz] >> 
+ fs[GSYM RDISTR_Z,GSYM Negz_Mulz] >> once_rw[Mulz_comm] >>
+ qpick_x_assum 
+ ‘Addz(r1, Negz(r2)) = Mulz(Addz(q2, Negz(q1)), d)’
+ (assume_tac o GSYM) >> arw[] >>
+ qsuff_tac
+ ‘Ltz(Addz(Oz,Negz(d)), Addz(r1, Negz(r2))) & 
+  Ltz(Addz(r1, Negz(r2)), Addz(d,Oz))’
+ >-- rw[Oz_Addz,Addz_Oz] >> 
+ strip_tac (* 2 *)
+ >-- (irule Lez_Ltz_Addz_Ltz >> arw[Ltz_Negz]) >>
+ once_rw[Addz_comm] >>
+ irule Lez_Ltz_Addz_Ltz >> arw[] >>
+ once_rw[GSYM Negz_Oz] >> arw[Lez_Negz])
+(form_goal 
+ “!a d:mem(Z). 
+  Lez(int1,d) ==>
+  !q1 r1 q2 r2. 
+  a = Addz(Mulz(q1,d),r1) & 
+  Lez(Oz,r1) & Ltz(r1,n2z(Abv(d))) & 
+  a = Addz(Mulz(q2,d),r2) & 
+  Lez(Oz,r2) & Ltz(r2,n2z(Abv(d))) ==>
+  q1 = q2 & r1 = r2”));
+
+
+val Mulz_Negz_Negz = prove_store("Mulz_Negz_Negz",
+e0
+cheat
+(form_goal “!a b. Mulz(Negz(a),Negz(b)) = Mulz(a,b)”));
+
+
+val Abv_Negz = prove_store("Abv_Negz",
+e0
+cheat
+(form_goal “!z. Abv(Negz(z)) = Abv(z)”));
+
+val division_theorem_unique1 = prove_store
+("division_theorem_unique1",
+e0
+(rpt gen_tac >> strip_tac >> rpt gen_tac >> strip_tac >>
+ drule $ iffLR NEQ_Ltz >>
+ pop_assum strip_assume_tac (* 2 *)
+ >-- (qby_tac ‘Lez(int1,Negz(d))’ >-- cheat >>
+     drule division_theorem_unique0 >>
+     first_x_assum 
+     (qspecl_then [‘Negz(q1)’,‘r1’,‘Negz(q2)’,‘r2’] strip_assume_tac) >>
+     qsuff_tac ‘Negz(q1) = Negz(q2) & r1 = r2’ 
+     >-- (rw[Negz_eq_eq] >> strip_tac >> arw[]) >>
+     first_x_assum irule >> arw[Mulz_Negz_Negz] >>
+     qpick_x_assum ‘a = Addz(Mulz(q2, d), r2)’ 
+     (assume_tac o GSYM) >> arw[] >>
+     arw[Abv_Negz]) >>
+ qby_tac ‘Lez(int1,d)’ 
+ >-- cheat >>
+ drule division_theorem_unique0 >>
+ qsuff_tac ‘q1 = q2 & r1 = r2’ 
+ >-- (strip_tac >> arw[]) >>
+ first_x_assum irule >> arw[] >>
+ fs[]) 
+(form_goal 
+ “!a d:mem(Z). 
+  ~(d = Oz) ==>
+  !q1 r1 q2 r2. 
+  a = Addz(Mulz(q1,d),r1) & 
+  Lez(Oz,r1) & Ltz(r1,n2z(Abv(d))) & 
+  a = Addz(Mulz(q2,d),r2) & 
+  Lez(Oz,r2) & Ltz(r2,n2z(Abv(d))) ==>
+  q1 = q2 & r1 = r2”));
+
+
+
+val division_theorem = prove_store("division_theorem",
+e0
+(rpt strip_tac >>
+ uex_tac >> fconv_tac exists_cross_fconv >> 
+ rw[Pair_def'] >> 
+ fconv_tac (redepth_fconv no_conv forall_cross_fconv) >>
+ rw[Pair_def'] >>
+ drule division_theorem_ex >>
+ first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+ qexistsl_tac [‘q’,‘r’] >>
+ arw[] >> rpt strip_tac >>
+ rw[Pair_eq_eq] >> drule division_theorem_unique1 >>
+ first_x_assum irule >> arw[])
+(form_goal 
+“!a d:mem(Z).~(d = Oz) ==>
+  ?!qr:mem(Z * Z). a = Addz(Mulz(Fst(qr),d),Snd(qr)) & 
+  Lez(Oz,Snd(qr)) & Ltz(Snd(qr),n2z(Abv(d)))”));
+
+
+

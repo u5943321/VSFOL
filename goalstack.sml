@@ -117,6 +117,9 @@ fun find_th str =
 fun find_exact_th str = 
     (Binarymap.peek(!ThmDB,str))
 
+(*TODO: tmatch_th and fmatch_th*)
+
+
 fun prove_store (n,g0) = 
     let 
         val th = proved_th g0
