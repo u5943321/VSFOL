@@ -1368,7 +1368,8 @@ e0
 
 val RDISTR_Z = prove_store("RDISTR_Z",
 e0
-(cheat)
+(rpt strip_tac >>
+ once_rw[Mulz_comm] >> rw[LDISTR_Z])
 (form_goal
  “!z1 z2 z3. Mulz(Addz(z2,z3),z1) = Addz(Mulz(z2,z1),Mulz(z3,z1))”));
 
@@ -2012,11 +2013,6 @@ val Ltz_def = qdefine_psym("Ltz",[‘a:mem(Z)’,‘b:mem(Z)’])
 ‘Lez(a,b) & ~(a = b)’ |> gen_all
 
 
-val N2Z_Inj = prove_store("N2Z_Inj",
-e0
-(cheat)
-(form_goal “Inj(N2Z)”));
-
 
 val Asz_eq_eq_r = prove_store("Asz_eq_eq_r",
 e0
@@ -2031,10 +2027,27 @@ e0
  rw[Add_eq_eq_l])
 (form_goal “!a b c.Asz(a,c) = Asz(b,c) <=> a = b”));
 
-val Repz_eq_eq_iff = prove_store("Repz_eq_eq_iff",
+
+
+val N2Z_Inj = prove_store("N2Z_Inj",
 e0
-(cheat)
-(form_goal “!a b.Repz(a) = Repz(b) <=> a = b”));
+(rw[Inj_def,N2Z_def,Asz_eq_eq_l])
+(form_goal “Inj(N2Z)”));
+
+(*give a imp theorem automatically drive trivial direction by substitution*)
+
+fun prove_dimp_th th = 
+    let val c = concl th
+        val (l,r) = dest_imp c
+        val r2l = basic_fconv (rewr_conv (assume r)) no_fconv l
+                              |> rewr_rule[]
+                              |> disch r
+    in dimpI th r2l 
+    end
+
+
+val Repz_eq_eq_iff = prove_dimp_th (spec_all Repz_eq_eq)
+|> store_as "Repz_eq_eq_iff";
 
 val Abv_positive_ex0 = proved_th $
 e0
@@ -2045,6 +2058,38 @@ e0
  first_x_assum (qspecl_then [‘O’,‘O’,‘a’,‘b’] assume_tac) >>
  fs[Add_O2,Oz_def])
 (form_goal “!z. Lez(Oz,z) ==> ?n. Asz(n,O) = z”)
+
+
+val Lez_Negz = prove_store("Lez_Negz",
+e0
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ rw[Negz_Asz] >> rpt strip_tac >>
+ rw[Lez_Asz] >> 
+ fconv_tac 
+ (rand_fconv no_conv
+  (once_depth_fconv (rewr_conv (spec_all Add_comm)) no_fconv)) >>
+ rw[])
+(form_goal “!a b. Lez(Negz(a),Negz(b)) <=> Lez(b,a)”));
+
+
+val Negz_eq_eq = prove_store("Negz_eq_eq",
+e0
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ rw[Negz_Asz] >> rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (qby_tac ‘Negz(Asz(b, a)) = Negz(Asz(b', a'))’ 
+     >-- arw[] >>
+     fs[Negz_Asz]) >>
+ qby_tac ‘Negz(Asz(a, b)) = Negz(Asz(a', b'))’ 
+ >-- arw[] >>
+ fs[Negz_Asz])
+(form_goal “!a b. Negz(a) = Negz(b) <=> a = b”));
+ 
+
+val Negz_Oz = prove_store("Negz_Oz",
+e0
+(rw[Oz_def,Negz_Asz])
+(form_goal “Negz(Oz) = Oz”));
+
 
 
 val Abv_negative_ex0 = proved_th $
@@ -2064,6 +2109,13 @@ val Lez_dichotomy = prove_store("Lez_dichotomy",
 e0
 cheat
 (form_goal “!a b.Lez(a,b) | Lez(b,a)”));
+
+
+val NOT_Lez_Ltz = prove_store("NOT_Lez_Ltz",
+e0
+cheat
+(form_goal “!a b. ~Lez(a,b) <=> Ltz(b,a)”));
+
 
 val Abv_def = proved_th $
 e0
@@ -2119,12 +2171,6 @@ e0
 (form_goal “!z.Mulz(Oz, z) = Oz”));
 
 
-val Negz_Oz = prove_store("Negz_Oz",
-e0
-(cheat)
-(form_goal “Negz(Oz) = Oz”));
-
-
 val Addz_Oz = prove_store("Addz_Oz",
 e0
 (cheat)
@@ -2138,6 +2184,11 @@ cheat
 
 
 val int1_def = qdefine_fsym("int1",[]) ‘n2z(Suc(O))’
+
+val int1_NONZERO = prove_store("int1_NONZERO",
+e0
+cheat
+(form_goal “~(int1 = Oz)”));
  
 val Negz_Mulz = prove_store("Negz_Mulz",
 e0
@@ -2153,11 +2204,6 @@ val Mulz_int1 = prove_store("Mulz_int1",
 e0
 cheat
 (form_goal “!a.Mulz(a,int1) = a”))
-
-val NOT_Lez_Ltz = prove_store("NOT_Lez_Ltz",
-e0
-cheat
-(form_goal “!a b. ~Lez(a,b) <=> Ltz(b,a)”));
 
 val Ltz_Addz_Negz = prove_store("Ltz_Addz_Negz",
 e0
@@ -2269,12 +2315,6 @@ e0
 cheat
 (form_goal “!a b. Negz(Addz(a,b)) = Addz(Negz(a),Negz(b))”));
 
-
-val Negz_eq_eq = prove_store("Negz_eq_eq",
-e0
-cheat
-(form_goal “!a b. Negz(a) = Negz(b) <=> a = b”));
- 
 
 val Lez_cases = prove_store("Lez_cases",
 e0
@@ -2390,11 +2430,6 @@ e0
 cheat
 (form_goal “!a b. Lez(a,b) ==> !c d. Ltz(c,d) ==>
  Ltz(Addz(a,c),Addz(b,d))”));
-
-val Lez_Negz = prove_store("Lez_Negz",
-e0
-cheat
-(form_goal “!a b. Lez(Negz(a),Negz(b)) <=> Lez(b,a)”));
 
 
 val Mulz_Negz_Negz = prove_store("Mulz_Negz_Negz",

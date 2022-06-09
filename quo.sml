@@ -870,7 +870,17 @@ IN(abs(r,i,q0,ra),s)”));
 
 val Quot_el_same = prove_store("Quot_el_same",
 e0
-(cheat)
+(rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] (* 2 *) >-- (qsspecl_then [‘r’,‘i’] assume_tac ER_Quot_nonempty >>
+     rfs[] >>
+     first_x_assum (qsspecl_then [‘q2’] assume_tac) >>
+     fs[] >> qexistsl_tac [‘a’,‘a’] >> arw[] >>
+     fs[ER_def,Refl_def]) >>
+ drule rsi_eq_ER >>
+ first_x_assum (drule o iffRL) >>
+ drule ER_Quot_rsi_char >>
+ first_x_assum drule >> fs[] >>
+ irule $ iffLR Inj_eq_eq >>
+ qexistsl_tac [‘Pow(A)’,‘i’] >> fs[Quot_def])
 (form_goal
  “!A r:A~>A.
     ER(r) ==> 
@@ -882,3 +892,40 @@ e0
                 IN(a2,App(i,q2)) & 
                 Holds(r,a1,a2)
   ”));
+
+
+
+
+val ER_Quot_has_mem = prove_store("ER_Quot_has_mem",
+e0
+(rpt strip_tac >> 
+ fs[Quot_def] >>
+ first_x_assum (qsspecl_then [‘rsi(r,a)’] assume_tac) >>
+ qby_tac ‘?a'. rsi(r,a) = rsi(r,a')’ 
+ >-- (qexists_tac ‘a’ >> rw[]) >> 
+ first_x_assum (drule o iffRL) >>
+ pop_assum strip_assume_tac >> qexists_tac ‘q’ >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ irule ER_rsi_nonempty >> arw[])
+(form_goal
+ “∀A r:A~>A Q i:Q-> Pow(A).ER(r) & Quot(r,i) ==>
+ !a. ?q. IN(a,App(i,q))”));
+
+
+val ER_Quot_has_umem = prove_store("ER_Quot_has_umem",
+e0
+(rpt strip_tac >> 
+ qby_tac ‘?q. IN(a, App(i,q))’ 
+ >-- (irule ER_Quot_has_mem >> 
+     qexists_tac ‘r’ >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ uex_tac >> qexists_tac ‘q’ >> arw[] >> 
+ rpt strip_tac >>
+ drule Quot_el_same >>
+ first_x_assum drule >>
+ arw[] >>
+ qexistsl_tac [‘a’,‘a’] >> fs[ER_def,Refl_def])
+(form_goal
+ “∀A r:A~>A Q i:Q-> Pow(A).ER(r) & Quot(r,i) ==>
+ !a. ?!q. IN(a,App(i,q))”));
+

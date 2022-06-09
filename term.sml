@@ -327,7 +327,8 @@ and match_tl nss l1 l2 env =
     case (l1,l2) of 
         ([],[]) => env
       | (h1 :: t1,h2 :: t2) => 
-        match_tl nss t1 t2 (match_term nss h1 h2 env)
+        (*match_tl nss t1 t2 (match_term nss h1 h2 env)*)
+        match_term nss h1 h2 (match_tl nss t1 t2 env)
       | _ => raise TER ("match_sort.incorrect length of list",[],[])
 
 
