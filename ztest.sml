@@ -2207,7 +2207,26 @@ e0
  >-- arw[GSYM Lt_Sub_O] >>
  qsuff_tac
  ‘Lt(Mul(a,Sub(b',a')), Mul(b,Sub(b',a')))’ 
- >-- cheat >> cheat)
+ >-- (rw[LEFT_SUB_DISTR] >>   
+     qsspecl_then [‘Sub(Mul(a, b'), Mul(a, a'))’,‘Sub(Mul(b, b'), Mul(b, a'))’,
+                   ‘Add(Mul(a,a'),Mul(b,a'))’]
+     assume_tac LESS_MONO_ADD >>
+     arw[] >> rw[Add_assoc] >>
+     qby_tac ‘Add(Sub(Mul(a, b'), Mul(a, a')), Mul(a, a')) = Mul(a,b')’ 
+     >-- (irule SUB_ADD >> irule Le_MONO_Mul2 >>
+         fs[Lt_def,Le_refl]) >>
+     arw[] >> rw[GSYM Add_assoc] >>
+     qsspecl_then [‘Mul(b, a')’,‘Mul(a,a')’] assume_tac Add_comm >> arw[] >>
+     rw[Add_assoc] >>
+     qby_tac ‘Add(Sub(Mul(b, b'), Mul(b, a')), Mul(b, a')) = Mul(b,b')’
+     >-- (irule SUB_ADD >> irule Le_MONO_Mul2 >>
+         fs[Lt_def,Le_refl]) >>
+     arw[] >>
+     qsspecl_then [‘Mul(b,b')’,‘Mul(a,a')’] assume_tac Add_comm >> arw[]) >>
+ qsspecl_then [‘a'’,‘b'’] assume_tac Lt_Sub_O >>
+ rfs[] >>
+ drule Lt_MONO_Mul >>
+ first_x_assum rev_drule >> arw[])
 (form_goal “!a b. Ltz(a,Oz) & Ltz(b,Oz) ==> Ltz(Oz,Mulz(a,b))”));
 
 

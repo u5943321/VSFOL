@@ -1799,4 +1799,3 @@ e0
  arw[] >> ccontra_tac >> fs[Le_cases_iff])
 (form_goal “!a b. Lt(a,b) <=> Lt(O,Sub(b,a))”));
 
-
