@@ -1,0 +1,106 @@
+(*
+If !a. P(a) ==> ?!x1 ... xn:mem(A_1 * ... * A_n). a = constr(x1,...,xn)
+
+then for every b0:mem(B), ?!f:A->B.
+ !a. P(a) ==> !x1 ... xn. a = constr(x1,...,xn) ==> App(f,a) = 
+
+need notion of sequence uex
+*)
+
+
+val th0 = proved_th $
+e0
+cheat
+(form_goal “!k:mem(K). P(k) ==> ?a:mem(A) b:mem(B). k = App(mk,Pair(a,b)) &
+ !a1 b1. k = App(mk,Pair(a1,b1)) ==> a1 = a & b1 = b”) 
+
+
+(* want output to be 
+ !X x0 g0:A * B ->X. ?!g:K ->X. 
+ !k. P(k) ==> !a b. k = App(f,Pair(a,b)) ==> App(g,k) = App(g0,Pair(a,b))
+     ELSE ==> App(g,k) = x0
+
+“”
+“k = App(f, Pair(a,b))”
+
+ !. ?!
+
+
+if exist unique a b, then exists a function K -> K * A * B?
+
+declare the function constant locally?
+*)
+
+
+(*need a function takes 
+ !k. P(k) ==> ?!x. Q(x) 
+ and a x0.
+produce a function 
+ !k. P(k) ==> Q(App(f,k)) &
+     ~P(k) ==> App(f,k) = x0
+
+but not applied here, since then we need choose base point and the defined whole function will have extra parameters.
+
+*)
+
+
+(*content*)
+val content_def = proved_th $
+e0
+cheat
+(form_goal 
+ “!X x0.?!f:Pow(X) ->X. 
+  !s x. s = Sing(x) ==> App(f,s) = x &
+        (!x. ~(s = Sing(x)) ==> App(f,s) = x0)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "content" [‘x0’] 
+|> gen_all 
+
+val content_Sing = content_def 
+|> qsspecl [‘x0:mem(X)’,‘Sing(x:mem(X))’,‘x:mem(X)’]
+|> rewr_rule[] |> qgenl [‘X’,‘x0’,‘x’] 
+
+val th0 = proved_th $
+e0
+cheat
+(form_goal “!k:mem(K). P(k) ==> ?!ab:mem(A*B). k = App(mk,ab)”) 
+
+K * X * A * B -> X
+
+K -> K * X * A * B
+
+Pow(X) -> X. 
+if singleton then content, else x0
+
+
+P(k,
+
+k defined a subset of K * X * A * B such that 
+k = App(mk,ab) & x = App(g0,ab)
+
+\k. content(IMAGE(f,ambset(k)))
+
+
+K -> A * B
+
+“!k ab.  k = App(mk,ab) ==> App(f,k) = App(f0,ab)
+    
+           ”
+
+let the image of
+
+“!k. P(k) ==> ?!x. ?ab. k = App(mk,ab) & x = App(g0,ab)”
+     ~P(k) ==> App(f,k) = x0.
+
+
+“!k. ?!kab. Fst(kab) = k & k = App()”
+
+val f0 =
+“!kab:mem(K * A * B). 
+  (Fst(kab) = App(mk,Snd(kab)) ==>
+  App(f, kab) = App(g0,Snd(kab))) & 
+  (ELSE ==> App(f,kab) = x0:mem(X))”
+
+val f1 = normalise_lambda_input f0
+
+val 
+

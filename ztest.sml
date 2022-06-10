@@ -1366,13 +1366,6 @@ e0
 
 
 
-val RDISTR_Z = prove_store("RDISTR_Z",
-e0
-(rpt strip_tac >>
- once_rw[Mulz_comm] >> rw[LDISTR_Z])
-(form_goal
- “!z1 z2 z3. Mulz(Addz(z2,z3),z1) = Addz(Mulz(z2,z1),Mulz(z3,z1))”));
-
 (*[a, b].1Z = [a, b]*)
 
 val Mulz_Ez = prove_store("Mulz_Ez",
@@ -1404,6 +1397,14 @@ e0
  qspecl_then [‘c’,‘b’] assume_tac Mul_comm >> arw[] >>
  qspecl_then [‘Mul(d, a)’,‘Mul(b, c)’] assume_tac Add_comm >> arw[])
 (form_goal “!z1 z2. Mulz(z1,z2) = Mulz(z2,z1)”));
+
+
+val RDISTR_Z = prove_store("RDISTR_Z",
+e0
+(rpt strip_tac >>
+ once_rw[Mulz_comm] >> rw[LDISTR_Z])
+(form_goal
+ “!z1 z2 z3. Mulz(Addz(z2,z3),z1) = Addz(Mulz(z2,z1),Mulz(z3,z1))”));
 
 
 (*[a,b]≤[c,d] ⇔ a+d≤b+c (⇔ ⟨a,b⟩≤⟨c,d⟩).*)
@@ -2107,13 +2108,29 @@ e0
 
 val Lez_dichotomy = prove_store("Lez_dichotomy",
 e0
-cheat
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >> 
+ rw[Lez_Asz] >> rpt strip_tac >>
+ fconv_tac 
+ (rand_fconv no_conv
+  (once_depth_fconv (rewr_conv (spec_all Add_comm)) no_fconv))>>
+ rw[LESS_EQ_cases])
 (form_goal “!a b.Lez(a,b) | Lez(b,a)”));
+
+val Ltz_Asz = prove_store("Ltz_Asz",
+e0
+(rw[Ltz_def,Lez_Asz,Asz_eq_ZR,ZR_def,Lt_def] >>  
+ qsspecl_then [‘b’,‘c’] assume_tac Add_comm >> arw[])
+(form_goal “Ltz(Asz(a,b),Asz(c,d)) <=> Lt(Add(a,d),Add(b,c))”));
 
 
 val NOT_Lez_Ltz = prove_store("NOT_Lez_Ltz",
 e0
-cheat
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ rw[Lez_Asz,Ltz_Asz] >> rpt strip_tac >> 
+  fconv_tac 
+ (rand_fconv no_conv
+  (once_depth_fconv (rewr_conv (spec_all Add_comm)) no_fconv))>> 
+ rw[GSYM NOT_LESS])
 (form_goal “!a b. ~Lez(a,b) <=> Ltz(b,a)”));
 
 
@@ -2131,16 +2148,19 @@ e0
  rpt strip_tac >>
  irule $ iffLR Asz_eq_eq_r >> qexists_tac ‘O’ >> arw[])
 (form_goal 
- “!z. ?!n. (Lez(Oz,z) & z = Asz(n,O)) | 
-           (Ltz(z,Oz) & z = Asz(O,n))”)
+ “!z. ?!n. (Lez(Oz,z) &  Asz(n,O) = z) | 
+           (Ltz(z,Oz) &  Asz(O,n) = z)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "Abv" [‘z’] 
 |> gen_all
 
 val Abv_nonneg = prove_store("Abv_nonneg",
 e0
-cheat
+(rpt strip_tac >>
+ qsspecl_then [‘z’] assume_tac Abv_def >>
+ pop_assum strip_assume_tac >>
+ fs[GSYM NOT_Lez_Ltz])
 (form_goal 
- “!z. Lez(Oz,z) ==> z = Asz(Abv(z),O) ”));
+ “!z. Lez(Oz,z) ==> Asz(Abv(z),O) = z”));
 
 
 val WOP' = prove_store("WOP'",
@@ -2162,24 +2182,32 @@ e0
 
 val n2z_Abv = prove_store("n2z_Abv",
 e0
-cheat
+(rpt strip_tac >> rw[n2z_def,N2Z_def] >>
+ irule Abv_nonneg >> arw[])
 (form_goal “!a.Lez(Oz, a) ==> n2z(Abv(a)) = a”));
 
 val Oz_Mulz = prove_store("Oz_Mulz",
 e0
-(cheat)
+(casez_tac >> rw[Oz_def,Mulz_Asz,Mul_clauses,Add_clauses])
 (form_goal “!z.Mulz(Oz, z) = Oz”));
 
 
 val Addz_Oz = prove_store("Addz_Oz",
 e0
-(cheat)
+(casez_tac >> rw[Addz_Asz,Oz_def,Add_clauses])
 (form_goal “!z.Addz(z,Oz) = z”));
 
 (*ZERO_LESS_MULT as for num*)
 val Oz_Ltz_Mulz = prove_store("Oz_Ltz_Mulz",
 e0
-cheat
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >> rw[Oz_def] >>
+ rw[Mulz_Asz,Ltz_Asz,Add_clauses,Mul_clauses] >>
+ rpt strip_tac >>
+ qby_tac ‘Lt(O,Sub(b',a'))’ 
+ >-- arw[GSYM Lt_Sub_O] >>
+ qsuff_tac
+ ‘Lt(Mul(a,Sub(b',a')), Mul(b,Sub(b',a')))’ 
+ >-- cheat >> cheat)
 (form_goal “!a b. Ltz(a,Oz) & Ltz(b,Oz) ==> Ltz(Oz,Mulz(a,b))”));
 
 

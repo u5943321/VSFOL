@@ -1506,7 +1506,122 @@ e0
 (form_goal
  “!n. ~(Lt(Suc(n),O))”));
 
-val Lt_MONO = LESS_MONO_EQ |> store_as "Lt_MONO"; 
+val Lt_MONO = LESS_MONO_EQ |> store_as "Lt_MONO";
+
+val Lt_trichotomy = prove_store("Lt_trichotomy",
+e0
+(rpt strip_tac >>
+ qcases ‘Lt(a,b)’ >> arw[] >>
+ qsspecl_then [‘a’,‘b’] assume_tac LESS_cases >> rfs[] >>
+ drule Le_cases >> pop_assum strip_assume_tac >> arw[])
+(form_goal “!a b. Lt(a,b) | a = b | Lt(b,a)”));
+
+val NEQ_O_Lt = prove_store("NEQ_O_Lt",
+e0
+(strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (fs[O_xor_Suc] >> 
+     qsspecl_then [‘O’,‘Suc(pn)’] assume_tac Lt_trichotomy >>
+     fs[GSYM Suc_NONZERO,NOT_SUC_LT_O]) >>
+ fs[Lt_def] >> ccontra_tac >> fs[])
+(form_goal “!a. ~(a = O) <=> Lt(O,a)”));
+
+
+val Add_eq_O = prove_store("Add_eq_O",
+e0
+(rw[Lt_def,NOT_SUC_LESS_EQ_O] >>
+ rpt strip_tac >> dimp_tac >> strip_tac >> arw[Add_clauses] >>
+ qcases ‘m = O’ >> qcases ‘n = O’ >> fs[Add_clauses] >>
+ fs[NEQ_O_Lt] >>
+ qsspecl_then [‘O’,‘n’,‘m’] assume_tac LESS_MONO_ADD >>
+ rfs[Add_clauses] >> 
+ qsspecl_then [‘O’,‘m’,‘Add(n,m)’] assume_tac Lt_trans >>
+ rfs[] >> fs[Lt_def] >>
+ qsspecl_then [‘n’,‘m’] assume_tac Add_comm >> fs[] >> rfs[])
+(form_goal
+ “!m n. Add(m,n) = O <=> m = O & n = O”));
+
+val MULT_MONO_EQ = prove_store("MULT_MONO_EQ",
+e0
+((*rw[Mul_clauses] >> Nind_tac >> strip_tac (* 2 *)
+ >-- (rw[Mul_clauses,Add_clauses] >> rpt strip_tac >>
+     dimp_tac >> strip_tac >> arw[] (* 2 *)
+     >-- (pop_assum (assume_tac o GSYM) >>
+         fs[Add_eq_O]) >>
+     pop_assum (assume_tac o GSYM) >> arw[] >>
+     rw[Add_clauses,Mul_clauses]) >>
+ strip_tac >> strip_tac >>
+ rw[Mul_clauses]
+ Nind_tac >> rw[Mul_clauses,Add_clauses] >>
+ rpt strip_tac *) cheat
+ )
+(form_goal
+ “!m i n. Mul(Suc(n),m) = Mul(Suc(n),i) <=> m = i”));
+
+
+val Mul_eq_O = prove_store("Mul_eq_O",
+e0
+(Nind_tac >> rw[Mul_clauses,Suc_NONZERO] >>
+ rpt strip_tac >>
+ rw[Add_eq_O] >> dimp_tac >> strip_tac >> arw[Mul_clauses])
+(form_goal “!a. ~(a = O) ==>
+ !b. Mul(a,b) = O <=> b = O”));
+
+
+val Sub_Sub_O_eq = prove_store("Sub_Sub_O_eq",
+e0
+(rw[GSYM Le_def] >> rw[Le_Asym])
+(form_goal “!a b. Sub(a,b) = O & Sub(b,a) = O ==>
+ a = b”));
+
+val MULT_MONO_EQ = prove_store("MULT_MONO_EQ",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ irule Sub_Sub_O_eq >> strip_tac (* 2 *)
+ >-- (irule $ iffLR Mul_eq_O >>
+     qexists_tac ‘Suc(n)’ >> rw[Suc_NONZERO] >>
+     qsspecl_then [‘Mul(Suc(n), i)’] assume_tac Sub_EQ_O >>
+     qby_tac ‘Sub(Mul(Suc(n), m), Mul(Suc(n), i)) = O’
+     >-- arw[] >>
+     pop_assum mp_tac>> rw[GSYM LEFT_SUB_DISTR]) >>
+ irule $ iffLR Mul_eq_O >>
+ qexists_tac ‘Suc(n)’ >> rw[Suc_NONZERO] >>
+ qsspecl_then [‘Mul(Suc(n), i)’] assume_tac Sub_EQ_O >>
+ qby_tac ‘Sub(Mul(Suc(n), i), Mul(Suc(n), m)) = O’
+ >-- arw[] >>
+ pop_assum mp_tac>> rw[GSYM LEFT_SUB_DISTR])
+(form_goal
+ “!n m i. Mul(Suc(n),m) = Mul(Suc(n),i) <=> m = i”));
+
+
+val Mul_eq_eq_l = prove_store("Mul_eq_eq_l",
+e0
+((*strip_tac >> strip_tac >> Nind_tac >> 
+ rw[Mul_O,Mul_Suc] >> rpt strip_tac >> 
+ qcases ‘n' = O’ (* 2 *)
+ >-- arw[Mul_O,Add_O2] >>
+ first_x_assum drule >> pop_assum (assume_tac o GSYM) >>
+ arw[] >> dimp_tac >> strip_tac (* 2 *)
+ arw[Suc_eq_eq] *) cheat)
+(form_goal “!m n p. ~(p = O) ==>
+ (Mul(m, p) = Mul(n, p) <=> m = n)”));
+
+
+val Lt_MONO_Mul = prove_store("Lt_MONO_Mul",
+e0
+(rpt strip_tac >>
+ rw[Lt_def] >> strip_tac (* 2 *)
+ >-- (irule Le_MONO_Mul' >> fs[Lt_def]) >>
+ fs[GSYM NEQ_O_Lt,O_xor_Suc] >>
+ once_rw[Mul_comm] >>
+ rw[MULT_MONO_EQ] >> fs[Lt_def])
+(form_goal “!p. Lt(O,p) ==> !m n. Lt(m,n) ==> Lt(Mul(m,p),Mul(n,p))”));
+
+
+val Lt_MONO_Mul2 =  prove_store("Le_MONO_Mul2",
+e0
+(cheat)
+(form_goal “!m n i j. Lt(m,i) & Lt(n,j) ==> Lt(Mul(m,n),Mul(i,j))”));
+
 
 
 val NOT_LESS = prove_store("NOT_LESS",
@@ -1644,5 +1759,11 @@ e0
 (once_rw[Add_comm] >> rw[Add_eq_eq_l])
 (form_goal “!a m n.Add(a,m) = Add(a,n) <=> m = n”));
 
+
+
+val Lt_Sub_O = prove_store("Lt_Sub_O",
+e0
+cheat
+(form_goal “!a b. Lt(a,b) <=> Lt(O,Sub(b,a))”));
 
 
