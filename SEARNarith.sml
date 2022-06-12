@@ -1876,7 +1876,7 @@ e0
  “!a b c d.Le(a,b) & Le(c,d) ==> Le(Add(a,c),Add(b,d))”));
 
 
-val Le_MONO_Add2 = prove_store("Le_MONO_Add2",
+val Le_Lt_Lt_MONO_Add2 = prove_store("Le_Lt_Lt_MONO_Add2",
 e0
 (rpt strip_tac >> irule Le_Lt_Lt >>
  qexists_tac ‘Add(b,c)’ >> arw[LESS_EQ_MONO_ADD_EQ] >>

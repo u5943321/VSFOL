@@ -2399,13 +2399,36 @@ cheat
 
 val Lez_Ltz_TRANS_Ltz = prove_store("Lez_Ltz_TRANS_Ltz",
 e0
-cheat
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ rw[Lez_Asz] >> rpt gen_tac >> disch_tac >> casez_tac >>
+ rw[Ltz_Asz] >> rpt strip_tac >>
+ qsspecl_then [‘Add(a, b')’,‘Add(b, a')’,‘Add(a', b'')’,‘Add(b', a'')’] 
+ assume_tac Le_Lt_Lt_MONO_Add2 >> rfs[] >> 
+ qsuff_tac
+ ‘Add(Add(a, b'), Add(a', b'')) = Add(Add(a, b''),Add(a', b')) &
+  Add(Add(b, a'), Add(b', a'')) = Add(Add(b, a''),Add(a', b'))’
+ >-- (strip_tac >> fs[GSYM LESS_MONO_ADD]) >>
+ strip_tac (* 2 *) 
+ >-- (qsspecl_then [‘Add(a',b')’,‘Add(a,b'')’] assume_tac Add_comm >> arw[] >>
+     rw[GSYM Add_assoc] >>
+     qsspecl_then [‘a’,‘b'’,‘a'’,‘b''’] assume_tac Add_split_middle >>
+     arw[] >> 
+     qsspecl_then [‘ Add(Add(b', a'), b'')’,‘a’] assume_tac Add_comm >>
+     arw[] >>
+     qsspecl_then [‘a'’,‘b'’] assume_tac Add_comm >> arw[] >>
+     qsspecl_then [‘b''’,‘a’] assume_tac Add_comm >> arw[] >>
+     rw[GSYM Add_assoc]) >>
+ rw[GSYM Add_assoc] >> once_rw[Add_comm] >>
+ rw[EQ_MONO_ADD_EQ] >>
+ qsspecl_then [‘Add(a',b')’,‘a''’] assume_tac Add_comm >> 
+ arw[GSYM Add_assoc])
 (form_goal “!a b. Lez(a,b) ==> !c. Ltz(b,c) ==> Ltz(a,c)”));
 
 
 val Ltz_trans = prove_store("Ltz_trans",
 e0
-cheat
+(rpt strip_tac >> rev_drule Ltz_Lez >>
+ drule Lez_Ltz_TRANS_Ltz >> first_x_assum drule >> arw[])
 (form_goal “!a b. Ltz(a,b) ==> !c. Ltz(b,c) ==> Ltz(a,c)”));
 
 (*similar for cases like option constructors, and i12, need a little tool for such theorems directly 
@@ -2414,36 +2437,63 @@ conv_rule (once_depth_fconv no_conv neg_fconv)  ?*)
 
 val NOT_Ltz_Lez = prove_store("NOT_Ltz_Lez",
 e0
-cheat
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ rw[Lez_Asz,Ltz_Asz] >> rpt strip_tac  >>
+ qsspecl_then [‘a'’,‘b’] assume_tac Add_comm >> 
+ qsspecl_then [‘a’,‘b'’] assume_tac Add_comm >> arw[] >>
+ rw[GSYM NOT_LESS_EQ])
 (form_goal “!a b. ~Ltz(a,b) <=> Lez(b,a)”));
 
 (*rearrange*)
 val Addz_Rarr = prove_store("Addz_Rarr",
 e0
-cheat
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ strip_tac >> strip_tac >> casez_tac >> rw[Addz_Asz,Negz_Asz] >>
+ rpt strip_tac >> rw[Asz_eq_ZR,ZR_def] >>
+ qsuff_tac 
+ ‘Add(Add(a, a'), b'') =  Add(a, Add(b'', a')) &
+  Add(a'', Add(b, b')) = Add(Add(a'', b'), b)’ 
+ >-- (strip_tac >> arw[]) >>
+ rw[GSYM Add_assoc] >> once_rw[Add_comm] >>
+ rw[EQ_MONO_ADD_EQ] >>
+ qsspecl_then [‘b'’,‘b’] assume_tac Add_comm >>
+ qsspecl_then [‘b''’,‘a'’] assume_tac Add_comm >> arw[])
 (form_goal “!a b c. Addz(a,b) = c <=> a = Addz(c,Negz(b))”));
 
 (*Add_eq_eq*)
 val Addz_eq_eq = prove_store("Addz_eq_eq",
 e0
-cheat
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ strip_tac >> strip_tac >> casez_tac >> 
+ rw[Addz_Asz,Asz_eq_ZR,ZR_def] >> rpt strip_tac >>
+ rw[GSYM Add_assoc] >> once_rw[Add_comm] >> rw[EQ_MONO_ADD_EQ] >>
+ once_rw[Add_comm] >> rw[GSYM Add_assoc] >> 
+ once_rw[Add_comm] >> rw[EQ_MONO_ADD_EQ])
 (form_goal “!a b c.Addz(a,b) = Addz(a,c) <=> b = c”))
 
 val Negz_Addz = prove_store("Negz_Addz",
 e0
-cheat
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >> 
+ rw[Negz_Asz,Addz_Asz])
 (form_goal “!a b. Negz(Addz(a,b)) = Addz(Negz(a),Negz(b))”));
 
 
+val Lez_refl = LEz_Refl |> rewr_rule[Refl_def] 
+                        |> rewr_rule[LEz_def]
+
 val Lez_cases = prove_store("Lez_cases",
 e0
-cheat
+(rw[Ltz_def] >> rpt strip_tac >> dimp_tac >> strip_tac >> arw[] (* 2 *)
+ >-- (qcases ‘a = b’ >> arw[]) >>
+ rw[Lez_refl])
 (form_goal “!a b. Lez(a,b) <=> Ltz(a,b) | a = b”));
 
 
 val Lez_REFL = prove_store("Lez_REFL",
 e0
-cheat
+(casez_tac >> rw[Lez_Asz] >> rpt strip_tac >>
+ qsspecl_then [‘a’,‘b’] assume_tac Add_comm >> 
+ arw[Le_refl] )
 (form_goal “!z. Lez(z,z)”));
 
 val Oz_Lez_int1 = prove_store("Oz_Lez_int1",
@@ -2524,7 +2574,10 @@ cheat
 
 val Mulz_Ltz_Ltz = prove_store("Mulz_Ltz_Ltz",
 e0
-cheat
+(casez_tac >> rw[Oz_def,Ltz_Asz,Add_clauses] >> rpt gen_tac >> disch_tac >>
+ casez_tac >> strip_tac >> strip_tac >> casez_tac >> 
+ rw[Mulz_Asz,Ltz_Asz] >> rpt strip_tac >>
+ (*tedious*) cheat)
 (form_goal “!a.Ltz(Oz,a) ==> 
  !b c. (Ltz(Mulz(a,b),Mulz(a,c)) <=> Ltz(b,c))”));
 
@@ -2533,7 +2586,8 @@ cheat
 
 val Ltz_Oz_Lez_int1 = prove_store("Ltz_Oz_Lez_int1",
 e0
-(casez_tac >> )
+(casez_tac >> rw[Oz_def,int1_Asz,Ltz_Asz,Lez_Asz,Add_clauses] >>
+ rw[Lt_Le_Suc])
 (form_goal “!z.Ltz(Oz,z) <=> Lez(int1,z)”));
 
 (*have tool distinguish once from top and from depth*)
@@ -2558,7 +2612,7 @@ e0
  Addz(a,b) = Addz(c,d) <=> Addz(d,Negz(b)) = Addz(a,Negz(c))”));
 
 
-
+ 
 val Lez_Ltz_Addz_Ltz = prove_store("Lez_Ltz_Addz_Ltz",
 e0
 (casez_tac >> strip_tac >> strip_tac >> casez_tac >> 
@@ -2571,7 +2625,7 @@ e0
  qabbrev_tac ‘Add(b, a') = x2’ >>
  qabbrev_tac ‘Add(a'', b''') = x3’ >>
  qabbrev_tac ‘Add(b'', a''') = x4’ >> fs[] >>
- irule Le_MONO_Add2 >> arw[])
+ irule Le_Lt_Lt_MONO_Add2 >> arw[])
 (form_goal “!a b. Lez(a,b) ==> !c d. Ltz(c,d) ==>
  Ltz(Addz(a,c),Addz(b,d))”));
 
