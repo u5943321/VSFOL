@@ -2603,9 +2603,35 @@ e0
 (casez_tac >> rw[Oz_def,Ltz_Asz,Add_clauses] >> rpt gen_tac >> disch_tac >>
  casez_tac >> strip_tac >> strip_tac >> casez_tac >> 
  rw[Mulz_Asz,Ltz_Asz] >> rpt strip_tac >>
- (*tedious*) cheat)
-(form_goal “!a.Ltz(Oz,a) ==> 
- !b c. (Ltz(Mulz(a,b),Mulz(a,c)) <=> Ltz(b,c))”));
+ qsspecl_then [‘Add(a', b'')’,‘Add(b', a'')’] assume_tac Lt_Sub_O >>
+ arw[]>>
+ qby_tac
+ ‘Lt(O, Sub(Add(b', a''), Add(a', b''))) <=> 
+  Lt(Mul(b,Sub(Add(b', a''), Add(a', b''))), 
+     Mul(a,Sub(Add(b', a''), Add(a', b''))))’
+ >-- (drule Lt_MONO_Mul_iff' >> arw[]) >>
+ arw[] >>
+ qabbrev_tac ‘Sub(Add(b', a''), Add(a', b'')) = x’ >> arw[] >>
+ qabbrev_tac ‘Add(b', a'') = x1’ >> fs[] >>
+ qabbrev_tac ‘Add(a', b'') = x2’ >> fs[] >>
+ qsspecl_then [‘Mul(b,x)’,‘Mul(a,x)’,‘Add(Mul(a,x2),Mul(b,x2))’]
+ assume_tac LESS_MONO_ADD >>
+ arw[] >>
+ qpick_x_assum ‘Sub(x1, x2) = x’ (assume_tac o GSYM) >> arw[] >>
+ qby_tac
+ ‘Add(Mul(b, Sub(x1, x2)), Add(Mul(a, x2), Mul(b, x2))) = 
+  Add(Mul(b, x1),Mul(a, x2))’ 
+ >-- cheat >> arw[] >>
+ qby_tac
+ ‘Add(Mul(a, Sub(x1, x2)), Add(Mul(a, x2), Mul(b, x2))) = 
+  Add(Mul(a, x1),Mul(b, x2))’ 
+ >-- cheat >> arw[] >>
+ once_rw[Add_Add_Rarr] >> rw[GSYM LEFT_DISTR] >>
+ arw[] >>
+ qsspecl_then [‘Mul(b,x1)’,‘Mul(a,x2)’] assume_tac Add_comm >> arw[])
+(form_goal 
+ “!a. Ltz(Oz,a) ==> 
+      !b c. (Ltz(Mulz(a,b),Mulz(a,c)) <=> Ltz(b,c))”));
 
 
 

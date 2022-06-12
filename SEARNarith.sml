@@ -1964,5 +1964,40 @@ val Le_Le_iff_eq = prove_store("Le_Le_iff_eq",
 e0
 (rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
  >-- (irule Le_Asym >> arw[]) >>
- )
+ arw[Le_cases_iff])
 (form_goal “!a b. Le(a,b) & Le(b,a) <=> a = b”));
+
+val Lt_MONO_Mul_iff = prove_store("Lt_MONO_Mul_iff",
+e0
+cheat
+(form_goal 
+ “!p. Lt(O,p) ==> 
+      !m n. Lt(m,n) <=> Lt(Mul(m,p),Mul(n,p))”));
+
+
+val Lt_MONO_Mul_iff' = prove_store("Lt_MONO_Mul_iff'",
+e0
+cheat
+(form_goal 
+ “!m n. Lt(m,n) ==> 
+      !p. Lt(O,p) <=> Lt(Mul(m,p),Mul(n,p))”));
+
+
+val Le_MONO_Sub = prove_store("Le_MONO_Sub",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘Sub(a, c)’,‘Sub(b, c)’,‘c’] 
+ (assume_tac o GSYM) LESS_EQ_MONO_ADD_EQ >>
+ arw[] >> rev_drule SUB_ADD >> arw[] >>
+ qby_tac ‘Le(c,b)’ 
+ >-- (irule Le_trans >> qexists_tac ‘a’ >> arw[]) >>
+ drule SUB_ADD >> arw[])
+(form_goal 
+ “!a c. Le(c,a) ==> !b.Le(a,b) ==>
+        Le(Sub(a,c),Sub(b,c))”));
+
+val Lt_MONO_Sub = prove_store("Lt_MONO_Sub",
+e0
+(cheat)
+(form_goal “!a c. Le(c,a) ==> !b.Lt(a,b) ==>
+        Lt(Sub(a,c),Sub(b,c))”));
