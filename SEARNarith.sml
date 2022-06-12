@@ -1960,3 +1960,9 @@ e0
  ccontra_tac >> fs[] >> fs[SUC_NOT_LESS_EQ])
 (form_goal “!a b. Lt(b,a) <=> Le(Suc(b),a)”));
 
+val Le_Le_iff_eq = prove_store("Le_Le_iff_eq",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (irule Le_Asym >> arw[]) >>
+ )
+(form_goal “!a b. Le(a,b) & Le(b,a) <=> a = b”));

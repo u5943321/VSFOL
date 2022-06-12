@@ -1707,7 +1707,7 @@ assume_tac ZR_ER >> drule $ GSYM rsi_eq_ER >> arw[] >>
 rw[GSYM ZC_def,GSYM Zc_def] >>
 qpick_x_assum ‘Repz(Asz(Add(c, e), Add(d, f))) = Zc(c', d')’
  (assume_tac o GSYM) >> arw[Asz_Repz])
-(form_goal “!z1 z2 z3. Lez(z1,z2) ==> Lez(Addz(z1,z3),Addz(z2,z3))”));
+(form_goal “!z1 z2. Lez(z1,z2) ==> !z3.Lez(Addz(z1,z3),Addz(z2,z3))”));
 
 
 
@@ -2134,7 +2134,7 @@ e0
 (form_goal “!a b. ~Lez(a,b) <=> Ltz(b,a)”));
 
 
-val Abv_def = proved_th $
+val Abv_uex = proved_th $
 e0
 (strip_tac >> qcases ‘Lez(Oz,z)’ (* 2 *)
  >-- (drule Abv_positive_ex0 >>
@@ -2150,6 +2150,8 @@ e0
 (form_goal 
  “!z. ?!n. (Lez(Oz,z) &  Asz(n,O) = z) | 
            (Ltz(z,Oz) &  Asz(O,n) = z)”)
+
+val Abv_def = Abv_uex 
 |> spec_all |> uex2ex_rule |> qSKOLEM "Abv" [‘z’] 
 |> gen_all
 
@@ -2312,7 +2314,7 @@ e0
 “!n m.Lez(n, m) ==> ?p. Lez(Oz,p) & Addz(p, n) = m” ));
 
 (*Le_Add*)
-val Lez_Addz = prove_store("Lez_Addz",
+val Lez_Addz_2 = prove_store("Lez_Addz",
 e0
 (casez_tac >> strip_tac >> strip_tac >> casez_tac >>
  strip_tac >> strip_tac >> casez_tac >> strip_tac >> strip_tac >>
@@ -2386,16 +2388,6 @@ e0
 (form_goal “!b.Lez(b,Oz) ==> !a.Lez(Addz(a,b),a)”));
 
 
-val n2z_is_Abv = prove_store("n2z_is_Abv",
-e0
-cheat
-(form_goal “!n z. n2z(n) = z ==> n = Abv(z)”));
-
-val Le_Abv_Abv = prove_store("Le_Abv_Abv",
-e0
-cheat
-(form_goal “!a b.Lez(Oz,a) & Lez(Oz,b)  ==>
- Le(Abv(a), Abv(b)) <=> Lez(a,b)”));
 
 val Lez_Ltz_TRANS_Ltz = prove_store("Lez_Ltz_TRANS_Ltz",
 e0
@@ -2498,77 +2490,111 @@ e0
 
 val Oz_Lez_int1 = prove_store("Oz_Lez_int1",
 e0
-cheat
+(rw[Oz_def,int1_Asz,Lez_Asz,Add_clauses,O_LESS_EQ])
 (form_goal “Lez(Oz,int1)”));
 
 
 val Oz_Ltz_int1 = prove_store("Oz_Ltz_int1",
 e0
-cheat
+(rw[Oz_def,int1_Asz,Ltz_Asz,Add_clauses,LESS_O])
 (form_goal “Ltz(Oz,int1)”));
 
 
 
 val Ltz_Negz = prove_store("Ltz_Negz",
 e0
-cheat
-(form_goal “Ltz(Negz(a),Negz(b)) <=> Ltz(b,a)”));
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ rw[Negz_Asz,Ltz_Asz] >> rpt strip_tac >>
+ qsspecl_then [‘b’,‘a'’] assume_tac Add_comm >>
+ qsspecl_then [‘a’,‘b'’] assume_tac Add_comm >> arw[])
+(form_goal “!a b.Ltz(Negz(a),Negz(b)) <=> Ltz(b,a)”));
  
 val NEQ_Ltz = prove_store("NEQ_Ltz",
 e0
-cheat
+(rw[Ltz_def,Ltz_def] >> rpt strip_tac >>
+ qsspecl_then [‘a’,‘b’] assume_tac Lez_dichotomy >>
+ pop_assum strip_assume_tac >> arw[] (* 2 *)
+ >-- (dimp_tac >> strip_tac >> arw[] >> ccontra_tac >> fs[]) >>
+ dimp_tac >> strip_tac >> arw[] (* 2 *)
+ >-- (disj2_tac >> ccontra_tac >> fs[]) >>
+ ccontra_tac >> fs[] )
 (form_goal 
  “!a b. ~(a = b) <=> Ltz(a,b) | Ltz(b,a)”));
 
 val Ltz_iff_Lez_int1  = prove_store("Ltz_iff_Lez_int1",
 e0
-cheat
-(form_goal “Ltz(a,b) <=> Lez(Addz(a,int1),b)”));
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ rw[int1_Asz,Ltz_Asz,Lez_Asz,Addz_Asz,Add_clauses] >> 
+ rw[Lt_Le_Suc])
+(form_goal “!a b. Ltz(a,b) <=> Lez(Addz(a,int1),b)”));
 
 
 val Negz_Mulz_Negz = prove_store("Negz_Mulz_Negz",
 e0
-cheat
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ rw[Mulz_Asz,Negz_Asz] >> rpt strip_tac >>
+ qsspecl_then [‘Mul(a,a')’,‘Mul(b,b')’] assume_tac Add_comm >> arw[] >>
+ qsspecl_then [‘Mul(b,a')’,‘Mul(a,b')’] assume_tac Add_comm >> arw[])
 (form_goal “!a b. Mulz(Negz(a),b) = Mulz(a,Negz(b))”));
 
-
-val n2z_Abv_Negz = prove_store("n2z_Abv_Negz",
-e0
-cheat
-(form_goal “!z.Lez(z,Oz) ==> n2z(Abv(z)) = Negz(z)”));
 
 
 val Oz_Addz = prove_store("Oz_Addz",
 e0
-cheat
+(casez_tac >> rw[Oz_def,Addz_Asz,Add_clauses])
 (form_goal “!z.Addz(Oz,z) = z”));
-
-
 
 
 
 val Addz_eq_eq' = prove_store("Addz_eq_eq'",
 e0
-cheat
+(once_rw[Addz_comm] >> rw[Addz_eq_eq])
 (form_goal 
 “!a b c.Addz(a,c) = Addz(b,c) <=> a = b”));
+
+(*
+(*MULT_MONO_EQ*)
+val Mulz_eq_eq = prove_store("Mulz_eq_eq",
+e0
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ strip_tac >> strip_tac >> casez_tac >> rw[Mulz_Asz,Oz_def] >>
+ rw[Asz_eq_ZR,ZR_def,Add_clauses] >> 
+ rpt strip_tac >>
+ once_rw[Add_Add_Rarr] >> rw[GSYM LEFT_DISTR] >>
+ qsspecl_then [‘a''’,‘b'’] assume_tac Add_comm >>
+ qsspecl_then [‘a'’,‘b''’] assume_tac Add_comm >> arw[] >>
+ qsspecl_then [‘Mul(b, Add(a'', b'))’,‘Mul(a, Add(a', b''))’]
+ assume_tac Add_comm >>
+ arw[] >> need to fix(*not used but good to have*)
+ )
+(form_goal 
+“!a b c.~(a = Oz) ==> 
+ (Mulz(a,b) = Mulz(a,c) <=> b = c)”));
+*)
 
 
 val Mulz_eq_eq' = prove_store("Mulz_eq_eq'",
 e0
-cheat
+(once_rw[Mulz_comm] >> rw[Mulz_eq_eq])
 (form_goal 
-“!a b c.Mulz(a,c) = Mulz(b,c) <=> a = b”));
+“!a b c.~(c = Oz) ==>
+ (Mulz(a,c) = Mulz(b,c) <=> a = b)”));
 
  
 val between_int1_Oz = prove_store("between_int1_Oz",
 e0
-cheat
+(casez_tac >> 
+ rw[int1_Asz,Oz_def,Ltz_Asz,
+    Negz_Asz,Asz_eq_ZR,ZR_def,Add_clauses,Lt_Suc_Le,Le_Le_iff_eq] >>
+ rpt strip_tac >> rflip_tac >> rw[])
 (form_goal “!z.Ltz(Negz(int1),z) & Ltz(z,int1) <=> z = Oz”));
 
 val Addz_Negz_Oz_eq = prove_store("Addz_Negz_Oz_eq",
 e0
-cheat
+(casez_tac >> strip_tac >> strip_tac >> casez_tac >>
+ rw[Oz_def,Addz_Asz,Negz_Asz,Asz_eq_ZR,ZR_def,Add_clauses] >>
+ rpt strip_tac >>
+ qsspecl_then [‘b’,‘a'’] assume_tac Add_comm >> arw[] )
 (form_goal “!z1 z2.Addz(z1,Negz(z2)) = Oz <=> z1 = z2”));
 
 
@@ -2640,12 +2666,83 @@ e0
  rw[])
 (form_goal “!a b. Mulz(Negz(a),Negz(b)) = Mulz(a,b)”));
 
+val Lez_asym = LEz_Asym |> rewr_rule[Asym_def,LEz_def]
+ 
+val Ltz_NOT_Ltz = prove_store("Ltz_NOT_Ltz",
+e0
+(rpt strip_tac >> ccontra_tac >>
+ drule Ltz_trans >> first_x_assum drule >>
+ fs[Ltz_def])
+(form_goal “!a b. Ltz(a,b) ==> ~Ltz(b,a)”));
 
 val Abv_Negz = prove_store("Abv_Negz",
 e0
-(cheat)
+(rpt strip_tac >> irule $ iffLR Inj_eq_eq >>
+ qexistsl_tac [‘Z’,‘N2Z’] >> rw[N2Z_Inj] >>
+ rw[N2Z_def] >>
+ qcases ‘Lez(Oz,z)’ (* 2 *)
+ >-- (qsspecl_then [‘z’] assume_tac Abv_def >> fs[GSYM NOT_Lez_Ltz] >>
+     qsspecl_then [‘Negz(z)’] assume_tac Abv_def >>
+     fs[GSYM NOT_Lez_Ltz] (* 2 *)
+     >-- (qsuff_tac ‘z = Oz’ >-- (strip_tac >> arw[Negz_Oz]) >>
+         drule $ iffRL Lez_Negz >> fs[Negz_Oz,Negz_Negz] >>
+         irule Lez_asym >> arw[]) >>
+     qby_tac ‘Negz(Asz(O, Abv(Negz(z)))) = Negz(Negz(z))’ 
+     >-- arw[] >>
+     fs[Negz_Asz,Negz_Negz]) >>
+ fs[NOT_Lez_Ltz] >>
+ qsspecl_then [‘z’] assume_tac Abv_def >> fs[GSYM NOT_Lez_Ltz] >> 
+ fs[NOT_Lez_Ltz] >>
+ drule $ iffRL Ltz_Negz >> fs[Negz_Oz] >>
+ qsspecl_then [‘Negz(z)’] assume_tac Abv_def >> 
+ drule $ Ltz_Lez >> 
+ drule Ltz_NOT_Ltz >> fs[] >> 
+ irule $ iffLR Negz_eq_eq >> arw[Negz_Asz,Negz_Negz])
 (form_goal “!z. Abv(Negz(z)) = Abv(z)”));
 
+val Abv_Oz = prove_store("Abv_Oz",
+e0
+(qsspecl_then [‘Oz’] assume_tac Abv_def >>
+ fs[Ltz_def] >>
+ qby_tac ‘Asz(Abv(Oz), O) = Asz(O,O)’ >-- arw[GSYM Oz_def] >>
+ fs[Asz_eq_eq_l])
+(form_goal “Abv(Oz) = O”));
+
+val n2z_Abv_Negz = prove_store("n2z_Abv_Negz",
+e0
+(rpt strip_tac >>
+ qcases ‘z = Oz’ 
+ >-- (arw[Abv_Oz,n2z_def,N2Z_def,Negz_Oz] >> rw[Oz_def]) >>
+ fs[GSYM NOT_Ltz_Lez] >> 
+ rw[n2z_def,N2Z_def] >> 
+ qsspecl_then [‘z’] assume_tac Abv_def >> fs[] (* 2 *)
+ >-- (fs[NOT_Ltz_Lez] >> qsuff_tac ‘z = Oz’ >-- (strip_tac >> fs[]) >>
+     irule Lez_asym >> arw[]) >>
+ irule $ iffLR Negz_eq_eq >> arw[Negz_Asz,Negz_Negz])
+(form_goal “!z.Lez(z,Oz) ==> n2z(Abv(z)) = Negz(z)”));
+
+
+val n2z_is_Abv = prove_store("n2z_is_Abv",
+e0
+(rpt strip_tac >>
+ irule $ iffLR Inj_eq_eq >>
+ qexistsl_tac [‘Z’,‘N2Z’] >> rw[N2Z_Inj] >>
+ rw[N2Z_def] >> 
+ qby_tac ‘Lez(Oz,z)’
+ >-- (pop_assum (assume_tac o GSYM) >> arw[n2z_Oz_Lez]) >>
+ drule n2z_Abv >> fs[n2z_def,N2Z_def])
+(form_goal “!n z. n2z(n) = z ==> n = Abv(z)”));
+
+val Le_Abv_Abv = prove_store("Le_Abv_Abv",
+e0
+(rpt strip_tac >> 
+ drule Abv_nonneg >> rev_drule Abv_nonneg >>
+ qsuff_tac
+ ‘Le(Abv(a), Abv(b)) <=> Lez(Asz(Abv(a), O), Asz(Abv(b), O))’
+ >-- arw[] >>
+ rw[Lez_Asz,Add_clauses])
+(form_goal “!a b.Lez(Oz,a) & Lez(Oz,b) ==>
+ (Le(Abv(a), Abv(b)) <=> Lez(a,b))”));
 
 
 val division_theorem_ex0 = prove_store("division_theorem_ex0",
@@ -2730,19 +2827,34 @@ e0
   Lez(Oz,r) & Ltz(r,n2z(Abv(d)))”));
 
 
+val Negz_Negz = prove_store("Negz_Negz",
+e0
+(casez_tac >> rw[Negz_Asz])
+(form_goal “!z. Negz(Negz(z)) = z”));
+
+
+val Lez_trans = LEz_Trans |> rewr_rule[Trans_def,LEz_def] 
+
+
 val division_theorem_ex = prove_store("division_theorem_ex",
 e0
 (rpt strip_tac >> fs[NEQ_Ltz] 
  >-- (fs[Ltz_iff_Lez_int1] >>
      qby_tac ‘Lez(d,Negz(int1))’ 
-     >-- cheat >>
+     >-- (drule Lez_Addz >> 
+         first_x_assum (qsspecl_then [‘Negz(int1)’] assume_tac) >>
+         fs[Oz_Addz,Addz_assoc,Addz_Negz_Oz,Addz_Oz]) >>
      qby_tac ‘Lez(int1,Negz(d))’ 
-     >-- cheat >>
+     >-- (once_rw[GSYM Lez_Negz] >> arw[Negz_Negz]) >>
      drule division_theorem_ex1 >> 
      pop_assum strip_assume_tac >>
      qexistsl_tac [‘Negz(q)’,‘r’] >> arw[Negz_Mulz_Negz] >>
-     qby_tac ‘Lez(d,Oz)’ >-- cheat >>
-     qby_tac ‘Lez(Oz,Negz(d))’ >-- cheat >>
+     qby_tac ‘Lez(d,Oz)’
+     >-- (irule Lez_trans >> qexists_tac ‘Negz(int1)’ >>
+         arw[] >> once_rw[GSYM Lez_Negz] >> rw[Negz_Oz,Negz_Negz] >>
+         rw[Oz_Lez_int1]) >>
+     qby_tac ‘Lez(Oz,Negz(d))’ 
+     >-- (once_rw[GSYM Lez_Negz] >> arw[Negz_Negz,Negz_Oz])>>
      drule n2z_Abv_Negz >> arw[] >>
      qby_tac ‘n2z(Abv(Negz(d))) = Negz(d)’ 
      >-- (irule n2z_Abv >> arw[]) >>
@@ -2760,7 +2872,7 @@ e0
 (rpt gen_tac >> strip_tac >> rpt gen_tac >> strip_tac >>
  qsuff_tac ‘q1 = q2’ 
  >-- (rpt strip_tac >> arw[] >> 
-     fs[Addz_eq_eq,Mulz_eq_eq']) >>
+      fs[Addz_eq_eq]) >>
  flip_tac >>
  irule $ iffLR Addz_Negz_Oz_eq >> irule $ iffLR between_int1_Oz >>
  qsuff_tac 
@@ -2806,7 +2918,11 @@ e0
 (rpt gen_tac >> strip_tac >> rpt gen_tac >> strip_tac >>
  drule $ iffLR NEQ_Ltz >>
  pop_assum strip_assume_tac (* 2 *)
- >-- (qby_tac ‘Lez(int1,Negz(d))’ >-- cheat >>
+ >-- (qby_tac ‘Lez(int1,Negz(d))’ 
+      >-- (qsspecl_then [‘Oz’,‘Negz(d)’] assume_tac Ltz_iff_Lez_int1 >>
+          fs[Oz_Addz] >>
+          first_x_assum (irule o iffLR) >> 
+          once_rw[GSYM Ltz_Negz] >> arw[Negz_Oz,Negz_Negz]) >>
      drule division_theorem_unique0 >>
      first_x_assum 
      (qspecl_then [‘Negz(q1)’,‘r1’,‘Negz(q2)’,‘r2’] strip_assume_tac) >>
@@ -2817,7 +2933,8 @@ e0
      (assume_tac o GSYM) >> arw[] >>
      arw[Abv_Negz]) >>
  qby_tac ‘Lez(int1,d)’ 
- >-- cheat >>
+ >-- (qsspecl_then [‘Oz’,‘d’] assume_tac Ltz_iff_Lez_int1 >>
+     fs[Oz_Addz]) >>
  drule division_theorem_unique0 >>
  qsuff_tac ‘q1 = q2 & r1 = r2’ 
  >-- (strip_tac >> arw[]) >>
