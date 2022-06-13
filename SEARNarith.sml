@@ -1996,8 +1996,264 @@ e0
  “!a c. Le(c,a) ==> !b.Le(a,b) ==>
         Le(Sub(a,c),Sub(b,c))”));
 
+val Lt_imp_Sub_O = prove_store("Lt_imp_Sub_O",
+e0
+(rw[GSYM Le_def] >> rw[Lt_Le])
+(form_goal
+“Lt(a,b) ==> Sub(a,b) = O”));
+
+val Lt_Sub_imp_Le = prove_store("Lt_Sub_imp_Le",
+e0
+(rpt strip_tac >> ccontra_tac >>
+ fs[NOT_LESS_EQ] >> drule Lt_imp_Sub_O >>
+ fs[NOT_Lt_O] )
+(form_goal
+“Lt(a,Sub(b,c)) ==> Le(c,b)”));
+
+
+val Lt_MONO_Sub_hard_direction = 
+prove_store("Lt_MONO_Sub_hard_direction",
+e0
+(rpt strip_tac >> ccontra_tac >> fs[NOT_LESS] >> 
+qsuff_tac ‘Le(Sub(b,c),Sub(a,c))’ 
+>-- arw[NOT_LESS_EQ] >>
+irule Le_MONO_Sub >> arw[] >> drule Lt_Sub_imp_Le >>
+arw[])
+(form_goal
+“!a b c.Lt(Sub(a,c),Sub(b,c)) & Le(c,a) ==> Lt(a,b)”));
+
 val Lt_MONO_Sub = prove_store("Lt_MONO_Sub",
 e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (ccontra_tac >> fs[NOT_LESS] >>
+     qsuff_tac ‘Le(b,a)’ 
+     >-- arw[NOT_LESS_EQ] >>  
+     qsspecl_then [‘Sub(b, c)’,‘Sub(a, c)’,‘c’] assume_tac
+     LESS_EQ_MONO_ADD_EQ >>
+     first_x_assum (drule o iffRL) >>
+     rev_drule SUB_ADD >> fs[] >>
+     qby_tac ‘Le(c,b)’
+     >-- (irule Le_Lt_Le >> qexists_tac ‘a’ >> arw[])  >>
+     drule SUB_ADD >> fs[]) >>
+ qspecl_then [‘a’,‘b’,‘c’] assume_tac Lt_MONO_Sub_hard_direction >> rfs[])
+(form_goal 
+ “!a c. Le(c,a) ==> 
+     (!b.Lt(a,b) <=>
+        Lt(Sub(a,c),Sub(b,c)))”));
+
+
+
+
+val Le_MONO_Sub_iff = prove_store("Le_MONO_Sub_iff",
+e0
 (cheat)
-(form_goal “!a c. Le(c,a) ==> !b.Lt(a,b) ==>
-        Lt(Sub(a,c),Sub(b,c))”));
+(form_goal 
+ “!a c. Le(c,a) ==> 
+        (!b.Le(a,b) <=>
+        Le(Sub(a,c),Sub(b,c)))”));
+
+(*
+
+val Mulz_Ltz_Ltz0 = prove_store("Mulz_Ltz_Ltz0",
+e0
+(strip_tac >> qsspecl_then [‘Add(a', b'')’,‘Add(b', a'')’] assume_tac Lt_Sub_O >>
+ arw[]>>
+ qby_tac
+ ‘Lt(O, Sub(Add(b', a''), Add(a', b''))) <=> 
+  Lt(Mul(b,Sub(Add(b', a''), Add(a', b''))), 
+     Mul(a,Sub(Add(b', a''), Add(a', b''))))’
+ >-- (drule Lt_MONO_Mul_iff' >> arw[]) >>
+ arw[] >>
+ qabbrev_tac ‘Sub(Add(b', a''), Add(a', b'')) = x’ >> arw[] >>
+ qabbrev_tac ‘Add(b', a'') = x1’ >> fs[] >>
+ qabbrev_tac ‘Add(a', b'') = x2’ >> fs[] >>
+ qsspecl_then [‘Mul(b,x)’,‘Mul(a,x)’,‘Add(Mul(a,x2),Mul(b,x2))’]
+ assume_tac LESS_MONO_ADD >>
+ arw[] >>
+ qpick_x_assum ‘Sub(x1, x2) = x’ (assume_tac o GSYM) >> arw[] >> 
+ qcases ‘Lt(x2,x1)’ 
+ >-- cheat >>
+ qby_tac ‘Le(x1,x2)’ 
+ >-- cheat >>
+ qsuff_tac
+ ‘~Lt(Add(Add(Mul(a, a'), Mul(b, b')), Add(Mul(a, b''), Mul(b, a''))),
+              Add(Add(Mul(a, b'), Mul(b, a')), Add(Mul(a, a''), Mul(b, b''))))’ 
+ >-- cheat >>
+ rw[NOT_LESS] >>
+ once_rw[Add_Add_Rarr] >>
+ rw[GSYM LEFT_DISTR] >> arw[] >>
+ 
+
+ qby_tac
+ ‘Add(Mul(b, Sub(x1, x2)), Add(Mul(a, x2), Mul(b, x2))) = 
+  Add(Mul(b, x1),Mul(a, x2))’ 
+ >-- (*qsspecl_then [‘Mul(b,x2)’,‘Mul(a,x2)’] assume_tac Add_comm >> arw[] >>
+     rw[Add_assoc] >> rw[GSYM LEFT_DISTR] >>
+     *)
+cheat >> arw[] >>
+ qby_tac
+ ‘Add(Mul(a, Sub(x1, x2)), Add(Mul(a, x2), Mul(b, x2))) = 
+  Add(Mul(a, x1),Mul(b, x2))’ 
+ >-- cheat >> arw[] >>
+ once_rw[Add_Add_Rarr] >> rw[GSYM LEFT_DISTR] >>
+ arw[] >>
+ qsspecl_then [‘Mul(b,x1)’,‘Mul(a,x2)’] assume_tac Add_comm >> arw[])
+
+(*a1a2 + b1b2 + a1b3 + b1b3 < 
+  a1b2 + b1a2 + a1a3 + b1a3 <=> 
+
+
+ b1b2 + b1a3 < a1b2 + b1a2 + a1a3 + b1b3 - a1a2 - a1b3
+
+ b1b2 + b1a3 - b1a2- b1b3 < a1b2 + a1a3 - a1a2 - a1b3
+
+ b1(b2 + a3 - (a2 + b3)) <  a1(b2 + a3 - (a2 + b3))
+ 
+ a2 + b3 < b2 + a3 *)
+*)
+
+
+val Le_cross_lemma = prove_store("Le_cross_lemma",
+e0
+cheat
+(form_goal “!a b. Le(a,b) ==>
+ !c d. Le(c,d) ==> Le(Add(Mul(a,d),Mul(b,c)),Add(Mul(a,c),Mul(b,d)))”))
+
+
+val Lt_cross_lemma = prove_store("Lt_cross_lemma",
+e0
+cheat
+(form_goal “!a b. Lt(a,b) ==>
+ !c d. Lt(c,d) ==> Lt(Add(Mul(a,d),Mul(b,c)),Add(Mul(a,c),Mul(b,d)))”))
+
+
+
+
+(*
+val Mulz_Ltz_Ltz_lemma = proved_th $
+e0
+(rpt strip_tac >> 
+ once_rw[Add_Add_Rarr] >> once_rw[Add_comm] >>
+ rw[GSYM LEFT_DISTR] >>
+ qsspecl_then [‘Add(Mul(b1, Add(b2, a3)), Mul(a1, Add(a2, b3)))’,‘Mul(a1, Add(a2, b3))’] assume_tac Lt_MONO_Sub >>
+ qby_tac 
+ ‘Le(Mul(a1, Add(a2, b3)),
+     Add(Mul(b1, Add(b2, a3)), Mul(a1, Add(a2, b3))))’
+ >-- (once_rw[Add_comm] >> 
+     qsspecl_then [‘b3’,‘a2’] assume_tac Add_comm >> arw[] >>
+     rw[Add_Le]) >>
+ first_x_assum drule >> arw[] >>
+ qby_tac
+ ‘Sub(Add(Mul(b1, Add(b2, a3)), Mul(a1, Add(a2, b3))),
+               Mul(a1, Add(a2, b3))) = Mul(b1, Add(b2, a3))’ 
+ >-- rw[Add_Sub] >>
+ arw[] >>
+ qspecl_then [‘Mul(a1, Add(b2, a3))’,
+               ‘Mul(b1, Add(a2, b3))’] 
+ assume_tac Add_comm >> arw[] >>
+ qcases ‘Lt(Add(b3, a2), Add(a3, b2))’ (* 2 *)
+ >-- (arw[] >>  
+     qby_tac ‘Le(Mul(b1,Add(b3,a2)),Mul(b1,Add(a3,b2)))’ 
+     >-- (once_rw[Mul_comm] >> irule Le_MONO_Mul >>
+         irule Lt_Le >> arw[]) >>
+     qby_tac
+     ‘Le(Mul(b1, Add(b3, a2)), Mul(b1, Add(b2, a3)))’ >--
+     (qsspecl_then [‘a3’,‘b2’] assume_tac Add_comm >> fs[])>>
+     drule Lt_MONO_Sub >> arw[] >>
+     rw[GSYM LEFT_SUB_DISTR] >>
+     qspecl_then [‘b3’,‘a2’] assume_tac Add_comm >> arw[]>>
+     rw[GSYM Sub_Add] >>
+     qsspecl_then 
+     [‘Mul(a1, Add(b2, a3))’,‘Mul(b1, Add(b3, a2))’]
+      assume_tac Add_comm >> arw[] >>
+     qsspecl_then 
+     [‘Mul(b1, Add(b3, a2))’,‘Mul(a1, Add(b3, a2))’]
+      assume_tac Add_comm >> arw[] >> 
+     rw[Sub_Add] >> rw[Add_Sub] >>
+     rw[GSYM LEFT_SUB_DISTR] >> rw[GSYM Sub_Add] >>
+     rev_drule (GSYM Lt_MONO_Mul_iff') >> arw[] >>
+     arw[GSYM Lt_Sub_O] >>
+     qsspecl_then [‘a3’,‘b2’] assume_tac Add_comm >> fs[])>>
+ arw[] >>
+ fs[NOT_LESS] >>  
+ ccontra_tac >> fs[NOT_LESS_EQ] >>
+ 
+ qby_tac
+ ‘Le(Sub(Add(Mul(a1, Add(b2, a3)), Mul(b1, Add(a2, b3))),
+               Mul(a1, Add(a2, b3))),Mul(b1,Add(b3,a2)))’
+ >-- once_rw[Add_comm] 
+ (* a3+ b2 <= b3+a2 
+
+    b1 <= a1
+
+ a1(a3 + b2) <= b1(b3 + a2)
+
+ want
+   b1(b2+a3) <= a1(b2+a3) + b1(a2+b3) - a1(a2+b3) 
+
+*)
+
+
+
+ qby_tac ‘Le(Mul(b1,Add(a3,b2)),Mul(b1,Add(b3,a2)))’ 
+ >-- (once_rw[Mul_comm] >> irule Le_MONO_Mul >> arw[]) >>
+ qby_tac
+ ‘Le(Mul(b1, Add(a3, b2)), Mul(b1, Add(a2, b3)))’ >--
+ (qsspecl_then [‘b3’,‘a2’] assume_tac Add_comm >> fs[])>>
+ 
+
+
+ drule Le_MONO_Sub_iff >> arw[] >>
+     rw[GSYM LEFT_SUB_DISTR] >>
+     qspecl_then [‘b3’,‘a2’] assume_tac Add_comm >> arw[]>>
+     rw[GSYM Sub_Add] >>
+     qsspecl_then 
+     [‘Mul(a1, Add(b2, a3))’,‘Mul(b1, Add(b3, a2))’]
+      assume_tac Add_comm >> arw[] >>
+     qsspecl_then 
+     [‘Mul(b1, Add(b3, a2))’,‘Mul(a1, Add(b3, a2))’]
+      assume_tac Add_comm >> arw[] >> 
+     rw[Sub_Add] >> rw[Add_Sub] >>
+     rw[GSYM LEFT_SUB_DISTR] >> rw[GSYM Sub_Add] >>
+     rev_drule (GSYM Lt_MONO_Mul_iff') >> arw[] >>
+     arw[GSYM Lt_Sub_O] >>
+     qsspecl_then [‘a3’,‘b2’] assume_tac Add_comm >> fs[]
+ 
+
+  
+     qsspecl_then [‘’]
+
+
+ qsspecl_then [‘Mul(b1, Add(b2, a3))’,
+‘Mul(a1, Add(a2, b3))’] assume_tac Lt_MONO_Sub >>
+
+ Lt_MONO_Mul_iff'
+
+ qsspecl_then [‘a3’,‘b2’] assume_tac Add_comm >>
+ qsspecl_then [‘a2’,‘b3’] assume_tac Add_comm >>
+ arw[] >> 
+ qsspecl_then [‘a3’,‘b2’,‘a1’] assume_tac LEFT_DISTR >>
+ qsspecl_then [‘a2’,‘b3’,‘a1’] assume_tac LEFT_DISTR >>
+ arw[] >> rw[Sub_Add] 
+
+ SUB_Add
+ 
+cheat
+)
+(form_goal
+ “!a1 b1. Lt(b1, a1) ==>
+ !a2 b2 a3 b3.
+(Lt(Add(Add(Mul(a1, a2), Mul(b1, b2)), 
+         Add(Mul(a1, b3), Mul(b1, a3))),
+     Add(Add(Mul(a1, b2), Mul(b1, a2)),
+         Add(Mul(a1, a3), Mul(b1, b3)))) <=> 
+  Lt(Add(a2, b3), Add(b2, a3)))”);
+*)                                
+
+val Add_Le = prove_store("Add_Le",
+e0
+(rpt strip_tac >> qcases ‘b = O’
+ >-- arw[Add_clauses,Le_refl] >>
+ qsspecl_then [‘a’,‘b’] assume_tac LESS_ADD_NONZERO >>
+ first_x_assum drule >> fs[Lt_def])
+(form_goal “!a b. Le(a,Add(a,b))”));

@@ -1010,3 +1010,9 @@ e0
  ccontra_tac >> fs[] >> rfs[])
 (form_goal “!A B f:A->B s. IMAGE(f,s) = Empty(B) <=> 
  s = Empty(A)”));
+
+
+(*c for component*)
+val c31_def = qdefine_fsym("c31",[‘abc:mem(A * B * C)’]) ‘Fst(abc)’
+val c32_def = qdefine_fsym("c32",[‘abc:mem(A * B * C)’]) ‘Fst(Snd(abc))’
+val c33_def = qdefine_fsym("c33",[‘abc:mem(A * B * C)’]) ‘Snd(Snd(abc))’

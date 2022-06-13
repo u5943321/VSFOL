@@ -668,7 +668,7 @@ arw[])
  ?!f:A * B * Exp(C,D) * Exp(E,F) ->X. 
  !a b c d. P(a,b,c,d,App(f,tuple4(a,b,Tpm(c),Tpm(d))))”)
 
-
+(*
 fun 
 
 
@@ -689,12 +689,12 @@ qcases ‘n = O & aopt = NONE(A) & targ = TNull(A+1) & xarg = Conat(x0)’
      (?f1 x1. n = num4 & aopt = NONE(A) & targ = f1 & xarg = X1arg(x1,x0) &
      x = App(dmf:X->X,x1)) | 
      (~encafm(x0,n,aopt,targ,xarg) & x = x0)”
+*)
 
 val fmFn_def = proved_th $
 e0
-(rpt strip_tac >>
- 
- funcompr_dom4'
+((*rpt strip_tac >>
+  funcompr_dom4'
  |> qspecl [‘N’,‘A + 1’,‘N’,‘Tree(A+1)’,‘N’,‘X’,‘X’]
  |> fVar_sInst_th 
     “P(n:mem(N),aopt:mem(A + 1),
@@ -711,13 +711,10 @@ e0
      (?f1 x1. n = num4 & aopt = NONE(A) & targ = f1 & xarg = X1arg(x1,x0) &
      x = App(dmf:X->X,x1)) | 
      (~encafm(x0,n,aopt,targ,xarg) & x = x0)”
-
-
  |> qspecl [‘N, (A+1) * Exp(N,Tree(A+1)) * Exp(N,X)’,‘X’]
  |> fVar_sInst_th “P(tup:mem(N * (A+1) * Exp(N,Tree(A+1)) * Exp(N,X)), x:mem(X))”
     “encafm'(x0,tup:mem(N * (A+1) * Exp(N,Tree(A+1)) * Exp(N,X))) & ”
-
-
+*) cheat
 )
 (form_goal
  “!X x0:mem(X) A vf:A->X nf:X->X djf:X*X->X dmf:X->X.
@@ -1199,7 +1196,7 @@ cheat
 (form_goal “”));
 *)
 
-val Var_NOT = prove_store("Bot_NOT",
+val Var_NOT = prove_store("Var_NOT",
 e0
 (rpt strip_tac >> ccontra_tac (* 4 *)
  >-- (qby_tac 
