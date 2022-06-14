@@ -568,6 +568,13 @@ e0
 (form_goal “!tv. ~(tv= true) <=> tv = false”)); 
 
 
+val false_xor_true = prove_store("false_xor_true",
+e0
+(strip_tac >>  
+ qcases ‘tv = true’ >> arw[true_ne_false] >> fs[true_xor_false])
+(form_goal “!tv. ~(tv= false) <=> tv = true”)); 
+
+
 val tv_eq_true = prove_store("tv_eq_true",
 e0
 (rpt strip_tac >>
@@ -589,6 +596,8 @@ fun basic_fconv_tac c fc = fconv_tac $ basic_fconv c fc
 fun depth_fconv_tac c fc = fconv_tac $ depth_fconv c fc
 
 val forall_cross_tac =  depth_fconv_tac no_conv forall_cross_fconv;
+
+use "lambda.sml";
 
 val r2f_def = 
 proved_th $
@@ -1225,3 +1234,65 @@ e0
 )
 (form_goal “!A B f:A->B ss a.Inj(f) ==> IMAGE(f, Del(ss, a)) = 
  Del(IMAGE(f,ss),App(f,a)) ”));
+
+
+fun exists_forall (n,s) = 
+    let 
+        val f0 = mk_fvar "f0" [mk_var (n,s)]
+        val af0 = mk_forall n s (mk_neg f0)
+        val ef0 = mk_exists n s f0
+        val d1 = (C negI)
+                     (existsE (n,s) (assume ef0)
+                 (negE (assume f0) 
+                   ((C allE) (assume af0) (mk_var(n,s)))))
+                 af0 |>
+                 disch ef0
+        val d2 = elim_double_neg
+                     ((C negI)
+                          (negE
+                               (allI (n,s)
+                                     ((C negI)
+                                          (negE
+                                               (existsI (n,s) (mk_var(n,s)) f0 ((C add_cont) (assume f0) (HOLset.add(essps,(n,s))))
+                                                        )
+                                               (assume (mk_neg ef0)))
+                                          f0))
+                               (assume (mk_neg af0))
+)
+                          (mk_neg ef0))|>
+                     disch (mk_neg af0)
+    in dimpI d1 d2
+    end
+
+val exists_forall_th = exists_forall ("a",mem_sort (rastt "A"))
+
+val disj_not_imp = prove_store("disj_not_imp",
+e0
+(dimp_tac >> qcases ‘A’ >> fs[])
+(form_goal “(A | ~B) <=> (B ==>A)”));
+
+
+val not_disj_imp = prove_store("not_disj_imp",
+e0
+(dimp_tac >> qcases ‘A’ >> fs[])
+(form_goal “(~B | A) <=> (B ==>A)”));
+
+
+val set_NEQ = prove_store("set_NEQ",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (ccontra_tac >> fs[neg_or_distr] >>
+     assume_tac $
+     (exists_forall_th |> fVar_sInst_th “f0(a:mem(A))”
+     “IN(a,s1) & ~IN(a:mem(A),s2)”) >> fs[] >>
+     assume_tac $
+     (exists_forall_th |> fVar_sInst_th “f0(a:mem(A))”
+     “~IN(a,s1) & IN(a:mem(A),s2)”) >> fs[] >>
+     fs[neg_and_distr] >> fs[disj_not_imp,not_disj_imp] >>
+     qsuff_tac ‘s1 = s2’ 
+     >-- arw[] >>
+     irule $ IN_EXT >> strip_tac >> dimp_tac >> strip_tac >>
+     first_x_assum drule >> arw[]) >>
+ ccontra_tac >> fs[])
+(form_goal “!A s1:mem(Pow(A)) s2. ~(s1 = s2) <=> (?a. IN(a,s1) & ~IN(a,s2)) |
+ (?a. ~IN(a,s1) & IN(a,s2))”));

@@ -1818,8 +1818,9 @@ val O_Even = EVEN_def |> conjE1 |> qspecl [‘dot’]
 val Suc_Even = prove_store("Suc_Even",
 e0
 (rw[Even_def,EVEN_def,NOT_def] >> strip_tac >>
- qspecl_then [‘App(EVEN,n)’] strip_assume_tac true_xor_false >>
- arw[NOT_def,GSYM true_ne_false])
+ qspecl_then [‘App(EVEN,n)’] strip_assume_tac (GSYM true_xor_false) >>
+ qcases ‘App(EVEN, n) = false’ >> arw[NOT_def,GSYM true_ne_false] >>
+ fs[false_xor_true,NOT_def,GSYM true_ne_false])
 (form_goal “!n. Even(Suc(n)) <=> ~Even(n)”));
 
 val Odd_def = qdefine_psym("Odd",[‘n:mem(N)’]) ‘~Even(n)’
@@ -3054,4 +3055,21 @@ e0
   Lez(Oz,Snd(qr)) & Ltz(Snd(qr),n2z(Abv(d)))”));
 
 
+
+val Even_not_Odd = prove_store("Even_not_Odd",
+e0
+(rw[Odd_def])
+(form_goal “!n. Even(n) <=> ~Odd(n)”));
+
+
+
+val Odd_not_Even = prove_store("Odd_not_Even",
+e0
+(rw[Even_not_Odd])
+(form_goal “!n. Odd(n) <=> ~Even(n)”));
+
+(*
+val Even_def = qdefine_psym("Even",[‘n:mem(N)’]) ‘∃n0. n = Mul(Suc(Suc(O)),n0)’
+val Odd_def = qdefine_psym("Odd",[‘n:mem(N)’]) ‘~Even(n)’
+*)
 

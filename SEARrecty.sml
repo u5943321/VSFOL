@@ -71,18 +71,6 @@ val injUU_def =
     qdefine_fsym("injUU",[‘u1:mem(Pow(N * A))’,‘u2:mem(Pow(N * A))’]) 
                 ‘App(InjUU(A),Pair(u1,u2))’ 
 
-val Even_not_Odd = prove_store("Even_not_Odd",
-e0
-cheat
-(form_goal “!n. Even(n) <=> ~Odd(n)”));
-
-
-
-val Odd_not_Even = prove_store("Odd_not_Even",
-e0
-cheat
-(form_goal “!n. Odd(n) <=> ~Even(n)”));
-
 
 val injUU_char = prove_store("injUU_char",
 e0
@@ -106,10 +94,17 @@ e0
  qsspecl_then [‘x1’] (x_choosel_then ["u1","u2"] assume_tac) Pair_has_comp>>
  qsspecl_then [‘x2’] (x_choosel_then ["u3","u4"] assume_tac) Pair_has_comp>>
  fs[] >> fs[Pair_eq_eq] >> rw[GSYM injUU_def] >> 
- qby_tac ‘~(u1 = u3) | ~(u2 = u4)’ >-- cheat >>
+ qby_tac ‘~(u1 = u3) | ~(u2 = u4)’
+ >-- fs[neg_and_distr] >>
  pop_assum strip_assume_tac >>
  last_x_assum (K all_tac) (* 2 *)
- >-- (fs[GSYM IN_EXT_iff] >> 
+ >-- (fs[set_NEQ] >>
+      qsspecl_then [‘a’] (x_choosel_then ["n1","a1"] assume_tac) Pair_has_comp >>
+      fs[] >> disj1_tac >> qexists_tac [‘Pair(Mul(num2,n),a)’]
+
+
+
+fs[GSYM IN_EXT_iff] >> 
      qby_tac ‘(?n a. IN(Pair(n,a),u1) & ~(IN(Pair(n,a),u3))) | 
               (?n a. IN(Pair(n,a),u3) & ~(IN(Pair(n,a),u1)))’
      >-- cheat >> pop_assum strip_assume_tac (* 2 *)

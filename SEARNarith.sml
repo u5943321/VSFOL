@@ -2295,5 +2295,42 @@ val num3_def = qdefine_fsym("num3",[]) ‘Suc(num2)’
 val num4_def = qdefine_fsym("num4",[]) ‘Suc(num3)’
 
 
-val Even_def = qdefine_psym("Even",[‘n:mem(N)’]) ‘∃n0. n = Mul(Suc(Suc(O)),n0)’
-val Odd_def = qdefine_psym("Odd",[‘n:mem(N)’]) ‘~Even(n)’
+val DIVR_def = 
+P2fun_uex |> qspecl [‘Z*Z’,‘Z*Z’]  
+          |> fVar_sInst_th “P(ad:mem(Z*Z),qr:mem(Z*Z))”
+             “(Snd(ad) = Oz & qr = Pair(Oz,Oz)) |
+  (~(Snd(ad) = Oz) &
+   Fst(ad) = Addz(Mulz(Fst(qr),Snd(ad)),Snd(qr)) & 
+   Lez(Oz,Snd(qr)) & Ltz(Snd(qr),n2z(Abv(Snd(ad)))))”
+|> C mp
+(proved_th $
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘ad’] (x_choosel_then ["a","d"] assume_tac)
+ Pair_has_comp >> arw[Pair_def'] >> 
+ qcases ‘d = Oz’ >> arw[] (* 2 *) >--
+ (uex_tac >> qexists_tac ‘Pair(Oz,Oz)’ >> 
+ rw[] >> rpt strip_tac >> arw[]) >>
+ drule division_theorem >> arw[] )
+(form_goal
+ “!ad.
+  ?!qr:mem(Z * Z). 
+  (Snd(ad) = Oz & qr = Pair(Oz,Oz)) |
+  (~(Snd(ad) = Oz) &
+   Fst(ad) = Addz(Mulz(Fst(qr),Snd(ad)),Snd(qr)) & 
+   Lez(Oz,Snd(qr)) & Ltz(Snd(qr),n2z(Abv(Snd(ad))))) ”))
+|> uex2ex_rule |> qSKOLEM "DIVR" [] 
+ 
+val Divr_def = qdefine_fsym("Divr",[‘a:mem(Z)’,‘d:mem(Z)’])
+‘App(DIVR,Pair(a,d))’
+ 
+
+local
+val th0 = proved_th $
+e0
+(qexists_tac ‘Pair(Oz,Oz)’ >> rw[])
+(form_goal “?z:mem(Z * Z).T”)
+in
+val _def = division_theorem |> spec_all
+                                |> undisch
+                                |> SKOLEM th0 "Div"
