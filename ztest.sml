@@ -2614,10 +2614,19 @@ e0
 
 *)
 
+val Negz_Negz = prove_store("Negz_Negz",
+e0
+(casez_tac >> rw[Negz_Asz])
+(form_goal “!z. Negz(Negz(z)) = z”));
+
+
 val Ltz_iff_O_Ltz_Sub = prove_store("Ltz_iff_O_Ltz_Sub",
 e0
-(rpt strip_tac >> dimp_tac >> 
- )
+(rpt strip_tac >>
+ qsspecl_then [‘Addz(b,Negz(a))’,‘Oz’] assume_tac Ltz_Negz >>
+ fs[Negz_Addz,Negz_Negz,Negz_Oz] >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ once_rw[Addz_comm] >> rw[GSYM Ltz_Addz_Negz])
 (form_goal “!a b. Ltz(a,b) <=> Ltz(Oz,Addz(b,Negz(a)))”));
 
 
@@ -2627,7 +2636,8 @@ e0
  fs[Oz_def,Ltz_Asz,Mulz_Asz,Add_clauses] >>
  rpt strip_tac >> ccontra_tac >>
  fs[NOT_LESS] >>
- qby_tac ‘Le(Mul(a',Sub(a,b)),Mul(b',Sub(a,b)))’ >-- cheat >>
+ qby_tac ‘Le(Mul(a',Sub(a,b)),Mul(b',Sub(a,b)))’ >-- 
+ (irule Le_MONO_Mul >> arw[]) >>
  fs[LEFT_SUB_DISTR] >>
  qsspecl_then [‘Sub(Mul(a', a), Mul(a', b))’,
                ‘Sub(Mul(b', a), Mul(b', b))’,
@@ -2643,7 +2653,7 @@ e0
  once_rw[LEFT_DISTR] >> 
  qby_tac
  ‘Le(Mul(b', b),Mul(b',a))’ 
- >-- cheat >>
+ >-- (once_rw[Mul_comm] >> irule Le_MONO_Mul >> irule Lt_Le >> arw[]) >>
  drule SUB_ADD >>
  qsspecl_then [‘Mul(b,b')’,‘Mul(b,a')’] assume_tac Add_comm >>
  arw[] >> rw[Add_assoc] >> arw[] >>
@@ -2651,7 +2661,7 @@ e0
  qsspecl_then [‘b'’,‘a’] assume_tac Mul_comm >> arw[] >> 
  qby_tac 
  ‘Le(Mul(a', b),Mul(a',a))’
- >-- cheat >>
+ >-- (once_rw[Mul_comm] >> irule Le_MONO_Mul >> irule Lt_Le >> arw[]) >>
  drule SUB_ADD >> 
  rw[GSYM Add_assoc] >>
  qpick_x_assum ‘Add(Mul(b, a'), Mul(b, b')) = Add(Mul(b, b'), Mul(b, a'))’
@@ -2756,11 +2766,6 @@ e0
  drule Ltz_trans >> first_x_assum drule >>
  fs[Ltz_def])
 (form_goal “!a b. Ltz(a,b) ==> ~Ltz(b,a)”));
-
-val Negz_Negz = prove_store("Negz_Negz",
-e0
-(casez_tac >> rw[Negz_Asz])
-(form_goal “!z. Negz(Negz(z)) = z”));
 
 
 val Abv_Negz = prove_store("Abv_Negz",
