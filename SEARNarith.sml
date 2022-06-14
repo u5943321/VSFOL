@@ -2287,3 +2287,13 @@ cheat
          Add(Mul(a1, a3), Mul(b1, b3)))) <=> 
   Lt(Add(a2, b3), Add(b2, a3)))”);
 *)                                
+
+
+val num1_def = qdefine_fsym("num1",[]) ‘Suc(O)’
+val num2_def = qdefine_fsym("num2",[]) ‘Suc(num1)’
+val num3_def = qdefine_fsym("num3",[]) ‘Suc(num2)’
+val num4_def = qdefine_fsym("num4",[]) ‘Suc(num3)’
+
+
+val Even_def = qdefine_psym("Even",[‘n:mem(N)’]) ‘∃n0. n = Mul(Suc(Suc(O)),n0)’
+val Odd_def = qdefine_psym("Odd",[‘n:mem(N)’]) ‘~Even(n)’

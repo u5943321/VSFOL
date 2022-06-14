@@ -1,4 +1,3 @@
-
 local
 val FI_cl = 
  “(xs = Empty(X) ==> IN(xs,FIs)) &
@@ -28,32 +27,6 @@ val FI_cases = FI_cases1 |> store_as "FI_cases";
 val FI_rules = FI_rules3 |> store_as "FI_rules";
 
 
-
-
-
-val Del_def = IN_def_P |> qspecl [‘X’]
-                       |> fVar_sInst_th “P(x:mem(X))”
-                          “IN(x,s0) & (~(x:mem(X) = x0))” 
-                       |> uex2ex_rule
-                       |> qSKOLEM "Del" [‘s0’,‘x0’]
-                       |> qgen ‘x0’ |> qgen ‘s0’ |> qgen ‘X’
-                       |> store_as "Del_def";
-
-val Del_Ins = prove_store("Del_Ins",
-e0
-(rpt strip_tac >> irule IN_EXT >> 
- arw[Ins_def,Del_def] >>
- rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >> ccontra_tac >> fs[])
-(form_goal “!X x0:mem(X) xs0. (~IN(x0,xs0)) ==> Del(Ins(x0,xs0),x0) =xs0”));
-
-
-
-
-val Ins_absorb = prove_store("Ins_absorb",
-e0
-(rpt strip_tac >> irule IN_EXT >> rw[Ins_def] >>
- rpt strip_tac >> dimp_tac >> strip_tac >> arw[])
-(form_goal “!X x0:mem(X) xs0. IN(x0,xs0) ==> Ins(x0,xs0) =xs0”));
 
 
 val Fin_def = qdefine_psym("Fin",[‘A:mem(Pow(X))’]) ‘IN(A,FIs(X))’

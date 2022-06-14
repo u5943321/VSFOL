@@ -796,6 +796,7 @@ e0
 (form_goal “!W a. ~(a = Empty(W)) ==> FIP(Sing(a)) ”));
 
 
+(*
 
 val Pr_uex = prove_store("Pr_uex",
 e0
@@ -1162,7 +1163,7 @@ obtained from disjI from
 
 
 
-*)
+
 
 
 val cond_unique_lemma = proved_th $
@@ -1480,3 +1481,5 @@ let
                                         (fn a => eq_form(a,asm)) (ant uexth)) (ant eqvth) orelse
                 raise simple_fail "newspec.eqvth ant"
 in () end
+
+*)

@@ -282,8 +282,7 @@ cf0 |> rewr_rule[niff_cstr1,niff_cstr2,niff_cstr3,niff_cstr4,NOT_encafm]
 
 val fmFn_def = proved_th $
 e0
-(rpt strip_tac >>
- 
+(chea
 )
 (form_goal
  “!X x0:mem(X) A vf:A->X nf:X->X djf:X*X->X dmf:X->X.

@@ -1,5 +1,4 @@
 
-
 val ZR_def = 
 AX1 |> qspecl [‘N * N’,‘N * N’] |> uex2ex_rule
     |> fVar_sInst_th “P(mn:mem(N * N),m'n':mem(N * N))”
@@ -69,10 +68,6 @@ e0
  rw[ZR_def])
 (form_goal
  “Refl(ZR)”));
-
-
-fun basic_fconv_tac c fc = fconv_tac $ basic_fconv c fc
-fun depth_fconv_tac c fc = fconv_tac $ depth_fconv c fc
 
 (*use add_sub*)
 val ZR_Trans = prove_store("ZR_Trans",
@@ -389,7 +384,7 @@ e0
 (form_goal “∀A r1:A~>A B r2:B~>B. ER(r1) & ER(r2) ⇒ ER(prrel(r1,r2))”));
 
 
-val forall_cross_tac =  depth_fconv_tac no_conv forall_cross_fconv;
+
 
 
 val Pow_conj_eq0 = prove_store("Pow_conj_eq0",

@@ -132,7 +132,14 @@ e0
 
 val IMAGE_BIGUNION = prove_store("IMAGE_BIGUNION",
 e0
-(cheat)
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,IMAGE_def,IN_BIGUNION,Image_def] >>
+ strip_tac >> dimp_tac >> strip_tac >> arw[] (* 2 *)
+ >-- (qexists_tac ‘IMAGE(f,ss')’ >> rw[IMAGE_def] >> strip_tac (* 2 *)
+     >-- (qexists_tac ‘ss'’ >> arw[]) >>
+     qexists_tac ‘a’ >> arw[]) >>
+ first_assum (drule o iffLR) >>
+ pop_assum strip_assume_tac >> arw[] >> qexists_tac ‘a'’ >> arw[] >>
+ qexists_tac ‘a’ >> arw[])
 (form_goal
  “!A B f:A->B ss.IMAGE(f,BIGUNION(ss)) = BIGUNION(IMAGE(Image(f),ss))”));
 
@@ -227,14 +234,17 @@ e0
 
 val p1_comm = prove_store("p1_comm",
 e0
-(cheat)
+(rw[GSYM FUN_EXT] >>
+ rpt strip_tac >>
+ qsspecl_then [‘a’] strip_assume_tac Pair_has_comp >>
+ arw[App_App_o,App_Prla,p12_of_Pair])
 (form_goal “!A B C f:A->C. f o p1(A,B) = p1(C,B) o Prla(f,Id(B))”));
 
 
 
 val p1_Prla = prove_store("p1_Prla",
 e0
-(cheat)
+(rw[p1_comm] >> rpt strip_tac >> once_rw[Prla_def] >> rw[p12_of_Pa])
 (form_goal “!A X f:A->X B Y g:B->Y. p1(X,Y) o Prla(f,g) = f o p1(A,B)”));
 
 
@@ -297,24 +307,15 @@ e0
 *)
 
 
-val IMAGE_Empty_Empty = prove_store("IMAGE_Empty_Empty",
+
+
+val IMAGE_Empty = prove_store("IMAGE_Empty",
 e0
-(cheat)
-(form_goal “!A B f:A->B s. IMAGE(f,s) = Empty(B) <=> s = Empty(A)”));
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,IMAGE_def] >> 
+ strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- fs[Empty_def] >> fs[Empty_def])
+(form_goal “!A B f:A->B. IMAGE(f,Empty(A)) = Empty(B)”));
 
-
-val BIGUNION_Empty_Empty = prove_store("BIGUNION_Empty_Empty",
-e0
-(cheat)
-(form_goal “!A ss. BIGUNION(ss) = Empty(A) <=> 
- (!s. IN(s,ss) ==> s = Empty(A))”));
-
-
-val BIGUNION_Empty_Empty' = prove_store("BIGUNION_Empty_Empty'",
-e0
-(cheat)
-(form_goal “!A ss. Empty(A) = BIGUNION(ss)  <=> 
- (!s. IN(s,ss) ==> s = Empty(A))”));
 
 
 val IN_NONEMPTY = prove_store("IN_NONEMPTY",
@@ -328,6 +329,41 @@ e0
  qsuff_tac ‘?a. IN(a,s)’ >--arw[] >>
  qexists_tac ‘a’ >> arw[])
 (form_goal “!A s. (?a. IN(a,s)) <=> ~(s = Empty(A))”));
+
+
+val IMAGE_Empty_Empty = prove_store("IMAGE_Empty_Empty",
+e0
+(rpt strip_tac >> qcases ‘s = Empty(A)’ >> arw[] (* 2 *)
+ >-- rw[IMAGE_Empty] >>
+ fs[GSYM IN_NONEMPTY] >> qexists_tac ‘App(f,a)’ >> rw[IMAGE_def] >>
+ qexists_tac ‘a’ >> arw[])
+(form_goal “!A B f:A->B s. IMAGE(f,s) = Empty(B) <=> s = Empty(A)”));
+
+
+val BIGUNION_Empty_Empty = prove_store("BIGUNION_Empty_Empty",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (fs[GSYM IN_EXT_iff,IN_BIGUNION,Empty_def] >>
+     strip_tac >> ccontra_tac >>
+     qby_tac ‘?ss'. IN(ss',ss) & IN(x,ss')’ 
+     >-- (qexists_tac ‘s’ >> arw[]) >>
+     rfs[]) >>
+ fs[GSYM IN_EXT_iff,IN_BIGUNION,Empty_def] >>
+ strip_tac >> ccontra_tac >> pop_assum strip_assume_tac >>
+ first_assum drule >> fs[])
+(form_goal “!A ss. BIGUNION(ss) = Empty(A) <=> 
+ (!s. IN(s,ss) ==> s = Empty(A))”));
+
+
+val BIGUNION_Empty_Empty' = prove_store("BIGUNION_Empty_Empty'",
+e0
+(rpt strip_tac >> dimp_tac >-- (rpt strip_tac >>
+ last_x_assum (assume_tac o GSYM) >> drule $ iffLR BIGUNION_Empty_Empty >>
+ first_assum drule >> arw[]) >>
+ rpt strip_tac >> 
+ drule $ iffRL BIGUNION_Empty_Empty >> arw[])
+(form_goal “!A ss. Empty(A) = BIGUNION(ss)  <=> 
+ (!s. IN(s,ss) ==> s = Empty(A))”));
 
 
 
@@ -494,34 +530,51 @@ e0
  !C g1:B->C g2. g1 o f = g2 o f ==> g1 = g2”));
 
 
-val r2f_def = proved_th $
-e0
-cheat
-(form_goal “!R:A~>B. ?!f:A * B -> 1+1.
- !a b. App(f,Pair(a,b)) = App(i2(1,1),dot)  <=> Holds(R,a,b)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "r2f" [‘R’] |> gen_all
-
-
 val true_def = qdefine_fsym("true",[]) ‘App(i2(1,1),dot)’
 
 val false_def = qdefine_fsym("false",[]) ‘App(i1(1,1),dot)’
+
+
+val i1_ne_i2 = prove_store("i1_ne_i2",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘App(i1(A,B),a)’] assume_tac 
+ i1_xor_i2  >> ccontra_tac >>
+ qby_tac ‘?a'. App(i1(A, B), a) = App(i1(A, B), a')’ 
+ >-- (qexists_tac ‘a’ >> rw[]) >>
+ qby_tac ‘?b. App(i1(A,B),a) = App(i2(A,B),b)’ 
+ >-- (qexists_tac ‘b’ >> arw[]) >>
+ first_x_assum (drule o iffRL) >> fs[])
+(form_goal “!A B a b.~(App(i1(A,B),a)= App(i2(A,B),b))”));
+
  
 val true_ne_false = prove_store("true_ne_false",
 e0
-cheat
+(rw[true_def,false_def,GSYM i1_ne_i2])
 (form_goal “~(true = false)”));
+
+val true_or_false = prove_store("true_xor_false",
+e0
+(rw[true_def,false_def] >> strip_tac >>
+ qsspecl_then [‘tv’] assume_tac i1_or_i2 >> fs[dot_def] )
+(form_goal “!tv. tv= true | tv = false”));
+
 
 val true_xor_false = prove_store("true_xor_false",
 e0
-cheat
-(form_goal “!tv. tv= true | tv = false”));
+(strip_tac >> 
+ qsspecl_then [‘tv’] strip_assume_tac true_or_false >> arw[GSYM true_ne_false] >>
+ rw[true_ne_false])
+(form_goal “!tv. ~(tv= true) <=> tv = false”)); 
+
 
 val tv_eq_true = prove_store("tv_eq_true",
 e0
-(cheat)
+(rpt strip_tac >>
+ qcases ‘tv1 = true’ >> qcases ‘tv2 = true’ >> fs[true_xor_false] >>
+ rw[true_ne_false] >> rw[GSYM true_ne_false])
 (form_goal “!tv1 tv2. tv1 = tv2 <=>
  (tv1 = true <=> tv2 = true)”));
-
 
 val tf_eq_true = prove_store("tf_eq_true",
 e0
@@ -530,28 +583,102 @@ e0
 (form_goal “!A tf1 tf2. tf1 = tf2 <=>
  (!a:mem(A). App(tf1,a) = true <=> App(tf2,a) = true)”));
 
+
+
+fun basic_fconv_tac c fc = fconv_tac $ basic_fconv c fc
+fun depth_fconv_tac c fc = fconv_tac $ depth_fconv c fc
+
+val forall_cross_tac =  depth_fconv_tac no_conv forall_cross_fconv;
+
+val r2f_def = 
+proved_th $
+e0
+(strip_tac >>
+ qsuff_tac
+ ‘?f:A * B -> 1+1.
+ !a b. App(f,Pair(a,b)) = App(i2(1,1),dot)  <=> Holds(R,a,b)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+     rpt strip_tac >> irule $ iffRL tf_eq_true >> 
+     forall_cross_tac >> arw[true_def]) >>
+ assume_tac
+ (define_lambda 
+“!ab.(Holds(R:A~>B,Fst(ab),Snd(ab)) ==> App(f,ab) = App(i2(1,1),dot)) &
+     (ELSE ==> App(f,ab) = App(i1(1,1),dot))”) >>
+ pop_assum (strip_assume_tac o uex2ex_rule) >>
+ qexists_tac ‘f’ >> rpt strip_tac >>
+ first_x_assum (qsspecl_then [‘Pair(a,b)’] assume_tac) >> 
+ fs[Pair_def'] >> 
+ qcases ‘Holds(R,a,b)’ >> arw[] (* 2 *)
+ >-- (first_x_assum drule >> arw[]) >>
+ first_x_assum drule >> arw[] >>
+ rw[GSYM true_def,GSYM false_def,GSYM true_ne_false])
+(form_goal “!R:A~>B. ?!f:A * B -> 1+1.
+ !a b. App(f,Pair(a,b)) = App(i2(1,1),dot)  <=> Holds(R,a,b)”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "r2f" [‘R’] |> gen_all
+
+
+
+
 val OR_def = proved_th $
 e0
-(cheat)
-(form_goal “?f:(1+1) * (1+1) -> 1+1. 
+(qsuff_tac
+ ‘?f:(1+1) * (1+1) -> 1+1. 
+ App(f,Pair(true,true)) = true & 
+ App(f,Pair(true,false)) = true &
+ App(f,Pair(false,true)) = true &
+ App(f,Pair(false,false)) = false’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+     rpt strip_tac >> irule $ iffLR FUN_EXT >>
+     forall_cross_tac >> rpt strip_tac >>
+     qcases ‘a' = true’ >> qcases ‘b = true’ >> fs[true_xor_false]) >>
+ strip_assume_tac $ uex2ex_rule $
+ define_lambda
+ “!tv12. (tv12 = Pair(false,false) ==> App(f,tv12) = false) &
+         (ELSE ==> App(f,tv12) = true)” >>
+ qexists_tac ‘f’ >> rpt strip_tac (* 4 *)
+ >-- (first_x_assum (qsspecl_then [‘Pair(true,true)’] strip_assume_tac) >>
+     first_x_assum irule  >> rw[Pair_eq_eq,true_ne_false]) 
+ >-- (first_x_assum (qsspecl_then [‘Pair(true,false)’] strip_assume_tac) >>
+     first_x_assum irule  >> rw[Pair_eq_eq,true_ne_false])
+ >-- (first_x_assum (qsspecl_then [‘Pair(false,true)’] strip_assume_tac) >>
+     first_x_assum irule  >> rw[Pair_eq_eq,true_ne_false]) >>
+ first_x_assum (qsspecl_then [‘Pair(false,false)’] strip_assume_tac) >>
+ fs[])
+(form_goal “?!f:(1+1) * (1+1) -> 1+1. 
  App(f,Pair(true,true)) = true & 
  App(f,Pair(true,false)) = true &
  App(f,Pair(false,true)) = true &
  App(f,Pair(false,false)) = false”)
-|> qSKOLEM "OR" [] 
+|> uex2ex_rule |> qSKOLEM "OR" [] 
 
 
 val NOT_def = proved_th $
 e0
-(cheat)
-(form_goal “?f:1+1 -> 1+1. 
+(qsuff_tac
+ ‘?f:1+1 -> 1+1. 
+App(f,true) = false & App(f,false) = true’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+      rpt strip_tac >> irule $ iffLR FUN_EXT >> strip_tac >>
+      qcases ‘a = true’ >> fs[true_xor_false]) >>
+ strip_assume_tac $ uex2ex_rule $ define_lambda
+ “!tv. (tv = true ==> App(f,tv) = false) &
+       (ELSE ==> App(f,tv) = true)” >>
+ qexists_tac ‘f’ >> strip_tac (* 2 *)
+ >-- (first_x_assum (qsspecl_then [‘true’] strip_assume_tac) >>
+     fs[]) >>
+ first_x_assum (qsspecl_then [‘false’] strip_assume_tac) >>
+ fs[GSYM true_ne_false])
+(form_goal “?!f:1+1 -> 1+1. 
 App(f,true) = false & App(f,false) = true”)
-|> qSKOLEM "NOT" [] 
+|> uex2ex_rule |>  qSKOLEM "NOT" [] 
 
 
 val f2r_def = proved_th $
 e0
-cheat
+(rpt strip_tac >>
+ assume_tac
+ (AX1 |> qspecl [‘A’,‘B’] 
+     |> fVar_sInst_th “P(a:mem(A),b:mem(B))” “App(f:A * B-> 1+1,Pair(a,b)) = true”) >> arw[])
 (form_goal “!A B f:A * B -> 1+1.?!R:A~>B.
  !a b. Holds(R,a,b) <=> App(f,Pair(a,b)) = true”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "f2r" [‘f’] |> gen_all
@@ -559,7 +686,24 @@ cheat
 
 val ss2f = proved_th $
 e0
-(cheat)
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?f:A -> 1+1.
+  !a. App(f,a) = true <=> IN(a,s)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+     rpt strip_tac >> irule $ iffLR FUN_EXT >> strip_tac >>
+     qcases ‘IN(a,s)’ (* 2 *)
+     >-- (first_x_assum (drule o iffRL) >>
+         first_x_assum (drule o iffRL) >> arw[]) >>
+     first_x_assum (qspecl_then [‘a’] assume_tac) >>
+     first_x_assum (qspecl_then [‘a’] assume_tac) >> rfs[true_xor_false]) >>
+ strip_assume_tac $ uex2ex_rule $ define_lambda
+ “!a. (IN(a:mem(A),s) ==> App(f,a) = true) &
+ (ELSE ==> App(f,a) = false)” >>
+ qexists_tac ‘f’ >>  strip_tac >>
+ first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+ qcases ‘IN(a,s)’ >> first_x_assum drule >> arw[] >>
+ rw[GSYM true_ne_false])
 (form_goal “!A s:mem(Pow(A)).?!f:A -> 1+1.
  !a. App(f,a) = true <=> IN(a,s)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "ss2f" [‘s’]
@@ -1016,3 +1160,68 @@ e0
 val c31_def = qdefine_fsym("c31",[‘abc:mem(A * B * C)’]) ‘Fst(abc)’
 val c32_def = qdefine_fsym("c32",[‘abc:mem(A * B * C)’]) ‘Fst(Snd(abc))’
 val c33_def = qdefine_fsym("c33",[‘abc:mem(A * B * C)’]) ‘Snd(Snd(abc))’
+
+
+
+
+val Del_def = IN_def_P |> qspecl [‘X’]
+                       |> fVar_sInst_th “P(x:mem(X))”
+                          “IN(x,s0) & (~(x:mem(X) = x0))” 
+                       |> uex2ex_rule
+                       |> qSKOLEM "Del" [‘s0’,‘x0’]
+                       |> qgen ‘x0’ |> qgen ‘s0’ |> qgen ‘X’
+                       |> store_as "Del_def";
+
+val Del_Ins = prove_store("Del_Ins",
+e0
+(rpt strip_tac >> irule IN_EXT >> 
+ arw[Ins_def,Del_def] >>
+ rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >> ccontra_tac >> fs[])
+(form_goal “!X x0:mem(X) xs0. (~IN(x0,xs0)) ==> Del(Ins(x0,xs0),x0) =xs0”));
+
+
+
+
+val Ins_absorb = prove_store("Ins_absorb",
+e0
+(rpt strip_tac >> irule IN_EXT >> rw[Ins_def] >>
+ rpt strip_tac >> dimp_tac >> strip_tac >> arw[])
+(form_goal “!X x0:mem(X) xs0. IN(x0,xs0) ==> Ins(x0,xs0) =xs0”));
+
+
+val Ins_Del = prove_store("Ins_Del",
+e0
+(rw[GSYM IN_EXT_iff,Ins_def,Del_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- arw[] >>
+ arw[] >> 
+ qcases ‘x = a’ >> arw[])
+(form_goal “!A s a:mem(A). IN(a,s) ==>Ins(a, Del(s, a)) = s ”));
+
+
+val IMAGE_eq_Empty = prove_store("IMAGE_eq_Empty",
+e0
+(rw[IMAGE_Empty_Empty])
+(form_goal “!A B f:A->B ss. IMAGE(f,ss) = Empty(B) <=>
+ ss = Empty(A)”));
+
+
+val NOTIN_Del = prove_store("NOTIN_Del",
+e0
+(rw[GSYM IN_EXT_iff,Del_def] >>
+ rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ ccontra_tac >> fs[])
+(form_goal “!A a:mem(A) s. ~IN(a,s) ==> Del(s,a) = s”));
+
+
+val Inj_IMAGE_Del = prove_store("Inj_IMAGE_Del",
+e0
+(rw[GSYM IN_EXT_iff,Del_def,IMAGE_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 3 *)
+ >-- (arw[] >> qexists_tac ‘a'’ >> arw[]) 
+ >-- (ccontra_tac >> fs[Inj_def] >>
+     first_x_assum drule >> fs[]) >>
+ qexists_tac ‘a'’ >> arw[] >> ccontra_tac >> fs[]
+)
+(form_goal “!A B f:A->B ss a.Inj(f) ==> IMAGE(f, Del(ss, a)) = 
+ Del(IMAGE(f,ss),App(f,a)) ”));

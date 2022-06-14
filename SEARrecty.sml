@@ -32,18 +32,10 @@ e0
  !a0. (!n a.IN(Pair(n,a),App(injA,a0)) <=> a = a0)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "InjA" [‘A’] |> gen_all 
 
-val Even_def = qdefine_psym("Even",[‘n:mem(N)’]) ‘∃n0. n = Mul(Suc(Suc(O)),n0)’
-val Odd_def = qdefine_psym("Odd",[‘n:mem(N)’]) ‘~Even(n)’
-
 
 (*pretend div2 is defined*)
 val Div2_def = qdefine_fsym("Div2",[‘n:mem(N)’]) ‘n’
 
-
-val num1_def = qdefine_fsym("num1",[]) ‘Suc(O)’
-val num2_def = qdefine_fsym("num2",[]) ‘Suc(num1)’
-val num3_def = qdefine_fsym("num3",[]) ‘Suc(num2)’
-val num4_def = qdefine_fsym("num4",[]) ‘Suc(num3)’
 
 
 (*
@@ -1929,28 +1921,6 @@ e0
  !A f:A->B. Inj(f) ==> Fin(Whole(A))”));
 *)
 
-val IMAGE_eq_Empty = prove_store("IMAGE_eq_Empty",
-e0
-(cheat)
-(form_goal “!A B f:A->B ss. IMAGE(f,ss) = Empty(B) <=>
- ss = Empty(A)”));
-
-val Ins_Del = prove_store("Ins_Del",
-e0
-(rw[GSYM IN_EXT_iff,Ins_def,Del_def] >>
- rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
- >-- arw[] >>
- arw[] >> 
- qcases ‘x = a’ >> arw[])
-(form_goal “!A s a:mem(A). IN(a,s) ==>Ins(a, Del(s, a)) = s ”));
-
-val NOTIN_Del = prove_store("NOTIN_Del",
-e0
-(rw[GSYM IN_EXT_iff,Del_def] >>
- rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
- ccontra_tac >> fs[])
-(form_goal “!A a:mem(A) s. ~IN(a,s) ==> Del(s,a) = s”));
-
 val Del_Fin = prove_store("Del_Fin",
 e0
 (rpt strip_tac >>
@@ -1961,18 +1931,6 @@ e0
  drule NOTIN_Del >> fs[])
 (form_goal “!A s a:mem(A). Fin(Del(s,a)) ==>Fin(s)”));
 
-
-val Inj_IMAGE_Del = prove_store("Inj_IMAGE_Del",
-e0
-(rw[GSYM IN_EXT_iff,Del_def,IMAGE_def] >>
- rpt strip_tac >> dimp_tac >> rpt strip_tac (* 3 *)
- >-- (arw[] >> qexists_tac ‘a'’ >> arw[]) 
- >-- (ccontra_tac >> fs[Inj_def] >>
-     first_x_assum drule >> fs[]) >>
- qexists_tac ‘a'’ >> arw[] >> ccontra_tac >> fs[]
-)
-(form_goal “!A B f:A->B ss a.Inj(f) ==> IMAGE(f, Del(ss, a)) = 
- Del(IMAGE(f,ss),App(f,a)) ”));
 
 val Fin_Inj0 = prove_store("Fin_Inj0",
 e0
