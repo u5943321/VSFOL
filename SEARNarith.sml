@@ -1850,9 +1850,13 @@ e0
 (form_goal “!a b c. Le(a,b) & Lt(b,c) ==> Le(a,c)”));
 
 
+
 val Add_Add_Rarr = prove_store("Add_Add_Rarr",
 e0
-(cheat)
+(rpt strip_tac >> rw[GSYM Add_assoc,Add_eq_eq_r] >>
+ qsspecl_then [‘Add(c,d)’,‘b’] assume_tac Add_comm >>
+ arw[GSYM Add_assoc,Add_eq_eq_r] >> 
+ qsspecl_then [‘b’,‘d’]assume_tac Add_comm >> arw[])
 (form_goal “!a b c d. Add(Add(a,b),Add(c,d)) = 
  Add(Add(a,c),Add(b,d))”));
 
@@ -1967,6 +1971,8 @@ e0
  arw[Le_cases_iff])
 (form_goal “!a b. Le(a,b) & Le(b,a) <=> a = b”));
 
+
+(*
 val Lt_MONO_Mul_iff = prove_store("Lt_MONO_Mul_iff",
 e0
 cheat
@@ -1981,7 +1987,7 @@ cheat
 (form_goal 
  “!m n. Lt(m,n) ==> 
       !p. Lt(O,p) <=> Lt(Mul(m,p),Mul(n,p))”));
-
+*)
 
 val Le_MONO_Sub = prove_store("Le_MONO_Sub",
 e0
@@ -2042,7 +2048,7 @@ e0
         Lt(Sub(a,c),Sub(b,c)))”));
 
 
-
+(*
 
 val Le_MONO_Sub_iff = prove_store("Le_MONO_Sub_iff",
 e0
@@ -2051,6 +2057,7 @@ e0
  “!a c. Le(c,a) ==> 
         (!b.Le(a,b) <=>
         Le(Sub(a,c),Sub(b,c)))”));
+*)
 
 (*
 
@@ -2113,18 +2120,49 @@ cheat >> arw[] >>
 *)
 
 
-val Le_cross_lemma = prove_store("Le_cross_lemma",
+
+val Add_Le = prove_store("Add_Le",
 e0
-cheat
-(form_goal “!a b. Le(a,b) ==>
- !c d. Le(c,d) ==> Le(Add(Mul(a,d),Mul(b,c)),Add(Mul(a,c),Mul(b,d)))”))
+(rpt strip_tac >> qcases ‘b = O’
+ >-- arw[Add_clauses,Le_refl] >>
+ qsspecl_then [‘a’,‘b’] assume_tac LESS_ADD_NONZERO >>
+ first_x_assum drule >> fs[Lt_def])
+(form_goal “!a b. Le(a,Add(a,b))”));
 
 
 val Lt_cross_lemma = prove_store("Lt_cross_lemma",
 e0
-cheat
+(rpt strip_tac >>
+ qby_tac ‘Le(Mul(b, c),Add(Mul(a, d), Mul(b, c)))’ 
+ >-- (once_rw[Add_comm] >> rw[Add_Le]) >>
+ drule Lt_MONO_Sub >> arw[] >>
+ rw[Add_Sub]  >> once_rw[Add_comm] >>
+ qby_tac ‘Le(Mul(a,c),Mul(a,d))’ 
+ >-- (once_rw[Mul_comm] >> irule Le_MONO_Mul >> 
+     irule Lt_Le >> arw[]) >>
+ drule Lt_MONO_Sub >> arw[] >>
+ rw[GSYM Sub_Add] >>
+ qsspecl_then [‘Mul(a,c)’,‘Mul(b,c)’] assume_tac Add_comm >>
+ arw[] >> rw[Sub_Add,Add_Sub] >> 
+ rw[GSYM LEFT_SUB_DISTR] >>
+ irule Lt_MONO_Mul >> arw[] >> rw[GSYM Lt_Sub_O] >> arw[])
 (form_goal “!a b. Lt(a,b) ==>
  !c d. Lt(c,d) ==> Lt(Add(Mul(a,d),Mul(b,c)),Add(Mul(a,c),Mul(b,d)))”))
+
+
+val Le_cross_lemma = prove_store("Le_cross_lemma",
+e0
+(rpt strip_tac >>
+ qcases ‘a = b’ >> qcases ‘c = d’ (* 4 *)
+ >-- fs[Le_refl] 
+ >-- (arw[] >>
+     qsspecl_then [‘Mul(b,c)’,‘Mul(b,d)’]
+     assume_tac Add_comm >> arw[Le_refl]) 
+ >-- (arw[] >> rw[Le_refl]) >>
+ irule Lt_Le >> irule Lt_cross_lemma >>
+ arw[Lt_def])
+(form_goal “!a b. Le(a,b) ==>
+ !c d. Le(c,d) ==> Le(Add(Mul(a,d),Mul(b,c)),Add(Mul(a,c),Mul(b,d)))”))
 
 
 
@@ -2249,11 +2287,3 @@ cheat
          Add(Mul(a1, a3), Mul(b1, b3)))) <=> 
   Lt(Add(a2, b3), Add(b2, a3)))”);
 *)                                
-
-val Add_Le = prove_store("Add_Le",
-e0
-(rpt strip_tac >> qcases ‘b = O’
- >-- arw[Add_clauses,Le_refl] >>
- qsspecl_then [‘a’,‘b’] assume_tac LESS_ADD_NONZERO >>
- first_x_assum drule >> fs[Lt_def])
-(form_goal “!a b. Le(a,Add(a,b))”));
