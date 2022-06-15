@@ -157,13 +157,6 @@ qfun_compr ‘a:mem(A)’
 ‘tuple4(num1,SOME(a:mem(A)),Tpm(TNull(A+1)),Tpm(Conat(x0:mem(X))))’
 *)
 
-fun qfun_compr qv qt = 
-    let val vt = qparse_term_with_cont essps qv
-        val v = dest_var vt
-        val t = qparse_term_with_cont (fvt vt) qt
-    in fun_tm_compr_uex v t
-    end
-
 
 val cstr0_def = 
  qfun_compr ‘d:mem(1)’

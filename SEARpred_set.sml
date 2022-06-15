@@ -1296,3 +1296,39 @@ e0
  ccontra_tac >> fs[])
 (form_goal “!A s1:mem(Pow(A)) s2. ~(s1 = s2) <=> (?a. IN(a,s1) & ~IN(a,s2)) |
  (?a. ~IN(a,s1) & IN(a,s2))”));
+
+
+val Pa_Inj = prove_store("Pa_Inj",
+e0
+(rpt strip_tac >> rw[Inj_def] >> rw[App_Pa_Pair] >> rw[Pair_eq_eq] >>
+ fs[Inj_def] >> rpt strip_tac >> first_x_assum irule >> arw[])
+(form_goal “!X A f:X->A. Inj(f) ==> !B g:X->B. Inj(Pa(g,f))”));
+
+
+val o_Inj_Inj = prove_store("o_Inj_Inj",
+e0
+(rpt strip_tac >> fs[Inj_def] >> rpt strip_tac >> fs[App_App_o] >>
+ first_x_assum irule >> first_x_assum irule >> arw[])
+(form_goal “!A B f:A->B. Inj(f) ==> !C g:B->C. Inj(g) ==> Inj(g o f)”));
+
+
+(*think about how quo related to this*)
+val Inj_restrict = prove_store("Inj_restrict",
+e0
+(rpt strip_tac >>
+ assume_tac (P2fun_uex |> qspecl [‘D’,‘C’] 
+                    |> fVar_sInst_th “P(d:mem(D),c:mem(C))”
+                       “App(f0:D0->C0 o i1:D->D0, d) = App(i2:C->C0, c)”) >>
+ first_x_assum drule >> flip_tac >>
+ fs[GSYM App_App_o,FUN_EXT])
+(form_goal 
+ “!D D0 i1:D->D0. Inj(i1) ==> 
+  !C C0 i2:C->C0. Inj(i2) ==>
+  !f0:D0->C0.
+   (!d.?!c. App(f0 o i1,d) = App(i2,c)) ==>
+  ?!f:D->C.i2 o f = f0 o i1”));
+
+val SS_Del = prove_store("SS_Del",
+e0
+(rw[SS_def,Del_def] >> rpt strip_tac >> fs[])
+(form_goal “!A a:mem(A) s. SS(Del(s,a),s)”));

@@ -2228,6 +2228,7 @@ e0
 (form_goal “!a b. Ltz(a,Oz) & Ltz(b,Oz) ==> Ltz(Oz,Mulz(a,b))”));
 
 
+
 val int1_def = qdefine_fsym("int1",[]) ‘n2z(Suc(O))’
 
 val int1_NONZERO = prove_store("int1_NONZERO",
