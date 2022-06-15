@@ -3,16 +3,16 @@
 val InjN_def = proved_th $
 e0
 (strip_tac >> irule
- (P2fun_uex |> qspecl [‘N’,‘Pow(N * A)’] 
+ (P2fun_uex |> qspecl [‘N’,‘Pow(N * (A+1))’] 
  |> fVar_sInst_th “P(n0:mem(N),na:mem(Pow(N * A)))”
     “(!n:mem(N) a:mem(A).IN(Pair(n,a),na) <=> n = n0)”) >>
  strip_tac >> accept_tac
  (IN_def_P |> qspecl [‘N * A’] 
- |> fVar_sInst_th “P(na:mem(N * A))” “Fst(na:mem(N * A)) = x”
+ |> fVar_sInst_th “P(na:mem(N * A+1))” “Fst(na:mem(N * (A+1))) = x”
  |> conv_rule (depth_fconv no_conv forall_cross_fconv)
  |> rewr_rule[Pair_def'])
 )
-(form_goal “!A. ?!injN:N -> Pow(N * A).
+(form_goal “!A. ?!injN:N -> Pow(N * A+1).
  !n0. (!n a.IN(Pair(n,a),App(injN,n0)) <=> n = n0)”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "InjN" [‘A’] |> gen_all 
 
@@ -255,22 +255,11 @@ e0
  “!A. isfm(F0(A))”)); 
 
 
-val isfm_Neg0 = isfm_clauses |> conjE2 |> conjE2 |> conjE1 
-
-val isfm_Diam0 = isfm_clauses |> conjE2 |> conjE2 |> conjE2 
-                              |> conjE2
-
-
 val isfm_Var0 = prove_store("isfm_Var0",
 e0
 (rw[isfm_def,isfm_rules])
 (form_goal
  “!A p:mem(A). isfm(Var0(p))”)); 
-
-
-val isfm_Disj0 =  isfm_clauses |> conjE2 |> conjE2 
-                               |> conjE2 |> conjE1
-
 
 val isfm_clauses = isfm_rules |> rewr_rule[GSYM isfm_def]
 
@@ -331,22 +320,6 @@ e0
 (form_goal “!A. Inj(VAR(A))”));
 
 
-
-
-val Neg0_Repf = proved_th $
-e0
-(strip_tac >> irule isfm_Neg0 >> rw[repf_isfm])
-(form_goal “!f0:mem(form(A)). isfm(Neg0(Repf(f0)))”)
-
-val NEG_def = Inj_lift_fun_lemma |> qsspecl [‘repf(A)’]
-                           |> C mp repf_Inj
-                           |> qsspecl [‘NEG0(A)’] 
-                           |> rewr_rule[App_App_o,GSYM Neg0_def]
-                           |> rewr_rule[GSYM form_def,GSYM Repf_def]
-                           |> rewr_rule[Neg0_Repf]
-                           |> qSKOLEM "NEG" [‘A’]
-
-
 val NEG_NEG0 = prove_store("NEG_NEG0",
 e0
 (rw[GSYM FUN_EXT,GSYM Neg0_def,NEG_def,App_App_o,GSYM Repf_def])
@@ -360,61 +333,6 @@ e0
  irule o_Inj_Inj >> rw[repf_Inj,NEG0_Inj])
 (form_goal “!A. Inj(NEG(A))”));
 
-
-
-val Diam0_Repf = proved_th $
-e0
-(strip_tac >> irule isfm_Diam0 >> rw[repf_isfm])
-(form_goal “!f0:mem(form(A)). isfm(Diam0(Repf(f0)))”)
-
-
-val DIAM_def = Inj_lift_fun_lemma |> qsspecl [‘repf(A)’]
-                           |> C mp repf_Inj
-                           |> qsspecl [‘DIAM0(A)’] 
-                           |> rewr_rule[App_App_o,GSYM Diam0_def]
-                           |> rewr_rule[GSYM form_def,GSYM Repf_def]
-                           |> rewr_rule[Diam0_Repf]
-                           |> qSKOLEM "DIAM" [‘A’]
-
-
-val form_def_uex = prove_store("form_def_uex",
-e0
-(strip_tac >> assume_tac repf_Inj >>
- drule Inj_ex_uex >> flip_tac >>
- rw[Repf_def] >> arw[] >>
- rw[form_def] >> lflip_tac >> rw[])
-(form_goal “!a:mem(Pow(N * A)).
- (?!b. a = Repf(b)) <=> isfm(a)”));
-
-
-local
-val l = proved_th $
-e0
-(rpt strip_tac >> irule isfm_Disj0 >> rw[repf_isfm])
-(form_goal “!a b:mem(form(A)).isfm(Disj0(Repf(a), Repf(b)))”)
-in
-val DISJ_def = Inj_restrict |> qsspecl [‘Prla(repf(A),repf(A))’]
-                            |> C mp (Prla_Inj |> qsspecl [‘repf(A)’]
-                                              |> C mp repf_Inj
-                                              |> qsspecl [‘repf(A)’]
-                                              |> C mp repf_Inj)
-                            |> qsspecl [‘repf(A)’] 
-                            |> conv_rule
-                            (depth_fconv no_conv forall_cross_fconv)
-                            |> C mp repf_Inj
-                            |> qspecl [‘DISJ0(A)’]
-                            |> rewr_rule[App_App_o,Prla_def,App_Pa_Pair]
-                            |> rewr_rule[Pair_def,GSYM Repf_def]
-                            |> rewr_rule[form_def_uex,GSYM Disj0_def]
-                            |> C mp l
-                            |> uex2ex_rule
-                            |> qSKOLEM "DISJ" [‘A’] 
-                            |> rewr_rule[GSYM FUN_EXT] 
-                            |>  conv_rule
-                            (depth_fconv no_conv forall_cross_fconv)
-                            |> rewr_rule[App_App_o,App_Pa_Pair,Pair_def,
-                                         GSYM Disj0_def,GSYM Repf_def]
-end
 
 val DISJ_DISJ0 = prove_store("DISJ_DISJ0",
 e0
@@ -445,17 +363,6 @@ e0
  irule o_Inj_Inj >> rw[repf_Inj,DIAM0_Inj])
 (form_goal “!A. Inj(DIAM(A))”));
 
-            
-val Var_def = qdefine_fsym("Var",[‘a:mem(A)’]) ‘App(VAR(A),a)’
-
-val Neg_def = qdefine_fsym("Neg",[‘f:mem(form(A))’]) ‘App(NEG(A),f)’
-
-val Diam_def = qdefine_fsym("Diam",[‘f:mem(form(A))’]) ‘App(DIAM(A),f)’
-
-val Disj_def = qdefine_fsym("Disj",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
-                           ‘App(DISJ(A),Pair(f1,f2))’
-
-
 
 
 val Var_eq_eq = prove_store("Var_eq_eq",
@@ -482,7 +389,92 @@ e0
   irule Inj_eq_eq >> rw[DISJ_Inj])
 (form_goal “!f1 f2 g1 g2:mem(form(A)). Disj(f1,f2) = Disj(g1,g2) <=> f1 = g1 & f2 = g2”));
 
-              
+
+val isfm_Neg0 = isfm_clauses |> conjE2 |> conjE2 |> conjE1 
+
+val Neg0_Repf = proved_th $
+e0
+(strip_tac >> irule isfm_Neg0 >> rw[repf_isfm])
+(form_goal “!f0:mem(form(A)). isfm(Neg0(Repf(f0)))”)
+
+val NEG_def = Inj_lift_fun_lemma |> qsspecl [‘repf(A)’]
+                           |> C mp repf_Inj
+                           |> qsspecl [‘NEG0(A)’] 
+                           |> rewr_rule[App_App_o,GSYM Neg0_def]
+                           |> rewr_rule[GSYM form_def,GSYM Repf_def]
+                           |> rewr_rule[Neg0_Repf]
+                           |> qSKOLEM "NEG" [‘A’]
+
+val isfm_Diam0 = isfm_clauses |> conjE2 |> conjE2 |> conjE2 
+                              |> conjE2
+
+val Diam0_Repf = proved_th $
+e0
+(strip_tac >> irule isfm_Diam0 >> rw[repf_isfm])
+(form_goal “!f0:mem(form(A)). isfm(Diam0(Repf(f0)))”)
+
+
+val DIAM_def = Inj_lift_fun_lemma |> qsspecl [‘repf(A)’]
+                           |> C mp repf_Inj
+                           |> qsspecl [‘DIAM0(A)’] 
+                           |> rewr_rule[App_App_o,GSYM Diam0_def]
+                           |> rewr_rule[GSYM form_def,GSYM Repf_def]
+                           |> rewr_rule[Diam0_Repf]
+                           |> qSKOLEM "DIAM" [‘A’]
+
+
+val form_def_uex = prove_store("form_def_uex",
+e0
+(strip_tac >> assume_tac repf_Inj >>
+ drule Inj_ex_uex >> flip_tac >>
+ rw[Repf_def] >> arw[] >>
+ rw[form_def] >> lflip_tac >> rw[])
+(form_goal “!a:mem(Pow(N * A)).
+ (?!b. a = Repf(b)) <=> isfm(a)”));
+
+val isfm_Disj0 =  isfm_clauses |> conjE2 |> conjE2 
+                               |> conjE2 |> conjE1
+
+
+
+local
+val l = proved_th $
+e0
+(rpt strip_tac >> irule isfm_Disj0 >> rw[repf_isfm])
+(form_goal “!a b:mem(form(A)).isfm(Disj0(Repf(a), Repf(b)))”)
+in
+val DISJ_def = Inj_restrict |> qsspecl [‘Prla(repf(A),repf(A))’]
+                            |> C mp (Prla_Inj |> qsspecl [‘repf(A)’]
+                                              |> C mp repf_Inj
+                                              |> qsspecl [‘repf(A)’]
+                                              |> C mp repf_Inj)
+                            |> qsspecl [‘repf(A)’] 
+                            |> conv_rule
+                            (depth_fconv no_conv forall_cross_fconv)
+                            |> C mp repf_Inj
+                            |> qspecl [‘DISJ0(A)’]
+                            |> rewr_rule[App_App_o,Prla_def,App_Pa_Pair]
+                            |> rewr_rule[Pair_def,GSYM Repf_def]
+                            |> rewr_rule[form_def_uex,GSYM Disj0_def]
+                            |> C mp l
+                            |> uex2ex_rule
+                            |> qSKOLEM "DISJ" [‘A’] 
+                            |> rewr_rule[GSYM FUN_EXT] 
+                            |>  conv_rule
+                            (depth_fconv no_conv forall_cross_fconv)
+                            |> rewr_rule[App_App_o,App_Pa_Pair,Pair_def,
+                                         GSYM Disj0_def,GSYM Repf_def]
+end
+                          
+val Var_def = qdefine_fsym("Var",[‘a:mem(A)’]) ‘App(VAR(A),a)’
+
+val Neg_def = qdefine_fsym("Neg",[‘f:mem(form(A))’]) ‘App(NEG(A),f)’
+
+val Diam_def = qdefine_fsym("Diam",[‘f:mem(form(A))’]) ‘App(DIAM(A),f)’
+
+val Disj_def = qdefine_fsym("Disj",[‘f1:mem(form(A))’,‘f2:mem(form(A))’])
+                           ‘App(DISJ(A),Pair(f1,f2))’
+
 val Repf_eq_eq = prove_store("Repf_eq_eq",
 e0
 (rw[Repf_def] >> rpt strip_tac >> irule Inj_eq_eq >> rw[repf_Inj])
@@ -635,19 +627,19 @@ e0
                Odd(Div2(n)) & IN(Pair(Div2(Div2(n)), a), f2))”));
 
 
+val isfm_NONEMTPY = prove_store("isfm_NONEMTPY",
+e0
+(ind_with (isfm_induct |> spec_all) >> rw[GSYM IN_NONEMPTY] >>
+ rpt strip_tac (* 5 *)
+ >-- 
+ rw[IN_F0,IN_Var0,IN_Neg0,IN_Disj0,IN_Diam0])
+(form_goal “!f0. isfm(f0) ==> ~(f0 = Empty(N * A))”));
+
 val F0_NOT_Var0 = prove_store("F0_NOT_Var0",
 e0
 (rw[set_NEQ] >> disj1_tac >> qexists_tac ‘Pair(O,p)’ >>
  rw[IN_F0,IN_Var0] >> rw[Div2_def,Div_of_O,Odd_not_Even,O_NEQ_num1,O_Even] )
 (form_goal “~(F0(A) = Var0(p))”));
-
-
-val Bot_NOT_Var = prove_store("Bot_NOT_Var",
-e0
-(ccontra_tac >>
- qby_tac ‘Repf(Bot(A)) = Repf(Var(p))’ >-- arw[] >>
- fs[Bot_def,Var_def,VAR_def,F0_NOT_Var0,Repf_def,GSYM App_App_o])
-(form_goal “~(Bot(A) = Var(p))”));
 
 
 val F0_NOT_Disj0 = prove_store("F0_NOT_Disj0",
@@ -660,14 +652,6 @@ e0
 (form_goal “~(F0(A) = Disj0(f1,f2))”));
 
 
-val Bot_NOT_Disj = prove_store("Bot_NOT_Disj",
-e0
-(ccontra_tac >>
- qby_tac ‘Repf(Bot(A)) = Repf(Disj(f1,f2))’ >-- arw[] >>
- fs[Bot_def,Disj_def,DISJ_def,F0_NOT_Disj0,GSYM App_App_o])
-(form_goal “~(Bot(A) = Disj(f1,f2))”));
-
-
 val F0_NOT_Neg0 = prove_store("F0_NOT_Neg0",
 e0
 (rw[set_NEQ] >> disj1_tac >> 
@@ -676,14 +660,6 @@ e0
  qexists_tac ‘Pair(O,a)’ >>
  rw[IN_F0,IN_Neg0] >> rw[Div2_def,Div_of_O,Odd_not_Even,O_NEQ_num2,O_Even] )
 (form_goal “~(F0(A) = Neg0(f0))”));
-
-
-val Bot_NOT_Neg = prove_store("Bot_NOT_Neg",
-e0
-(ccontra_tac >>
- qby_tac ‘Repf(Bot(A)) = Repf(Neg(f))’ >-- arw[] >>
- fs[Bot_def,Neg_def,NEG_def,F0_NOT_Neg0,GSYM App_App_o])
-(form_goal “~(Bot(A) = Neg(f))”));
 
 
 val F0_NOT_Diam0 = prove_store("F0_NOT_Diam0",
@@ -696,200 +672,42 @@ e0
 (form_goal “~(F0(A) = Diam0(f0))”));
 
 
-val Bot_NOT_Diam = prove_store("Bot_NOT_Diam",
-e0
-(ccontra_tac >>
- qby_tac ‘Repf(Bot(A)) = Repf(Diam(f))’ >-- arw[] >>
- fs[Bot_def,Diam_def,DIAM_def,F0_NOT_Diam0,GSYM App_App_o])
-(form_goal “~(Bot(A) = Diam(f))”));
-
-
 val Bot_NOT = prove_store("Bot_NOT",
 e0
-(rw[Bot_NOT_Diam,Bot_NOT_Neg,Bot_NOT_Disj,Bot_NOT_Var])
+(rpt strip_tac >> ccontra_tac (* 4 *)
+ qby_tac ‘Repf(Bot(A)) = Repf(Var(p))’ 
+ >-- arw[] >>
+ fs[Bot_def,Var_def] >> fs[Repf_def,GSYM App_App_o,VAR_VAR0] >>
+ fs[VAR0_def] >> fs[F0_def] >>
+ fs[injN_def,App_App_o,InjN_def] )
 (form_goal “!A. (!p.~(Bot(A) = Var(p))) &
  (!f. ~(Bot(A) = Neg(f))) &
  (!f. ~(Bot(A) = Diam(f))) &
  (!f1 f2. ~(Bot(A) = Disj(f1,f2)))”));
 
-(*
-val F0_NOT_Disj0 = prove_store("F0_NOT_Disj0",
-e0
-(rw[set_NEQ] >> disj1_tac >> 
- qby_tac ‘?a:mem(A). T’ >-- cheat >>
- pop_assum strip_assume_tac >> 
- qexists_tac ‘Pair(O,a)’ >>
- rw[IN_F0,IN_Disj0] >> rw[Div2_def,Div_of_O,Odd_not_Even,O_NEQ_num3,O_Even] )
-(form_goal “~(F0(A) = Disj0(f1,f2))”));
-
-
-
-val F0_NOT_Neg0 = prove_store("F0_NOT_Neg0",
-e0
-(rw[set_NEQ] >> disj1_tac >> 
- qby_tac ‘?a:mem(A). T’ >-- cheat >>
- pop_assum strip_assume_tac >> 
- qexists_tac ‘Pair(O,a)’ >>
- rw[IN_F0,IN_Neg0] >> rw[Div2_def,Div_of_O,Odd_not_Even,O_NEQ_num2,O_Even] )
-(form_goal “~(F0(A) = Neg0(f0))”));
-*)
-
-
-val InjN_Inj = prove_store("InjN_Inj",
-e0
-(rw[Inj_def,InjN_def] >> cheat (* think can be prove for A +1, not A*))
-(form_goal “!A. Inj(InjN(A))”));
-
-val Var0_NOT_Diam0 = prove_store("Var0_NOT_Diam0",
-e0
-(rw[Var0_def,Diam0_def,VAR0_def,DIAM0_def,App_App_o] >>
- qspecl_then [‘A’] assume_tac InjUU_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[App_Pa_Pair,App_App_o,Id_def,dot_def,El_def] >>
- rw[injN_def,Pair_eq_eq]  >> 
- qspecl_then [‘A’] assume_tac InjN_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[num1_NEQ_num4])
-(form_goal “~(Var0(a:mem(A)) = Diam0(f0))”));
-
-val VAR_def' = VAR_def |> rewr_rule[GSYM Repf_def,App_App_o]
-
-val Var_NOT_Diam = prove_store("Var_NOT_Diam",
-e0
-(ccontra_tac >>
- qby_tac ‘Repf(Var(a)) = Repf(Diam(f))’ >-- arw[] >>
- fs[Var_def,VAR_def',Diam_def,DIAM_def,Var0_NOT_Diam0,GSYM App_App_o])
-(form_goal “~(Var(a:mem(A)) = Diam(f))”));
-
-
-val Var0_NOT_Disj0 = prove_store("Var0_NOT_Disj0",
-e0
-(rw[Var0_def,Disj0_def,VAR0_def,DISJ0_def,App_App_o] >>
- qspecl_then [‘A’] assume_tac InjUU_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[App_Pa_Pair,App_App_o,Id_def,dot_def,El_def] >>
- rw[injN_def,Pair_eq_eq]  >> 
- qspecl_then [‘A’] assume_tac InjN_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[num1_NEQ_num3])
-(form_goal “~(Var0(a:mem(A)) = Disj0(f1,f2))”));
-
-
-val Var_NOT_Disj = prove_store("Var_NOT_Disj",
-e0
-(ccontra_tac >>
- qby_tac ‘Repf(Var(a)) = Repf(Disj(f1,f2))’ >-- arw[] >>
- fs[Var_def,VAR_def',Disj_def,DISJ_def,Var0_NOT_Disj0,GSYM App_App_o])
-(form_goal “~(Var(a:mem(A)) = Disj(f1,f2))”));
-
- 
-val Var0_NOT_Neg0 = prove_store("Var0_NOT_Neg0",
-e0
-(rw[Var0_def,Neg0_def,VAR0_def,NEG0_def,App_App_o] >>
- qspecl_then [‘A’] assume_tac InjUU_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[App_Pa_Pair,App_App_o,Id_def,dot_def,El_def] >>
- rw[injN_def,Pair_eq_eq]  >> 
- qspecl_then [‘A’] assume_tac InjN_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[num1_NEQ_num2])
-(form_goal “~(Var0(a:mem(A)) = Neg0(f0))”));
-
-
-val Var_NOT_Neg = prove_store("Var_NOT_Neg",
-e0
-(ccontra_tac >>
- qby_tac ‘Repf(Var(a)) = Repf(Neg(f))’ >-- arw[] >>
- fs[Var_def,VAR_def',Neg_def,NEG_def,Var0_NOT_Neg0,GSYM App_App_o])
-(form_goal “~(Var(a:mem(A)) = Neg(f))”));
-
 
 
 val Var_NOT = prove_store("Bot_NOT",
 e0
-(rw[Var_NOT_Neg,Var_NOT_Disj,Var_NOT_Diam,GSYM Bot_NOT_Var])
+cheat
 (form_goal “!A. (!p.~(Var(p) = Bot(A))) &
  (!p:mem(A) f. ~(Var(p) = Neg(f))) &
  (!p:mem(A) f. ~(Var(p) = Diam(f))) &
  (!p:mem(A) f1 f2. ~(Var(p) = Disj(f1,f2)))”));
 
 
-val Neg0_NOT_Diam0 = prove_store("Neg0_NOT_Diam0",
-e0
-(rw[Neg0_def,Diam0_def,NEG0_def,DIAM0_def,App_App_o] >>
- qspecl_then [‘A’] assume_tac InjUU_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[App_Pa_Pair,App_App_o,Id_def,dot_def,El_def] >>
- rw[injN_def,Pair_eq_eq]  >> 
- qspecl_then [‘A’] assume_tac InjN_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[num2_NEQ_num4])
-(form_goal “~(Neg0(f:mem(Pow(N*A))) = Diam0(f0))”));
-
-
-val Neg_NOT_Diam = prove_store("Neg_NOT_Diam",
-e0
-(ccontra_tac >>
- qby_tac ‘Repf(Neg(f)) = Repf(Diam(f0))’ >-- arw[] >>
- fs[Neg_def,NEG_def,Diam_def,DIAM_def,Neg0_NOT_Diam0,GSYM App_App_o])
-(form_goal “~(Neg(f:mem(form(A))) = Diam(f0))”));
-
-
-
-val Neg0_NOT_Disj0 = prove_store("Neg0_NOT_Disj0",
-e0
-(rw[Neg0_def,Disj0_def,NEG0_def,DISJ0_def,App_App_o] >>
- qspecl_then [‘A’] assume_tac InjUU_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[App_Pa_Pair,App_App_o,Id_def,dot_def,El_def] >>
- rw[injN_def,Pair_eq_eq]  >> 
- qspecl_then [‘A’] assume_tac InjN_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[num2_NEQ_num3])
-(form_goal “~(Neg0(f:mem(Pow(N*A))) = Disj0(f1,f2))”));
-
-
-val Neg_NOT_Disj = prove_store("Neg_NOT_Disj",
-e0
-(ccontra_tac >>
- qby_tac ‘Repf(Neg(f)) = Repf(Disj(f1,f2))’ >-- arw[] >>
- fs[Neg_def,NEG_def,Disj_def,DISJ_def,Neg0_NOT_Disj0,GSYM App_App_o])
-(form_goal “~(Neg(f:mem(form(A))) = Disj(f1,f2))”));
-
-
 val Neg_NOT = prove_store("Neg_NOT",
 e0
-(rw[Neg_NOT_Disj,Neg_NOT_Diam,GSYM Bot_NOT_Neg,GSYM Var_NOT_Neg])
+cheat
 (form_goal “!A. (!f:mem(form(A)).~(Neg(f) = Bot(A))) &
  (!f p:mem(A). ~(Neg(f) = Var(p))) &
  (!f f0:mem(form(A)). ~(Neg(f) = Diam(f0))) &
  (!f:mem(form(A)) f1 f2. ~(Neg(f) = Disj(f1,f2)))”));
 
 
-val Diam0_NOT_Disj0 = prove_store("Diam0_NOT_Disj0",
-e0
-(rw[Diam0_def,Disj0_def,DIAM0_def,DISJ0_def,App_App_o] >>
- qspecl_then [‘A’] assume_tac InjUU_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[App_Pa_Pair,App_App_o,Id_def,dot_def,El_def] >>
- rw[injN_def,Pair_eq_eq]  >> 
- qspecl_then [‘A’] assume_tac InjN_Inj >>
- drule Inj_eq_eq >> arw[] >>
- rw[num4_NEQ_num3])
-(form_goal “~(Diam0(f:mem(Pow(N*A))) = Disj0(f1,f2))”));
-
-
-val Diam_NOT_Disj = prove_store("Diam_NOT_Disj",
-e0
-(ccontra_tac >>
- qby_tac ‘Repf(Diam(f)) = Repf(Disj(f1,f2))’ >-- arw[] >>
- fs[Diam_def,DIAM_def,Disj_def,DISJ_def,Diam0_NOT_Disj0,GSYM App_App_o])
-(form_goal “~(Diam(f:mem(form(A))) = Disj(f1,f2))”));
-
-
 val Diam_NOT = prove_store("Diam_NOT",
 e0
-(rw[Diam_NOT_Disj,GSYM Neg_NOT_Diam,GSYM Var_NOT_Diam,GSYM Bot_NOT_Diam])
+cheat
 (form_goal “!A. (!f:mem(form(A)).~(Diam(f) = Bot(A))) &
  (!f p:mem(A). ~(Diam(f) = Var(p))) &
  (!f f0:mem(form(A)). ~(Diam(f) = Neg(f0))) &
@@ -899,7 +717,7 @@ e0
 
 val Disj_NOT = prove_store("Disj_NOT",
 e0
-(rw[GSYM Neg_NOT_Disj,GSYM Diam_NOT_Disj,GSYM Var_NOT_Disj,GSYM Bot_NOT_Disj])
+cheat
 (form_goal “!A. (!f1 f2:mem(form(A)).~(Disj(f1,f2) = Bot(A))) &
  (!f1 f2 p:mem(A). ~(Disj(f1,f2) = Var(p))) &
  (!f1 f2 f0:mem(form(A)). ~(Disj(f1,f2) = Diam(f0))) &

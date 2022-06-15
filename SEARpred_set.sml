@@ -1332,3 +1332,22 @@ val SS_Del = prove_store("SS_Del",
 e0
 (rw[SS_def,Del_def] >> rpt strip_tac >> fs[])
 (form_goal “!A a:mem(A) s. SS(Del(s,a),s)”));
+
+val Inj_o_Inj = prove_store("Inj_o_Inj",
+e0
+(rpt strip_tac >> fs[Inj_def,App_App_o] >> rpt strip_tac >>
+ first_x_assum irule >> arw[])
+(form_goal “!A B f:A->B C g:B->C. Inj(g o f) ==> Inj(f) ”));
+
+
+val SS_Ins_Del = prove_store("SS_Ins_Del",
+e0
+(rw[SS_def,Ins_def,Del_def] >> 
+ rpt strip_tac >> first_x_assum drule >> rfs[])
+(form_goal “!A a:mem(A) ss G.SS(ss, Ins(a, G)) ==> SS(Del(ss, a), G)
+”));
+
+
+(*Inj_lift_fun_Inj!!!!! stupid not to have it!!!
+ think about maybe give a function symbol on it
+*)

@@ -12,6 +12,8 @@ B2----i_2 ----> A
 
 *)
 
+use "SEARUF.sml";
+
 
 val Vof_def = qdefine_fsym("Vof",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’])
 ‘tof(Snd(M))’ |> gen_all
@@ -1082,6 +1084,25 @@ val ENT_def = qdefine_psym("ENT",[‘phis:mem(Pow(form(A)))’,‘psi:mem(form(A
 
 
 
+val satis_Neg = prove_store("satis_Neg",
+e0
+(rw[satis_def])
+(form_goal
+ “!M:mem(Pow(W * W) * Exp(W,Pow(A))) w.satis(M, w, Neg(f)) <=> ~satis(M, w, f)”));
+
+
+val Ent_def = qdefine_psym("Ent",[‘phi:mem(form(A))’,‘psi:mem(form(A))’])
+‘!W M:mem(Pow(W * W) * Exp(W,Pow(A))) w. satis(M,w,phi) ==> satis(M,w,psi)’
+
+
+val SATIS_SS = prove_store("SATIS_SS",
+e0
+(rpt strip_tac >> fs[SS_def,SATIS_def] >> 
+ rpt strip_tac >> first_x_assum irule >> first_x_assum irule >> arw[])
+(form_goal “!s1 s2. SS(s1,s2) ==>
+ !M:mem(Pow(W * W) * Exp(W,Pow(A))) w.SATIS(M,w,s2) ==> SATIS(M,w,s1) ”))
+
+
 val Thm_6_24 = prove_store("Thm_6_24",
 e0
 (rpt strip_tac >> ccontra_tac >>
@@ -1131,9 +1152,6 @@ e0
  “!fs:mem(Pow(form(A))) phi.ENT(fs,phi) ==>
   ?ffs. SS(ffs,fs) & Fin(ffs) & ENT(ffs,phi)”));
 
-
-val Ent_def = qdefine_psym("Ent",[‘phi:mem(form(A))’,‘psi:mem(form(A))’])
-‘!W M:mem(Pow(W * W) * Exp(W,Pow(A))) w. satis(M,w,phi) ==> satis(M,w,psi)’
 
 
 val PEC_def = proved_th $
@@ -1185,13 +1203,6 @@ e0
  ?phi:mem(form(A)).PE(phi) &
        !W M w:mem(W).SATIS(M,w,fs) <=> satis(M,w,phi)”));
 
-val SATIS_SS = prove_store("SATIS_SS",
-e0
-(rpt strip_tac >> fs[SS_def,SATIS_def] >> 
- rpt strip_tac >> first_x_assum irule >> first_x_assum irule >> arw[])
-(form_goal “!s1 s2. SS(s1,s2) ==>
- !M:mem(Pow(W * W) * Exp(W,Pow(A))) w.SATIS(M,w,s2) ==> SATIS(M,w,s1) ”))
-
 val SATIS_PEC = prove_store("SATIS_PEC",
 e0
 (rw[SATIS_def] >> rpt strip_tac >>
@@ -1199,19 +1210,6 @@ e0
 (form_goal “!f M:mem(Pow(W * W) * Exp(W,Pow(A))) w.
  satis(M,w,f) ==> SATIS(M,w,PEC(f)) ”));
 
-val satis_Neg = prove_store("satis_Neg",
-e0
-(rw[satis_def])
-(form_goal
- “!M:mem(Pow(W * W) * Exp(W,Pow(A))) w.satis(M, w, Neg(f)) <=> ~satis(M, w, f)”));
-
-
-val SS_Ins_Del = prove_store("SS_Ins_Del",
-e0
-(rw[SS_def,Ins_def,Del_def] >> 
- rpt strip_tac >> first_x_assum drule >> rfs[])
-(form_goal “!A a:mem(A) ss G.SS(ss, Ins(a, G)) ==> SS(Del(ss, a), G)
-”));
 
 (*
 val Fin_Bij = prove_store("Fin_Bij",
