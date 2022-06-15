@@ -1351,3 +1351,27 @@ e0
 (*Inj_lift_fun_Inj!!!!! stupid not to have it!!!
  think about maybe give a function symbol on it
 *)
+
+
+
+val SOME_eq_eq = prove_store("SOME_eq_eq",
+e0
+(rw[SOME_def] >> rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ assume_tac i1_Inj >> fs[Inj_def] >> 
+ first_x_assum drule >> arw[])
+(form_goal “!X x1:mem(X) x2. SOME(x1) = SOME(x2) <=> x1 = x2”));
+
+
+val option_xor = prove_store("option_xor",
+e0
+(rpt strip_tac >> rw[NONE_def,SOME_def] >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qsuff_tac ‘?a0. a1 = App(i1(A,1),a0)’ 
+     >-- (strip_tac >> uex_tac >> qexists_tac ‘a0’ >> arw[] >>
+         qspecl_then [‘A’,‘1’] assume_tac i1_Inj >> fs[Inj_def] >>
+         rpt strip_tac >> first_x_assum irule >> arw[]) >>
+     rw[GSYM i2_xor_i1] >> ccontra_tac >> fs[dot_def]) >>
+ pop_assum (assume_tac o uex2ex_rule) >> 
+ drule $ iffRL i2_xor_i1 >> ccontra_tac >>
+ qsuff_tac ‘?b. a1 = App(i2(A, 1), b)’ >-- arw[] >>
+ qexists_tac ‘dot’ >> arw[])
+(form_goal “!A a1:mem(A+1). ~(a1 = NONE(A)) <=> ?!a0. a1 = SOME(a0)”));
