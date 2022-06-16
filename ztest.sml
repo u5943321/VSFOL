@@ -3723,12 +3723,6 @@ e0
 
 
 
-val Odd_Div2 = prove_store("Odd_Div2",
-e0
-(strip_tac >>
- assume_tac num2_NONZERO)
-(form_goal “!a. Odd(a) <=> Suc(Mul(Div2(a),num2)) = a”));
-
 
 val Even_Sub_num2 = prove_store("Even_Sub_num2",
 e0
@@ -3742,24 +3736,53 @@ e0
  fs[NOT_LESS_EQ] >> drule Lt_imp_Sub_O >> arw[O_Even]) 
 (form_goal “!a. Even(a) ==> Even(Sub(a,num2))”));
 
-val Even_num2_Mul = prove_store("Even_num2_Mul",
+val Odd_num1 = prove_store("Odd_num1",
 e0
-(match_mp_tac 
- (strong_ind |> fVar_sInst_th “P(n:mem(N))”
-               “Even(n) ==> ?n0. n = Mul(num2,n0)”) >>
- rpt strip_tac >>
- 
+(rw[Odd_def,num1_def,Even_Suc,O_Even])
+(form_goal “Odd(num1)”));
 
-Nind_tac >> rw[O_Even] >> rpt strip_tac (* 2 *)
- >-- (qexists_tac ‘O’ >> rw[Mul_clauses]) >>
- strong_ind)
-(form_goal “!n. Even(n) ==> ?n0. n = Mul(num2,n0)”));
+val Lt_num2 = prove_store("Lt_num2",
+e0
+(rw[num2_def] >> rw[Lt_Suc_Le] >>
+ rw[num1_def] >> strip_tac >> dimp_tac >> rpt strip_tac >>
+ arw[Le_refl,O_LESS_EQ] >>
+ drule Le_Suc >> pop_assum strip_assume_tac >> arw[] >>
+ drule Le_O_O >> arw[])
+(form_goal “!a. Lt(a,num2) <=> a = O | a = num1”));
 
 val Even_Div2 = prove_store("Even_Div2",
 e0
 (strip_tac >> dimp_tac >> strip_tac (* 2 *)
- >-- assume_tac num2_NONZERO >> drule Div_Rem_NONZERO >>
+ >-- (assume_tac num2_NONZERO >> drule Div_Rem_NONZERO >>
      first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
-     
- Even_Div_num2)
-(form_goal “!a. Even(a) <=> Mul(Div2(a),num2) = a”));
+     qsuff_tac ‘Rem(a, num2) = O’ 
+     >-- (strip_tac >> fs[Add_clauses,Div2_def]) >>
+     fs[Lt_num2] >> fs[num1_def,Add_clauses] >>
+     qby_tac ‘Even(Mul(Div(a, num2), num2))’ 
+     >-- (once_rw[Mul_comm] >> rw[num2_Mul_Even]) >>
+     qby_tac ‘Even(Suc(Mul(Div(a, num2), num2)))’ 
+     >-- arw[] >>
+     fs[Even_Suc]) >> 
+ qsuff_tac ‘Even(Mul(Div2(a), num2))’ 
+ >-- arw[] >> once_rw[Mul_comm] >> rw[num2_Mul_Even])
+(form_goal “!a. Even(a) <=> Mul(Div2(a),num2) = a & Rem(a,num2) = O”));
+
+
+val Odd_Div2 = prove_store("Odd_Div2",
+e0
+(strip_tac >> dimp_tac >> strip_tac >--
+ (assume_tac num2_NONZERO >>
+ drule Div_Rem_NONZERO >> 
+ first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+ qsuff_tac ‘Rem(a, num2) = num1’ 
+ >-- (strip_tac >> arw[] >>
+     fs[num1_def,Add_clauses,Div2_def]) >>
+ fs[Lt_num2] >>
+ fs[Add_clauses] >>
+ qby_tac ‘Odd(Mul(Div(a, num2), num2))’ >-- arw[] >
+ fs[Odd_def] >>
+ qsspecl_then [‘Div(a, num2)’,‘num2’] assume_tac Mul_comm >> fs[] >>
+ fs[num2_Mul_Even]) >>
+ qsuff_tac ‘Odd(Suc(Mul(Div2(a), num2)))’ >-- arw[] >>
+ once_rw[Mul_comm] >> rw[Suc_num2_Mul_Odd])
+(form_goal “!a. Odd(a) <=> Suc(Mul(Div2(a),num2)) = a & Rem(a,num2) = num1”));
