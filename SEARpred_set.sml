@@ -1375,3 +1375,20 @@ e0
  qsuff_tac ‘?b. a1 = App(i2(A, 1), b)’ >-- arw[] >>
  qexists_tac ‘dot’ >> arw[])
 (form_goal “!A a1:mem(A+1). ~(a1 = NONE(A)) <=> ?!a0. a1 = SOME(a0)”));
+
+val NOT_true_iff_false = prove_store("NOT_true_iff_false",
+e0
+(strip_tac >>
+ qcases ‘tv = false’ >> arw[NOT_def] >>
+ fs[false_xor_true,NOT_def,GSYM true_ne_false])
+(form_goal “!tv. App(NOT,tv) = true <=> tv = false”));
+
+(*
+val not_true_false = prove_store("not_true_false",
+e0
+(strip_tac >>
+ qcases ‘tv = false’ >> arw[GSYM true_ne_false] >>
+ arw[] false_xor_true
+ fs[false_xor_true,NOT_def,GSYM true_ne_false])
+(form_goal “!tv. tv = false <=> ~(tv = true)”));
+*)

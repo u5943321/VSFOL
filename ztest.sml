@@ -1826,6 +1826,18 @@ e0
 val Odd_def = qdefine_psym("Odd",[‘n:mem(N)’]) ‘~Even(n)’
 
 
+val Even_not_Odd = prove_store("Even_not_Odd",
+e0
+(rw[Odd_def])
+(form_goal “!n. Even(n) <=> ~Odd(n)”));
+
+
+
+val Odd_not_Even = prove_store("Odd_not_Even",
+e0
+(rw[Even_not_Odd])
+(form_goal “!n. Odd(n) <=> ~Even(n)”));
+
 val id_ER = prove_store("id_ER",
 e0
 (rw[id_def,ER_def,Refl_def,Sym_def,Trans_def] >> rpt strip_tac >> arw[])
@@ -3158,24 +3170,288 @@ if a > 0, then r > qd
 
 *)
 
-val Divz_nonneg_nonneg = prove_store("Divz_nonneg_nonneg",
+
+
+
+(*
+val division_theorem_ex0 = prove_store("division_theorem_ex0",
+e0
+(rpt strip_tac >> x_choosel_then ["s"] strip_assume_tac
+ (IN_def_P_ex |> qspecl [‘N’] |> GSYM
+ |> fVar_sInst_th “P(n:mem(N))”
+    “?k. n2z(n) = Addz(a,Negz(Mulz(k,d)))” ) >>
+ qby_tac ‘~(s = Empty(N))’ 
+ >-- (rw[GSYM IN_NONEMPTY] >> 
+     qcases ‘Lez(Oz,a)’ (* 2 *)
+     >-- (arw[] >> qexistsl_tac [‘Abv(a)’,‘Oz’] >>
+         drule n2z_Abv >> arw[] >> 
+         rw[Oz_Mulz,Negz_Oz,Addz_Oz]) >> 
+     arw[] >> 
+     qby_tac ‘Ltz(Oz,Addz(a, Negz(Mulz(a, d))))’
+     >-- (qby_tac ‘Addz(a, Negz(Mulz(a, d))) = Mulz(a,Addz(int1,Negz(d)))’
+          >-- rw[GSYM Mulz_Negz,LDISTR_Z,Mulz_int1] >> arw[] >> 
+          irule Oz_Ltz_Mulz >> fs[NOT_Lez_Ltz] >> 
+          arw[GSYM Ltz_Addz_Negz]) >>
+     qexistsl_tac [‘Abv(Addz(a, Negz(Mulz(a, d))))’,‘a’] >>
+     drule Ltz_Lez >> drule n2z_Abv >> arw[]) >>
+ drule WOP'     >>
+ pop_assum strip_assume_tac >>
+ rfs[] >> qexistsl_tac [‘k’,‘Addz(a, Negz(Mulz(k, d)))’] >> 
+ qby_tac ‘Lez(Oz, Addz(a, Negz(Mulz(k, d))))’ 
+ >-- (qpick_x_assum ‘n2z(a0) = Addz(a, Negz(Mulz(k, d)))’ 
+      (assume_tac o GSYM) >> arw[n2z_Oz_Lez]) >>
+ arw[] >> once_rw[Addz_comm] >> rw[Addz_assoc,Negz_Addz_Oz,Addz_Oz] >>
+ rw[] >> once_rw[Addz_comm] >> 
+ qby_tac ‘ Ltz(Addz(a, Negz(Mulz(k, d))), n2z(Abv(d)))’
+ >-- (ccontra_tac >>  
+ qabbrev_tac ‘Addz(a, Negz(Mulz(k, d))) = r’ >>  
+ fs[] >>
+ fs[GSYM NOT_Lez_Ltz] >>
+ qby_tac ‘Ltz(Oz,d)’ 
+ >-- (fs[NOT_Lez_Ltz] >> 
+      irule Ltz_trans >> qexists_tac ‘int1’ >> arw[] >>
+      rw[Oz_Ltz_int1]) >>
+ drule n2z_Abv >> fs[] >>  
+ drule $ iffLR Ltz_def >> pop_assum strip_assume_tac >>
+ drule n2z_Abv >> fs[] >>
+ qpick_x_assum ‘Lez(d, r)’ assume_tac >> 
+ drule Lez_Addz_ex >> 
+ pop_assum (x_choosel_then ["r'"] strip_assume_tac) >> 
+ qby_tac ‘Ltz(r',r)’ 
+ >-- (pop_assum (mp_tac o GSYM) >> once_rw[Addz_comm] >> strip_tac >> 
+     arw[] >> irule Oz_Ltz_Addz >> arw[]) >>
+ first_x_assum (qspecl_then [‘Abv(r')’] assume_tac) >>
+ qby_tac ‘a0 = Abv(r)’
+ >-- (irule n2z_is_Abv >> arw[]) >> fs[] >>
+ qsspecl_then [‘r’,‘r'’] assume_tac Le_Abv_Abv >>
+ rfs[] >> fs[] >> drule $ iffRL NOT_Lez_Ltz >>
+ drule n2z_Abv >> fs[] >>
+ qsuff_tac ‘r' = Addz(a,Negz(Mulz(Addz(k,int1),d)))’ 
+ >-- (strip_tac >> 
+      qby_tac ‘?k. r' = Addz(a, Negz(Mulz(k, d)))’ 
+      >-- (qexists_tac ‘Addz(k,int1)’ >> arw[]) >>
+      rfs[]) >> 
+ drule $ iffLR Addz_Rarr >> arw[] >>
+ qpick_x_assum ‘Addz(a, Negz(Mulz(k, d))) = r’
+ (assume_tac o GSYM) >>
+ arw[] >> rw[Addz_assoc,Addz_eq_eq,RDISTR_Z] >>
+ rw[GSYM Negz_Addz,Negz_eq_eq,Addz_eq_eq] >> 
+ once_rw[Mulz_comm] >> rw[Mulz_int1]) >> arw[] >>
+ ccontra_tac >> )
+(form_goal 
+“!a d:mem(Z). Ltz(int1,d) ==>
+  ?q r. a = Addz(Mulz(q,d),r) & 
+  Lez(Oz,r) & Ltz(r,n2z(Abv(d)))&
+  (Lez(Oz,a) ==> Lez(Oz,q))”));
+*)
+
+val Subz_def = qdefine_fsym("Subz",[‘a:mem(Z)’,‘b:mem(Z)’])
+‘Addz(a,Negz(b))’
+ 
+val Subz_Addz = prove_store("Subz_Addz",
+e0
+(rw[Subz_def] >> rw[Addz_assoc,Negz_Addz_Oz,Addz_Oz])
+(form_goal “!m n.Addz(Subz(m,n),n) = m”));
+
+val Mulz_Oz = prove_store("Mulz_Oz",
+e0
+(once_rw[Mulz_comm] >> rw[Oz_Mulz])
+(form_goal “!z.Mulz(z,Oz) = Oz”));
+
+val Oz_Ltz_Negz = prove_store("Oz_Ltz_Negz",
+e0
+(strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (drule $ iffRL Ltz_Negz >> fs[Negz_Oz]) >>
+ irule $ iffLR Ltz_Negz >> arw[Negz_Oz])
+(form_goal “!a. Ltz(Oz,a) <=> Ltz(Negz(a),Oz)”));
+
+
+val Ltz_Oz_Negz = prove_store("Ltz_Oz_Negz",
+e0
+(once_rw[Oz_Ltz_Negz] >> rw[Negz_Negz])
+(form_goal “!a. Ltz(a,Oz) <=> Ltz(Oz,Negz(a))”));
+
+
+(*Mulz_Ltz_Ltz Oz_Ltz_Mulz*)
+val Mulz_Ltz_Ltz_Oz = prove_store("Mulz_Ltz_Ltz_Oz",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac (* 3 *)
+ >-- (qcases ‘Ltz(Oz,a)’ 
+     >-- (drule Mulz_Ltz_Ltz >>
+         first_x_assum (qsspecl_then [‘b’,‘Oz’] assume_tac) >>
+         fs[Mulz_Oz]) >>
+     qby_tac ‘~(a = Oz)’ 
+     >-- (ccontra_tac >> fs[Oz_Mulz,Ltz_def]) >>
+     fs[NEQ_Ltz] >> fs[Ltz_Oz_Negz] >>
+     drule Mulz_Ltz_Ltz >>
+     first_x_assum (qspecl_then [‘Oz’,‘b’] assume_tac) >>
+     fs[Mulz_Oz,Mulz_Negz] >> rfs[Negz_Mulz]) 
+ >-- (drule Mulz_Ltz_Ltz >>
+     first_x_assum (qsspecl_then [‘b’,‘Oz’] assume_tac) >> fs[Mulz_Oz]) >>
+ drule Mulz_Ltz_Ltz >> once_rw[Mulz_comm] >>
+ first_x_assum (qspecl_then [‘a’,‘Oz’] assume_tac) >> fs[Mulz_Oz])
+(form_goal 
+“!a b. Ltz(Mulz(a,b),Oz) <=> (Ltz(Oz,a) & Ltz(b,Oz)) |
+ (Ltz(Oz,b) & Ltz(a,Oz)) ”));
+
+val Mulz_Oz_iff_Oz = prove_store("Mulz_Oz_iff_Oz",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] (* 3 *)
+ >-- (ccontra_tac >> fs[NEQ_Ltz,neg_or_distr] (* 4 *)
+     >-- (qsspecl_then [‘a’,‘b’] assume_tac Oz_Ltz_Mulz >> rfs[Ltz_def]) 
+     >-- (qsspecl_then [‘a’,‘b’] assume_tac Mulz_Ltz_Ltz_Oz >> rfs[Ltz_def])
+     >-- (qsspecl_then [‘a’,‘b’] assume_tac Mulz_Ltz_Ltz_Oz >> rfs[Ltz_def]) >>
+     rev_drule Ltz_Ltz_Mulz_pos >> first_x_assum drule >>
+     fs[Ltz_def] >> rfs[])
+ >-- rw[Oz_Mulz] >> rw[Mulz_Oz])
+(form_goal “!a b.Mulz(a,b) = Oz <=> a = Oz | b = Oz”));
+
+val division_theorem' = division_theorem |> strip_all_and_imp 
+                                         |>  qgen ‘a’ |> disch_all
+                                         |> gen_all
+
+val Divz_Remz_unique = prove_store("Divz_Remz_unique",
+e0
+(strip_tac >> disch_tac >> drule division_theorem' >> 
+ rpt gen_tac >> disch_tac >>
+ first_x_assum (qsspecl_then [‘a’] (strip_assume_tac o uex_expand)) >> 
+ qpick_x_assum ‘a = Addz(Mulz(Fst(qr), d), Snd(qr))’
+ (assume_tac o GSYM) >> 
+ drule Divz_Remz_NONZERO  >>
+ first_x_assum (qsspecl_then [‘a’] strip_assume_tac) >>
+ fs[Pair_def'] >> 
+ rw[GSYM Pair_eq_eq] >>
+ qsuff_tac
+ ‘Pair(q,r) = qr &  Pair(Divz(a, d), Remz(a, d)) = qr’ 
+ >-- (rpt strip_tac >> arw[]) >> strip_tac (* 2 *)
+ >-- (first_x_assum irule >> arw[Pair_def']) >>
+ first_x_assum irule >> arw[Pair_def']  )
+(form_goal “!d. ~(d = Oz) ==>
+ !a q r. Addz(Mulz(q,d),r) = a & Lez(Oz,r) & Ltz(r,n2z(Abv(d))) ==> q = Divz(a,d) & r = Remz(a,d)”));
+
+val Ltz_Subz = prove_store("Ltz_Subz",
+e0
+(rw[Subz_def] >> once_rw[GSYM Ltz_Negz] >> rw[Negz_Oz] >> 
+ rw[Negz_Addz] >> rw[Negz_Negz] >> once_rw[Addz_comm] >>
+ once_rw[GSYM Ltz_Addz_Negz] >> rw[Ltz_Negz])
+(form_goal “!a b. Ltz(a,b) <=> Ltz(Oz,Subz(b,a))”));
+
+val Subz_Ltz = prove_store("Ltz_Subz",
+e0
+(rpt strip_tac >> once_rw[Ltz_Subz] >> rw[Subz_def] >>
+ rw[Negz_Addz] >> rw[GSYM Addz_assoc] >> rw[Addz_Negz_Oz] >>
+ rw[Oz_Addz,Negz_Negz] >> arw[])
+(form_goal “!a. Ltz(Oz,a) ==> !b.Ltz(Subz(b,a),b)”));
+
+val int1_Mulz = prove_store("int1_Mulz",
+e0
+(once_rw[Mulz_comm] >> rw[Mulz_int1])
+(form_goal “!z. Mulz(int1,z) = z”));
+
+val Addz_Subz_Rarr = prove_store("Addz_Subz_Rarr",
+e0
+(rw[Addz_assoc] >> rpt strip_tac >>  
+ qsspecl_then [‘b’,‘Subz(c,b)’] assume_tac Addz_comm >> arw[] >>
+ rw[Subz_Addz])
+(form_goal “!a b c. Addz(Addz(a,b),Subz(c,b)) = Addz(a,c)”));
+
+
+val Divz_pos_Remz = prove_store("Divz_pos_Remz",
 e0
 (rpt strip_tac >> 
- qcases ‘d = Oz’ (* 2 *)
- >-- arw[Divz_Remz_Oz,Lez_REFL] >>
+ drule $ iffLR Ltz_def >> fs[] >>
+ pop_assum (assume_tac o GSYM) >>
  drule Divz_Remz_NONZERO >> 
- first_x_assum (qsspecl_then [‘a’] strip_assume_tac) >>
- ccontra_tac >>
+ first_x_assum (qsspecl_then [‘a’] strip_assume_tac) >> 
  qsspecl_then [‘d’] assume_tac n2z_Abv >>
- rfs[] >> fs[] >>
- qsuff_tac ‘Lez(d,Remz(a, d))’ 
- >-- arw[NOT_Lez_Ltz] >> 
- fs[NOT_Lez_Ltz] >>
- cheat
- )
+ rfs[] >> fs[])
 (form_goal
- “!a d. Lez(Oz,a) & Lez(Oz,d) ==>
-        Lez(Oz,Divz(a,d))”));
+ “!a d. Ltz(Oz,a) & Ltz(Oz,d) ==>
+        Ltz(Remz(a,d),d)”));
+
+val n2z_eq_eq = prove_store("n2z_eq_eq",
+e0
+(rpt strip_tac >> rw[n2z_def] >> irule Inj_eq_eq >> rw[N2Z_Inj])
+(form_goal “!a b. n2z(a) = n2z(b) <=> a = b”));
+
+val n2z_Asz = prove_store("n2z_Asz",
+e0
+(rw[n2z_def,N2Z_def])
+(form_goal “!n. n2z(n) = Asz(n,O)”));
+
+val n2z_Oz = prove_store("n2z_Oz",
+e0
+(rw[n2z_Asz,Oz_def])
+(form_goal “n2z(O) = Oz”));
+
+val Lez_n2z = prove_store("Lez_n2z",
+e0
+(rw[n2z_Asz,Lez_Asz,Add_clauses])
+(form_goal “!a b. Lez(n2z(a),n2z(b)) <=> Le(a,b)”));
+
+
+val Ltz_n2z = prove_store("Ltz_n2z",
+e0
+(rw[n2z_Asz,Ltz_Asz,Add_clauses])
+(form_goal “!a b. Ltz(n2z(a),n2z(b)) <=> Lt(a,b)”));
+
+val Oz_Lez_n2z = prove_store("Oz_Lez_n2z",
+e0
+(rw[GSYM n2z_Oz,Lez_n2z,O_LESS_EQ])
+(form_goal “!n. Lez(Oz,n2z(n))”));
+
+val Mulz_n2z = prove_store("Mulz_n2z",
+e0
+(rw[n2z_Asz,Mulz_Asz,Mul_clauses,Add_clauses])
+(form_goal “!a b.Mulz(n2z(a),n2z(b)) = n2z(Mul(a,b))”));
+
+
+val Addz_n2z = prove_store("Addz_n2z",
+e0
+(rw[n2z_Asz,Addz_Asz,Add_clauses])
+(form_goal “!a b.Addz(n2z(a),n2z(b)) = n2z(Add(a,b))”));
+
+val n2z_Oz_O = prove_store("n2z_Oz_O",
+e0
+(strip_tac >> dimp_tac >> strip_tac (*2*)
+ >-- (irule $ iffLR n2z_eq_eq  >> fs[n2z_Oz]) >> arw[n2z_Oz])
+(form_goal “!n. n2z(n) = Oz <=> n = O”));
+
+val division_theorem_N_uex = prove_store("division_theorem_N_uex",
+e0
+(rpt strip_tac >>
+ qby_tac ‘~(n2z(d) = Oz)’ 
+ >-- (fs[Le_num1_Lt_O,Lt_def] >> ccontra_tac >> fs[n2z_Oz_O]) >>
+ drule  division_theorem' >>
+ first_x_assum (qsspecl_then [‘n2z(a)’] assume_tac) >>
+ drule division_theorem_N_ex >> 
+ pop_assum strip_assume_tac >> 
+ uex_tac >> qexists_tac ‘Pair(q,r)’ >> rw[Pair_def'] >> arw[] >>
+ first_x_assum (strip_assume_tac o uex_expand) >>
+ forall_cross_tac >> rw[Pair_def'] >> rw[Pair_eq_eq] >>
+ rw[GSYM n2z_eq_eq] >> rw[GSYM Pair_eq_eq] >> rw[n2z_eq_eq] >>
+ rpt strip_tac >>
+ qsuff_tac
+ ‘Pair(n2z(a'), n2z(b)) = qr & Pair(n2z(q), n2z(r)) = qr’ 
+ >-- (strip_tac >> arw[]) >> strip_tac (* 2 *)
+ >-- (first_x_assum irule >> rw[Pair_def'] >>  
+     qsspecl_then [‘d’] assume_tac Oz_Lez_n2z >> drule n2z_Abv >>
+     arw[Lez_n2z] >> rw[Ltz_n2z] >> arw[Oz_Lez_n2z] >>
+     qpick_x_assum ‘n2z(a) = Addz(Mulz(Fst(qr), n2z(d)), Snd(qr))’
+     (assume_tac o GSYM) >> arw[] >>
+     rw[Mulz_n2z,Addz_n2z]) >>
+ first_x_assum irule >> rw[Pair_def'] >>  
+ qsspecl_then [‘d’] assume_tac Oz_Lez_n2z >> drule n2z_Abv >>
+ arw[Lez_n2z] >> rw[Ltz_n2z] >> arw[Oz_Lez_n2z] >>
+ qpick_x_assum ‘n2z(a) = Addz(Mulz(Fst(qr), n2z(d)), Snd(qr))’
+                             (assume_tac o GSYM) >> arw[] >>
+ rw[Mulz_n2z,Addz_n2z] >> arw[])
+(form_goal 
+“!d:mem(N). Le(num1,d) ==>
+  !a.?!qr. a = Add(Mul(Fst(qr),d),Snd(qr)) & 
+           Lt(Snd(qr),d)”));
+
+
 
 
 fun qfun_compr qv qt = 
@@ -3187,12 +3463,79 @@ fun qfun_compr qv qt =
 
 use "quo.sml";
 
+val Le_num1_Lt_O = prove_store("Le_num1_Lt_O",
+e0
+(rw[num1_def,Lt_Le_Suc])
+(form_goal “!a. Le(num1,a) <=> Lt(O,a)”));
+
+val NONZERO_O_Lt = prove_store("NONZERO_O_Lt",
+e0
+(strip_tac >> dimp_tac >> strip_tac 
+ >-- (fs[Lt_def,O_LESS_EQ] >> flip_tac >> arw[]) >>
+ fs[Lt_def] >> ccontra_tac >> fs[])
+(form_goal “!n. ~(n = O) <=> Lt(O,n)”));
+
+val DIVR_def = 
+P2fun_uex |> qspecl [‘N*N’,‘N*N’]  
+          |> fVar_sInst_th “P(ad:mem(N*N),qr:mem(N*N))”
+             “(Snd(ad) = O & qr = Pair(O,O)) |
+  (~(Snd(ad) = O) &
+   Fst(ad) = Add(Mul(Fst(qr),Snd(ad)),Snd(qr)) & 
+   Lt(Snd(qr),Snd(ad)))”
+|> C mp
+(proved_th $
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘ad’] (x_choosel_then ["a","d"] assume_tac)
+ Pair_has_comp >> arw[Pair_def'] >> 
+ qcases ‘d = O’ >> arw[] (* 2 *) >--
+ (uex_tac >> qexists_tac ‘Pair(O,O)’ >> 
+ rw[] >> rpt strip_tac >> arw[]) >>
+ fs[NONZERO_O_Lt,GSYM Le_num1_Lt_O] >>
+ drule division_theorem_N_uex >> arw[] )
+(form_goal
+ “!ad.
+  ?!qr:mem(N * N). 
+  (Snd(ad) = O & qr = Pair(O,O)) |
+  (~(Snd(ad) = O) &
+   Fst(ad) = Add(Mul(Fst(qr),Snd(ad)),Snd(qr)) & 
+   Lt(Snd(qr),Snd(ad))) ”))
+|> uex2ex_rule |> qSKOLEM "DIVR" [] 
+
+
 val Z2N_def = qdefine_fsym("Z2N",[]) ‘LINV(N2Z,O)’
 
-val DIVR_def = qdefine_fsym("DIVR",[]) ‘Prla(Z2N,Z2N) o DIVRz o Prla(N2Z,N2Z)’
 
 val Divr_def = qdefine_fsym("Divr",[‘a:mem(N)’,‘d:mem(N)’])
 ‘App(DIVR,Pair(a,d))’ 
+
+
+val Divr_property0 =
+    DIVR_def |> qspecl [‘Pair(a:mem(N),d:mem(N))’] 
+              |> rewr_rule[Pair_def'] 
+              |> rewr_rule[GSYM Divr_def]
+              |> gen_all
+
+
+val Divr_O = prove_store("Divr_O",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘a’,‘d’] assume_tac Divr_property0 >>
+ rfs[])
+(form_goal 
+ “(!d.d = O ==> !a.Divr(a,d) = Pair(O,O))”));
+
+val Divr_NONZERO = prove_store("Divr_NONZERO",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘a’,‘d’] assume_tac (GSYM Divr_property0) >>
+ rfs[] >> fs[])
+(form_goal 
+ “!d.~(d = O) ==> 
+    !a. Add(Mul(Fst(Divr(a, d)), d), 
+             Snd(Divr(a, d))) = a  &
+        Lt(Snd(Divr(a, d)), d)”));
+
 
 val Div_def = qdefine_fsym("Div",[‘a:mem(N)’,‘d:mem(N)’])
 ‘Fst(Divr(a,d))’ 
@@ -3200,145 +3543,223 @@ val Div_def = qdefine_fsym("Div",[‘a:mem(N)’,‘d:mem(N)’])
 val Rem_def = qdefine_fsym("Rem",[‘a:mem(N)’,‘d:mem(N)’])
 ‘Snd(Divr(a,d))’ 
 
+ 
+val Div_Rem_NONZERO = 
+    Divr_NONZERO 
+        |> rewr_rule[GSYM Div_def,GSYM Rem_def] 
+
+
+
 val Div2_def = qdefine_fsym("Div2",[‘n:mem(N)’]) ‘Div(n,num2)’
 
-val Odd_Div2 = prove_store("Odd_Div2",
+val num2_NONZERO = prove_store("num2_NONZERO",
 e0
-cheat
-(form_goal “!a. Odd(a) <=> Suc(Mul(Div2(a),num2)) = a”));
+(rw[num2_def,Suc_NONZERO])
+(form_goal “~(num2 = O)”));
 
-
-val Even_Div2 = prove_store("Even_Div2",
+val Mul_num2 = prove_store("Mul_num2",
 e0
-cheat
-(form_goal “!a. Even(a) <=> Mul(Div2(a),num2) = a”));
+(rw[num2_def,num1_def,Mul_clauses,Add_clauses])
+(form_goal “!a. Mul(num2,a) = Add(a,a)”));
 
-val num2_Mul_Even = prove_store("num2_Mul_Even",
+val Div_Rem_num2 = Div_Rem_NONZERO |> qspecl [‘num2’]
+                                   |> rewr_rule[num2_NONZERO]
+                                   |> rewr_rule[GSYM Div2_def]
+
+
+val division_theorem_N_uex' = 
+    division_theorem_N_uex |> rewr_rule[Le_num1_Lt_O,GSYM NONZERO_O_Lt]
+
+val Div_Rem_unique = prove_store("Div_Rem_unique",
 e0
-cheat
-(form_goal “!a. Even(Mul(num2,a))”));
+(strip_tac >> disch_tac >> drule division_theorem_N_uex' >> 
+ rpt gen_tac >> disch_tac >>
+ first_x_assum (qsspecl_then [‘a’] (strip_assume_tac o uex_expand)) >>  
+ qpick_x_assum ‘a = Add(Mul(Fst(qr), d), Snd(qr))’
+ (assume_tac o GSYM) >> 
+ drule Div_Rem_NONZERO  >>
+ first_x_assum (qsspecl_then [‘a’] strip_assume_tac) >>
+ fs[Pair_def'] >> 
+ rw[GSYM Pair_eq_eq] >>
+ qsuff_tac
+ ‘Pair(q,r) = qr &  Pair(Div(a, d), Rem(a, d)) = qr’ 
+ >-- (rpt strip_tac >> arw[]) >> strip_tac (* 2 *)
+ >-- (first_x_assum irule >> arw[Pair_def']) >>
+ first_x_assum irule >> arw[Pair_def']  )
+(form_goal “!d. ~(d = O) ==>
+ !a q r. Add(Mul(q,d),r) = a & 
+         Lt(r,d) ==> q = Div(a,d) & r = Rem(a,d)”));
 
-val Div_Mul = prove_store("Div_Mul",
+
+
+val Div_Rem_Mul = prove_store("Div_Rem_Mul",
 e0
-cheat
-(form_goal “!a d. Div(Mul(d,a),d) = a”));
+(rpt gen_tac >> disch_tac >> strip_tac >>
+ flip_tac >>
+ irule Div_Rem_unique >> arw[Add_clauses] >>
+ qsspecl_then [‘a’,‘d’] assume_tac Mul_comm >> arw[] >>
+ fs[NONZERO_O_Lt])
+(form_goal “!d. ~(d = O) ==> 
+               !a. Div(Mul(d,a),d) = a & Rem(Mul(d,a),d) = O”));
 
-
-val Suc_num2_Mul_Odd = prove_store("Suc_num2_Mul_Odd",
+val Div2_Mul = prove_store("Div2_Mul",
 e0
-cheat
-(form_goal “!a. Odd(Suc(Mul(num2,a)))”));
+(assume_tac num2_NONZERO >> drule Div_Rem_Mul >> arw[Div2_def])
+(form_goal “!n.Div2(Mul(num2, n)) = n”));
+
+val num1_Lt_num2 = prove_store("num1_Lt_num2",
+e0
+(rw[num2_def,Lt_Suc])
+(form_goal “Lt(num1,num2)”)); 
+
 
 val Div2_Suc_Mul_num2 = prove_store
 ("Div2_Suc_Mul_num2",
 e0
-cheat
-(form_goal “!n.Div2(Suc(Mul(num2, n))) = n”));
+(assume_tac num2_NONZERO >> drule Div_Rem_unique >>
+ flip_tac >> strip_tac >> rw[Div2_def] >>
+ first_x_assum irule >> rw[num1_def,Add_clauses,num1_Lt_num2] >>
+ qsspecl_then [‘n’,‘num2’] assume_tac Mul_comm >> arw[])
+(form_goal “!n.Div2(Suc(Mul(num2, n))) = n & Rem(Suc(Mul(num2, n)),num2) = num1”)); 
 
-(*
-val Mod2_def = qdefine_fsym("Mod2",[‘a:mem(N)’])
-‘Rem(a,num2)’
 
-val Odd_Mod2 = prove_store("Odd_Mod2",
+val Even_Suc = 
+EVEN_def |> conjE2 |> rewr_rule[Suc_def,GSYM App_App_o,FUN_EXT,tf_eq_true] 
+         |> rewr_rule[App_App_o,GSYM Suc_def,NOT_def,NOT_true_iff_false] 
+         |> rewr_rule[GSYM Even_def,GSYM true_xor_false] 
+
+val num2_Mul_Even = prove_store("num2_Mul_Even",
 e0
-cheat
-(form_goal “!a. Odd(a) <=> Mod2(a) = num1”));
+(Nind_tac >> rw[Mul_clauses,O_Even] >> rpt strip_tac >>
+ rw[Add_clauses,num2_def,num1_def,Even_Suc] >> arw[GSYM num1_def,GSYM num2_def] )
+(form_goal “!a. Even(Mul(num2,a))”));
 
 
-val Even_Mod2 = prove_store("Even_Mod2",
+val Suc_num2_Mul_Odd = prove_store("Suc_num2_Mul_Odd",
 e0
-cheat
-(form_goal “!a. Even(a) <=> Mod2(a) = O”));
-*)
+(rw[Odd_not_Even] >> rw[Even_Suc,num2_Mul_Even])
+(form_goal “!a. Odd(Suc(Mul(num2,a)))”));
 
 
 
-val Even_not_Odd = prove_store("Even_not_Odd",
-e0
-(rw[Odd_def])
-(form_goal “!n. Even(n) <=> ~Odd(n)”));
-
-
-
-val Odd_not_Even = prove_store("Odd_not_Even",
-e0
-(rw[Even_not_Odd])
-(form_goal “!n. Odd(n) <=> ~Even(n)”));
-
-(*
-val Even_def = qdefine_psym("Even",[‘n:mem(N)’]) ‘∃n0. n = Mul(Suc(Suc(O)),n0)’
-val Odd_def = qdefine_psym("Odd",[‘n:mem(N)’]) ‘~Even(n)’
-*)
 
 val O_Even = prove_store("O_Even",
 e0
-cheat
+(rw[Even_def] >> 
+ assume_tac (conjE1 EVEN_def) >>
+ first_x_assum $ qspecl_then [‘dot’] assume_tac >> arw[])
 (form_goal “Even(O)”));
 
 val O_NEQ_num1 = prove_store("O_NEQ_num1",
 e0
-cheat
+(rw[num1_def,GSYM Suc_NONZERO])
 (form_goal “~(O = num1)”));
-
-
-val O_NEQ_num3 = prove_store("O_NEQ_num3",
-e0
-cheat
-(form_goal “~(O = num3)”));
-
-
-val O_NEQ_num4 = prove_store("O_NEQ_num4",
-e0
-cheat
-(form_goal “~(O = num4)”));
 
 
 
 val O_NEQ_num2 = prove_store("O_NEQ_num2",
 e0
-cheat
+(rw[num2_def,GSYM Suc_NONZERO])
 (form_goal “~(O = num2)”));
+
+
+val O_NEQ_num3 = prove_store("O_NEQ_num3",
+e0
+(rw[num3_def,GSYM Suc_NONZERO])
+(form_goal “~(O = num3)”));
+
+
+val O_NEQ_num4 = prove_store("O_NEQ_num4",
+e0
+(rw[num4_def,GSYM Suc_NONZERO])
+(form_goal “~(O = num4)”));
+
 
 
 val num1_NEQ_num4 = prove_store("num1_NEQ_num4",
 e0
-cheat
+(rw[num1_def,num4_def,Suc_eq_eq,O_NEQ_num3])
 (form_goal “~(num1 = num4)”));
 
 
 val num1_NEQ_num3 = prove_store("num1_NEQ_num3",
 e0
-cheat
+(rw[num1_def,num3_def,Suc_eq_eq,O_NEQ_num2])
 (form_goal “~(num1 = num3)”));
 
 
 val num1_NEQ_num2 = prove_store("num1_NEQ_num2",
 e0
-cheat
+(rw[num1_def,num2_def,Suc_eq_eq,GSYM Suc_NONZERO])
 (form_goal “~(num1 = num2)”));
 
 
 val num2_NEQ_num3 = prove_store("num2_NEQ_num3",
 e0
-cheat
+(rw[num2_def,num3_def,num1_def,Suc_eq_eq,GSYM Suc_NONZERO])
 (form_goal “~(num2 = num3)”));
 
 
 val num2_NEQ_num4 = prove_store("num2_NEQ_num4",
 e0
-cheat
+(rw[num2_def,num4_def,Suc_eq_eq,num1_NEQ_num3])
 (form_goal “~(num2 = num4)”));
 
 
 val num4_NEQ_num3 = prove_store("num4_NEQ_num3",
 e0
-cheat
+(rw[num4_def,GSYM Suc_NEQ])
 (form_goal “~(num4 = num3)”));
-
-
 
 
 val Div_of_O = prove_store("Div_of_O",
 e0
-cheat
-(form_goal “!n.Div(O,n) = O”));
+(strip_tac >> qcases ‘n = O’ (* 2 *)
+ >-- (arw[] >> drule Divr_O >> rw[Div_def,Rem_def] >> rfs[Pair_def']) >>
+ drule Div_Rem_unique >> flip_tac >> first_x_assum irule  >>
+ rw[Add_clauses,Mul_clauses] >> fs[NONZERO_O_Lt])
+(form_goal “!n.Div(O,n) = O & Rem(O,n) = O”));
+
+
+
+
+val Odd_Div2 = prove_store("Odd_Div2",
+e0
+(strip_tac >>
+ assume_tac num2_NONZERO)
+(form_goal “!a. Odd(a) <=> Suc(Mul(Div2(a),num2)) = a”));
+
+
+val Even_Sub_num2 = prove_store("Even_Sub_num2",
+e0
+(rpt strip_tac >>
+ qcases ‘Le(num2,a)’ 
+ >-- (drule SUB_ADD >> ccontra_tac >>
+     drule $ iffRL Suc_Even >> fs[Add_clauses,num2_def,num1_def] >>
+     fs[GSYM num2_def,GSYM num1_def] >>
+     qby_tac ‘Even(Suc(Suc(Sub(a, num2))))’ >-- arw[] >> 
+     drule $ iffLR Suc_Even >> fs[]) >>
+ fs[NOT_LESS_EQ] >> drule Lt_imp_Sub_O >> arw[O_Even]) 
+(form_goal “!a. Even(a) ==> Even(Sub(a,num2))”));
+
+val Even_num2_Mul = prove_store("Even_num2_Mul",
+e0
+(match_mp_tac 
+ (strong_ind |> fVar_sInst_th “P(n:mem(N))”
+               “Even(n) ==> ?n0. n = Mul(num2,n0)”) >>
+ rpt strip_tac >>
+ 
+
+Nind_tac >> rw[O_Even] >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘O’ >> rw[Mul_clauses]) >>
+ strong_ind)
+(form_goal “!n. Even(n) ==> ?n0. n = Mul(num2,n0)”));
+
+val Even_Div2 = prove_store("Even_Div2",
+e0
+(strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- assume_tac num2_NONZERO >> drule Div_Rem_NONZERO >>
+     first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+     
+ Even_Div_num2)
+(form_goal “!a. Even(a) <=> Mul(Div2(a),num2) = a”));

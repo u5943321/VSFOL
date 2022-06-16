@@ -2294,3 +2294,104 @@ val num2_def = qdefine_fsym("num2",[]) ‘Suc(num1)’
 val num3_def = qdefine_fsym("num3",[]) ‘Suc(num2)’
 val num4_def = qdefine_fsym("num4",[]) ‘Suc(num3)’
 
+
+(*
+val Le_Sub_O = prove_store("Le_Sub_O",
+e0
+(rpt strip_tac >> qcases ‘Lt(a,b)’ (* 2 *)
+ >-- (drule Lt_Le >> arw[] >>
+     drule $ iffLR Lt_Sub_O >> drule Lt_Le >> arw[]) >>
+ qcases ‘Le(a,b)’ 
+ >-- (arw[] >> rw[O_LESS_EQ]) >>
+ arw[] >> fs[NOT_LESS_EQ] 
+
+ qcases ‘a = b’ (* 2 *)
+ >-- arw[Sub_EQ_O,Le_refl] >>
+ qby_tac ‘~Le(a,b)’ >-- (ccontra_tac >> fs[Le_cases_iff]) >>
+ arw[] >> ccontra_tac >>
+ qsspecl_then [‘a’,‘b’] assume_tac Lt_Sub_O >> rfs[] >>
+ drule Le_cases >> fs[] >> pop_assum (assume_tac o GSYM) >>
+ fs[GSYM Le_def] >> 
+ Lt_MONO_Sub
+ drul)
+(form_goal
+ “!a b. Le(a,b) <=> Le(O,Sub(b,a))”));
+*)
+
+
+ (* a + b = c & b > 0 ==> a < c
+    if a >= c then a + b > 0 + c
+Le_Lt_Lt_MONO_Add2
+*)
+ 
+
+val Add_pos_Lt = prove_store("Add_pos_Lt",
+e0
+(rpt strip_tac >> ccontra_tac >> fs[NOT_LESS] >>
+ qspecl_then [‘c’,‘b’,‘O’,‘a’] assume_tac
+ Le_Lt_Lt_MONO_Add2 >> rfs[Add_clauses] >>
+ qsspecl_then [‘a’,‘b’] assume_tac Add_comm >> fs[] >>
+ fs[Lt_def] >> rfs[])
+(form_goal “!a. Lt(O,a) ==>
+ !b c. Add(a,b) = c ==> Lt(b,c)”));
+
+val division_theorem_N_ex0= prove_store("division_theorem_N_ex0",
+e0
+(rpt strip_tac >> x_choosel_then ["s"] strip_assume_tac
+ (IN_def_P_ex |> qspecl [‘N’] |> GSYM
+ |> fVar_sInst_th “P(n:mem(N))”
+    “?k. Add(n,Mul(k,d)) = a” ) >>
+ qby_tac ‘~(s = Empty(N))’ 
+ >-- (rw[GSYM IN_NONEMPTY] >> 
+      arw[] >> qexistsl_tac [‘a’,‘O’] >>
+      rw[Mul_clauses,Add_clauses]) >>
+ drule WOP'     >>
+ pop_assum strip_assume_tac >>
+ rfs[] >>
+ qexistsl_tac [‘k’,‘Sub(a, Mul(k, d))’] >> 
+ qby_tac ‘Le(O, Sub(a, Mul(k, d)))’ 
+ >-- (rw[O_LESS_EQ] >> arw[]) >>
+ qsspecl_then [‘Mul(k,d)’,‘a0’] assume_tac Add_Le >>
+ qsspecl_then [‘a0’,‘Mul(k,d)’] assume_tac Add_comm >> fs[] >>
+ rfs[] >>
+ once_rw[Add_comm] >>
+ drule SUB_ADD >> arw[] >>
+ ccontra_tac >>  
+ qabbrev_tac ‘Sub(a,Mul(k, d)) = r’ >>  
+ fs[] >>
+ fs[GSYM NOT_LESS_EQ] >>
+ drule Le_Add_ex >> 
+ pop_assum (x_choosel_then ["r'"] strip_assume_tac) >> 
+ qby_tac ‘Lt(r',r)’ 
+ >-- (irule Add_pos_Lt >> qexists_tac ‘d’ >>
+      fs[NOT_LESS_EQ] >>
+      once_rw[Add_comm] >> arw[] >> irule Lt_trans >>
+      qexists_tac ‘num1’ >> arw[] >> rw[num1_def,Lt_Suc]) >>
+ first_x_assum (qspecl_then [‘r'’] assume_tac) >>
+ qby_tac ‘a0 = r’
+ >-- (irule $ iffLR Add_eq_eq_l >> qexists_tac ‘Mul(k,d)’ >>
+      arw[]) >> fs[] >>
+ qsuff_tac ‘Le(r,r')’ 
+ >-- arw[NOT_LESS_EQ] >>
+ first_x_assum irule >>
+ qexists_tac ‘Suc(k)’ >> rw[Mul_clauses] >>
+ once_rw[Add_comm]>> rw[GSYM Add_assoc] >>
+ qspecl_then [‘r'’,‘d’] assume_tac Add_comm >> arw[])
+(form_goal 
+“!a d:mem(N). Lt(num1,d) ==>
+  ?q r. a = Add(Mul(q,d),r) & 
+  Le(O,r) & Lt(r,d)”));
+
+
+val division_theorem_N_ex = prove_store("division_theorem_N_ex",
+e0
+(rpt strip_tac >> qcases ‘Lt(num1,d)’ (* 2 *)
+ >-- (drule division_theorem_N_ex0 >> arw[]) >>
+ drule Le_cases >> fs[] >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ qexists_tac ‘a’ >> rw[Mul_clauses,num1_def] >>
+ qexists_tac ‘O’ >> rw[Lt_Suc,O_LESS_EQ,Add_clauses] )
+(form_goal 
+“!a d:mem(N). Le(num1,d) ==>
+  ?q r. a = Add(Mul(q,d),r) & 
+  Le(O,r) & Lt(r,d)”));

@@ -105,10 +105,10 @@ e0
       qsspecl_then [‘a’] (x_choosel_then ["n1","a1"] assume_tac) Pair_has_comp >>
       fs[] >-- (disj1_tac >> qexists_tac ‘Pair(Mul(num2,n1),a1)’ >>
       qsspecl_then [‘Mul(num2,n1)’] assume_tac injUU0_Even >>
-      fs[num2_Mul_Even] >> arw[Div2_def,Div_Mul]) >>
+      fs[num2_Mul_Even] >> arw[Div2_Mul]) >>
       disj2_tac >> qexists_tac ‘Pair(Mul(num2,n1),a1)’ >>
       qsspecl_then [‘Mul(num2,n1)’] assume_tac injUU0_Even >>
-      fs[num2_Mul_Even] >> arw[Div2_def,Div_Mul]) >>
+      fs[num2_Mul_Even] >> arw[Div2_Mul]) >>
  fs[set_NEQ] >>
  qsspecl_then [‘a’] (x_choosel_then ["n1","a1"] assume_tac) Pair_has_comp >>
  fs[] 
