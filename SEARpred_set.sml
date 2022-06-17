@@ -1392,3 +1392,53 @@ e0
  fs[false_xor_true,NOT_def,GSYM true_ne_false])
 (form_goal “!tv. tv = false <=> ~(tv = true)”));
 *)
+
+
+val SOME_NOTNONE = prove_store("SOME_NOTNONE",
+e0
+(rpt strip_tac >> rw[SOME_def,NONE_def] >> rw[i1_ne_i2])
+(form_goal “!X x.~(SOME (x) = NONE(X)) ”));
+
+
+val OM_def = proved_th $
+e0
+(rpt strip_tac >> 
+ qsuff_tac
+ ‘?om:A+1 -> B + 1.
+   App(om,NONE(A)) = NONE(B) &
+  (!a. App(om,SOME(a)) = SOME(App(f,a)))’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘om’ >> arw[] >>
+     rpt strip_tac >> rw[GSYM FUN_EXT] >> strip_tac >>
+     qcases ‘a = NONE(A)’ (* 2 *)
+     >-- arw[] >>
+     fs[option_xor] >> pop_assum (strip_assume_tac o uex2ex_rule) >>
+     arw[]) >>
+ assume_tac 
+ (P2fun' |> qspecl [‘A + 1’,‘B + 1’] 
+         |> fVar_sInst_th “P(a1:mem(A+1),b1:mem(B + 1))”
+         “(a1 = NONE(A) & b1 = NONE(B)) |
+          (?a.a1 = SOME(a) & b1 = SOME(App(f:A->B,a)))”) >>
+ qsuff_tac
+ ‘?f':A+1->B+1. 
+ !a1. (a1 = NONE(A) & App(f',a1) = NONE(B)) | 
+(?a.a1 = SOME(a) & App(f',a1) = SOME(App(f,a)))’
+ >-- (strip_tac >> qexists_tac ‘f'’ >> 
+     first_assum (qspecl_then [‘NONE(A)’] assume_tac) >>
+     fs[GSYM SOME_NOTNONE] >> strip_tac >>
+     first_x_assum (qspecl_then [‘SOME(a)’] assume_tac) >> 
+     fs[SOME_NOTNONE,SOME_eq_eq]) >>
+ first_x_assum irule >>
+ strip_tac >> uex_tac >>
+ qcases ‘x = NONE(A)’ >> arw[GSYM SOME_NOTNONE] (* 2 *)
+ >-- (qexists_tac ‘NONE(B)’ >> rw[] >> rpt strip_tac >> arw[]) >>
+ fs[option_xor] >>
+ pop_assum (strip_assume_tac o uex2ex_rule) >>
+ arw[SOME_eq_eq] >> qexists_tac ‘SOME(App(f,a0))’ >> 
+ rpt strip_tac >> arw[] >>
+ qexists_tac ‘a0’ >> arw[])
+(form_goal
+ “!A B f:A->B. ?!om:A+1 -> B + 1.
+   App(om,NONE(A)) = NONE(B) &
+  (!a. App(om,SOME(a)) = SOME(App(f,a)))”)
+|> spec_all |> uex2ex_rule |> qSKOLEM "OM" [‘f’]
+

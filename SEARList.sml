@@ -613,41 +613,41 @@ qfun_compr ‘gf:mem(Exp(B,C) * Exp(A,B))’
 
                          
 
-val EL_def = qdefine_fsym("EL",[‘X’])
+val ELn_def = qdefine_fsym("ELn",[‘X’])
 ‘Nrec(Tpm(HD(X)), Ap1(MO(List(X), List(X), X + 1), Tpm(TL(X))))’
 
-val El_def = qdefine_fsym("El",[‘n:mem(N)’,‘l:mem(List(X))’])
-                         ‘App(tof(App(EL(X),n)),l)’
+val Eln_def = qdefine_fsym("Eln",[‘n:mem(N)’,‘l:mem(List(X))’])
+                         ‘App(tof(App(ELn(X),n)),l)’
 
-val EL_Nil = 
+val ELn_Nil = 
 Nrec_O |> qspecl [‘Exp(List(X),X + 1)’,‘Tpm(HD(X))’,‘Ap1(MO(List(X),List(X),X+1),Tpm(TL(X)))’] 
-       |> rewr_rule[GSYM EL_def]
+       |> rewr_rule[GSYM ELn_def]
 
  
-val El_O = EL_Nil |> rewr_rule[GSYM tof_eq_eq,GSYM FUN_EXT,
-                                 GSYM El_def,tof_Tpm_inv,GSYM Hd_def]
+val Eln_O = ELn_Nil |> rewr_rule[GSYM tof_eq_eq,GSYM FUN_EXT,
+                                 GSYM Eln_def,tof_Tpm_inv,GSYM Hd_def]
 
-val El_Suc =
+val Eln_Suc =
 Nrec_Suc |> qspecl [‘Exp(List(X),X + 1)’,‘Tpm(HD(X))’,‘Ap1(MO(List(X),List(X),X+1),Tpm(TL(X)))’]
-         |> rewr_rule[GSYM EL_def,Ap1_def,MO_def,mo_def] 
+         |> rewr_rule[GSYM ELn_def,Ap1_def,MO_def,mo_def] 
          |> rewr_rule[GSYM tof_eq_eq]
          |> rewr_rule[tof_Tpm_inv] 
-         |> rewr_rule[GSYM FUN_EXT,App_App_o,GSYM Tl_def,GSYM El_def]
+         |> rewr_rule[GSYM FUN_EXT,App_App_o,GSYM Tl_def,GSYM Eln_def]
 
 
 
-val El_Map = prove_store("El_Map",
+val Eln_Map = prove_store("Eln_Map",
 e0
 (Nind_tac >> strip_tac (* 2 *)
  >-- (ind_with (List_induct |> qspecl [‘X’]) >>
      rw[Length_Nil,NOT_Lt_O_O] >>
      rpt strip_tac >> rw[Map_Cons] >> 
-     fs[Length_Cons,El_Suc,El_O,Hd_Cons,OM_def]) >>
+     fs[Length_Cons,Eln_Suc,Eln_O,Hd_Cons,OM_def]) >>
  gen_tac >> disch_tac >> ind_with (List_induct |> qspecl [‘X’]) >>
  rw[Length_Nil,NOT_Lt_O] >> rw[Length_Cons,LESS_MONO_EQ] >>
- rw[El_Suc,Map_Cons,Tl_Cons] >> rpt strip_tac >>
+ rw[Eln_Suc,Map_Cons,Tl_Cons] >> rpt strip_tac >>
  first_x_assum drule >> arw[])
 (form_goal “!n l. Lt(n,Length(l)) ==>
-  El(n,Map(f,l)) = App(OM(f:X->Y),El(n,l))”));
+  Eln(n,Map(f,l)) = App(OM(f:X->Y),Eln(n,l))”));
 
 
