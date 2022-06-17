@@ -864,9 +864,6 @@ e0
 
 
 
-
-
-
 val CB_def = proved_th $
 e0
 (strip_tac >>
@@ -1236,3 +1233,141 @@ f: A->F(A) g:A->F(A) define bisimulation on f and g
 *)
 
 
+(*lcons0_11*)
+val lcons0_eq_eq = prove_store("lcons0_eq_eq",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ fs[GSYM FUN_EXT] >> rpt strip_tac (* 2 *)
+ >-- (first_x_assum (qspecl_then [‘O’] assume_tac) >> 
+      fs[lcons0_def,SOME_eq_eq]) >>
+ first_x_assum (qspecl_then [‘Suc(a)’] assume_tac) >> 
+ fs[lcons0_def])
+(form_goal “!h1 h2:mem(X) t1 t2. lcons0(h1,t1) = lcons0(h2,t2) <=> h1 = h2 & t1 = t2”));
+
+(*LCons_11*)
+val LCons_eq_eq = prove_store("LCons_eq_eq",
+e0
+(rw[GSYM Repll_eq_eq,LCons_def,Tpm_eq_eq,lcons0_eq_eq,tof_eq_eq])
+(form_goal “!h1 h2:mem(X) t1 t2. LCons(h1,t1) = LCons(h2,t2) <=> h1 = h2 & t1 = t2”));
+
+
+
+val f_ex0 = proved_th $
+e0
+(strip_tac >> uex_tac >>
+ qcases ‘l = LNil(X)’ >> arw[] (*2  *)
+ >-- (qexists_tac ‘NONE(llist(X) * A)’ >> rw[] >>
+     rpt strip_tac >> fs[GSYM LCons_NONLNIL]) >>
+ fs[LCons_xor_LNil] >>
+ qexists_tac ‘SOME(Pair(t,App(f:X->A,h)))’ >> 
+ rw[LCons_eq_eq,SOME_eq_eq,Pair_eq_eq] >> rpt strip_tac >> fs[] >>
+ qexistsl_tac [‘h’,‘t’] >> rw[] )
+(form_goal
+ “!l. ?!opv.
+     (l = LNil(X) & opv = NONE(llist(X) * A)) |
+     ?lh lt. l = LCons(lh,lt) & opv = SOME(Pair(lt,App(f:X->A,lh)))”)
+
+val lmapf_def =
+    P2fun_uex
+    |> qspecl [‘llist(X)’,‘llist(X) * A + 1’] 
+    |> fVar_sInst_th “P(l:mem(llist(X)),opv:mem(llist(X) * A +1))”
+       “(l = LNil(X) & opv = NONE(llist(X) * A)) |
+     ?lh lt. l = LCons(lh,lt) & opv = SOME(Pair(lt,App(f:X->A,lh)))”
+    |> C mp f_ex0 
+    |> uex2ex_rule |> qSKOLEM "lmapf" [‘f’]
+
+
+val LMAP_def = llcr_uex |> qsspecl [‘lmapf(f:X->Y)’] 
+                        |> uex2ex_rule
+                        |> qSKOLEM "LMAP" [‘f’]
+
+
+val LMap_def = qdefine_fsym("LMap",[‘f:X->Y’,‘l:mem(llist(X))’])
+                           ‘App(LMAP(f),l)’ 
+
+(*!ll1 ll2. (ll1 = ll2) =
+              ?R. R ll1 ll2 /\
+                  !ll3 ll4.  R ll3 ll4 ==>
+                             (ll3 = LNIL) /\ (ll4 = LNIL) \/
+                             ?h t1 t2.
+                                 (ll3 = h:::t1) /\ (ll4 = h:::t2) /\
+                                 R t1 t2
+LLIST_BISIMULATION0
+
+!ll1 ll2.
+       (ll1 = ll2) =
+       ?R. R ll1 ll2 /\
+           !ll3 ll4.
+              R ll3 ll4 ==>
+              (ll3 = [||]) /\ (ll4 = [||]) \/
+              (LHD ll3 = LHD ll4) /\ R (THE (LTL ll3)) (THE (LTL ll4))
+
+*)
+
+val lmapf_LNil = 
+prove_store("lmapf_LNil",
+e0
+(assume_tac
+ (lmapf_def |> qspecl [‘LNil(X)’] 
+                           |> rewr_rule[GSYM LCons_NONLNIL]
+                           |> gen_all) >> 
+ strip_tac >>  
+ first_x_assum (qsspecl_then [‘f’] assume_tac) >> fs[])
+(form_goal “!f. App(lmapf(f),LNil(X)) = NONE(llist(X) * A)”));
+
+
+val lmapf_LCons = 
+prove_store("lmapf_LNil",
+e0
+(rpt strip_tac >>
+ assume_tac
+ (lmapf_def |> qspecl [‘LCons(lh:mem(X),lt:mem(llist(X)))’] 
+                           |> rewr_rule[LCons_NONLNIL,LCons_eq_eq]
+                           |> gen_all) >> 
+ first_x_assum (qsspecl_then [‘f’,‘lh’,‘lt’] strip_assume_tac) >>
+ fs[])
+(form_goal “!f:X->A lh lt. App(lmapf(f),LCons(lh,lt)) = SOME(Pair(lt,App(f,lh)))”));
+
+
+
+val LMAP_LNil = prove_store("LMAP_",
+e0
+(strip_tac >> 
+ assume_tac LMAP_def >>
+ first_x_assum (qspecl_then [‘LNil(X)’] strip_assume_tac) >>
+ first_x_assum irule >> rw[lmapf_LNil])
+(form_goal “!f:X->Y. App(LMAP(f),LNil(X)) = LNil(Y)”));
+
+
+val LMAP_LCons = prove_store("LMAP_Cons",
+e0
+(strip_tac >> 
+ assume_tac LMAP_def >> rpt strip_tac >>
+ first_x_assum (qspecl_then [‘LCons(lh,lt)’] strip_assume_tac) >>
+ first_x_assum irule >> rw[lmapf_LCons])
+(form_goal “!f:X->Y lh lt. App(LMAP(f),LCons(lh,lt)) = LCons(App(f,lh),App(LMAP(f),lt))”));
+
+val LMap_LNil = rewr_rule[GSYM LMap_def] LMAP_LNil;
+val LMap_LCons = rewr_rule[GSYM LMap_def] LMAP_LCons;
+
+val LMap_functorial = prove_store("LMap_functorial",
+e0
+(rpt strip_tac >> once_rw[LLIST_BISIMULATION0] >>
+ strip_assume_tac
+ (IN_def_P |> qspecl [‘llist(Y) * llist(Y)’] 
+           |> fVar_sInst_th “P(ll12:mem(llist(Y) * llist(Y)))”
+              “?ll0. Fst(ll12) = LMap(f:X->Y,LMap(g:Z->X,ll0)) &
+                     Snd(ll12) = LMap(f o g,ll0)”
+           |> uex2ex_rule) >>
+ qexists_tac ‘s’ >> arw[] >> rw[Pair_def'] >>
+ rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘ll’ >> rw[]) >>
+ qcases ‘ll0 = LNil(Z)’ >> fs[] (* 2*)
+ >-- fs[LMap_LNil] >>
+ fs[LCons_xor_LNil] >> fs[LMap_LCons] >>
+ rw[LCons_NONLNIL] >> fs[App_App_o]>>
+ qexistsl_tac [‘App(f, App(g, h))’,‘LMap(f, LMap(g, t))’,‘LMap(f o g, t)’] >>
+ rw[] >> qexists_tac ‘t’ >> rw[])
+(form_goal 
+ “!f:X->Y g:Z->X ll.
+  LMap(f,LMap(g,ll)) = LMap(f o g,ll)”));
