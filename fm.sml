@@ -269,6 +269,9 @@ e0
  “!A. isfm(F0(A))”)); 
 
 
+val isfm_clauses = isfm_rules |> rewr_rule[GSYM isfm_def]
+
+
 val isfm_Neg0 = isfm_clauses |> conjE2 |> conjE2 |> conjE1 
 
 val isfm_Diam0 = isfm_clauses |> conjE2 |> conjE2 |> conjE2 
@@ -285,8 +288,6 @@ e0
 val isfm_Disj0 =  isfm_clauses |> conjE2 |> conjE2 
                                |> conjE2 |> conjE1
 
-
-val isfm_clauses = isfm_rules |> rewr_rule[GSYM isfm_def]
 
 
 val form_def = Thm_2_4  |> qspecl [‘Pow(N * (A+1))’]

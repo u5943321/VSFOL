@@ -2173,23 +2173,6 @@ e0
  “!z. Lez(Oz,z) ==> Asz(Abv(z),O) = z”));
 
 
-val WOP' = prove_store("WOP'",
-e0
-(rw[GSYM IN_NONEMPTY] >> rpt strip_tac >>
- assume_tac
- (WOP 
- |> qspecl [‘a:mem(N)’] 
- |> fVar_sInst_th “P(a:mem(N))” “IN(a,s:mem(Pow(N)))”) >>
- first_x_assum drule >> arw[])
-(form_goal 
-“!s:mem(Pow(N)).
-   ~(s = Empty(N)) ==>
-   ?a0. 
-     IN(a0,s) & 
-     (!a1.
-        IN(a1,s) ==> Le(a0,a1))”));
-
-
 val n2z_Abv = prove_store("n2z_Abv",
 e0
 (rpt strip_tac >> rw[n2z_def,N2Z_def] >>
@@ -3417,6 +3400,13 @@ e0
  >-- (irule $ iffLR n2z_eq_eq  >> fs[n2z_Oz]) >> arw[n2z_Oz])
 (form_goal “!n. n2z(n) = Oz <=> n = O”));
 
+
+val Le_num1_Lt_O = prove_store("Le_num1_Lt_O",
+e0
+(rw[num1_def,Lt_Le_Suc])
+(form_goal “!a. Le(num1,a) <=> Lt(O,a)”));
+
+
 val division_theorem_N_uex = prove_store("division_theorem_N_uex",
 e0
 (rpt strip_tac >>
@@ -3462,11 +3452,6 @@ fun qfun_compr qv qt =
     end;
 
 use "quo.sml";
-
-val Le_num1_Lt_O = prove_store("Le_num1_Lt_O",
-e0
-(rw[num1_def,Lt_Le_Suc])
-(form_goal “!a. Le(num1,a) <=> Lt(O,a)”));
 
 val NONZERO_O_Lt = prove_store("NONZERO_O_Lt",
 e0
@@ -3779,7 +3764,7 @@ e0
      fs[num1_def,Add_clauses,Div2_def]) >>
  fs[Lt_num2] >>
  fs[Add_clauses] >>
- qby_tac ‘Odd(Mul(Div(a, num2), num2))’ >-- arw[] >
+ qby_tac ‘Odd(Mul(Div(a, num2), num2))’ >-- arw[] >>
  fs[Odd_def] >>
  qsspecl_then [‘Div(a, num2)’,‘num2’] assume_tac Mul_comm >> fs[] >>
  fs[num2_Mul_Even]) >>

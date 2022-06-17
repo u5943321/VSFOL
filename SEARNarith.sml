@@ -2335,6 +2335,23 @@ e0
 (form_goal “!a. Lt(O,a) ==>
  !b c. Add(a,b) = c ==> Lt(b,c)”));
 
+val WOP' = prove_store("WOP'",
+e0
+(rw[GSYM IN_NONEMPTY] >> rpt strip_tac >>
+ assume_tac
+ (WOP 
+ |> qspecl [‘a:mem(N)’] 
+ |> fVar_sInst_th “P(a:mem(N))” “IN(a,s:mem(Pow(N)))”) >>
+ first_x_assum drule >> arw[])
+(form_goal 
+“!s:mem(Pow(N)).
+   ~(s = Empty(N)) ==>
+   ?a0. 
+     IN(a0,s) & 
+     (!a1.
+        IN(a1,s) ==> Le(a0,a1))”));
+
+
 val division_theorem_N_ex0= prove_store("division_theorem_N_ex0",
 e0
 (rpt strip_tac >> x_choosel_then ["s"] strip_assume_tac
@@ -2395,3 +2412,8 @@ e0
 “!a d:mem(N). Le(num1,d) ==>
   ?q r. a = Add(Mul(q,d),r) & 
   Le(O,r) & Lt(r,d)”));
+
+val NOT_Lt_O_O = prove_store("NOT_Lt_O_O",
+e0
+(fs[Lt_def])
+(form_goal “~Lt(O,O)”));

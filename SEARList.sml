@@ -511,3 +511,143 @@ e0
 
  
 (*do Map it in induction with num. use N_ind and hd and tl.*)
+
+
+(*HD (h::t) = h*)
+val HD_def = qdefine_fsym("HD",[‘X’]) ‘Lrec(NONE(X),i1(X,1) o p1(X,X+1))’
+                         |> gen_all
+
+val HD_Nil = 
+    Lrec_Nil |> qspecl [‘X+1’,‘NONE(X)’,‘X’,‘i1(X,1) o p1(X,X+1)’] 
+             |> rewr_rule[GSYM HD_def]
+
+val HD_Cons =
+    Lrec_Cons |> qspecl [‘X+1’,‘NONE(X)’,‘X’,‘i1(X,1) o p1(X,X+1)’] 
+              |> rewr_rule[GSYM HD_def]
+              |> rewr_rule[App_App_o,p12_of_Pair,GSYM SOME_def]
+              |> gen_all
+
+val Hd_def = qdefine_fsym("Hd",[‘l:mem(List(X))’])
+                         ‘App(HD(X),l)’
+                         |> gen_all
+
+val Hd_Cons = HD_Cons |> rewr_rule[GSYM Hd_def] |> gen_all                         
+
+val TL_ex = proved_th $
+e0
+(strip_tac >> uex_tac >>
+ qcases ‘l = Nil(X)’ >-- (qexists_tac ‘Nil(X)’ >> arw[]) >>
+ fs[Cons_xor_Nil] >>
+ qexists_tac ‘l0’ >> rw[Cons_eq_eq,Cons_NONNIL] >> rpt strip_tac (* 3 *)
+ >-- (qexistsl_tac [‘x0’,‘l0’] >> rw[]) 
+ >-- (qexists_tac ‘x0’ >> rw[]) >> arw[])
+(form_goal 
+ “!l. ?!tl. (l = Nil(X) & tl = Nil(X)) | 
+            (~(l = Nil(X)) & ?x. l = Cons(x,tl))”)
+
+val TL_def = P2fun_uex |> qspecl [‘List(X)’,‘List(X)’]
+                       |> fVar_sInst_th “P(l:mem(List(X)),tl:mem(List(X)))”
+                          “(l = Nil(X) & tl = Nil(X)) | 
+                           (~(l = Nil(X)) & ?x. l = Cons(x,tl))”
+                       |> C mp TL_ex
+                       |> uex2ex_rule |> qSKOLEM "TL" [‘X’] 
+                       |> gen_all
+
+val TL_Nil = prove_store("TL_Nil",
+e0
+(qsspecl_then [‘Nil(X)’] assume_tac TL_def >> fs[])
+(form_goal “App(TL(X),Nil(X)) = Nil(X)”));
+
+
+
+val TL_Cons = prove_store("TL_Cons",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘Cons(x:mem(X),tl)’] assume_tac TL_def >> 
+ pop_assum strip_assume_tac (* 2 *)
+ >-- fs[Cons_NONNIL] >>
+ pop_assum mp_tac >> rw[Cons_eq_eq] >> rpt strip_tac >> 
+ pop_assum (assume_tac o GSYM) >> arw[])
+(form_goal “!x tl.App(TL(X),Cons(x,tl)) = tl”));
+
+val Tl_def = qdefine_fsym("Tl",[‘l:mem(List(X))’])
+                         ‘App(TL(X),l)’
+
+val Tl_Nil = TL_Nil |> rewr_rule[GSYM Tl_def] |> gen_all
+
+val Tl_Cons = TL_Cons |> rewr_rule[GSYM Tl_def] |> gen_all
+
+val MAP_def = qdefine_fsym("MAP",[‘f:X->Y’])
+                          ‘Lrec(Nil(Y), CONS(Y) o Prla(f, Id(List(Y))))’
+                          |> gen_all
+                          
+val MAP_Nil = Lrec_Nil |> qspecl [‘List(Y)’,‘Nil(Y)’,‘X’,
+                          ‘CONS(Y) o Prla(f:X->Y,Id(List(Y)))’]  
+                       |> rewr_rule[GSYM MAP_def] 
+                       |> gen_all
+
+val MAP_Cons =  
+    Lrec_Cons |> qspecl [‘List(Y)’,‘Nil(Y)’,‘X’,
+                          ‘CONS(Y) o Prla(f:X->Y,Id(List(Y)))’]   
+              |> rewr_rule[GSYM MAP_def]  
+              |> rewr_rule[App_App_o,App_Prla,Id_def,GSYM Cons_def]
+
+
+val Map_def = qdefine_fsym("Map",[‘f:X->Y’,‘l:mem(List(X))’])
+                          ‘App(MAP(f),l)’ |> gen_all 
+
+val Map_Nil = MAP_Nil |> rewr_rule[GSYM Map_def]
+val Map_Cons = MAP_Cons |> rewr_rule[GSYM Map_def] 
+                        |> gen_all 
+
+
+val mo_def = qdefine_fsym("mo",[‘g:mem(Exp(B,C))’,‘f:mem(Exp(A,B))’])
+‘Tpm(tof(g) o tof(f))’ |> gen_all 
+
+val MO_def = 
+qfun_compr ‘gf:mem(Exp(B,C) * Exp(A,B))’
+                         ‘mo(Fst(gf),Snd(gf))’
+                         |> uex2ex_rule |> qSKOLEM "MO" [‘A’,‘B’,‘C’]
+                         |> qspecl [‘Pair(gm:mem(Exp(B,C)),fm:mem(Exp(A,B)))’]
+                         |> rewr_rule[Pair_def']
+
+                         
+
+val EL_def = qdefine_fsym("EL",[‘X’])
+‘Nrec(Tpm(HD(X)), Ap1(MO(List(X), List(X), X + 1), Tpm(TL(X))))’
+
+val El_def = qdefine_fsym("El",[‘n:mem(N)’,‘l:mem(List(X))’])
+                         ‘App(tof(App(EL(X),n)),l)’
+
+val EL_Nil = 
+Nrec_O |> qspecl [‘Exp(List(X),X + 1)’,‘Tpm(HD(X))’,‘Ap1(MO(List(X),List(X),X+1),Tpm(TL(X)))’] 
+       |> rewr_rule[GSYM EL_def]
+
+ 
+val El_O = EL_Nil |> rewr_rule[GSYM tof_eq_eq,GSYM FUN_EXT,
+                                 GSYM El_def,tof_Tpm_inv,GSYM Hd_def]
+
+val El_Suc =
+Nrec_Suc |> qspecl [‘Exp(List(X),X + 1)’,‘Tpm(HD(X))’,‘Ap1(MO(List(X),List(X),X+1),Tpm(TL(X)))’]
+         |> rewr_rule[GSYM EL_def,Ap1_def,MO_def,mo_def] 
+         |> rewr_rule[GSYM tof_eq_eq]
+         |> rewr_rule[tof_Tpm_inv] 
+         |> rewr_rule[GSYM FUN_EXT,App_App_o,GSYM Tl_def,GSYM El_def]
+
+
+
+val El_Map = prove_store("El_Map",
+e0
+(Nind_tac >> strip_tac (* 2 *)
+ >-- (ind_with (List_induct |> qspecl [‘X’]) >>
+     rw[Length_Nil,NOT_Lt_O_O] >>
+     rpt strip_tac >> rw[Map_Cons] >> 
+     fs[Length_Cons,El_Suc,El_O,Hd_Cons,OM_def]) >>
+ gen_tac >> disch_tac >> ind_with (List_induct |> qspecl [‘X’]) >>
+ rw[Length_Nil,NOT_Lt_O] >> rw[Length_Cons,LESS_MONO_EQ] >>
+ rw[El_Suc,Map_Cons,Tl_Cons] >> rpt strip_tac >>
+ first_x_assum drule >> arw[])
+(form_goal “!n l. Lt(n,Length(l)) ==>
+  El(n,Map(f,l)) = App(OM(f:X->Y),El(n,l))”));
+
+

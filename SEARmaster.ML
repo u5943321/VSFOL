@@ -5,3 +5,7 @@ use "SEARNarith.sml";
 use "ztest.sml";
 use "SEARFiniteness.sml";
 use "SEARList.sml";
+use "fm.sml";
+use "SEARUF.sml";
+use "SEARrecty.sml";
+use "SEARllist.sml";
