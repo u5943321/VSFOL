@@ -132,11 +132,12 @@ fun mk_prim fdef =
         val fvar1 = mk_pred "SS" [mk_App fnterm pvar,pvar]
         val defname = fnterm |> dest_fun |> #1 |> explode |> rev |> tl 
                              |> rev |> implode
-        val spec_IN_ex = IN_def_P_ex |> allE pisin |> GSYM
+        val spec_IN_ex = IN_def_P |> GSYM |> allE pisin |> GSYM
                                      |> fVar_sInst_th fvar0 fvar1
         val skinputs = cont spec_IN_ex 
         val skinputs' = filter_cont skinputs |> HOLset.listItems
-        val sk = spec_IN_ex |> SKOLEM1 (defname ^ "'s") skinputs'
+        (*val sk = spec_IN_ex |> SKOLEM1 (defname ^ "'s") skinputs' *)
+        val sk = spec_IN_ex |> simple_uex_spec (defname ^ "'s") skinputs'
     in sk
     end
 
@@ -149,11 +150,12 @@ fun mk_LFP primtm =
         val st = sort_of bigintertm
         val LFPname = defname^"s"
         val templ = mk_eq (mk_var(defname^"s",st)) bigintertm
-        val exth = bigintertm |> refl 
-                              |> existsI (defname^"s",st) bigintertm templ
+        val exth = unique_lemma |> sspecl [bigintertm]
+       (* val exth = bigintertm |> refl 
+                              |> existsI (defname^"s",st) bigintertm templ *)
         val skinputs = cont exth 
         val skinputs' = filter_cont skinputs |> HOLset.listItems
-        val LFP_def = exth |> SKOLEM1 LFPname skinputs'
+        val LFP_def = exth |> simple_uex_spec LFPname skinputs'
     in LFP_def
     end
 
@@ -306,15 +308,15 @@ fun mk_fex incond x =
                             |> fVar_sInst_th (mk_fvar "P" [mvar]) rb
                             |> allI (x,valuest)
         val fvarP = mk_fvar "P" [input_set,value_set]
-        val spec_P2fun' = P2fun' |> specl [powt,powt]
+        val spec_P2funuex = P2fun_uex |> specl [powt,powt]
                                  |> fVar_sInst_th fvarP incond
-        val mped = spec_P2fun' |> C mp tomp
+        val mped = spec_P2funuex |> C mp tomp
     in mped
     end
 
 fun mk_fdef fname fexth = 
     let val skinputs = (cont fexth) |> filter_cont |> HOLset.listItems 
-    in fexth |> SKOLEM1 fname skinputs
+    in fexth |> simple_uex_spec fname skinputs
     end
 
 fun mk_ind1 fdef ind0 = ind0 |> rewr_rule[SS_def,fdef]
@@ -556,9 +558,11 @@ fun remove_list_item i l =
               if (h = i) then t else
               h :: (remove_list_item  i t)
 
+(*
 fun mk_foralls vl f = 
     case vl of [] => f 
              | h :: t => uncurry mk_forall h (mk_foralls t f)
+*)
 
 fun forall_in_eq_fconv f = 
     let val (b,vs) = strip_forall f

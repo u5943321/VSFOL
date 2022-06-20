@@ -865,7 +865,7 @@ val eqr =
 
 (*must have arg1 and arg2 as var list, not terms, since they cannot always be represented as a single term. even if they can after certain function symbols exists, but newspec is often the fsyms which are required for capturing these arguments as a single term*)
 
-fun mk_tinst l = mk_inst l [] 
+
 
 fun addprims l = 
             case l of [] => l

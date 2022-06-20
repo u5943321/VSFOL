@@ -89,7 +89,7 @@ e0
  uex_tac >> qexists_tac ‘a’ >> arw[] >> rpt strip_tac >>
  fs[Inj_def] >> first_x_assum irule >> arw[])
 (form_goal “!A B f:A->B. Inj(f) ==>
- !b. (?!a.App(f,a) = b) <=> (?a.App(f,a) = b)”));
+ !b. (?!a.App(f,a) = b) <=> (?a.App(f,a) = b)”)); (**)
 
 
 val IMAGE_o = prove_store("IMAGE_o",
@@ -148,7 +148,7 @@ e0
 val Prla_def = 
     qdefine_fsym ("Prla",[‘f:A->B’,‘g:C->D’])
     ‘Pa(f o p1(A,C),g o p2(A,C))’
-    |> gen_all |> store_as "Prla_def";
+    |> gen_all |> store_as "Prla_def";(**)
 
 val Prla_Inj = prove_store("Prla_Inj",
 e0
@@ -176,27 +176,27 @@ e0
  qsspecl_then [‘ App(Pa(f, g), x)’] (assume_tac o GSYM) Pair_component >> 
  once_arw[] >> rw[Pair_eq_eq,GSYM App_App_o,p12_of_Pa])
 (form_goal
-“!X A f:X->A B g:X->B x. App(Pa(f:X->A,g:X->B),x) = Pair(App(f,x),App(g,x))”));
+“!X A f:X->A B g:X->B x. App(Pa(f:X->A,g:X->B),x) = Pair(App(f,x),App(g,x))”));(**)
 
 
-val App_Pa_Pair = App_Pa_distr |> store_as "App_Pa_Pair";
+val App_Pa_Pair = App_Pa_distr |> store_as "App_Pa_Pair";(**)
 
 val App_Prla = prove_store("App_Prla",
 e0
 (rpt strip_tac >> rw[Prla_def,App_Pa_Pair] >>
  rw[App_App_o,p12_of_Pair] )
 (form_goal “!A B f:A->B X Y g:X->Y a x.App(Prla(f,g),Pair(a,x)) = 
-Pair(App(f,a),App(g,x))”));
+Pair(App(f,a),App(g,x))”)); (**)
 
 
-
+(*
 val o_assoc = prove_store("o_assoc",
 e0
 (rw[GSYM FUN_EXT,App_App_o])
 (form_goal
  “!A B f:A->B C g:B->C D h:C->D.
   (h o g) o f = h o g o f”));
-
+*)
 
 val Pa_distr = prove_store("Pa_distr",
 e0
@@ -1442,3 +1442,45 @@ e0
   (!a. App(om,SOME(a)) = SOME(App(f,a)))”)
 |> spec_all |> uex2ex_rule |> qSKOLEM "OM" [‘f’]
 
+val Prla_split = prove_store("Prla_split",
+e0
+(rpt strip_tac >> rw[GSYM FUN_EXT] >>
+ strip_tac >>
+ qsspecl_then [‘a’] (x_choosel_then ["a1","b1"] assume_tac) Pair_has_comp >>
+ arw[App_App_o,App_Prla])
+(form_goal “∀A1 A2 f1:A1-> A2 A3 f2:A2->A3 B1 B2 g1:B1->B2 B3 g2:B2->B3.
+ Prla(f2 o f1,g2 o g1) = Prla(f2,g2) o Prla(f1,g1)”));(**)
+
+ 
+val Prla_lsplit1 = prove_store("Prla_lsplit1",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘f1’,‘f2’,‘Id(B1)’,‘g’] assume_tac Prla_split >>
+ fs[IdR])
+(form_goal “∀A1 A2 f1:A1-> A2 A3 f2:A2->A3 B1 B2 g:B1->B2.
+ Prla(f2 o f1,g) = Prla(f2,g) o Prla(f1,Id(B1))”));(**)
+
+
+val Prla_lsplit2 = prove_store("Prla_lsplit2",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘f1’,‘f2’,‘g’,‘Id(B2)’] assume_tac Prla_split >>
+ fs[IdL])
+(form_goal “∀A1 A2 f1:A1-> A2 A3 f2:A2->A3 B1 B2 g:B1->B2.
+ Prla(f2 o f1,g) = Prla(f2,Id(B2)) o Prla(f1,g)”));(**)
+
+val Prla_rsplit2 = 
+Prla_split |> qsspecl [‘f:A1->A2’,‘Id(A2)’,‘g1:B1->B2’,‘g2:B2->B3’] 
+           |> rewr_rule[IdL] |> gen_all(**)
+
+
+val Prla_rsplit1 = 
+Prla_split |> qsspecl [‘Id(A1)’,‘f:A1->A2’,‘g1:B1->B2’,‘g2:B2->B3’] 
+           |> rewr_rule[IdR] |> gen_all(**)
+
+val Prla_Id = prove_store("Prla_Id",
+e0
+(rpt strip_tac >> rw[GSYM FUN_EXT] >> strip_tac >>
+ qsspecl_then [‘a’] strip_assume_tac Pair_has_comp >>
+ arw[App_Prla,Id_def])
+(form_goal “∀A B.Prla(Id(A),Id(B)) = Id(A*B)”)); (**)

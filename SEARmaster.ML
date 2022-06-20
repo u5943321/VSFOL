@@ -9,3 +9,13 @@ use "fm.sml";
 use "SEARUF.sml";
 use "SEARrecty.sml";
 use "SEARllist.sml";
+
+(*
+use "master.ML";
+use "SEARsorts.sml";
+use "newspec.sml";
+use "SEARnewspec.sml";
+use "SEARrel.sml";
+use "SEARfun.sml";
+
+*)
