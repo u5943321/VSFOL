@@ -50,8 +50,7 @@ val Suc_eq_eq = INV_SUC_EQ |> rewr_rule[GSYM Suc_def] |> store_as "Suc_eq_eq";
 
 val ADD_def = 
  Thm1 |> sspecl (List.map rastt ["id(N)","SUC o p2(N * N,N)"])
-      |> uex2ex_rule
-      |> qSKOLEM "ADD" []
+      |> qsimple_uex_spec "ADD" []
       |> rewr_rule[o_assoc,p12_of_Pa,idL]
       |> store_as "ADD_def";
         
@@ -100,8 +99,7 @@ val Pre_Suc = conjE2 Pre_eqn |> store_as "Pre_Suc";
 
 val SUB_def = Thm1 |> specl
 (List.map rastt ["N","N","id(N)","PRE o p2(N * N,N)"])
-|> uex2ex_rule
-|> qSKOLEM "SUB" []
+|> qsimple_uex_spec "SUB" []
 |> rewr_rule[idL,o_assoc,p12_of_Pa]
 |> store_as "SUB_def";
 
@@ -754,8 +752,7 @@ e0
 *)
 
 val MUL_def0 = Thm1 |> qspecl [‘N’,‘N’,‘O o To1(N)’,
-                               ‘ADD o Pa(p2(N * N,N),p1(N, N) o p1(N * N,N))’] |> uex2ex_rule
-                    |> qSKOLEM "MUL" [] 
+                               ‘ADD o Pa(p2(N * N,N),p1(N, N) o p1(N * N,N))’] |> qsimple_uex_spec "MUL" [] 
                     |> rewr_rule[o_assoc,To1_def,Pa_distr,p12_of_Pa,idR] 
                     |> store_as "MUL_def0";
 
