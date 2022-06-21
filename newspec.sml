@@ -88,7 +88,11 @@ fun mk_ER_condf argseqr =
     in eqvcls
     end 
 
-
+(*val argseqr = arg12eqr 
+  val reflth = coPr_REFL
+  val symth = coPr_SYM
+  val transth = coPr_TRANS
+*)
 fun check_REFL argseqr reflth =
     let val reflcl = mk_REFL_condf argseqr 
         val _ = eq_form (reflcl,concl reflth)
@@ -458,6 +462,37 @@ new_spec
 
 
 
+
+val coPr_unique = prove_store("coPr_unique",
+e0
+(rpt strip_tac >>
+ drule $ iffLR iscoPr_def >>
+ rev_drule $ iffLR iscoPr_def >> 
+ last_x_assum (qsspecl_then [‘i1’,‘i2’] (strip_assume_tac o uex_expand)) >>
+ last_x_assum (qsspecl_then [‘i1'’,‘i2'’] (strip_assume_tac o uex_expand)) >> 
+ qexistsl_tac [‘fg'’,‘fg’] >> arw[] >>
+ drule $ iffLR iscoPr_def >>
+ rev_drule $ iffLR iscoPr_def >> 
+ last_x_assum (qsspecl_then [‘i1'’,‘i2'’] (strip_assume_tac o uex_expand)) >>
+ last_x_assum (qsspecl_then [‘i1’,‘i2’] (strip_assume_tac o uex_expand)) >> 
+ rpt strip_tac (* 2 *)
+ >-- (qsuff_tac
+ ‘fg' o fg = fg'' & Id(AB') = fg''’
+ >-- (strip_tac >> arw[]) >>
+ strip_tac >> first_x_assum irule >> arw[IdL,IdR] >>
+ arw[o_assoc]) >>
+ qsuff_tac
+ ‘fg o fg' = fg''' & Id(AB) = fg'''’
+ >-- (strip_tac >> arw[]) >>
+ strip_tac >> first_x_assum irule >> arw[IdL,IdR] >>
+ arw[o_assoc])
+(form_goal
+ “∀AB i1:A->AB i2:B->AB AB' i1':A->AB' i2':B->AB'.
+  iscoPr(i1,i2) & iscoPr(i1',i2') ⇒ 
+  ∃i:AB -> AB' j:AB' -> AB.
+   i o j = Id(AB') &  j o i = Id(AB) &
+   j o i1' = i1 & j o i2' = i2 & 
+   i o i1 = i1' & i o i2 = i2'”));
 
 
 uexth

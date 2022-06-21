@@ -2759,6 +2759,11 @@ e0
  !a. App(Ev(A,B),Pair(a,f0)) = App(f,a)”)
 |> spec_all |> qsimple_uex_spec "tof" [‘f0’]
 
+(*
+val iscoPair_def = qdefine_psym("iscoPair",[‘i1:A ->AB’,‘i2:B->AB’])
+‘∀ab:mem(AB). ?!a. App(i1,AB) ’
+*)
+
 
 val iscoPr_def = qdefine_psym("iscoPr",[‘i1:A->AB’,‘i2:B->AB’])
 ‘!X f:A->X g:B->X.?!fg:AB->X.fg o i1 = f & fg o i2 = g’
@@ -2970,24 +2975,181 @@ qby_tac ‘(!a b. ~(App(i1,a) = App(i2,b)))’
  ”));
 
 
-val coPo_def = iscoPr_ex |> spec_all 
-                         |> qSKOLEM "+" [‘A’,‘B’] |> gen_all
-                         |> store_as "coPo_def";
+val coPr_unique = prove_store("coPr_unique",
+e0
+(rpt strip_tac >>
+ drule $ iffLR iscoPr_def >>
+ rev_drule $ iffLR iscoPr_def >> 
+ last_x_assum (qsspecl_then [‘i1’,‘i2’] (strip_assume_tac o uex_expand)) >>
+ last_x_assum (qsspecl_then [‘i1'’,‘i2'’] (strip_assume_tac o uex_expand)) >> 
+ qexistsl_tac [‘fg'’,‘fg’] >> arw[] >>
+ drule $ iffLR iscoPr_def >>
+ rev_drule $ iffLR iscoPr_def >> 
+ last_x_assum (qsspecl_then [‘i1'’,‘i2'’] (strip_assume_tac o uex_expand)) >>
+ last_x_assum (qsspecl_then [‘i1’,‘i2’] (strip_assume_tac o uex_expand)) >> 
+ rpt strip_tac (* 2 *)
+ >-- (qsuff_tac
+ ‘fg' o fg = fg'' & Id(AB') = fg''’
+ >-- (strip_tac >> arw[]) >>
+ strip_tac >> first_x_assum irule >> arw[IdL,IdR] >>
+ arw[o_assoc]) >>
+ qsuff_tac
+ ‘fg o fg' = fg''' & Id(AB) = fg'''’
+ >-- (strip_tac >> arw[]) >>
+ strip_tac >> first_x_assum irule >> arw[IdL,IdR] >>
+ arw[o_assoc])
+(form_goal
+ “∀AB i1:A->AB i2:B->AB AB' i1':A->AB' i2':B->AB'.
+  iscoPr(i1,i2) & iscoPr(i1',i2') ⇒ 
+  ∃i:AB -> AB' j:AB' -> AB.
+   i o j = Id(AB') &  j o i = Id(AB) &
+   j o i1' = i1 & j o i2' = i2 & 
+   i o i1 = i1' & i o i2 = i2'”));
 
-val i1_def = coPo_def |> spec_all 
-                      |> qSKOLEM "i1" [‘A’,‘B’] |> gen_all
-                      |> store_as "i1_def";
+val coPr_REFL = proved_th $
+e0
+(rpt strip_tac >> qexistsl_tac [‘Id(AB)’,‘Id(AB)’] >>
+ rw[IdL,IdR])
+(form_goal
+ “∀AB i1:A->AB i2:B->AB.
+  ∃i:AB -> AB j:AB -> AB.
+   i o j = Id(AB) &  j o i = Id(AB) &
+   j o i1 = i1 & j o i2 = i2 & 
+   i o i1 = i1 & i o i2 = i2”)
 
-val i2_def = i1_def |> spec_all |> qSKOLEM "i2" [‘A’,‘B’] |> gen_all
-                    |> store_as "i2_def";
+val coPr_SYM = proved_th $
+e0
+(rpt strip_tac >> qexistsl_tac [‘j’,‘i’] >> arw[])
+(form_goal
+ “∀AB i1:A->AB i2:B->AB AB' i1':A->AB' i2':B->AB'.
+  (∃i:AB -> AB' j:AB' -> AB.
+   i o j = Id(AB') &  j o i = Id(AB) &
+   j o i1' = i1 & j o i2' = i2 & 
+   i o i1 = i1' & i o i2 = i2') ⇒ 
+  (∃i:AB' -> AB j:AB -> AB'.
+   i o j = Id(AB) &  j o i = Id(AB') &
+   j o i1 = i1' & j o i2 = i2' & 
+   i o i1' = i1 & i o i2' = i2)”)
 
-val coPa_def = i2_def |> rewr_rule[iscoPr_def] 
-                      |> spec_all
-                      |> conjE1 |> spec_all
-                      |> uex_expand 
-                      |> qSKOLEM "coPa" [‘f’,‘g’]
-                      |> gen_all
-                      |> store_as "coPa_def";
+
+val coPr_TRANS = proved_th $
+e0
+(rpt strip_tac >> qexistsl_tac [‘i' o i’,‘j o j'’] >> arw[] >>
+ arw[o_assoc] >>
+ qsuff_tac
+ ‘i' o (i o j) o j' = Id(AB'') & j o (j' o i') o i = Id(AB)’ 
+ >-- rw[o_assoc] >>
+ arw[IdL,IdR])
+(form_goal
+ “∀AB i1:A->AB i2:B->AB 
+   AB' i1':A->AB' i2':B->AB'
+   AB'' i1'':A->AB'' i2'':B->AB''.
+  (∃i:AB -> AB' j:AB' -> AB.
+   i o j = Id(AB') &  j o i = Id(AB) &
+   j o i1' = i1 & j o i2' = i2 & 
+   i o i1 = i1' & i o i2 = i2') &
+  (∃i:AB' -> AB'' j:AB'' -> AB'.
+   i o j = Id(AB'') &  j o i = Id(AB') &
+   j o i1'' = i1' & j o i2'' = i2' & 
+   i o i1' = i1'' & i o i2' = i2'') ⇒
+  (∃i:AB -> AB'' j:AB'' -> AB.
+   i o j = Id(AB'') &  j o i = Id(AB) &
+   j o i1'' = i1 & j o i2'' = i2 & 
+   i o i1 = i1'' & i o i2 = i2'')”)
+
+val coPr_Reqv = conjI coPr_REFL (conjI coPr_SYM coPr_TRANS)
+
+
+
+(* subset of Pow(A) * Pow(B)*)
+val coPr_uex = prove_store("coPr_uex",
+e0
+(rpt strip_tac >>
+ qspecl_then [‘A’,‘B’] strip_assume_tac iscoPr_ex >>
+ qexistsl_tac [‘AB’,‘i1’,‘i2’] >>
+ arw[] >>
+ rpt strip_tac >>
+ irule coPr_unique >> arw[])
+(form_goal “!A B.?AB i1:A->AB i2:B->AB.
+ (iscoPr(i1,i2)
+ & Inj(i1) & Inj(i2) & 
+ (!a b. ~(App(i1,a) = App(i2,b))) & 
+ !ab. ((?a. ab = App(i1,a)) | (?b. ab = App(i2,b)))) & 
+ ∀AB' i1' i2'.
+  (iscoPr(i1',i2')
+ & Inj(i1') & Inj(i2') & 
+ (!a b. ~(App(i1',a) = App(i2',b))) & 
+ !ab. ((?a. ab = App(i1',a)) | (?b. ab = App(i2',b)))) ⇒
+ (∃i:AB -> AB' j:AB' -> AB.
+   i o j = Id(AB') &  j o i = Id(AB) &
+   j o i1' = i1 & j o i2' = i2 & 
+   i o i1 = i1' & i o i2 = i2') 
+ ”));
+
+
+local
+val uexth = coPr_uex |> spec_all
+val eth = proved_th $
+e0
+(rpt strip_tac >> 
+ qspecl_then [‘A’,‘B’] strip_assume_tac iscoPr_ex >>
+ qexistsl_tac [‘AB’,‘i1’,‘i2’] >> arw[])
+(form_goal “∀A B. ∃AB i1:A->AB i2:B->AB.T”)
+val eqvth = coPr_Reqv
+val fnames = ["+","i1","i2"]
+val arg1 = List.map (dest_var o rastt) 
+                    ["AB","i1:A->AB","i2:B->AB"]
+val arg2 = List.map (dest_var o rastt) 
+                     ["AB'","i1':A->AB'","i2':B->AB'"]
+val eqr = 
+“(∃i:AB -> AB' j:AB' -> AB.
+   i o j = Id(AB') &  j o i = Id(AB) &
+   j o i1':A->AB' = i1 & j o i2':B->AB' = i2 & 
+   i o i1:A->AB = i1' & i o i2:B->AB = i2') ”
+val arg = arg1
+val Q = “(iscoPr(i1:A->AB,i2:B->AB)
+ & Inj(i1) & Inj(i2) & 
+ (!a b. ~(App(i1,a) = App(i2,b))) & 
+ !ab. ((?a. ab = App(i1,a)) | (?b. ab = App(i2,b))))”
+val argQ = (arg,Q)
+val vl = List.map dest_var [rastt "A",rastt "B"]
+val arg12eqr = (arg1,arg2,eqr)
+val uexth = (coPr_uex |> spec_all)
+in
+val coPo_def = 
+new_spec argQ arg12eqr fnames vl (eth|> spec_all) eqvth uexth
+|> gen_all
+end
+
+val i1_def = coPo_def; 
+
+val i2_def = coPo_def;
+
+val coPa_def0 = 
+    i2_def |> rewr_rule[iscoPr_def] 
+           |> spec_all
+           |> conjE1 |> spec_all
+           |> qsimple_uex_spec "coPa" [‘f’,‘g’]
+           |> gen_all
+           |> store_as "coPa_def0";
+
+val coPa_def = prove_store("coPa_def",
+e0
+(rw[coPa_def0] >> rpt strip_tac >> 
+ assume_tac (i2_def |> rewr_rule[iscoPr_def] 
+           |> spec_all
+           |> conjE1 |> spec_all) >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qsuff_tac
+ ‘fg' = fg & coPa(f,g) = fg’ 
+ >-- (strip_tac >> arw[]) >>
+ rpt strip_tac >> first_x_assum irule >> arw[coPa_def0])
+(form_goal
+ “!A B X f:A->X g:B->X.
+  (coPa(f, g) o i1(A, B) = f & coPa(f, g) o i2(A, B) = g) &
+  !fg' : A + B -> X.
+   fg' o i1(A, B) = f & fg' o i2(A, B) = g ==> fg' = coPa(f, g)”));
+
 
 val i1_Inj = i2_def |> spec_all |> conjE2
                     |> conjE1 |> gen_all
