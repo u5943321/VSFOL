@@ -4943,3 +4943,21 @@ e0
 val Ins_def = qdefine_fsym("Ins",[‘x0:1->X’,‘s0:1-> Exp(X,1+1)’])
 ‘INS(X) o Pa(x0,s0)’ |> qgen ‘s0’ |> qgen ‘x0’ |> qgen ‘X’
 |> store_as "Ins_def";
+
+
+
+val Rel2Ar_uex = prove_store("Rel2Ar_uex",
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?f:A->B. !a b. f o a = b <=> R o Pa(a,b) = TRUE’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >>
+     arw[] >> rpt strip_tac >>
+     irule FUN_EXT >> arw[] >>
+     last_x_assum (K all_tac) >>
+     last_x_assum (assume_tac o GSYM) >> arw[]) >>
+ drule Rel2Ar' >> arw[])
+(form_goal
+ “!A B R:A * B -> 1+1. 
+   (!a:1->A.?!b:1->B. R o Pa(a,b) = TRUE) ==>
+   (?!f:A->B. !a b. f o a = b <=> R o Pa(a,b) = TRUE)”));

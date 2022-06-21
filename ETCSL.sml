@@ -84,11 +84,11 @@ e0
      ?ls0 :1-> Exp(N * X, 1+1)  x.
        IN(ls0, a) & ls = Ins(Pa(Card(ls0), x), ls0)”);
 val isLf_def = 
-Rel2Ar' 
+Rel2Ar_uex
 |> sspecl [rastt "isLr(X)"]
 |> rewr_rule[IL_lemma]
 |> C mp isLf_precond
-|> qSKOLEM "isLf" [‘X’]
+|> qsimple_uex_spec "isLf" [‘X’]
 |> spec_all |> qgen ‘b’
 |> qspecl [‘isLf(X) o a’]
 |> rewr_rule[] |> qgen ‘a’;
@@ -176,7 +176,7 @@ e0
  qexists_tac ‘x0’ >> arw[Repl_def] >>
  fs[Mono_def])
 (form_goal “!X. ?!l.Repl(l) = Empty(N * X)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "Nil" [‘X’] |> gen_all
+|> spec_all |> qsimple_uex_spec "Nil" [‘X’] |> gen_all
 |> store_as "Nil_def";
 
 val cons0_def = 
@@ -192,7 +192,7 @@ e0
 (form_goal “!a':1->X b. ?!b'. b' = Ins(Pa(Card(b), a'), b)”) 
 in
 val cons1_def = 
-P2fun |> qspecl [‘X * Exp(N * X,1+1)’,‘Exp(N * X,1+1)’]
+P2fun_uex |> qspecl [‘X * Exp(N * X,1+1)’,‘Exp(N * X,1+1)’]
 |> specl [qform2IL [‘xl:1->X * Exp(N * X,1+1)’,‘l':1->Exp(N * X,1+1)’] ‘l' = Ins(Pa(Card(Snd(xl)), Fst(xl)), Snd(xl))’]
 |> rewr_rule[Holds_def]
 |> rewr_rule[o_assoc,Pa_distr,p12_of_Pa,Eq_property_TRUE,Fst_def,Snd_def]
@@ -200,7 +200,7 @@ P2fun |> qspecl [‘X * Exp(N * X,1+1)’,‘Exp(N * X,1+1)’]
 |> rewr_rule[o_assoc,Pa_distr,p12_of_Pa]
 |> rewr_rule[GSYM Card_def,GSYM Ins_def]
 |> C mp l
-|> qSKOLEM "cons1" [‘X’]
+|> qsimple_uex_spec "cons1" [‘X’]
 |> qspecl [‘x:1->X’,‘l:1-> Exp(N * X,1+1)’]
 |> rewr_rule[GSYM cons0_def]
 |> qspecl [‘cons0(x, l)’]  |> rewr_rule[]
@@ -287,14 +287,14 @@ e0
  (cons1(X) o Prla(id(X),iL(X))) o xl1 = iL(X) o l2”)
 
 
-val CONS_def = P2fun |> qspecl [‘X * List(X)’,‘List(X)’]
+val CONS_def = P2fun_uex |> qspecl [‘X * List(X)’,‘List(X)’]
                      |> specl [qform2IL [‘xl1:1->X * List(X)’,‘l2:1-> List(X)’]
  ‘(cons1(X) o Prla(id(X),iL(X))) o xl1 = iL(X) o l2’]
                      |> rewr_rule[Holds_def]
                      |> rewr_rule[Eq_property_TRUE,o_assoc,
                                  Pa_distr ,p12_of_Pa]
                      |> C mp (lift_cond2' |> rewr_rule[o_assoc])
-                     |> qSKOLEM "CONS" [‘X’]
+                     |> qsimple_uex_spec "CONS" [‘X’]
                      |> qspecl 
                      [‘Pa(x:1->X,l:1-> List(X))’,
                       ‘CONS(X) o Pa(x:1->X,l:1-> List(X))’]
@@ -638,11 +638,11 @@ e0
   ?p0 :1 -> List(X) * A  x:1->X.
    IN(p0,a) & p = Pa(Cons(x, Fst(p0)), f0 o Pa(x, Snd(p0)))”);
 val Lindf_def = 
-Rel2Ar' 
+Rel2Ar_uex
 |> sspecl [rastt "Lindr(a0:1->A,f0:X * A->A)"]
 |> rewr_rule[IL_lemma]
 |> C mp Lindf_precond
-|> qSKOLEM "Lindf" [‘a0’,‘f0’]
+|> qsimple_uex_spec "Lindf" [‘a0’,‘f0’]
 |> spec_all |> qgen ‘b’
 |> qspecl [‘Lindf(a0,f0) o a’]
 |> rewr_rule[] |> qgen ‘a’;
@@ -717,7 +717,7 @@ e0
  “!A a0:1->A X f0: X * A ->A l:1-> List(X). ?!a. IN(Pa(l,a),Linds(a0,f0))”));
 
 
-val Lrec_def = P2fun |> qspecl [‘List(X)’,‘A’]
+val Lrec_def = P2fun_uex |> qspecl [‘List(X)’,‘A’]
                      |> specl [qform2IL [‘l:1-> List(X)’,‘a:1->A’]
  ‘Tp0(Linds(a0, f0)) o Pa(l, a) = TRUE’]
 |>  rewr_rule[E1_def1,o_assoc,Pa_distr,p12_of_Pa,Eq_property_TRUE,
@@ -725,7 +725,7 @@ val Lrec_def = P2fun |> qspecl [‘List(X)’,‘A’]
 |> rewr_rule[GSYM IN_Tp0]
 |> C mp 
    (Lind_uex |> spec_all |> qgen ‘l’)
-|> qSKOLEM "Lrec" [‘a0’,‘f0’]
+|> qsimple_uex_spec "Lrec" [‘a0’,‘f0’]
 |> spec_all
 |> qgen ‘b’
 |> qspecl [‘Lrec(a0, f0) o a’] |> rewr_rule[]

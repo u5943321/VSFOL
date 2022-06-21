@@ -86,7 +86,7 @@ e0
 |> spec_all |> qgen ‘a’
 
 val Rsi_def = 
-P2fun |> qspecl [‘A’,‘Exp(B,1+1)’]
+P2fun_uex |> qspecl [‘A’,‘Exp(B,1+1)’]
 |> specl[qform2IL [‘a:1->A’,‘s:1->Exp(B,1+1)’]
    ‘!b.IN(b,s) <=> R o Pa(a,b) = TRUE’]
 |> rewr_rule[Holds_def,All_def,o_assoc,p12_of_Pa,Pa_distr,
@@ -95,7 +95,7 @@ P2fun |> qspecl [‘A’,‘Exp(B,1+1)’]
 |> rewr_rule[GSYM IN_def]
 |> C mp Rsi_uex
 |> rewr_rule[GSYM Holds_def]
-|> qSKOLEM "Rsi" [‘R’]
+|> qsimple_uex_spec "Rsi" [‘R’]
 |> qspecl [‘a:1->A’,‘Rsi(R:A * B->1+1) o a:1->A’] 
 |> rewr_rule[]
 |> gen_all |> store_as "Rsi_def";
@@ -407,8 +407,7 @@ P2fun' |> qspecl [‘Q1 * Q2’,‘Exp(A * B,1+1)’,‘ipow2IL(i1:Q1->Exp(A,1+1
                                                          forall_cross_fconv)
     |> rewr_rule[Pair_def']
     |> qgen ‘aqbq’ |> GSYM)
-|> uex2ex_rule
-|> qSKOLEM "ipow2" [‘i1’,‘i2’]
+|> qsimple_uex_spec "ipow2" [‘i1’,‘i2’]
 |> conv_rule (depth_fconv no_conv forall_cross_fconv)
 |> rewr_rule[Pair_def']
 |> qspecl [‘aq:1->Q1’,‘bq:1->Q2’,
@@ -433,8 +432,7 @@ e0
 (form_goal “?!f:(N * N) * N * N -> N * N. 
  !x y u v. f o Pa(Pa(x,y),Pa(u,v)) = 
  Pa(Add(x,u),Add(y,v))”)
-|> uex2ex_rule
-|> qSKOLEM "addf0" []
+|> qsimple_uex_spec "addf0" []
 |> store_as "addf0_def";
 end
 
@@ -712,8 +710,7 @@ Quo_fun |> qspecl [‘(N * N) * (N * N)’,‘N * N’,
                 ‘ipow2(iZ,iZ)’,‘iZ’]
         |> conv_rule (depth_fconv no_conv forall_cross_fconv)
         |> C mp addz_conds
-        |> uex2ex_rule
-        |> qSKOLEM "addz" []
+        |> qsimple_uex_spec "addz" []
         |> qspecl [‘z1:1->Z’,‘z2:1->Z’]
         |> rewr_rule[rext_def,GSYM IN_EXT,IN_rsi] 
 
@@ -898,8 +895,7 @@ Quo_fun |> qspecl [‘N * N’,‘N * N’,
                 ‘Z’,‘Z’,
                 ‘iZ’,‘iZ’]
         |> rewr_rule[Inj_Quo_Z,ZR_ER,negf0_resp]
-        |> uex2ex_rule
-        |> qSKOLEM "negz" []
+        |> qsimple_uex_spec "negz" []
         |> qspecl [‘z:1->Z’]
         |> rewr_rule[rext_def,GSYM Repz_def,GSYM ZC_def] 
 
@@ -970,8 +966,7 @@ e0
 (form_goal “?!f:(N * N) * N * N -> N * N. 
  !a b c d. f o Pa(Pa(a,b),Pa(c,d)) = 
  Pa(Add(Mul(a,c),Mul(b,d)),Add(Mul(a,d),Mul(b,c)))”)
-|> uex2ex_rule
-|> qSKOLEM "mulf0" []
+|> qsimple_uex_spec "mulf0" []
 |> store_as "mulf0_def";
 end
 
@@ -1079,8 +1074,7 @@ Quo_fun |> qspecl [‘(N * N) * (N * N)’,‘N * N’,
                 ‘ipow2(iZ,iZ)’,‘iZ’]
         |> rewr_rule[addz_conds,mulf0_resp]
         |> conv_rule (depth_fconv no_conv forall_cross_fconv)
-        |> uex2ex_rule
-        |> qSKOLEM "mulz" []
+        |> qsimple_uex_spec "mulz" []
         |> qspecl [‘z1:1->Z’,‘z2:1->Z’]
         |> rewr_rule[rext_def,GSYM IN_EXT,IN_rsi] 
 
@@ -1193,7 +1187,7 @@ e0
 val _ = new_fsym2IL1("ZC",rastt "Rsi(ZR)")
 
 val absz_def = 
-    P2fun |> qspecl [‘N * N’,‘Z’] 
+    P2fun_uex |> qspecl [‘N * N’,‘Z’] 
           |> specl[qform2IL [‘ab:1->N * N’,‘y:1->Z’]
                      ‘Repz(y) = ZC(ab)’]
           |> rewr_rule[Holds_def,Pa_distr,p12_of_Pa,o_assoc,
@@ -1201,7 +1195,7 @@ val absz_def =
                        GSYM Repz_def,GSYM ZC_def,GSYM rsi_def]
           |> conv_rule (top_depth_fconv no_conv forall_cross_fconv)
           |> C mp ZC_Repz
-          |> qSKOLEM "absz" []
+          |> qsimple_uex_spec "absz" []
           |> store_as "absz_def";
 
 val Absz_def = qdefine_fsym ("Absz",[‘ab:1->N * N’])

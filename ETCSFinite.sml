@@ -169,11 +169,11 @@ e0
        ?xs0  x:1->X.
         IN(xs0, a) & xs = Ins(x, xs0)))”)
 val FIf_def = 
-Rel2Ar' 
+Rel2Ar_uex
 |> sspecl [rastt "FIr(X)"]
 |> rewr_rule[IL_lemma]
 |> C mp FIf_precond
-|> qSKOLEM "FIf" [‘X’]
+|> qsimple_uex_spec "FIf" [‘X’]
 |> spec_all |> qgen ‘b’
 |> qspecl [‘FIf(X) o a’]
 |> rewr_rule[] |> qgen ‘a’
@@ -219,8 +219,8 @@ e0
  rw[Pa_distr,o_assoc,p12_of_Pa,Eq_property_TRUE])
 (form_goal “!X.?!DEL:Exp(X,1+1) * X -> Exp(X,1 + 1).
  !x0 xs x. IN(x,DEL o Pa(xs,x0)) <=> IN(x,xs) & ~(x = x0)”)
-|> spec_all |> uex2ex_rule
-|> qSKOLEM "DEL" [‘X’]
+|> spec_all 
+|> qsimple_uex_spec  "DEL" [‘X’]
 |> gen_all
 |> store_as "DEL_def";
 
@@ -355,11 +355,11 @@ e0
        IN(xsn0, a) &
        ~IN(x, Fst(xsn0)) & xsn = Pa(Ins(x, Fst(xsn0)), Suc(Snd(xsn0))))”)
 val Cdf_def = 
-Rel2Ar' 
+Rel2Ar_uex 
 |> sspecl [rastt "Cdr(X)"]
 |> rewr_rule[IL_lemma]
 |> C mp Cdf_precond
-|> qSKOLEM "Cdf" [‘X’]
+|> qsimple_uex_spec "Cdf" [‘X’]
 |> spec_all |> qgen ‘b’
 |> qspecl [‘Cdf(X) o a’]
 |> rewr_rule[] |> qgen ‘a’;
@@ -711,10 +711,12 @@ e0
  
 val P2fun = Rel2Ar' |> rewr_rule[GSYM Holds_def] |> store_as "P2fun";
 
+val P2fun_uex = Rel2Ar_uex |> rewr_rule[GSYM Holds_def] |> store_as "P2fun";
 
-val Cd0_def = P2fun |> qsspecl [‘CARD(X)’]
+
+val Cd0_def = P2fun_uex |> qsspecl [‘CARD(X)’]
                     |> C mp (CARD_unique |> qspecl [‘X’]) 
-                    |> qSKOLEM "Cd0" [‘X’]
+                    |> qsimple_uex_spec "Cd0" [‘X’]
                     |> gen_all |> store_as "Cd0_def";
 
 
