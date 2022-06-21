@@ -1078,9 +1078,6 @@ fVar_Inst_th
 (AX1|> qspecl [‘Pow(Z)’,‘Pow(Y)’]) 
 |> qsimple_uex_spec "Ex0" [‘f’] |> gen_all
 
-(*
-|> uex_expand |> qSKOLEM "Ex0" [‘f’] |> gen_all*)
-
 
 
 val All0_def = 
@@ -1090,7 +1087,7 @@ fVar_Inst_th
 (AX1|> qspecl [‘Pow(Z)’,‘Pow(Y)’]) 
 |> qsimple_uex_spec "All0" [‘f’] |> gen_all
 
-(*|> uex_expand |> qSKOLEM "All0" [‘f’] |> gen_all *)
+
 
 
 local
@@ -1150,12 +1147,6 @@ val BC_def = rel2fun |> qsspecl [‘BC0(f:Z->Y)’]
                      |> qsimple_uex_spec "BC" [‘f’]
                      |> gen_all
 
-(*
-                     |> uex2ex_rule 
-                     |> qSKOLEM "BC" [‘f’] 
-                     |> gen_all
-                     |> store_as "BC_def";
-*)
 
 val In_App_BC = prove_store("In_App_BC",
 e0
@@ -1179,12 +1170,7 @@ val Ex_def = rel2fun |> qsspecl [‘Ex0(f:Z->Y)’]
                      |> qsimple_uex_spec "Ex" [‘f’]
                      |> gen_all
 
-(*
-                     |> uex2ex_rule 
-                     |> qSKOLEM "Ex" [‘f’] 
-                     |> gen_all
-                     |> store_as "Ex_def";
-*)
+
 
 val In_App_Ex = prove_store("In_App_Ex",
 e0
@@ -1210,12 +1196,7 @@ val All_def = rel2fun |> qsspecl [‘All0(f:Z->Y)’]
                      |> qsimple_uex_spec "All" [‘f’]
                      |> gen_all
 
-(*
-                     |> uex2ex_rule 
-                     |> qSKOLEM "All" [‘f’] 
-                     |> gen_all
-                     |> store_as "All_def";
-*)
+
  
 val In_App_All = prove_store("In_App_All",
 e0
@@ -1491,12 +1472,7 @@ val Pair_def = Pair_uex |> spec_all
                         |> qsimple_uex_spec "Pair" [‘x’,‘y’]
                         |> gen_all
 
-(*
 
-p2_def |> spec_all |> conjE1 |> spec_all 
-                     |> qSKOLEM "Pair" [‘x’,‘y’] 
-                     |> gen_all |> store_as "Pair_def";
-*)
 
 val Pair_App_eq = p2_def |> spec_all |> conjE2 |> gen_all |> store_as "Pair_App_eq";
 

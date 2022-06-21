@@ -7,7 +7,7 @@ accept_tac (IN_def_P |> qspecl [‘Pow(A)’]
 (form_goal “!A f:Pow(A) ->Pow(A).
  ?!prims:mem(Pow(Pow(A))).
  !sa.IN(sa,prims) <=> SS(sa,App(f,sa))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "prims" [‘f’]
+|> spec_all |> qsimple_uex_spec "prims" [‘f’]
 
 val gfp_def = qdefine_fsym("gfp",[‘f:Pow(A) -> Pow(A)’])
 ‘BIGUNION(prims(f))’ |> gen_all 
@@ -104,7 +104,7 @@ e0
 (form_goal “!X f0:N->X + 1 x.?!f. 
  App(f,O) = SOME(x) & 
  (!n. App(f,Suc(n)) = App(f0,n))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "lcons0" [‘x’,‘f0’]
+|> spec_all |> qsimple_uex_spec "lcons0" [‘x’,‘f0’]
 |> gen_all 
 
 
@@ -144,7 +144,7 @@ e0
   g = Tpm(Null(X)) |
   ?h t. g  = Tpm(lcons0(h,t)) & IN(Tpm(t),gs)”));
 
-val llf_def = llf_uex |> uex2ex_rule |> qSKOLEM "llf" [‘X’]
+val llf_def = llf_uex |> qsimple_uex_spec "llf" [‘X’]
                       |> gen_all
 
 
@@ -158,12 +158,12 @@ e0
 val islls_def = qdefine_fsym("islls",[‘X’]) ‘gfp(llf(X))’
 
 
-val llist_def1 = Thm_2_4 |> qspecl [‘Exp(N,X+1)’]
+val llist_def1 = Thm_2_4' |> qspecl [‘Exp(N,X+1)’]
                          |> fVar_sInst_th
                          “P(g:mem(Exp(N,X+1)))”
                          “IN(g,islls(X))”
-                         |> qSKOLEM "llist" [‘X’] 
-                         |> qSKOLEM "repll" [‘X’]
+                         |> set_spec (rastt "Exp(N,X+1)")
+                         "llist" "repll" [("X",set_sort)]
                          |> gen_all 
 
 val repll_Inj = llist_def1 |> spec_all 
@@ -226,7 +226,7 @@ e0
  qexists_tac ‘b’ >> arw[Repll_def] >>
  fs[Inj_def])
 (form_goal “!X. ?!l.Repll(l) = Tpm(Null(X))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "LNil" [‘X’] |> gen_all
+|> spec_all |> qsimple_uex_spec "LNil" [‘X’] |> gen_all
 |> store_as "LNil_def";
 
 val repll_isll = prove_store("repll_isll",
@@ -281,8 +281,8 @@ e0
  “!X xl1:mem(X * llist(X)).?!l2.
   Repll(l2) = Tpm(lcons0(Fst(xl1),tof(Repll(Snd(xl1)))))”)
 |> qspecl [‘X’,‘Pair(x:mem(X),ll:mem(llist(X)))’]
-|> uex2ex_rule |> rewr_rule[Pair_def'] 
-|> qSKOLEM "LCons" [‘x’,‘ll’] |> gen_all
+|> rewr_rule[Pair_def'] 
+|> qsimple_uex_spec "LCons" [‘x’,‘ll’] |> gen_all
 
 
 
@@ -440,7 +440,7 @@ e0
 (form_goal “!f:X->X.?!fp:N * X -> X. 
  !x. App(fp,Pair(O,x)) = x & 
      !n. App(fp,Pair(Suc(n),x)) = App(fp,Pair(n,App(f,x)))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "FP" [‘f’]
+|> spec_all |> qsimple_uex_spec "FP" [‘f’]
 
 (*OPTION_MAP
  (∀f x. OPTION_MAP f:α->β (SOME x) = SOME (f x)) ∧
@@ -507,7 +507,7 @@ e0
  “!A B.?!ob. !f:A->B + 1.
  App(ob,Pair(NONE(A),Tpm(f))) = NONE(B) &
  !a.App(ob,Pair(SOME(a),Tpm(f))) = App(f,a)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "OB" [‘A’,‘B’]
+|> spec_all |> qsimple_uex_spec "OB" [‘A’,‘B’]
 (* [‘f’]*)
 
 (*FUNPOW Body in LUNFOLD_def*)
@@ -558,7 +558,7 @@ e0
 “!f: B -> (B * A)+1. ?!fpb:(B * A) + 1 -> (B * A) + 1.
  App(fpb,NONE(B * A)) = NONE(B * A) &
  !b a. App(fpb,SOME(Pair(b,a))) = App(f,b)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "FPB" [‘f’] 
+|> spec_all |> qsimple_uex_spec "FPB" [‘f’] 
 
 
 val toabs_def = proved_th $
@@ -577,7 +577,7 @@ e0
  rw[])
 (form_goal “!f:B-> (B * A)+1 z. ?!toabs.
  !n.App(toabs,n) = App(OM(p2(B,A)),App(FP(FPB(f)),Pair(n,App(f,z))))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "toabs" [‘f’,‘z’]
+|> spec_all |> qsimple_uex_spec "toabs" [‘f’,‘z’]
 
 
 val toabs_char0 = proved_th $
@@ -772,7 +772,7 @@ e0
  “!A B f:B -> (B * A)+1.
   ?!g:B->Exp(N,A +1).
   !z.App(g,z) = Tpm(toabs(f,z))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "llcr0" [‘f’]
+|> spec_all |> qsimple_uex_spec "llcr0" [‘f’]
 
 val llrec0_uex = prove_store("llrec0_uex",
 e0
@@ -912,7 +912,7 @@ e0
   (ll1 = LNil(X) & ll2 = LNil(X)) | 
   (?l01 l02 x. IN(Pair(l01,l02),R) &
    ll1 = LCons(x,l01) & ll2 = LCons(x,l02))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "CB" [‘X’]
+|> spec_all |> qsimple_uex_spec "CB" [‘X’]
 
 
 val CB_monotone = prove_store("CB_monotone",
@@ -1034,7 +1034,7 @@ e0
   (!hd. LHD(ll) = SOME(hd) ==> ?ltl0.
     ltl = SOME(ltl0) &
     !n.App(tof(Repll(ltl0)),n) = App(tof(Repll(ll)),Suc(n)))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "LTL" [‘ll’] |> gen_all
+|> spec_all |> qsimple_uex_spec "LTL" [‘ll’] |> gen_all
 
 
 
@@ -1274,12 +1274,11 @@ val lmapf_def =
        “(l = LNil(X) & opv = NONE(llist(X) * A)) |
      ?lh lt. l = LCons(lh,lt) & opv = SOME(Pair(lt,App(f:X->A,lh)))”
     |> C mp f_ex0 
-    |> uex2ex_rule |> qSKOLEM "lmapf" [‘f’]
+    |> qsimple_uex_spec "lmapf" [‘f’]
 
 
 val LMAP_def = llcr_uex |> qsspecl [‘lmapf(f:X->Y)’] 
-                        |> uex2ex_rule
-                        |> qSKOLEM "LMAP" [‘f’]
+                        |> qsimple_uex_spec "LMAP" [‘f’]
 
 
 val LMap_def = qdefine_fsym("LMap",[‘f:X->Y’,‘l:mem(llist(X))’])

@@ -39,7 +39,7 @@ e0
     “IN(x,App(Vof(M:mem(Pow(W * W) * Exp(W,Pow(A)))),w))”))
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))).
  ?!f:A->Pow(W). !a w. IN(w,App(f,a)) <=> IN(a,App(Vof(M),w))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "HAT" [‘M’]
+|> spec_all |> qsimple_uex_spec "HAT" [‘M’]
 
 
 val satis_dmf = proved_th $
@@ -58,7 +58,7 @@ e0
  “!M:mem(Pow(W * W) * Exp(W,Pow(A))).
   ?!f:Pow(W) -> Pow(W). 
   (!s0 w.IN(w,App(f,s0)) <=> ?w0.IN(w0,s0) & Rm(M,w,w0))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "sdmf" [‘M’]
+|> spec_all |> qsimple_uex_spec "sdmf" [‘M’]
 
 
 val satisf_def = qdefine_fsym("satisf",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’])
@@ -257,7 +257,7 @@ e0
     “Rm(M:mem(Pow(W * W) * Exp(W,Pow(A))),w,v)”))
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))) w.
 ?!sucm. !v. IN(v,sucm) <=> Rm(M,w,v)”) 
-|> spec_all |> uex2ex_rule |> qSKOLEM "Sucm" [‘M’,‘w’]
+|> spec_all |> qsimple_uex_spec "Sucm" [‘M’,‘w’]
 
 val Msat_def = qdefine_psym("Msat",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’]) 
 ‘!w fs. Fsab(fs,Sucm(M,w),M) ==>  Sab(fs,Sucm(M,w),M) ’
@@ -273,7 +273,7 @@ e0
  )
 (form_goal “!f0:W ->Pow(A). !a.?!ws:mem(Pow(W)).
  !w. IN(w,ws) <=> IN(a,App(f0,w))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "Tat" [‘f0’,‘a’]
+|> spec_all |> qsimple_uex_spec "Tat" [‘f0’,‘a’]
 
 
 val fun_mem_ex_iff = prove_store("fun_mem_ex_iff",
@@ -381,7 +381,7 @@ e0
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))).
  ?!f0:mem(Exp(UFs(W),Pow(A))).
   !u a. IN(a,App(tof(f0),u)) <=>  IN(Tat(Vof(M),a),Repu(u))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "ueV" [‘M’]
+|> spec_all |> qsimple_uex_spec "ueV" [‘M’]
 
 val csee_def = proved_th $
 e0
@@ -393,7 +393,7 @@ e0
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))) X. 
  ?!cs:mem(Pow(W)).
  !w. IN(w,cs) <=> ?v.Rm(M,w,v) &  IN(v,X) ”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "csee" [‘M’,‘X’]
+|> spec_all |> qsimple_uex_spec "csee" [‘M’,‘X’]
 
 
 val osee_def = proved_th $
@@ -406,7 +406,7 @@ e0
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))) X. 
  ?!cs:mem(Pow(W)).
  !w. IN(w,cs) <=> !v. Rm(M,w,v) ==> IN(v,X)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "osee" [‘M’,‘X’]
+|> spec_all |> qsimple_uex_spec "osee" [‘M’,‘X’]
 
 val ueR_def = proved_th $
 e0
@@ -422,7 +422,7 @@ strip_tac >> accept_tac
  ?!R:mem(Pow(UFs(W) * UFs(W))).
    !u1 u2. IN(Pair(u1,u2),R) <=> 
    (!X.IN(X,Repu(u2)) ==> IN(csee(M,X),Repu(u1)))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "ueR" [‘M’]
+|> spec_all |> qsimple_uex_spec "ueR" [‘M’]
 
 val UE_def = qdefine_fsym("UE",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’])
 ‘Pair(ueR(M),ueV(M))’
@@ -558,7 +558,7 @@ e0
  arw[])
 (form_goal “!A a:mem(A).
  ?!ss. !s. IN(s,ss) <=> IN(a,s)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "pufilter" [‘a’]
+|> spec_all |> qsimple_uex_spec "pufilter" [‘a’]
 
 val pufilter_filter = prove_store("pufilter_filter",
 e0
@@ -605,7 +605,7 @@ e0
  )
 (form_goal “!W w0:mem(W). ?!uw:mem(UFs(W)).
  !ws.IN(ws,Repu(uw)) <=> IN(w0,ws)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "Pft" [‘w0’]
+|> spec_all |> qsimple_uex_spec "Pft" [‘w0’]
 
 (*satis worlds*)
 val SW_def = proved_th $
@@ -620,7 +620,7 @@ e0
     “satis(M:mem(Pow(W * W) * Exp(W,Pow(A))),w,x)”))
 (form_goal “!M:mem(Pow(W * W) * Exp(W,Pow(A))).
  ?!sws:form(A) -> Pow(W). !f w. IN(w,App(sws,f)) <=> satis(M,w,f)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "SW" [‘M’]
+|> spec_all |> qsimple_uex_spec "SW" [‘M’]
 
 val Sw_def = qdefine_fsym("Sw",[‘M:mem(Pow(W * W) * Exp(W,Pow(A)))’,
                                         ‘f:mem(form(A))’]) 
@@ -1163,7 +1163,7 @@ e0
     “PE(phi) & Ent(f,phi:mem(form(A)))”))
 (form_goal “!A f:mem(form(A)). ?!pec.
  !phi. IN(phi,pec) <=> PE(phi) & Ent(f,phi)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "PEC" [‘f’]
+|> spec_all |> qsimple_uex_spec "PEC" [‘f’]
 
 val Fin_ENT_PE = prove_store("Fin_ENT_PE",
 e0

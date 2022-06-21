@@ -231,7 +231,7 @@ fun new_spec argQ arg12eqr
     in mk_newfsym fnames vl uexth
     end
 
-
+(*
 fun impr_fconv fc f = 
     case view_form f of
         vConn("==>",[p,q]) => imp_iff (frefl p) (fc q)       
@@ -246,8 +246,26 @@ fun uex_def' f =
     end
 
 fun uex_expand' th = dimp_mp_l2r th (uex_def' $ concl th)
+*)
 
+(* ∃a. P(a) & ∀a'. P(a') ⇒ a' = a
+ into
+    ∃a. P(a) & ∀a'. P(a') ⇒ a = a'
+ *)
 
+fun uex_expand' th = 
+    let val th0 = uex_expand th 
+        val (ns0,b0) = dest_exists (concl th0) 
+        val (c1,c2) = dest_conj b0 
+        val (ns',b') = dest_forall c2 
+        val (ante,conclu) = dest_imp b' 
+        val sconcluth = sym_fconv conclu 
+        val impth = imp_iff (frefl ante) sconcluth
+        val forallth = forall_iff ns' impth
+        val conjth = conj_iff (frefl c1) forallth 
+        val existth = exists_iff ns0 conjth 
+    in dimp_mp_l2r th0 existth
+    end
 
 (*
 (*simple case of uex_spec, applies only when the assumption list of uex is empty and hence the derivation of soundness existential theorem is automated*)

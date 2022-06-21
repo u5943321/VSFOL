@@ -21,11 +21,11 @@ val isgrp_def = qdefine_psym("isgrp",[‘g:mem(Exp(G * G,G) * Exp(G,G) * G)’])
  isunit(tof(c31(g)),c33(g)) & 
  isinv(tof(c31(g)),tof(c32(g)),c33(g))’
 
-val Grp_def = Thm_2_4 |> qspecl [‘Exp(G * G,G) * Exp(G,G) * G’]
+val Grp_def = Thm_2_4' |> qspecl [‘Exp(G * G,G) * Exp(G,G) * G’]
                       |> fVar_sInst_th “P(g:mem(Exp(G * G,G) * Exp(G,G) * G))”
                          “isgrp(g:mem(Exp(G * G,G) * Exp(G,G) * G))”
-                      |> qSKOLEM "Grp" [‘G’]
-                      |> qSKOLEM "iG" [‘G’]
+                         |> set_spec (rastt "Exp(G * G,G) * Exp(G,G) * G")
+                            "Grp" "iG" [("G",set_sort)]
                       |> gen_all
 
 val RepG_def = qdefine_fsym("RepG",[‘g:mem(Grp(G))’]) ‘App(iG(G),g)’
@@ -60,11 +60,12 @@ val issgrp_def = qdefine_psym("issgrp",[‘h:mem(Pow(G))’,‘g:mem(Grp(G))’]
  (!a b. IN(a,h) & IN(b,h) ==> IN(gmul(g,a,b),h)) &
  (!a. IN(a,h) ==> IN(ginv(g,a),h))’
 
-val sgrp_def = Thm_2_4 |> qspecl [‘Pow(G)’]
+val sgrp_def = Thm_2_4' |> qspecl [‘Pow(G)’]
                        |> fVar_sInst_th “P(H:mem(Pow(G)))”
                        “issgrp(H:mem(Pow(G)),g)”
-                       |> qSKOLEM "sgrp" [‘g’]
-                       |> qSKOLEM "Rsg" [‘g’]
+                       |> set_spec (rastt "Pow(G)") "sgrp" "Rsg" 
+                       [dest_var(rastt "g:mem(Grp(G))")]
+
 
 val rsg_def = qdefine_fsym("rsg",[‘H:mem(sgrp(g:mem(Grp(G))))’])
               ‘App(Rsg(g),H)’ |> gen_all
@@ -78,7 +79,7 @@ e0
     “?h. IN(h,rsg(H:mem(sgrp(g)))) & x = gmul(g:mem(Grp(G)),a,h)”))
 (form_goal “!G g H:mem(sgrp(g)) a:mem(G). 
  ?!lc. !x. IN(x,lc) <=> ?h. IN(h,rsg(H)) & x = gmul(g,a,h)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "lcs" [‘a’,‘H’]
+|> spec_all |>qsimple_uex_spec"lcs" [‘a’,‘H’]
 
 val rcs_def = proved_th $
 e0
@@ -89,17 +90,17 @@ e0
     “?h. IN(h,rsg(H:mem(sgrp(g)))) & x = gmul(g:mem(Grp(G)),h,a)”))
 (form_goal “!G g H:mem(sgrp(g)) a:mem(G). 
  ?!lc. !x. IN(x,lc) <=> ?h. IN(h,rsg(H)) & x = gmul(g,h,a)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "rcs" [‘H’,‘a’]
+|> spec_all  |> qsimple_uex_spec "rcs" [‘H’,‘a’]
 
 
 val isnml_def = qdefine_psym("isnml",[‘h:mem(sgrp(g:mem(Grp(G))))’])
 ‘!a. rcs(h,a) = lcs(a,h)’
 
-val nsgrp_def = Thm_2_4 |> qspecl [‘sgrp(g:mem(Grp(G)))’]
+val nsgrp_def = Thm_2_4' |> qspecl [‘sgrp(g:mem(Grp(G)))’]
                        |> fVar_sInst_th “P(H:mem(sgrp(g:mem(Grp(G)))))”
                        “isnml(H:mem(sgrp(g:mem(Grp(G)))))”
-                       |> qSKOLEM "nsgrp" [‘g’]
-                       |> qSKOLEM "Rnsg" [‘g’]
+                       |> set_spec (rastt "sgrp(g:mem(Grp(G)))") "nsgrp" "Rnsg" 
+                       [dest_var(rastt "g:mem(Grp(G))")]
                        |> gen_all
 
 
@@ -130,7 +131,7 @@ e0
     “?y. IN(y,s) & a = gmul(g:mem(Grp(G)),x,y)”) >> arw[])
 (form_goal “!G g:mem(Grp(G)) x s.?!xs. !a. IN(a,xs) <=> 
  ?y. IN(y,s) & a = gmul(g,x,y)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "lsmul" [‘g’,‘x’,‘s’]
+|> spec_all |> qsimple_uex_spec "lsmul" [‘g’,‘x’,‘s’]
 |> gen_all 
 
 
@@ -142,7 +143,7 @@ e0
     “?x. IN(x,s) & a = gmul(g:mem(Grp(G)),x,y)”) >> arw[])
 (form_goal “!G g:mem(Grp(G)) s y.?!sy. !a. IN(a,sy) <=> 
  ?x. IN(x,s) & a = gmul(g,x,y)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "rsmul" [‘g’,‘s’,‘y’]
+|> spec_all |> qsimple_uex_spec "rsmul" [‘g’,‘s’,‘y’]
 |> gen_all 
 
 
@@ -277,8 +278,7 @@ e0
 val esg_def = 
 sg_uex |> qsspecl [‘Sing(eof(g:mem(Grp(G))))’,‘g:mem(Grp(G))’]
             |> rewr_rule[e_sgrp]
-            |> uex2ex_rule
-            |> qSKOLEM "esg" [‘g’] |> gen_all
+            |> qsimple_uex_spec "esg" [‘g’] |> gen_all
 
 
 
@@ -302,8 +302,7 @@ e0
 val ensg_def = 
     nsg_uex |> qsspecl [‘g:mem(Grp(G))’,‘esg(g:mem(Grp(G)))’]
             |> rewr_rule[e_nsgrp]
-            |> uex2ex_rule
-            |> qSKOLEM "ensg" [‘g’] |> gen_all
+            |> qsimple_uex_spec "ensg" [‘g’] |> gen_all
 
 val nsg_def = qdefine_fsym("nsg",[‘h:mem(sgrp(g:mem(Grp(G))))’]) ‘App(LINV(Rnsg(g),ensg(g)),h)’ |> gen_all
 
@@ -313,11 +312,11 @@ val rnsg_def = qdefine_fsym("rnsg",[‘H:mem(nsgrp(g:mem(Grp(G))))’])
               ‘App(Rnsg(g),H)’ |> gen_all
 
 val qgR_def = 
-AX1 |> qspecl [‘G’,‘G’] |> uex2ex_rule
+AX1 |> qspecl [‘G’,‘G’] 
     |> fVar_sInst_th “P(g1:mem(G),g2:mem(G))”
     “lcs(g1,rnsg(H)) =
      lcs(g2:mem(G),rnsg(H:mem(nsgrp(g:mem(Grp(G))))))”
-    |> qSKOLEM "qgR" [‘H’] 
+    |> qsimple_uex_spec "qgR" [‘H’] 
     |> gen_all
     |> store_as "qgR_def";
 
@@ -352,11 +351,11 @@ e0
 (form_goal “!G g:mem(Grp(G)) H:mem(nsgrp(g)).ER(qgR(H))”));
 
 (*cosets*)
-val css_def = Thm_2_4 |> qspecl [‘Pow(G)’]
+val css_def = Thm_2_4' |> qspecl [‘Pow(G)’]
                     |> fVar_sInst_th “P(s:mem(Pow(G)))”
                     “?a:mem(G). s = rsi(qgR(H:mem(nsgrp(g))),a)”
-                    |> qSKOLEM "css" [‘H’]
-                    |> qSKOLEM "Rcss" [‘H’]
+                    |> set_spec (rastt "Pow(G)") "css" "Rcss" 
+                       [dest_var(rastt "H:mem(nsgrp(g:mem(Grp(G))))")]
                     |> gen_all
                     |> store_as "css_def";
 
@@ -389,8 +388,8 @@ e0
   ?!a:mem(css(H)).
    rcss(a) = rsi(qgR(H),eof(g))”));
 
-val ecs_def = mem_css_e |> spec_all |> uex2ex_rule
-                        |> qSKOLEM "ecs" [‘H’]
+val ecs_def = mem_css_e |> spec_all
+                        |> qsimple_uex_spec "ecs" [‘H’]
                         |> gen_all
 
 val cs_def = qdefine_fsym("cs",[‘a:mem(G)’,‘H:mem(nsgrp(g:mem(Grp(G))))’])
@@ -433,7 +432,7 @@ e0
     “?x:mem(G) y. IN(x,s1) & IN(y,s2) & a = gmul(g,x,y)”))
 (form_goal “!G g:mem(Grp(G)) s1 s2.?!s. !a. IN(a,s) <=> 
  ?x y. IN(x,s1) & IN(y,s2) & a = gmul(g,x,y)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "smul" [‘g’,‘s1’,‘s2’]
+|> spec_all |> qsimple_uex_spec "smul" [‘g’,‘s1’,‘s2’]
 |> gen_all 
 
 val nsgrp_swap_l2r = prove_store("nsgrp_swap_l2r",
@@ -585,7 +584,7 @@ Quot_UMP
 |> C mp (spec_all qgR_Rcss_cong)
 |> qspecl [‘Pair(ecs(H:mem(nsgrp(g:mem(Grp(G))))),
                  ecs(H))’]
-|> uex2ex_rule |> qSKOLEM "mulcs" [‘H’]
+|> qsimple_uex_spec "mulcs" [‘H’]
 |> rewr_rule[App_App_o]
 |> qspecl [‘Pair(a:mem(G),b:mem(G))’]
 |> rewr_rule[GSYM mul_def,GSYM gmul_def,GSYM cs_def,GSYM abs_def,qgR_Rcss_abs_cong]
@@ -600,7 +599,7 @@ e0
 (form_goal “!G g:mem(Grp(G)) s.
  ?!invs. !a. IN(a,invs) <=> 
  ?x. IN(x,s) & a = ginv(g,x)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "sinv" [‘g’,‘s’]
+|> spec_all |> qsimple_uex_spec "sinv" [‘g’,‘s’]
 |> gen_all 
 
 val ginv_oneside = prove_store("ginv_oneside",
@@ -693,7 +692,7 @@ Quot_UMP
            ‘Rcss(H:mem(nsgrp(g:mem(Grp(G)))))’]
 |> C mp (spec_all Quot_qgR_Rcss)
 |> qspecl [‘ecs(H:mem(nsgrp(g:mem(Grp(G)))))’]
-|> uex2ex_rule |> qSKOLEM "invcs" [‘H’]
+|> qsimple_uex_spec "invcs" [‘H’]
 |> rewr_rule[App_App_o]
 |> qspecl [‘a:mem(G)’]
 |> rewr_rule[GSYM cs_def,GSYM abs_def,GSYM ginv_def]
@@ -778,7 +777,7 @@ e0
  first_x_assum (irule o iffLR) >> rw[mulcs_invcs_ecs_isgrp])
 (form_goal “!G g:mem(Grp(G)) H:mem(nsgrp(g)).
  ?!qg:mem(Grp(css(H))). RepG(qg) = Pair(Tpm(mulcs(H)),Pair(Tpm(invcs(H)),ecs(H)))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "qgrp" [‘H’] 
+|> spec_all |> qsimple_uex_spec "qgrp" [‘H’] 
 |> gen_all 
 
 val mof_qgrp = prove_store("mof_qgrp",
@@ -847,11 +846,12 @@ e0
 
 
 val ghom_def = 
-    Thm_2_4 |> qspecl [‘Exp(G1,G2)’]
+    Thm_2_4' |> qspecl [‘Exp(G1,G2)’]
             |> fVar_sInst_th “P(f:mem(Exp(G1,G2)))”
             “isghom(tof(f:mem(Exp(G1,G2))),g1,g2)”
-            |> qSKOLEM "ghom" [‘g1’,‘g2’]
-            |> qSKOLEM "ih" [‘g1’,‘g2’]
+            |> set_spec (rastt "Exp(G1,G2)") "ghom" "ih" 
+               [dest_var(rastt "g1:mem(Grp(G1))"),
+                dest_var(rastt "g2:mem(Grp(G2))")]
             |> gen_all
 
 val ih_Inj = ghom_def |> spec_all 
@@ -884,8 +884,7 @@ e0
 val eghm_def = 
 ghom_uex |> qspecl [‘G1’,‘g1:mem(Grp(G1))’,‘G2’,‘g2:mem(Grp(G2))’,‘Tpm(constf(G1,eof(g2:mem(Grp(G2)))))’]
             |> rewr_rule[tof_Tpm_inv,constf_isghom]
-            |> uex2ex_rule
-            |> qSKOLEM "eghm" [‘g1’,‘g2’] |> gen_all
+            |> qsimple_uex_spec "eghm" [‘g1’,‘g2’] |> gen_all
 
 
 val ghm_def = qdefine_fsym("ghm",[‘h:G1->G2’,‘g1:mem(Grp(G1))’,‘g2:mem(Grp(G2))’]) ‘App(LINV(ih(g1,g2),eghm(g1,g2)),Tpm(h))’ |> gen_all

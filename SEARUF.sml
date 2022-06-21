@@ -63,11 +63,11 @@ e0
 (rpt strip_tac >> drule Empty_NOTIN_UF >> ccontra_tac >> fs[])
 (form_goal “!J L.ufilter(L) ==> !X.IN(X,L) ==> ~(X = Empty(J))”));
 
-val UFs_def = Thm_2_4 |> qspecl [‘Pow(Pow(J))’]
+val UFs_def = Thm_2_4' |> qspecl [‘Pow(Pow(J))’]
                       |> fVar_sInst_th “P(a:mem(Pow(Pow(J))))”
                       “ufilter(a:mem(Pow(Pow(J))))”
-                      |> qSKOLEM "UFs" [‘J’]
-                      |> qSKOLEM "iUF" [‘J’] 
+                      |> set_spec (rastt "Pow(Pow(J))") "UFs" "iUF" 
+                      [("J",set_sort)]
 
 
 val Repu_def = qdefine_fsym("Repu",[‘u:mem(UFs(J))’])
@@ -311,7 +311,7 @@ e0
  arw[])
 (form_goal “!A s0:mem(Pow(Pow(A))).
  ?!ss. !s. IN(s,ss) <=> SS(s0,s) & filter(s)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "gfss" [‘s0’]
+|> spec_all |> qsimple_uex_spec "gfss" [‘s0’]
 
 val gfilter_def = qdefine_fsym("gfilter",[‘s:mem(Pow(Pow(A)))’])
 ‘BIGINTER(gfss(s:mem(Pow(Pow(A)))))’
@@ -357,7 +357,7 @@ e0
 (form_goal
  “!s. ?!gf. !x. IN(x,gf) <=>
  ( x = Whole(A) | ?ss. SS(ss,s) & Fin(ss) & ~(ss = Empty(Pow(A))) & SS(BIGINTER(ss),x))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "gfilter1" [‘s’]
+|> spec_all |> qsimple_uex_spec "gfilter1" [‘s’]
 
 val gfilter1_filter = prove_store("gfilter1_filter",
 e0

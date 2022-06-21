@@ -32,13 +32,13 @@ val isL_rules = isL_rules3 |> store_as "isL_rules";
 
 
 
-val List_def = Thm_2_4 |> qspecl [‘Pow(N * X)’] 
+val List_def = Thm_2_4' |> qspecl [‘Pow(N * X)’] 
                     |> fVar_sInst_th 
                        “P(a:mem(Pow(N * X)))” 
                        “IN(a:mem(Pow(N * X)),isLs(X))”
-                    |> qSKOLEM "List" [‘X’] 
-                    |> qSKOLEM "iL" [‘X’]
+                    |> set_spec (rastt "Pow(N*X)") "List" "iL" [("X",set_sort)]
                     |> gen_all
+
 
 val iL_Inj = List_def |> spec_all 
                       |> conjE1 |> gen_all
@@ -88,7 +88,7 @@ e0
  qexists_tac ‘b’ >> arw[Repl_def] >>
  fs[Inj_def])
 (form_goal “!X. ?!l.Repl(l) = Empty(N * X)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "Nil" [‘X’] |> gen_all
+|> spec_all |> qsimple_uex_spec "Nil" [‘X’] |> gen_all
 |> store_as "Nil_def";
 
 val cons0_def = 
@@ -97,11 +97,12 @@ val cons0_def =
 
     
 val cons1_def =
-    fun_tm_compr (dest_var (rastt "xl:mem(X * Pow(N * X))"))
-    (rastt "cons0(Fst(xl:mem(X * Pow(N * X))),Snd(xl))")
-    |> qSKOLEM "cons1" [‘X’]
+   qfun_compr ‘xl:mem(X * Pow(N * X))’
+  ‘cons0(Fst(xl:mem(X * Pow(N * X))),Snd(xl))’
+  |> qsimple_uex_spec "cons1" [‘X’]
     |> qspecl [‘Pair(x:mem(X),l:mem(Pow(N * X)))’] 
     |> rewr_rule[Pair_def',cons0_def] 
+
 
 
 (*iL_isL should be automated*)
@@ -143,13 +144,13 @@ e0
  “!xl1:mem(X * List(X)).?!l2.
  App(cons1(X) o Prla(Id(X),iL(X)),xl1) = App(iL(X),l2)”)
 
-val CONS_def = P2fun |> qspecl [‘X * List(X)’,‘List(X)’]
+val CONS_def = P2fun_uex0 |> qspecl [‘X * List(X)’,‘List(X)’]
                      |> fVar_sInst_th 
                         “P(xl1:mem(X * List(X)),
                            l2:mem(List(X)))”
                         “App(cons1(X) o Prla(Id(X),iL(X)),xl1) = App(iL(X),l2)”
                                                                                    |> C mp lift_cond2'
-                     |> qSKOLEM "CONS" [‘X’] 
+                     |> qsimple_uex_spec "CONS" [‘X’] 
                      |> qspecl 
                      [‘Pair(x:mem(X),l:mem(List(X)))’,
                       ‘App(CONS(X),Pair(x:mem(X),l:mem(List(X))))’]
@@ -400,14 +401,14 @@ e0
 
 
 
-val Lrec_def = P2fun' |> qspecl [‘List(X)’,‘A’] 
+val Lrec_def = P2fun_uex |> qspecl [‘List(X)’,‘A’] 
                       |> fVar_sInst_th “P(l:mem(List(X)),
                                           a:mem(A))”
                           “IN(Pair(l,a),
                               Linds(a0:mem(A),f0:X * A ->A))”
                       |> C mp (Lind_uex |> spec_all
                                         |> qgen ‘l’)
-                      |> qSKOLEM "Lrec" [‘a0’,‘f0’]
+                      |> qsimple_uex_spec "Lrec" [‘a0’,‘f0’]
                       |> qgenl [‘A’,‘a0’,‘X’,‘f0’]
                       |> store_as "Lrec_def";
 
@@ -550,7 +551,7 @@ val TL_def = P2fun_uex |> qspecl [‘List(X)’,‘List(X)’]
                           “(l = Nil(X) & tl = Nil(X)) | 
                            (~(l = Nil(X)) & ?x. l = Cons(x,tl))”
                        |> C mp TL_ex
-                       |> uex2ex_rule |> qSKOLEM "TL" [‘X’] 
+                       |> qsimple_uex_spec "TL" [‘X’] 
                        |> gen_all
 
 val TL_Nil = prove_store("TL_Nil",
@@ -607,7 +608,7 @@ val mo_def = qdefine_fsym("mo",[‘g:mem(Exp(B,C))’,‘f:mem(Exp(A,B))’])
 val MO_def = 
 qfun_compr ‘gf:mem(Exp(B,C) * Exp(A,B))’
                          ‘mo(Fst(gf),Snd(gf))’
-                         |> uex2ex_rule |> qSKOLEM "MO" [‘A’,‘B’,‘C’]
+                         |> qsimple_uex_spec "MO" [‘A’,‘B’,‘C’]
                          |> qspecl [‘Pair(gm:mem(Exp(B,C)),fm:mem(Exp(A,B)))’]
                          |> rewr_rule[Pair_def']
 

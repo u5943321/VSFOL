@@ -50,12 +50,14 @@ e0
  arw[])
 (form_goal “!X x0:mem(X) f0:X->X. !n:mem(N).?!x. IN(Pair(n,x),Ninds(f0,x0))”));
 
-val Nrec_def = P2fun' |> qspecl [‘N’,‘X’] 
+
+
+val Nrec_def = P2fun_uex' |> qspecl [‘N’,‘X’] 
                       |> fVar_sInst_th “P(n:mem(N),x:mem(X))”
                           “IN(Pair(n,x),Ninds(f0:X->X,x0))”
                       |> C mp (Nind_uex |> spec_all
                                         |> qgen ‘n’)
-                      |> qSKOLEM "Nrec" [‘x0’,‘f0’]
+                      |> qsimple_uex_spec "Nrec" [‘x0’,‘f0’]
                       |> qgenl [‘X’,‘x0’,‘f0’]
                       |> store_as "Nrec_def";
 
@@ -116,10 +118,10 @@ val Nrec_Suc_eqn = Nrec_Suc |> rewr_rule[GSYM App_App_o,Suc_def]
                             |> store_as "Nrec_Suc_eqn";
 
 val El_def = 
-    fun_tm_compr (dest_var (rastt "d:mem(1)")) (rastt "a:mem(A)")
-                 |> qSKOLEM "El" [‘a’]
-                 |> allE (rastt "dot")
-                 |> gen_all |> store_as "El_def";
+   qfun_compr ‘d:mem(1)’ ‘a:mem(A)’
+   |> qsimple_uex_spec "El" [‘a’]
+   |> allE (rastt "dot")
+   |> gen_all |> store_as "El_def";
 
 
 
@@ -284,9 +286,9 @@ e0
 (form_goal
 “!A B f:A->B.?tpf:1->Exp(A,B).Tp(f o p1(A,1)) = tpf”));
 
-val Tp1_def = Tp1_ex |> spec_all |> qSKOLEM "Tp1" [‘f’]
-                     |> gen_all
-                     |> store_as "Tp1_def";
+val Tp1_def = 
+qdefine_fsym("Tp1",[‘f:A->B’]) ‘Tp(f o p1(A,1))’
+|> GSYM |> gen_all
 
 
 val Ev_of_Tp = prove_store("Ev_of_Tp",
@@ -505,21 +507,26 @@ e0
  (f0 o Pa(p1(A,1),El(O) o p2(A,1)) = g o p1(A,1) & 
   h o Pa(Id(A * N),f0) = f0 o Pa(p1(A,N), SUC o p2(A,N))) <=> f0 = f”));
 
-val PRE_def0 = 
-    Thm1_case_1 |> specl (List.map rastt ["N","El(O)","p1(N,N)"])
-                |> uex_expand 
-                |> qSKOLEM "PRE" []
 
+val Thm1_uex = prove_store("Thm1_uex",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘g’,‘h’] strip_assume_tac Thm1 >>
+ uex_tac >> qexists_tac ‘f’ >> arw[] >>
+ rpt strip_tac >> arw[])
+(form_goal
+ “!A B g:A->B h:(A * N) * B ->B. 
+ ?!f:A * N ->B. !f0.
+ (f0 o Pa(p1(A,1),El(O) o p2(A,1)) = g o p1(A,1) & 
+  h o Pa(Id(A * N),f0) = f0 o Pa(p1(A,N), SUC o p2(A,N))) <=> f0 = f”));
+
+val PRE_def = 
+    Thm1_case_1 |> specl (List.map rastt ["N","El(O)","p1(N,N)"]) |> qsimple_uex_spec "PRE" []
+                |> rewr_rule[p12_of_Pa] 
 
 val Pre_def = qdefine_fsym ("Pre",[‘n:mem(N)’]) ‘App(PRE,n)’ 
                            |> gen_all |> store_as "Pre_def";
 
-
-val PRE_def = prove_store("PRE_def",
-e0
-(assume_tac PRE_def0 >> fs[p12_of_Pa])
-(form_goal
- “ PRE o El(O) = El(O) & PRE o SUC = Id(N)”));
 
 
 val Pre_eqn = prove_store("Pre_eqn",
@@ -537,9 +544,10 @@ e0
 
 
 
+
 val ADD_def = 
- Thm1 |> sspecl (List.map rastt ["Id(N)","SUC o p2(N * N,N)"])
-      |> qSKOLEM "ADD" []
+ Thm1_uex |> sspecl (List.map rastt ["Id(N)","SUC o p2(N * N,N)"])
+      |> qsimple_uex_spec "ADD" []
       |> rewr_rule[o_assoc,p12_of_Pa,IdL]
       |> qspec ‘ADD’ |> rewr_rule[To1_def]
       |> store_as "ADD_def";
@@ -587,9 +595,9 @@ val Pre_O = conjE1 Pre_eqn |> store_as "Pre_O";
 val Pre_Suc = conjE2 Pre_eqn |> store_as "Pre_Suc";
 
 
-val SUB_def = Thm1 |> specl
+val SUB_def = Thm1_uex |> specl
 (List.map rastt ["N","N","Id(N)","PRE o p2(N * N,N)"])
-|> qSKOLEM "SUB" []
+|> qsimple_uex_spec "SUB" []
 |> qspec ‘SUB’ |> rewr_rule[IdL,o_assoc,p12_of_Pa]
 |> store_as "SUB_def";
 
@@ -1009,9 +1017,9 @@ e0
  “!a. P(a:mem(N)) ==> ?a0. P(a0) & !a1.P(a1) ==> Le(a0,a1)”));
 
 
-val MUL_def0 = Thm1 |> qspecl [‘N’,‘N’,‘El(O) o To1(N)’,
+val MUL_def0 = Thm1_uex |> qspecl [‘N’,‘N’,‘El(O) o To1(N)’,
                                ‘ADD o Pa(p2(N * N,N),p1(N, N) o p1(N * N,N))’]
-                    |> qSKOLEM "MUL" [] |> iffRL
+                    |> qsimple_uex_spec "MUL" [] |> iffRL
                     |> allE (rastt "MUL") 
                     |> rewr_rule[o_assoc,To1_def,Pa_distr,p12_of_Pa,IdR] 
                     |> store_as "MUL_def0";
@@ -1225,16 +1233,16 @@ e0
 
 
 val LE_def = 
-AX1 |> qspecl [‘N’, ‘N’] |> uex2ex_rule
+AX1 |> qspecl [‘N’, ‘N’] 
 |> fVar_sInst_th “P(m:mem(N),n:mem(N))” “Sub(m,n) = O”
-|> qSKOLEM "LE" []
+|> qsimple_uex_spec "LE" []
 |> store_as "LE_def";
 
 
 val LT_def = 
-AX1 |> qspecl [‘N’, ‘N’] |> uex2ex_rule
+AX1 |> qspecl [‘N’, ‘N’] 
 |> fVar_sInst_th “P(m:mem(N),n:mem(N))” “Holds(LE,m,n) & ~(m = n)”
-|> qSKOLEM "LT" []
+|> qsimple_uex_spec "LT" []
 |> store_as "LT_def";
 
 

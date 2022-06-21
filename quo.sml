@@ -76,13 +76,26 @@ e0
  )
 (form_goal “!A a0:mem(A) B. ?f:B->A.T”)
 
+val fname = "LINV" 
+val qvl:term frag list list = [‘f:A->B’,‘a0:mem(A)’] 
+val eth =  (fun_mem_ex |> qspecl [‘A’,‘a0:mem(A)’,‘B’]) 
+val uexth0 = 
+    Inj_INV |> spec_all |> undisch |> spec_all
 
-val LINV_def = Inj_INV |> spec_all |> undisch |> spec_all
+val LINV_def =
+    Inj_INV |> spec_all |> undisch |> spec_all
+            |> quex_spec "LINV" [‘f:A->B’,‘a0:mem(A)’]
+            (fun_mem_ex |> qspecl [‘A’,‘a0:mem(A)’,‘B’])
+            |> gen_all |> disch_all |> gen_all
+
+(*
+ Inj_INV |> spec_all |> undisch |> spec_all
                        |> uex2ex_rule 
                        |> SKOLEM (fun_mem_ex |> qspecl [‘A’,‘a0:mem(A)’,‘B’])
                        "LINV" [dest_var (rastt "f:A->B"),
                                dest_var (rastt "a0:mem(A)")]
                        |> gen_all |> disch_all |> gen_all
+*)
 
 val Abs_def = qdefine_fsym("Abs",[‘r:A~>A’,‘i:Q->Pow(A)’,‘q0:mem(Q)’]) ‘LINV(i,q0) o Rsi(r)’
 

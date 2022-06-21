@@ -45,6 +45,7 @@ e0
 
 
 
+
 val asR_uex =
     AX1 |> qspecl [‘A’, ‘B’]
         |> fVar_sInst_th
@@ -64,6 +65,7 @@ e0
  “!A B f:A->B. isFun(asR(f))”));
 
 
+
 val FUN_EXT = prove_store("FUN_EXT",
 e0
 (rpt strip_tac >> 
@@ -78,7 +80,6 @@ e0
  arw[asR_def])
 (form_goal “!A B f1:A->B f2. 
  (!a.App(f1,a) = App(f2,a)) <=> f1 = f2”));
-
 
 val P2fun_uex = prove_store("P2fun_uex",
 e0
@@ -399,9 +400,64 @@ e0
   !x. App(i o f,x) = App(f0,x)”));
 
 
+
+val Inj_lift_fun_uex = prove_store("Inj_lift_fun_uex",
+e0
+(rpt strip_tac >>
+ irule (P2fun_uex |> qspecl [‘X’,‘A’] 
+        |> fVar_sInst_th “P(x:mem(X),a:mem(A))”
+           “App(i:A->A0,a) = App(f0:X->A0,x)”
+        |> rewr_rule[GSYM App_App_o]) >>
+ flip_tac >> strip_tac >> uex_tac >>
+ first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+ qexists_tac ‘a’ >> arw[] >> fs[Inj_def] >> rpt strip_tac >>
+ first_x_assum irule >> arw[]
+ )
+(form_goal
+ “!A A0 i:A-> A0.
+  Inj(i) ==>
+  !X f0:X->A0.
+  (!x. ?a.App(f0,x) = App(i,a))==>
+  ?!f:X->A. 
+  !x. App(i o f,x) = App(f0,x)”));
+
+
 val o_assoc = prove_store("o_assoc",
 e0
 (rw[GSYM FUN_EXT,App_App_o])
 (form_goal
  “!A B f:A->B C g:B->C D h:C->D.
   (h o g) o f = h o g o f”));
+
+
+val P2fun_uex' = prove_store("P2fun_uex'",
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?f:A->B. !a:mem(A). P(a, App(f,a))’ 
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+     rpt strip_tac >> irule $ iffLR FUN_EXT >>
+     rpt strip_tac >>
+     first_x_assum (qspecl_then [‘a’] assume_tac)>>
+     first_x_assum (qspecl_then [‘a’] assume_tac) >>
+     first_x_assum (qspecl_then [‘a’] (strip_assume_tac o uex_expand)) >>
+     qsuff_tac ‘App(f',a) = y & App(f,a) = y’ 
+     >-- (rpt strip_tac >> arw[]) >>
+     rpt strip_tac >> first_x_assum irule >> arw[]) >>
+ drule P2fun' >> arw[])
+(form_goal “!A B. (!x:mem(A). ?!y:mem(B). P(x,y)) ==>
+ ?!f:A->B. !a:mem(A). P(a, App(f,a))”));
+
+
+val P2fun_uex0 = prove_store("P2fun_uex0",
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?f:A->B. !a:mem(A) b:mem(B). App(f,a) = b <=> P(a,b)’ 
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘f’ >> arw[] >>
+     rpt strip_tac >> irule $ iffLR FUN_EXT >>
+     rpt strip_tac >> arw[] >> last_x_assum (irule o iffLR) >> rw[]) >>
+ drule P2fun >> arw[])
+(form_goal “!A B. (!x:mem(A). ?!y:mem(B). P(x,y)) ==>
+ ?!f:A->B. !a:mem(A) b:mem(B). App(f,a) = b <=> P(a,b)”));
+

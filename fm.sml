@@ -15,7 +15,7 @@ e0
 )
 (form_goal “!A. ?!injN:N -> Pow(N * (A+1)).
  !n0. (!n a.IN(Pair(n,a),App(injN,n0)) <=> n = n0)”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "InjN" [‘A’] |> gen_all 
+|> spec_all |> qsimple_uex_spec "InjN" [‘A’] |> gen_all 
 
 
 val InjA_def = proved_th $
@@ -32,7 +32,7 @@ e0
  |> rewr_rule[Pair_def']))
 (form_goal “!A. ?!injA:A -> Pow(N * (A+1)).
  !a0. (!n a.IN(Pair(n,a),App(injA,a0)) <=> a = SOME(a0))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "InjA" [‘A’] |> gen_all 
+|> spec_all |> qsimple_uex_spec "InjA" [‘A’] |> gen_all 
 
 
 (*pretend div2 is defined*)
@@ -67,7 +67,7 @@ e0
  ∀u1 u2. ∀n a. IN(Pair(n,a),App(f,Pair(u1,u2))) ⇔ 
   ((Even(n) & IN(Pair(Div2(n),a),u1)) | 
    (Odd(n) & IN(Pair(Div2(n),a),u2)))”)
-|> spec_all |> uex2ex_rule |> qSKOLEM "InjUU0" [‘A’]
+|> spec_all |> qsimple_uex_spec "InjUU0" [‘A’]
 
 val injUU0_def = 
     qdefine_fsym("injUU0",[‘u1:mem(Pow(N * A))’,‘u2:mem(Pow(N * A))’]) 
@@ -290,11 +290,12 @@ val isfm_Disj0 =  isfm_clauses |> conjE2 |> conjE2
 
 
 
-val form_def = Thm_2_4  |> qspecl [‘Pow(N * (A+1))’]
+val form_def = Thm_2_4'  |> qspecl [‘Pow(N * (A+1))’]
                         |> fVar_sInst_th “P(f:mem(Pow(N * (A+1))))”
                         “isfm(f:mem(Pow(N * (A+1))))”
-                        |> qSKOLEM "form" [‘A’]
-                        |> qSKOLEM "repf" [‘A’]
+                        |> set_spec (rastt "Pow(N * (A+1))")
+                        "form" "repf" [("A",set_sort)]
+
 
 val repf_Inj = form_def |> conjE1 |> store_as "repf_Inj"; 
 
@@ -317,14 +318,14 @@ e0
  drule Inj_ex_uex >> arw[] >>
  flip_tac >> rw[GSYM form_def] >> rw[isfm_clauses])
 (form_goal “?!f. Repf(f) = F0(A)”)
-|> uex2ex_rule |> qSKOLEM "Bot" [‘A’]
+|> qsimple_uex_spec "Bot" [‘A’]
 
-val VAR_def = Inj_lift_fun |> qsspecl [‘repf(A)’]
+val VAR_def = Inj_lift_fun_uex |> qsspecl [‘repf(A)’]
                            |> C mp repf_Inj
                            |> qsspecl [‘VAR0(A)’] 
                            |> rewr_rule[GSYM Var0_def,GSYM form_def,
                                         isfm_clauses]
-                           |> qSKOLEM "VAR" [‘A’]
+                           |> qsimple_uex_spec "VAR" [‘A’]
 
 
 val repf_isfm = prove_store("repf_isfm",
@@ -353,13 +354,13 @@ e0
 (strip_tac >> irule isfm_Neg0 >> rw[repf_isfm])
 (form_goal “!f0:mem(form(A)). isfm(Neg0(Repf(f0)))”)
 
-val NEG_def = Inj_lift_fun_lemma |> qsspecl [‘repf(A)’]
+val NEG_def = Inj_lift_fun_lemma' |> qsspecl [‘repf(A)’]
                            |> C mp repf_Inj
                            |> qsspecl [‘NEG0(A)’] 
                            |> rewr_rule[App_App_o,GSYM Neg0_def]
                            |> rewr_rule[GSYM form_def,GSYM Repf_def]
                            |> rewr_rule[Neg0_Repf]
-                           |> qSKOLEM "NEG" [‘A’]
+                           |> qsimple_uex_spec "NEG" [‘A’]
 
 
 val NEG_NEG0 = prove_store("NEG_NEG0",
@@ -383,13 +384,13 @@ e0
 (form_goal “!f0:mem(form(A)). isfm(Diam0(Repf(f0)))”)
 
 
-val DIAM_def = Inj_lift_fun_lemma |> qsspecl [‘repf(A)’]
+val DIAM_def = Inj_lift_fun_lemma' |> qsspecl [‘repf(A)’]
                            |> C mp repf_Inj
                            |> qsspecl [‘DIAM0(A)’] 
                            |> rewr_rule[App_App_o,GSYM Diam0_def]
                            |> rewr_rule[GSYM form_def,GSYM Repf_def]
                            |> rewr_rule[Diam0_Repf]
-                           |> qSKOLEM "DIAM" [‘A’]
+                           |> qsimple_uex_spec "DIAM" [‘A’]
 
 
 val form_def_uex = prove_store("form_def_uex",
@@ -422,8 +423,7 @@ val DISJ_def = Inj_restrict |> qsspecl [‘Prla(repf(A),repf(A))’]
                             |> rewr_rule[Pair_def,GSYM Repf_def]
                             |> rewr_rule[form_def_uex,GSYM Disj0_def]
                             |> C mp l
-                            |> uex2ex_rule
-                            |> qSKOLEM "DISJ" [‘A’] 
+                            |> qsimple_uex_spec "DISJ" [‘A’] 
                             |> rewr_rule[GSYM FUN_EXT] 
                             |>  conv_rule
                             (depth_fconv no_conv forall_cross_fconv)
@@ -1000,14 +1000,14 @@ e0
 
 
 
-val fmrec_def = P2fun' |> qspecl [‘form(A)’,‘X’] 
+val fmrec_def = P2fun_uex |> qspecl [‘form(A)’,‘X’] 
                       |> fVar_sInst_th “P(f:mem(form(A)),
                                           x:mem(X))”
                           “IN(Pair(f,x),
                               fminds(djf:X * X ->X,dmf,nf,vf:A->X,x0))”
                       |> C mp (fmind_uex |> spec_all
                                          |> qgen ‘f’)
-                      |> qSKOLEM "fmrec" [‘x0’,‘vf’,‘nf’,‘djf’,‘dmf’]
+                      |> qsimple_uex_spec "fmrec" [‘x0’,‘vf’,‘nf’,‘djf’,‘dmf’]
                       |> qgenl [‘X’,‘x0’,‘A’,‘vf’,‘nf’,‘djf’,‘dmf’]
                       |> store_as "fmrec_def";
 

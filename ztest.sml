@@ -1,10 +1,10 @@
 
 val ZR_def = 
-AX1 |> qspecl [‘N * N’,‘N * N’] |> uex2ex_rule
+AX1 |> qspecl [‘N * N’,‘N * N’] 
     |> fVar_sInst_th “P(mn:mem(N * N),m'n':mem(N * N))”
        “Add(Fst(mn:mem(N * N)),Snd(m'n':mem(N * N))) = 
         Add(Fst(m'n'),Snd(mn))”
-    |> qSKOLEM "ZR" [] 
+    |> qsimple_uex_spec "ZR" [] 
     |> qspecl [‘Pair(x:mem(N),y:mem(N))’,
                ‘Pair(u:mem(N),v:mem(N))’] 
     |> qgenl [‘x’,‘y’,‘u’,‘v’]  
@@ -113,7 +113,45 @@ e0
 
 
 
-val Ri_def = P2fun'|> qspecl [‘Pow(A)’,‘Pow(B)’] 
+val Ri_def = 
+P2fun_uex'|> qspecl [‘Pow(A)’,‘Pow(B)’] 
+                   |> fVar_sInst_th “P(sa:mem(Pow(A)),sb:mem(Pow(B)))”
+                      “!b. IN(b,sb) <=> ∃a. IN(a,sa) & Holds(r:A~>B,a,b)”
+                   |> C mp 
+                      (IN_def_P |> qspecl [‘B’]
+                                |> fVar_sInst_th “P(b:mem(B))”
+                                   “∃a. IN(a,sa) & Holds(r:A~>B,a,b)”
+                                |> qgen ‘sa’)
+                   |> qsimple_uex_spec "Ri" [‘r’] |> gen_all
+                   |> qspecl [‘A’,‘B’,‘r:A~>B’,‘s:mem(Pow(A))’]
+                   |> qgenl [‘A’,‘B’,‘r’,‘s’]
+
+(*
+val Ri_def = proved_th $
+e0
+(rw[Ri_def0])
+(form_goal “∀A B r:A~>B s b. IN(b,App(Ri(r),s)) ⇔ 
+ ∃a. IN(a,s) & Holds(r,a,b)”)
+                   |> store_as "Ri_def";
+
+
+*)
+(*
+
+val Ri_def = P2fun_uex'|> qspecl [‘Pow(A)’,‘Pow(B)’] 
+                   |> fVar_sInst_th “P(sa:mem(Pow(A)),sb:mem(Pow(B)))”
+                      “!b. IN(b,sb) <=> ∃a. IN(a,sa) & Holds(r:A~>B,a,b)”
+                   |> C mp 
+                      (IN_def_P |> qspecl [‘B’]
+                                |> fVar_sInst_th “P(b:mem(B))”
+                                   “∃a. IN(a,sa) & Holds(r:A~>B,a,b)”
+                                |> qgen ‘sa’)
+                   |> qsimple_uex_spec "Ri" [‘r’] |> gen_all
+                   |> qspecl [‘A’,‘B’,‘r:A~>B’,‘s:mem(Pow(A))’]
+                   |> qgenl [‘A’,‘B’,‘r’,‘s’]
+
+
+P2fun'|> qspecl [‘Pow(A)’,‘Pow(B)’] 
                    |> fVar_sInst_th “P(sa:mem(Pow(A)),sb:mem(Pow(B)))”
                       “!b. IN(b,sb) <=> ∃a. IN(a,sa) & Holds(r:A~>B,a,b)”
                    |> C mp 
@@ -125,7 +163,7 @@ val Ri_def = P2fun'|> qspecl [‘Pow(A)’,‘Pow(B)’]
                    |> qspecl [‘A’,‘B’,‘r:A~>B’,‘s:mem(Pow(A))’]
                    |> qgenl [‘A’,‘B’,‘r’,‘s’]
                    |> store_as "Ri_def";
-
+*)
 
 
 
@@ -167,12 +205,20 @@ e0
 
 
 
-val Z_def = Thm_2_4 |> qspecl [‘Pow(N * N)’]
+val Z_def = Thm_2_4'|> qspecl [‘Pow(N * N)’]
+                    |> fVar_sInst_th “P(s:mem(Pow(N * N)))”
+                    “?n. s = rsi(ZR,n)”
+                    |> set_spec (rastt "Pow(N*N)") "Z" "iZ" []
+                    |> store_as "Z_def";
+
+(*
+Thm_2_4 |> qspecl [‘Pow(N * N)’]
                     |> fVar_sInst_th “P(s:mem(Pow(N * N)))”
                     “?n. s = rsi(ZR,n)”
                     |> qSKOLEM "Z" []
                     |> qSKOLEM "iZ" []
                     |> store_as "Z_def";
+*)
 
 val iZ_Inj = Z_def |> conjE1 |> store_as "iZ_Inj"
                    |> store_as "iZ_Inj";
@@ -217,20 +263,44 @@ val resp_def =
  |> gen_all |> store_as "resp_def";
 
 
-val rext_def = AX1 |> qspecl [‘Pow(A)’,‘Pow(B)’] 
+val rext_def0 =  AX1 |> qspecl [‘Pow(A)’,‘Pow(B)’] 
+                   |> fVar_sInst_th “P(sa:mem(Pow(A)),sb:mem(Pow(B)))”
+                      “?a b.sa = rsi(r1:A~>A,a) & sb = rsi(r2:B~>B,b) & 
+                            App(f,a) = b”
+                   |> qsimple_uex_spec "rext" [‘f’,‘r1’,‘r2’]
+                   |> gen_all 
+
+val rext_def = proved_th $
+e0
+(rw[rext_def0])
+(form_goal
+ “!A r1:A~>A B f:A->B r2 a0 b0.
+   Holds(rext(f, r1, r2), a0, b0) <=>
+   ?a b.
+   a0 = rsi(r1, a) & b0 = rsi(r2, b) & App(f, a) = b”)
+|> store_as "rext_def";
+
+(*rext_def and def0 due to var name broken issue,maybe let qspecl leave all the 
+bounded vars*)
+(*
+
+
+AX1 |> qspecl [‘Pow(A)’,‘Pow(B)’] 
                    |> fVar_sInst_th “P(sa:mem(Pow(A)),sb:mem(Pow(B)))”
                       “?a b.sa = rsi(r1:A~>A,a) & sb = rsi(r2:B~>B,b) & 
                             App(f,a) = b”
                    |> uex2ex_rule
                    |> qSKOLEM "rext" [‘f’,‘r1’,‘r2’]
-                   |> gen_all |> store_as "rext_def";                       
+                   |> gen_all |> store_as "rext_def";          
+
+*)             
 
 
 val prrel_def = AX1 |> qspecl [‘A * B’,‘A * B’]
                     |> fVar_sInst_th “P(ab1:mem(A * B),ab2:mem(A * B))”
                        “Holds(r1:A~>A,Fst(ab1),Fst(ab2)) &
                         Holds(r2:B~>B,Snd(ab1),Snd(ab2))”
-                    |> uex2ex_rule |> qSKOLEM "prrel" [‘r1’,‘r2’]
+                    |> qsimple_uex_spec "prrel" [‘r1’,‘r2’]
                     |> qspecl [‘Pair(a1:mem(A),b1:mem(B))’,
                                ‘Pair(a2:mem(A),b2:mem(B))’]
                     |> rewr_rule[Pair_def']
@@ -246,7 +316,6 @@ is wrong, it is only:
  Larry is not claiming it as well, Larry is using Abs_Integ o Image(f), which is only one direction of the implication
 
 *)
-
 
 
 
@@ -312,7 +381,7 @@ e0
 
 (* Pow(A) * Pow(A) -> Pow(A * A) not have in general. *)
 
-val ipow2_def = P2fun' |> qspecl [‘Q1 * Q2’,‘Pow(A * B)’] 
+val ipow2_def = P2fun_uex' |> qspecl [‘Q1 * Q2’,‘Pow(A * B)’] 
                      |> fVar_sInst_th “P(aqbq:mem(Q1 * Q2),s:mem(Pow(A * B)))”
                         “!a1 a2.IN(Pair(a1,a2),s:mem(Pow(A * B))) <=> 
                          IN(a1,App(i1:Q1-> Pow(A),Fst(aqbq))) & 
@@ -326,7 +395,7 @@ val ipow2_def = P2fun' |> qspecl [‘Q1 * Q2’,‘Pow(A * B)’]
                                                          forall_cross_fconv)
                                |> rewr_rule[Pair_def']
                                |> qgen ‘aqbq’)
-                     |> qSKOLEM "ipow2" [‘i1’,‘i2’]
+                     |> qsimple_uex_spec "ipow2" [‘i1’,‘i2’]
                      |> conv_rule (depth_fconv no_conv forall_cross_fconv)
                      |> rewr_rule[Pair_def']
                      |> qspecl [‘aq:mem(Q1)’,‘bq:mem(Q2)’,
@@ -351,7 +420,7 @@ val ipow2_def = ipow2_ex |> spec_all
 *)
  
 local 
-val l = P2fun' |> qspecl [‘(N * N) * N * N’,‘N * N’]
+val l = P2fun_uex' |> qspecl [‘(N * N) * N * N’,‘N * N’]
        |> fVar_sInst_th “P(xyuv:mem((N * N) * N * N),ab:mem(N * N))”
                         “ab  = Pair(Add(Fst(Fst(xyuv)),Fst(Snd(xyuv))),
                                    Add(Snd(Fst(xyuv)),Snd(Snd(xyuv))))”
@@ -363,10 +432,10 @@ val addf0_def = proved_th $
 e0
 (irule l >> rpt strip_tac >> uex_tac >>
  qexists_tac ‘Pair(Add(a', a), Add(b, b''))’ >> rw[])
-(form_goal “?f:(N * N) * N * N -> N * N. 
+(form_goal “?!f:(N * N) * N * N -> N * N. 
  !x y u v. App(f,Pair(Pair(x,y),Pair(u,v))) = 
  Pair(Add(x,u),Add(y,v))”)
-|> qSKOLEM "addf0" []
+|> qsimple_uex_spec "addf0" []
 |> store_as "addf0_def";
 end
 
@@ -575,6 +644,7 @@ arw[])
  Quo(prrel(r1,r2),ipow2(i1,i2))”));
 
 
+
 val Quo_fun = prove_store("Quo_fun",
 e0
 (rpt strip_tac >> 
@@ -594,13 +664,78 @@ e0
  !q1:mem(Q1). Holds(rext(f,r1,r2),App(i1,q1),App(i2 o qf,q1)) ”))
 
 
+val main_uex = prove_store("main_uex",
+e0
+(rpt strip_tac >> assume_tac 
+ (P2fun_uex|> qspecl [‘Q1’,‘Q2’] 
+        |> fVar_sInst_th “P(q1:mem(Q1),q2:mem(Q2))”
+           “Holds(rext(f:A->B, r1, r2), 
+                      App(i1:Q1->Pow(A), q1), 
+                      App(i2:Q2->Pow(B), q2))”) >>
+ rw[App_App_o] >> first_x_assum irule >>
+ strip_tac >> 
+ qby_tac
+ ‘!sb.(?!q2. sb = App(i2,q2)) <=> 
+       ?b. sb = rsi(r2,b)’ >-- 
+ (strip_tac >> dimp_tac >> disch_tac 
+ >-- (pop_assum (assume_tac o uex2ex_rule) >> 
+     first_x_assum (drule o iffLR) >> arw[]) >>
+ uex_tac >> first_x_assum (drule o iffRL) >>
+ pop_assum strip_assume_tac >> qexists_tac ‘q2’ >> arw[] >>
+ rpt strip_tac >> fs[Inj_def] >> first_x_assum irule >> arw[])
+ (* easy by injection*)>>
+ fs[resp_def] >>
+ first_x_assum (qspecl_then [‘App(i1,x)’] assume_tac) >>
+ qby_tac ‘?a. App(i1,x) = rsi(r1,a)’ >-- 
+ (first_x_assum (irule o iffLR) >> qexists_tac ‘x’ >> rw[]) >>
+ (*should be auto*)
+ pop_assum strip_assume_tac >> 
+ first_x_assum (qspecl_then [‘App(Rsi(r2) o f,a)’] 
+ assume_tac) >> fs[GSYM rsi_def,App_App_o] >>
+ qby_tac
+ ‘?!q2:mem(Q2). rsi(r2, App(f, a)) = App(i2, q2)’
+ >-- (first_x_assum (irule o iffRL) >> qexists_tac ‘App(f,a)’ >> rw[]) >>
+ qsuff_tac ‘!q2:mem(Q2). 
+  rsi(r2, App(f, a)) = App(i2, q2) <=> 
+  Holds(rext(f, r1, r2), rsi(r1, a), App(i2, q2))’
+ >-- (strip_tac >> pop_assum (assume_tac o GSYM) >> arw[]) >>
+ rw[rext_def] >> strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (qexistsl_tac [‘a’,‘App(f,a)’] >> arw[]) >> 
+ qsuff_tac ‘?b. App(i2, q2) = rsi(r2, b) & 
+ Holds(r2,b,App(f, a))’ >-- 
+ (strip_tac >> 
+ qpick_x_assum ‘App(i2, q2) = rsi(r2, b')’
+ (assume_tac o GSYM) >> arw[] >>
+ drule rsi_eq_ER >> arw[] >>
+ rev_drule rsi_eq_ER >> fs[] >> last_x_assum drule >>
+ rfs[]) >>
+ qexists_tac ‘b’ >> arw[] >> pop_assum (assume_tac o GSYM) >>
+ arw[] >> first_x_assum irule >> 
+ rev_drule rsi_eq_ER >> fs[ER_def,Sym_def] >> 
+ first_x_assum irule >> arw[])
+(form_goal
+“!A B f:A->B r1:A~>A r2:B~>B
+ Q1 Q2 i1:Q1->Pow(A) i2:Q2->Pow(B). 
+ ER(r1) & ER(r2) & resp(f,r1,r2) & Inj(i1) & Inj(i2) &
+ (!sa. (?q1. sa = App(i1,q1)) <=> (?a. sa = rsi(r1,a))) & 
+ (!sb. (?q2. sb = App(i2,q2)) <=> (?b. sb = rsi(r2,b))) ==>
+ ?!qf: Q1-> Q2.
+ !q1:mem(Q1). Holds(rext(f,r1,r2),App(i1,q1),App(i2 o qf,q1)) ”));
 
 
-(*
+
+
 
 val Quo_fun_uex = prove_store("Quo_fun",
 e0
-(easy to prove unique since the "main" uses P2fun', can use unique P2fun_uex)
+(rpt strip_tac >> 
+ irule main_uex >> arw[] >> strip_tac (* 2 *)
+ >-- (qby_tac ‘Inj(i1) & Quo(r1,i1)’ 
+     >-- arw[] >>
+     drule (iffRL Inj_Quo) >> arw[]) >>
+ qby_tac ‘Inj(i2) & Quo(r2,i2)’ 
+ >-- arw[] >>
+ drule (iffRL Inj_Quo) >> arw[])
 (form_goal
 “!A B f:A->B r1:A~>A r2:B~>B
  Q1 Q2 i1:Q1->Pow(A) i2:Q2->Pow(B). 
@@ -608,7 +743,7 @@ e0
  Quo(r1,i1) & Quo(r2,i2) ==>
  ?!qf: Q1-> Q2.
  !q1:mem(Q1). Holds(rext(f,r1,r2),App(i1,q1),App(i2 o qf,q1)) ”))
-*)
+
 
 
 val Inj_Quo_Z = prove_store("Inj_Quo_Z",
@@ -690,14 +825,14 @@ define relations
 
 
 val main_addz = 
-Quo_fun |> qspecl [‘(N * N) * (N * N)’,‘N * N’,
+Quo_fun_uex |> qspecl [‘(N * N) * (N * N)’,‘N * N’,
                 ‘addf0’,
                 ‘prrel(ZR,ZR)’,‘ZR’,
                 ‘Z * Z’,‘Z’,
                 ‘ipow2(iZ,iZ)’,‘iZ’]
         |> conv_rule (depth_fconv no_conv forall_cross_fconv)
         |> C mp addz_conds
-        |> qSKOLEM "addz" []
+        |> qsimple_uex_spec "addz" []
         |> qspecl [‘z1:mem(Z)’,‘z2:mem(Z)’]
         |> rewr_rule[rext_def,App_App_o,GSYM IN_EXT_iff,IN_rsi] 
 
@@ -860,9 +995,11 @@ e0
 
 
 
-val negf0_def = fun_tm_compr (dest_var $ rastt "mn:mem(N * N)")
-                         (rastt "Pair(Snd(mn:mem(N * N)),Fst(mn))") |> qSKOLEM "negf0" []
+val negf0_def = 
+qfun_compr ‘mn:mem(N*N)’ ‘Pair(Snd(mn:mem(N * N)),Fst(mn))’
+|> qsimple_uex_spec "negf0" []
       |> store_as "negf0_def";
+
 
 
 val negf0_def1 = 
@@ -883,13 +1020,13 @@ e0
 (form_goal “resp(negf0, ZR, ZR)”));
 
 val main_negz = 
-Quo_fun |> qspecl [‘N * N’,‘N * N’,
+Quo_fun_uex |> qspecl [‘N * N’,‘N * N’,
                 ‘negf0’,
                 ‘ZR’,‘ZR’,
                 ‘Z’,‘Z’,
                 ‘iZ’,‘iZ’]
         |> rewr_rule[Inj_Quo_Z,ZR_ER,negf0_resp]
-        |> qSKOLEM "negz" []
+        |> qsimple_uex_spec "negz" []
         |> qspecl [‘z:mem(Z)’]
         |> rewr_rule[rext_def,App_App_o,GSYM Repz_def,GSYM ZC_def] 
 
@@ -927,7 +1064,7 @@ e0
 
 
 local 
-val l = P2fun' |> qspecl [‘(N * N) * N * N’,‘N * N’]
+val l = P2fun_uex' |> qspecl [‘(N * N) * N * N’,‘N * N’]
        |> fVar_sInst_th “P(abcd:mem((N * N) * N * N),mn:mem(N * N))”
                         “mn  = Pair(Add(Mul(Fst(Fst(abcd)),Fst(Snd(abcd))),
       Mul(Snd(Fst(abcd)),Snd(Snd(abcd)))),Add(Mul(Fst(Fst(abcd)),Snd(Snd(abcd))),
@@ -940,10 +1077,10 @@ val mulf0_def = proved_th $
 e0
 (irule l >> rpt strip_tac >> uex_tac >>
  qexists_tac ‘Pair(Add(Mul(a', a), Mul(b, b'')), Add(Mul(a', b''), Mul(b, a)))’ >> rw[])
-(form_goal “?f:(N * N) * N * N -> N * N. 
+(form_goal “?!f:(N * N) * N * N -> N * N. 
  !a b c d. App(f,Pair(Pair(a,b),Pair(c,d))) = 
  Pair(Add(Mul(a,c),Mul(b,d)),Add(Mul(a,d),Mul(b,c)))”)
-|> qSKOLEM "mulf0" []
+|> qsimple_uex_spec "mulf0" []
 |> store_as "mulf0_def";
 end
 
@@ -1032,14 +1169,14 @@ e0
 (form_goal “resp(mulf0, prrel(ZR, ZR), ZR)”));
 
 val main_mulz = 
-Quo_fun |> qspecl [‘(N * N) * (N * N)’,‘N * N’,
+Quo_fun_uex |> qspecl [‘(N * N) * (N * N)’,‘N * N’,
                 ‘mulf0’,
                 ‘prrel(ZR,ZR)’,‘ZR’,
                 ‘Z * Z’,‘Z’,
                 ‘ipow2(iZ,iZ)’,‘iZ’]
         |> rewr_rule[addz_conds,mulf0_resp]
         |> conv_rule (depth_fconv no_conv forall_cross_fconv)
-        |> qSKOLEM "mulz" []
+        |> qsimple_uex_spec "mulz" []
         |> qspecl [‘z1:mem(Z)’,‘z2:mem(Z)’]
         |> rewr_rule[rext_def,App_App_o,GSYM IN_EXT_iff,IN_rsi] 
 
@@ -1152,13 +1289,18 @@ e0
 (form_goal
  “!ab.?!z. Repz(z) = ZC(ab)”));
 
-val absz_def = P2fun |> qspecl [‘N * N’,‘Z’] 
-                   |> fVar_sInst_th “P(ab:mem(N * N),y:mem(Z))”
+
+
+val absz_def = 
+    P2fun_uex0
+        |> qspecl [‘N * N’,‘Z’] 
+        |> fVar_sInst_th “P(ab:mem(N * N),y:mem(Z))”
                       “Repz(y) = ZC(ab)”
-                   |> conv_rule (top_depth_fconv no_conv forall_cross_fconv)
-                   |> C mp ZC_Repz
-                   |> qSKOLEM "absz" []
+        |> conv_rule (top_depth_fconv no_conv forall_cross_fconv)
+        |> C mp ZC_Repz
+        |> qsimple_uex_spec  "absz" []
                    |> store_as "absz_def";
+
 
 val Absz_def = qdefine_fsym ("Absz",[‘ab:mem(N * N)’])
                             ‘App(absz,ab)’
@@ -1505,7 +1647,7 @@ val LEz_def0 = qdefine_fsym("LEz",[]) ‘f2r(LEzf)’;
 
 val LEz_def = AX1 |> qspecl [‘Z’,‘Z’] |> fVar_sInst_th “P(a:mem(Z),b:mem(Z))”
                   “Lez(a,b)”
-                  |> uex2ex_rule |> qSKOLEM "LEz" []
+                  |> qsimple_uex_spec "LEz" []
                   |> store_as "LEz_def";
 
 val LEz_Refl = prove_store("LEz_Refl",
@@ -1807,7 +1949,7 @@ val EVEN_def = Thm1_case_1 |> qspecl [‘1+1’,‘El(true)’,‘NOT o p2(N,1+1
                    |> rewr_rule[GSYM FUN_EXT,App_App_o,El_def,
                                 App_Pa_Pair,Id_def,Pair_def,GSYM Suc_def,
                                 dot_def]
-                   |> uex2ex_rule |> qSKOLEM "EVEN" []
+                   |> qsimple_uex_spec "EVEN" []
 
 val Even_def = qdefine_psym("Even",[‘n:mem(N)’])
                ‘App(EVEN,n) = true’
@@ -2013,8 +2155,8 @@ iscolist(s) <=>
 
 
 
-val N2Z_def = fun_tm_compr ("n",mem_sort (rastt "N")) (rastt "Asz(n,O)")
-|> qSKOLEM "N2Z" []
+val N2Z_def = qfun_compr ‘n:mem(N)’ ‘Asz(n,O)’
+|> qsimple_uex_spec "N2Z" []
 
 val n2z_def = qdefine_fsym("n2z",[‘n:mem(N)’]) ‘App(N2Z,n)’ |> gen_all
 
@@ -2160,7 +2302,7 @@ e0
            (Ltz(z,Oz) &  Asz(O,n) = z)”)
 
 val Abv_def = Abv_uex 
-|> spec_all |> uex2ex_rule |> qSKOLEM "Abv" [‘z’] 
+|> spec_all |> qsimple_uex_spec "Abv" [‘z’] 
 |> gen_all
 
 val Abv_nonneg = prove_store("Abv_nonneg",
@@ -3076,7 +3218,7 @@ e0
   (~(Snd(ad) = Oz) &
    Fst(ad) = Addz(Mulz(Fst(qr),Snd(ad)),Snd(qr)) & 
    Lez(Oz,Snd(qr)) & Ltz(Snd(qr),n2z(Abv(Snd(ad))))) ”))
-|> uex2ex_rule |> qSKOLEM "DIVRz" [] 
+|> qsimple_uex_spec "DIVRz" [] 
  
 val Divrz_def = qdefine_fsym("Divrz",[‘a:mem(Z)’,‘d:mem(Z)’])
 ‘App(DIVRz,Pair(a,d))’
@@ -3485,7 +3627,7 @@ e0
   (~(Snd(ad) = O) &
    Fst(ad) = Add(Mul(Fst(qr),Snd(ad)),Snd(qr)) & 
    Lt(Snd(qr),Snd(ad))) ”))
-|> uex2ex_rule |> qSKOLEM "DIVR" [] 
+|> qsimple_uex_spec "DIVR" [] 
 
 
 val Z2N_def = qdefine_fsym("Z2N",[]) ‘LINV(N2Z,O)’

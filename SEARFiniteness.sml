@@ -235,8 +235,7 @@ val CARD_def =
     AX1 |> qspecl [‘Pow(X)’,‘N’] 
         |> fVar_sInst_th “P(xs:mem(Pow(X)), n:mem(N))”
            “(Fin(xs:mem(Pow(X))) & Cdr(xs,n)) | (~Fin(xs) & n = O)”
-        |> uex2ex_rule
-        |> qSKOLEM "CARD" [‘X’]
+        |> qsimple_uex_spec "CARD" [‘X’]
         |> gen_all |> store_as "CARD_def";
 
 val CARD_unique = proved_th $
@@ -249,11 +248,11 @@ e0
 (form_goal “!X xs:mem(Pow(X)). ?!n. Holds(CARD(X),xs,n)”)
  
  
-val Cd0_def = P2fun |> qspecl [‘Pow(X)’,‘N’] 
+val Cd0_def = P2fun_uex0 |> qspecl [‘Pow(X)’,‘N’] 
                  |> fVar_sInst_th “P(x:mem(Pow(X)),y:mem(N))”
                     “Holds(CARD(X),x,y)” 
                  |> C mp (CARD_unique |> qspecl [‘X’]) 
-                 |> qSKOLEM "Cd0" [‘X’] |> gen_all |> store_as "Cd0_def";
+                 |> qsimple_uex_spec "Cd0" [‘X’] |> gen_all |> store_as "Cd0_def";
 
 
 val Card_def = qdefine_fsym ("Card",[‘xs:mem(Pow(X))’])
