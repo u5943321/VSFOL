@@ -1592,11 +1592,13 @@ fun ex_P_ex f =
     in th0
     end
 
+(*
 (*?a. P ==> ?a. T*)
 fun SKOLEM1 fname vl th = 
     let val eth0 = ex_P_ex (concl th)
         val eth = mp eth0 th
     in SKOLEM eth fname vl th
     end
+*)
 
 end

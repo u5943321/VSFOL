@@ -47,6 +47,6 @@ val fVar_Inst_th: string * ((string * sort) list * form) -> thm -> thm
 val define_fsym: string * (string * sort) list -> term -> thm
 val define_psym: string * (string * sort) list -> form -> thm
 
-val SKOLEM: thm -> string -> (string * sort) list -> thm -> thm
+(*val SKOLEM: thm -> string -> (string * sort) list -> thm -> thm*)
 
 end

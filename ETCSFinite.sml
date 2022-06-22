@@ -709,9 +709,6 @@ e0
  uex_tac >> qexists_tac ‘O’ >> arw[])
 (form_goal “!X xs:1-> Exp(X,1+1). ?!n. Holds(CARD(X),xs,n)”)
  
-val P2fun = Rel2Ar' |> rewr_rule[GSYM Holds_def] |> store_as "P2fun";
-
-val P2fun_uex = Rel2Ar_uex |> rewr_rule[GSYM Holds_def] |> store_as "P2fun";
 
 
 val Cd0_def = P2fun_uex |> qsspecl [‘CARD(X)’]

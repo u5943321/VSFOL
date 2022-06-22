@@ -112,11 +112,35 @@ val isL_ind = isL_ind2 |> store_as "isL_ind";
 val isL_cases = isL_cases1 |> store_as "isL_cases";
 val isL_rules = isL_rules3 |> store_as "isL_rules";
 
-val List_def0 = pred_subset_ex' |> qsspecl [‘Tp0(isLs(X))’]
+
+val List_def00 = 
+Thm_2_4' |> qsspecl [‘Tp0(isLs(X))’]
+         |> set_spec (rastt "Exp(N * X,1+1)") "List" "iL" [("X",ob_sort)]
+        
+(*
+val List_def0 = 
+pred_subset_ex' |> qsspecl [‘Tp0(isLs(X))’]
                               |> qSKOLEM "List" [‘X’] 
                               |> qSKOLEM "iL" [‘X’]
                               |> gen_all 
+*)
 
+val iL_Mono = List_def00 |> conjE1 |> rewr_rule[Inj_Mono]
+                         |> gen_all
+                         |> store_as "iL_Mono"; 
+
+
+val List_def1 = proved_th $
+e0
+(rw[GSYM Inj_Mono,List_def00])
+(form_goal
+ “(!x: 1 -> Exp(N * X, 1+1).
+      Tp0(isLs(X)) o x = TRUE <=>
+      ?x0: 1 -> List(X). x = iL(X) o x0) & Mono(iL(X))”)
+
+
+
+(*
 val iL_Mono = List_def0 |> spec_all 
                       |> conjE1 |> gen_all
                       |> store_as "iL_Mono"; 
@@ -126,7 +150,7 @@ val List_def1 = List_def0 |> spec_all |> conjE2
                           |> rewr_rule[True1TRUE]
                           |> C conjI (spec_all iL_Mono)
                           |> store_as "List_def1";
-
+*)
 
 
 
@@ -209,25 +233,7 @@ P2fun_uex |> qspecl [‘X * Exp(N * X,1+1)’,‘Exp(N * X,1+1)’]
 end
 
 (*Parallel product arrow*)
-val Prla_def = 
-    qdefine_fsym ("Prla",[‘f:A->B’,‘g:C->D’])
-    ‘Pa(f o p1(A,C),g o p2(A,C))’
-    |> gen_all |> store_as "Prla_def";
 
-
-val Inj_def = 
-    qdefine_psym ("Inj",[‘f:A->B’]) 
-                 ‘!x1:1->A x2. f o x1 = f o x2 ==> x1 = x2’
-    |> gen_all |> store_as "Inj_def";
-
-val Inj_Mono = prove_store("Inj_Mono",
-e0
-(rpt strip_tac >>
- rw[Inj_def,Mono_def] >> dimp_tac >> rpt strip_tac (* 2 *)
- >-- (irule FUN_EXT >> strip_tac >>
-     first_x_assum irule >> arw[GSYM o_assoc]) >>
- first_x_assum irule >> arw[])
-(form_goal “!A B f:A->B. Inj(f) <=> Mono(f)”));
 
 val Prla_Inj = prove_store("Prla_Inj",
 e0

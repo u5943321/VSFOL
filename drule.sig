@@ -150,6 +150,6 @@ val eq_sym: string -> thm
 val uex_expand: thm -> thm
 val uex2ex_rule: thm -> thm
 val uex_ex: form -> thm
-val SKOLEM1: string -> (string * sort) list -> thm -> thm
+(*val SKOLEM1: string -> (string * sort) list -> thm -> thm*)
 val ex_P_ex: form -> thm
 end

@@ -129,15 +129,6 @@ e0
 (form_goal “!A r:A * A-> 1+1.ER(r) ==> 
  !a1 a2. rsi(r,a1) = rsi(r,a2) <=> Holds(r,a1,a2)”));
 
-val Thm_2_4 = prove_store("Thm_2_4",
-e0
-(rpt strip_tac >>
- qsspecl_then [‘p’] strip_assume_tac pred_subset_ex' >>
- qexistsl_tac [‘A'’,‘ss’] >> fs[Inj_Mono,GSYM True1TRUE])
-(form_goal 
- “!A p:A->1+1.?B i:B->A. Inj(i) & 
-  !a:1->A. p o a = TRUE <=> ?b. a = i o b”));
-
 val _ = new_fsym2IL("rsi",(rastt "Rsi(R:A * B-> 1+1)",
 List.map (dest_var o rastt) ["r:A * B -> 1+1","a:X->A"]))
 
@@ -151,13 +142,23 @@ term2IL [dest_var (rastt "n:1->N")]
 
 *)
 
-val Z_def = Thm_2_4 |> qspecl [‘Exp(N * N,1+1)’]
+val Z_def = 
+Thm_2_4' |> qspecl [‘Exp(N * N,1+1)’]
+                    |> specl[qform2IL [‘s:1->Exp(N * N,1+1)’]
+                    ‘?n. s = Rsi(ZR) o n’]
+|> rewr_rule[o_assoc,Pa_distr,p12_of_Pa,Ex_def,Eq_property_TRUE,GSYM rsi_def]
+|> set_spec (rastt "Exp(N * N,1+1)") "Z" "iZ" []
+|> store_as "Z_def";
+
+(*
+Thm_2_4 |> qspecl [‘Exp(N * N,1+1)’]
                     |> specl[qform2IL [‘s:1->Exp(N * N,1+1)’]
                     ‘?n. s = Rsi(ZR) o n’]
 |> rewr_rule[o_assoc,Pa_distr,p12_of_Pa,Ex_def,Eq_property_TRUE,GSYM rsi_def]
 |> qSKOLEM "Z" []
 |> qSKOLEM "iZ" []
 |> store_as "Z_def";
+*)
 
 val iZ_Inj = Z_def |> conjE1 |> store_as "iZ_Inj"
                    |> store_as "iZ_Inj";

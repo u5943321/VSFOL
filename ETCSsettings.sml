@@ -4715,6 +4715,14 @@ e0
    (?f:A->B. !a b. f o a = b <=> R o Pa(a,b) = TRUE)”));
 
 
+val Holds_def =
+ qdefine_psym("Holds",[‘R:A * B -> 1+1’,‘a:1->A’,‘b:1->B’])
+‘R o Pa(a,b) = TRUE’ |> gen_all |> store_as "Holds_def";
+
+
+val P2fun = Rel2Ar' |> rewr_rule[GSYM Holds_def] |> store_as "P2fun";
+
+
  
 val Fst_def = qdefine_fsym("Fst",[‘ab:X->A * B’]) ‘p1(A,B) o ab’
 |> gen_all |> store_as "Fst_def";
@@ -4961,3 +4969,229 @@ e0
  “!A B R:A * B -> 1+1. 
    (!a:1->A.?!b:1->B. R o Pa(a,b) = TRUE) ==>
    (?!f:A->B. !a b. f o a = b <=> R o Pa(a,b) = TRUE)”));
+
+val P2fun_uex = Rel2Ar_uex |> rewr_rule[GSYM Holds_def] |> store_as "P2fun";
+
+val Inj_def = 
+    qdefine_psym ("Inj",[‘f:A->B’]) 
+                 ‘!x1:1->A x2. f o x1 = f o x2 ==> x1 = x2’
+    |> gen_all |> store_as "Inj_def";
+
+val Inj_Mono = prove_store("Inj_Mono",
+e0
+(rpt strip_tac >>
+ rw[Inj_def,Mono_def] >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (irule FUN_EXT >> strip_tac >>
+     first_x_assum irule >> arw[GSYM o_assoc]) >>
+ first_x_assum irule >> arw[])
+(form_goal “!A B f:A->B. Inj(f) <=> Mono(f)”));
+
+
+val Thm_2_4 = prove_store("Thm_2_4",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘p’] strip_assume_tac pred_subset_ex' >>
+ qexistsl_tac [‘A'’,‘ss’] >> fs[Inj_Mono,GSYM True1TRUE])
+(form_goal 
+ “!A p:A->1+1.?B i:B->A. Inj(i) & 
+  !a:1->A. p o a = TRUE <=> ?b. a = i o b”));
+
+
+
+
+val Inj_ex_uex = prove_store("Inj_ex_uex",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- first_x_assum (accept_tac o uex2ex_rule) >>
+ uex_tac >> qexists_tac ‘a’ >> arw[] >> rpt strip_tac >>
+ fs[Inj_def] >> first_x_assum irule >> arw[])
+(form_goal “!A B f:A->B. Inj(f) ==>
+ !b:1->B. (?!a. f o a = b) <=> (?a.f o a = b)”));
+ 
+val P2fun_uex_R = prove_store("P2fun_uex_R",
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?f:A->B. !a b. f o a = b <=> R o Pa(a,b) = TRUE’ 
+ >-- (strip_tac >> uex_tac >>
+     qexists_tac ‘f’ >> pop_assum (assume_tac o GSYM) >>
+     arw[] >> rpt strip_tac >>
+     irule FUN_EXT >> arw[]) >>
+ drule Rel2Ar' >> arw[])
+(form_goal
+ “!A B R:A * B -> 1+1. 
+   (!a:1->A.?!b:1->B. R o Pa(a,b) = TRUE) ==>
+   (?!f:A->B. !a. R o Pa(a,f o a) = TRUE)”));
+
+
+val P2fun_uex_Holds  = P2fun_uex_R |> rewr_rule[GSYM Holds_def]
+
+
+
+val Prla_def = 
+    qdefine_fsym ("Prla",[‘f:A->B’,‘g:C->D’])
+    ‘Pa(f o p1(A,C),g o p2(A,C))’
+    |> gen_all |> store_as "Prla_def";
+
+
+
+val Thm_2_4_unique = proved_th $
+e0
+(rpt strip_tac >>
+ qby_tac
+ ‘!b b'. Holds(Eq(A) o Prla(i,i'),b,b') <=> i o b = i' o b'’ 
+ >-- rw[Holds_def,o_assoc,Prla_def,Pa_distr,p12_of_Pa,
+        Eq_property_TRUE] >>
+ qby_tac
+ ‘!b:1->B. ?!b'. Holds(Eq(A) o Prla(i,i'),b,b')’
+ >-- (arw[] >> strip_tac >> flip_tac >>
+     irule $ iffRL Inj_ex_uex >> arw[] >>
+     first_x_assum 
+     (qspecl_then [‘i o b’] (assume_tac o GSYM)) >>
+     flip_tac >> arw[] >> qexists_tac ‘b’ >> rw[]) >>
+ drule P2fun >>
+ rfs[] >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘!b' b. Holds(Eq(A) o Prla(i',i),b',b) <=> i o b = i' o b'’ 
+ >-- (rw[Holds_def,o_assoc,Prla_def,Pa_distr,p12_of_Pa,
+        Eq_property_TRUE] >> rpt strip_tac >>
+        rflip_tac >> rw[]) >>
+ qby_tac
+ ‘!b':1->B'. ?!b. Holds(Eq(A) o Prla(i',i),b',b)’
+ >-- ( arw[] >> strip_tac >> 
+     irule $ iffRL Inj_ex_uex >> arw[] >>
+     flip_tac >> arw[] >> qexists_tac ‘b'’ >> rw[]) >>
+ drule P2fun >>
+ rfs[] >> 
+ qexistsl_tac [‘f’,‘f'’] >> 
+ once_rw[GSYM FUN_EXT_iff] >> rw[o_assoc] >> arw[idL] >>
+ qsuff_tac
+ ‘(!a:1->B'. i o f' o a = i' o a) &
+  (!a:1->B. i o a = i' o f o a)’
+ >-- (rpt strip_tac >> arw[]) >>
+ qpick_x_assum
+ ‘∀a:1->B b. f o a = b ⇔ i o a = i' o b’ 
+ (assume_tac o GSYM) >>
+ arw[] >>
+ pop_assum (assume_tac o GSYM) >>
+ arw[] >>
+ pop_assum (K all_tac) >>
+ pop_assum (assume_tac o GSYM) >> arw[])
+(form_goal “
+ ∀A p:A->1+1 B i:B->A B' i'.
+ (Inj(i) &
+      (∀a. p o a = TRUE <=> ∃b:1->B. a = i o b)) & 
+ (Inj(i') & 
+      (∀a. p o a = TRUE ⇔ ∃b:1->B'. a = i' o b)) ⇒
+  ∃f:B -> B' g:B' -> B. 
+     f o g = id(B') &
+     g o f = id(B) &
+     i' o f = i & i o g = i'”)
+
+
+
+val Thm_2_4' = proved_th $
+e0
+(rpt strip_tac >>
+ qspecl_then [‘A’,‘p’] strip_assume_tac Thm_2_4 >>
+ qexistsl_tac [‘B’,‘i’] >> arw[] >>
+ rpt strip_tac >>
+ irule Thm_2_4_unique >> arw[] >>
+ qexists_tac ‘p’ >> arw[])
+(form_goal 
+ “∀A p:A-> 1+1. 
+    ∃B i:B->A. 
+     (Inj(i) &
+      (∀a. p o a = TRUE <=> ∃b:1->B. a = i o b)) &
+     (∀B' i':B'->A.
+      Inj(i') & 
+      (∀a. p o a = TRUE ⇔ ∃b:1->B'. a = i' o b) ⇒
+     ∃f:B -> B' g:B' -> B. 
+     f o g = id(B') &
+     g o f = id(B) &
+     i' o f = i & i o g = i')”)
+
+val T24_ts_ex = proved_th $
+e0
+(strip_tac >> qexistsl_tac [‘A’,‘id(A)’] >> rw[])
+(form_goal “!A. ?B i:B->A. T”)
+
+
+val Rrefl = proved_th $
+e0
+(rpt strip_tac >> qexistsl_tac [‘id(B)’,‘id(B)’] >> 
+ rw[idR,idL])
+(form_goal 
+ “∀B i:B->A. 
+  ∃f:B ->B g:B->B. f o g = id(B) & g o f = id(B) &
+    i o f = i & i o g = i”)
+
+
+val Rsym = proved_th $
+e0
+(rpt strip_tac >> qexistsl_tac [‘g’,‘f’] >> arw[])
+(form_goal 
+“∀B i:B ->A B' i':B' -> A. 
+ (∃f:B->B' g:B'->B.
+  f o g = id(B') & g o f = id(B) &
+  i' o f = i & i o g = i') ⇒ 
+ (∃f:B'->B g:B->B'.
+  f o g = id(B) & g o f = id(B') &
+  i o f = i' & i' o g = i)”)
+
+
+val Rtrans = proved_th $
+e0
+(rpt strip_tac >> qexistsl_tac [‘f' o f’,‘g o g'’] >> arw[] >>
+ arw[GSYM o_assoc] >> 
+ qsuff_tac
+ ‘f' o (f o g) o g' = id(B'') & g o (g' o f') o f = id(B)’ 
+ >-- rw[o_assoc] >>
+ arw[idL,idR])
+(form_goal 
+“∀B i:B ->A B' i':B' -> A B'' i'':B''->A. 
+ (∃f:B->B' g:B'->B.
+  f o g = id(B') & g o f = id(B) &
+  i' o f = i & i o g = i') & 
+ (∃f:B'->B'' g:B''->B'.
+  f o g = id(B'') & g o f = id(B') &
+  i'' o f = i' & i' o g = i'') ⇒
+ (∃f:B->B'' g:B''->B.
+  f o g = id(B'') & g o f = id(B) &
+  i'' o f = i & i o g = i'')”)
+
+
+val T24_eqv = conjI Rrefl (conjI Rsym Rtrans)
+
+
+val set_spec_eqv = T24_eqv |> gen_all
+
+
+val set_spec_arg12eqr0 = 
+([("B",ob_sort),("i",ar_sort (rastt "B") (rastt "A"))],
+ [("B'",ob_sort),("i'",ar_sort (rastt "B'") (rastt "A"))],
+ “(∃f:B->B' g:B'->B.
+           f o g = id(B') & g o f = id(B) &
+           i' o f = i & i o g = i':B'->A)”)
+
+
+fun set_spec oriset sname iname fvs uexth = 
+    let val cuexth = concl uexth 
+        val (buexth,arg) = strip_exists cuexth 
+        val (Q,_) = dest_conj buexth
+        val argQ = (arg,Q) 
+        val tenv = mk_tinst [(("A",ob_sort),oriset)]
+        val arg12eqr = 
+            (List.map (dest_var o (inst_term (vd_of tenv)) o mk_var) 
+                      (#1 set_spec_arg12eqr0),
+            List.map (dest_var o (inst_term (vd_of tenv)) o mk_var) 
+                      (#2 set_spec_arg12eqr0),
+            inst_form tenv (#3 set_spec_arg12eqr0))
+        val eth = T24_ts_ex |> allE oriset
+        val eqvth = set_spec_eqv |> allE oriset
+    in new_spec argQ arg12eqr [sname,iname] fvs eth eqvth uexth
+    end
+
+
+

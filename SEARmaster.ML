@@ -1,4 +1,5 @@
-use "master.ML";
+
+(*use "master.ML";
 use "SEARsettings.sml";  
 use "SEARpred_set.sml";
 use "SEARNarith.sml";
@@ -9,8 +10,9 @@ use "fm.sml";
 use "SEARUF.sml";
 use "SEARrecty.sml";
 use "SEARllist.sml";
+*)
 
-(*
+
 use "master.ML";
 use "SEARsorts.sml";
 use "newspec.sml";
@@ -28,4 +30,3 @@ use "SEARUF.sml";
 use "SEARrecty.sml";
 use "SEARllist.sml";
 use "SEARGrp.sml";
-*)

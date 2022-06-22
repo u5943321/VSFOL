@@ -159,14 +159,21 @@ fun mk_prim fdef =
         val defname = fnterm |> dest_fun |> #1 |> explode |> rev |> List.tl 
                              |> rev |> implode
         val spec_IN_ex = prim_lemma' |> sspecl [fnterm]
-                                    |> uex2ex_rule
+                       (*             |> uex2ex_rule *)
         val skinputs = cont spec_IN_ex 
         val skinputs' = filter_cont skinputs |> HOLset.listItems
-        val sk = spec_IN_ex |> SKOLEM1 (defname ^ "'s") skinputs'
+        val sk = spec_IN_ex |> simple_uex_spec (defname ^ "'s") skinputs'
+(*SKOLEM1 (defname ^ "'s") skinputs' *)
     in sk
     end
 
 
+
+val unique_lemma = proved_th$
+e0
+(rpt strip_tac >> uex_tac >> qexists_tac ‘a’ >> rw[] >> rpt strip_tac >>
+ arw[])
+(form_goal “!A a:1->A. ?!a'. a' = a”)
 
 fun mk_LFP primtm = 
     let val bigintertm = mk_fun "BIGINTER" [primtm]
@@ -176,11 +183,13 @@ fun mk_LFP primtm =
         val st = sort_of bigintertm
         val LFPname = defname^"s"
         val templ = mk_eq (mk_var(defname^"s",st)) bigintertm
-        val exth = bigintertm |> refl 
+        val exth = unique_lemma |> sspecl [bigintertm]
+       (* val exth = bigintertm |> refl 
                               |> existsI (defname^"s",st) bigintertm templ
+        *)
         val skinputs = cont exth 
         val skinputs' = filter_cont skinputs |> HOLset.listItems
-        val LFP_def = exth |> SKOLEM1 LFPname skinputs'
+        val LFP_def = exth |> simple_uex_spec LFPname skinputs'
     in LFP_def
     end
 
@@ -375,10 +384,13 @@ fun mk_fex incond x =
     end
 *)
 
+(*
 fun mk_fdef fname fexth = 
     let val skinputs = (cont fexth) |> filter_cont |> HOLset.listItems 
     in fexth |> SKOLEM1 fname skinputs
     end
+
+*)
 
 fun mk_ind1 fdef ind0 = ind0 |> rewr_rule[SS_def,fdef]
 

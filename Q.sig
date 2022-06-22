@@ -44,5 +44,5 @@ val qdefine_psym: string * term frag list list -> form frag list -> thm
 val qsspecl: term frag list list -> thm -> thm
 
 val qcases: form frag list -> tactic
-val qSKOLEM: string -> term frag list list -> thm -> thm
+(*val qSKOLEM: string -> term frag list list -> thm -> thm*)
 end

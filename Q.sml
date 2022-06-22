@@ -86,12 +86,13 @@ fun qdefine_psym (pname,ql) qf =
     in define_psym (pname,vl) f
     end
 
+(*
 fun qSKOLEM fname qvl th = 
     let val tl = List.map (qparse_term_with_cont (cont th)) qvl 
         val vl = List.map dest_var tl
     in SKOLEM1 fname vl th
     end
 
-
+*)
 
 end

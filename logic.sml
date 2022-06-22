@@ -734,6 +734,7 @@ without axiom of choice, function symbols can only abbrev existing actual functi
 
 *)
 
+(*
 fun SKOLEM eth fname vl th = 
     let val asm = ant th
         val c = concl th
@@ -758,7 +759,7 @@ fun SKOLEM eth fname vl th =
         val b' = substf ((n,s),fntm) b
     in mk_thm(cont th,ant th,b')
     end
-
+*)
 
 
 (*

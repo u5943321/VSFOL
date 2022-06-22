@@ -964,10 +964,6 @@ e0
 
 
 
-val Holds_def =
- qdefine_psym("Holds",[‘R:A * B -> 1+1’,‘a:1->A’,‘b:1->B’])
-‘R o Pa(a,b) = TRUE’ |> gen_all |> store_as "Holds_def";
-
 val SYM_def = qdefine_psym("SYM",[‘R:A * A -> 1+1’])
 ‘!a b. Holds(R,a,b) ==> Holds(R,b,a)’ |> gen_all
 |> store_as "SYM_def";
