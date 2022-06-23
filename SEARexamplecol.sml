@@ -420,27 +420,49 @@ val biunique_def =
 qdefine_psym("biunique",[‘R:A~>B’,‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’])
 ‘(∀a. IN(a,s1) ⇒ ?!b:mem(B). IN(b,s2) & Holds(R,a,b)) &
   (∀b. IN(b,s2) ⇒ ?!a:mem(A). IN(a,s1) & Holds(R,a,b))’
-
-val biunique_Ri_restrict = prove_store("biunique_Ri_restrict",
-e0
-()
-(form_goal
- “biunique(R,s1,s2) ⇒
-  ∀s t. SS(s,s1) & SS(t,s2) ⇒
-       t = App(Ri(restrict(R)),s) = t = App(Ri(restrict(R)),s) ”)); 
-
-
+ 
 val SS_Ri_restrict = prove_store("SS_Ri_restrict",
 e0
-cheat
+(rpt strip_tac >> rw[SS_def,Ri_def,restrict_def] >>
+ rpt strip_tac )
 (form_goal
- “∀A s1 a. SS(a, s1) ⇒ ∀B R s2.  SS(App(Ri(restrict(R:A~>B, s1, s2)), a), s2)”));
+ “∀A s1 a B R s2.  SS(App(Ri(restrict(R:A~>B, s1, s2)), a), s2)”));
 
 val biunique_op = prove_store("biunique_op",
 e0
-()
+(rpt strip_tac >> fs[biunique_def,op_def])
 (form_goal
- “”));
+ “∀R:A~>B s1 s2. biunique(R,s1,s2) ⇒ biunique(op(R),s2,s1)”));
+
+
+val biunique_Ri_restrict = prove_store("biunique_Ri_restrict",
+e0
+(rpt strip_tac >>
+ arw[] >> flip_tac >>
+ rw[GSYM IN_EXT_iff] >> rw[Ri_def,restrict_def,op_def] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (qsuff_tac ‘x = a'’ >-- (strip_tac >> arw[]) >>
+     fs[biunique_def] >>
+     first_x_assum drule >>
+     pop_assum (assume_tac o uex_expand) >>
+     pop_assum (x_choose_then "a0" strip_assume_tac) >>
+     qsuff_tac
+     ‘x = a0 & a' = a0’
+     >-- (strip_tac >> arw[]) >> strip_tac >> first_x_assum irule >>
+     arw[]) >>
+ fs[SS_def] >> first_x_assum drule >>
+ fs[biunique_def] >>
+ first_x_assum drule >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘b’ >> arw[] >>
+ qexists_tac ‘x’ >> arw[])
+(form_goal
+ “biunique(R:A~>B,s1,s2) ⇒
+  ∀s t. SS(s,s1) & SS(t,s2) ⇒
+  t = App(Ri(restrict(R,s1,s2)),s) ⇒ s = App(Ri(restrict(op(R),s2,s1)),t) ”)); 
+
+
+   App(Ri(restrict(R, s1, s2)), App(Ri(restrict(op(R), s2, s1)), b)) = b
 
 val cardeq_POW = prove_store("cardeq_POW",
 e0
