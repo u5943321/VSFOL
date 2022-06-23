@@ -1,17 +1,11 @@
 (*naive application of collection, give the existence of a set which is larger then any power set.*)
 
 
-(*
+
 val isset_def = 
 qdefine_psym("isset",[‘i:A->B’,‘bs:mem(Pow(B))’])
 ‘Inj(i) & IMAGE(i,Whole(A)) = bs’
 
-
-val AX5 = store_ax("AX5",
-“!A.?B p:B->A Y M:B~>Y.  
- (!b.P(App(p,b),m2s(rsi(M,b)))) & 
- !a:mem(A) X. P(a,X) ==> ?b. App(p,b) = a”)
-*)
 
 val AX5 = store_ax("AX5",
 “!A.?B p:B->A Y M:B~>Y.  
@@ -22,31 +16,138 @@ val AX5 = store_ax("AX5",
 
 
 
-
-val INJ_def = 
-qdefine_psym("INJ",
-[‘f:A->B’,‘s:mem(Pow(A))’,‘t:mem(Pow(B))’])
-‘(!x. IN(x,s) ==> IN(App(f,x),t)) &
-(!x y. IN(x,s) & IN(y,s) ==> App(f,x) = App(f,y) ==>
- x = y)’ |> gen_all
-
-
-val SURJ_def = 
-qdefine_psym("SURJ",
-[‘f:A->B’,‘s:mem(Pow(A))’,‘t:mem(Pow(B))’])
-‘(!x. IN(x,s) ==> IN(App(f,x),t)) &
-(!x. IN(x,t) ==> ?y. IN(y,s) & App(f,y) = x)’ |> gen_all
-
- 
-val BIJ_def = 
-qdefine_psym
-("BIJ",[‘f:A->B’,‘s:mem(Pow(A))’,‘t:mem(Pow(B))’])
-‘INJ(f,s,t) & SURJ(f,s,t)’ |> gen_all
-
 val cardeq_def = 
 qdefine_psym("cardeq",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’])
-‘?f.BIJ(f,s1,s2)’
+‘∃R:A~>B. 
+ (∀a. IN(a,s1) ⇒ ?!b:mem(B). IN(b,s2) & Holds(R,a,b)) &
+ (∀b. IN(b,s2) ⇒ ?!a:mem(A). IN(a,s1) & Holds(R,a,b))’
 
+val cardeq_REFL = prove_store("cardeq_REFL",
+e0
+(rw[cardeq_def] >>
+ rpt strip_tac >> qexists_tac ‘id(A)’ >> rw[id_def] >>
+ rpt strip_tac (* 2 *)
+ >-- (uex_tac >> qexists_tac ‘a’ >> arw[] >> rpt strip_tac >> arw[]) >>
+ uex_tac >> qexists_tac ‘b’ >> arw[] >> rpt strip_tac >> arw[])
+(form_goal “!A s:mem(Pow(A)). cardeq(s,s)”));
+
+
+val cardeq_SYM = prove_store("cardeq_SYM",
+e0
+(rw[cardeq_def] >> rpt strip_tac >>
+ qexists_tac ‘op(R)’ >> arw[op_def])
+(form_goal
+ “∀A s1 B s2. cardeq(s1:mem(Pow(A)),s2:mem(Pow(B))) ==> cardeq(s2,s1)”));
+
+
+val restrict_def = 
+    AX1 |> qspecl [‘A’,‘B’]
+        |> fVar_sInst_th “P(a:mem(A),b:mem(B))”
+           “IN(a:mem(A),s1) & IN(b:mem(B),s2) & Holds(R,a,b) ”
+        |> qsimple_uex_spec "restrict" [‘R’,‘s1’,‘s2’]
+        |> gen_all
+
+val cardeq_TRANS = prove_store("cardeq_TRANS",
+e0
+(rw[cardeq_def] >> rpt strip_tac >>
+ qexists_tac ‘restrict(R',s2,s3) @ restrict(R,s1,s2)’ >>
+ rw[GSYM ao_def,restrict_def] >> rpt strip_tac (* 2 *)
+ >-- (uex_tac >> first_assum drule >>
+     pop_assum (strip_assume_tac o uex_expand) >>
+     first_assum drule >>
+     pop_assum (assume_tac o uex_expand) >>
+     pop_assum (x_choose_then "c" strip_assume_tac) >>
+     qexists_tac ‘c’ >> arw[] >>
+     strip_tac (* 2 *)
+     >-- (qexists_tac ‘b’ >> arw[]) >>
+     rpt strip_tac >> 
+     qby_tac
+     ‘b'' = b’ 
+     >-- (first_assum irule >> arw[]) >> fs[] >>
+     first_assum irule >> arw[]) >>
+ uex_tac >> first_assum drule >>
+ pop_assum (assume_tac o uex_expand) >>
+ pop_assum (x_choose_then "b0" strip_assume_tac) >>
+ last_x_assum drule >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘a’ >> arw[] >>
+ strip_tac (* 2 *)
+ >-- (qexists_tac ‘b0’ >> arw[]) >>
+ rpt strip_tac >> 
+ qby_tac
+ ‘b' = b0’ 
+ >-- (first_assum irule >> arw[]) >> fs[] >>
+ first_assum irule >> arw[])
+(form_goal “!A s1:mem(Pow(A)) B s2:mem(Pow(B)).
+ cardeq(s1,s2) ==>
+ !C s3:mem(Pow(C)).cardeq(s2,s3) ==>
+ cardeq(s1,s3)”));
+
+val cardeq_Whole_Inj_ex = prove_store("cardeq_Whole_Inj_ex",
+e0
+(rpt strip_tac >>
+ fs[cardeq_def,Whole_def] >>
+ drule  (P2fun |> qspecl [‘B’,‘A’]
+               |> fVar_sInst_th “P(b:mem(B),a:mem(A))”
+                  “IN(a,s) & Holds(R:A~>B,a,b)”) >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘f’ >>
+ qby_tac ‘Inj(f)’ 
+ >-- (rw[Inj_def] >> rpt strip_tac >>
+      first_assum $ drule o iffLR >>
+      first_assum (qspecl_then [‘x2’,‘App(f,x2)’] assume_tac) >>
+      fs[] >>
+      first_assum drule >>
+      pop_assum (strip_assume_tac o uex_expand) >>
+      qsuff_tac
+      ‘x1 = b & x2 = b’ >-- (strip_tac >> arw[]) >>
+      strip_tac >> first_assum irule >> arw[]) >>
+ arw[] >>
+ rw[GSYM IN_EXT_iff,IMAGE_def] >>
+ strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (pop_assum (assume_tac o GSYM) >> rfs[]) >>
+ first_assum drule >>
+ pop_assum (strip_assume_tac o uex_expand) >>
+ qexists_tac ‘b’ >> rw[Whole_def] >> flip_tac >> arw[])
+(form_goal
+ “∀A s:mem(Pow(A)) B. 
+  cardeq(s,Whole(B)) ⇒
+  ∃i:B ->A. Inj(i) & IMAGE(i,Whole(B)) = s”));
+
+val cardeq_Inj_IMAGE = prove_store("cardeq_Inj_IMAGE",
+e0
+(rpt strip_tac >>
+ rw[cardeq_def] >>
+ qexists_tac ‘asR(f)’ >> rw[asR_def,Whole_def,IMAGE_def] >>
+ rpt strip_tac (* 2 *)
+ >-- (uex_tac >> qexists_tac ‘App(f,a)’ >> rw[] >>
+     rpt strip_tac (* 2 *)
+     >-- (qexists_tac ‘a’ >> rw[]) >> arw[]) >>
+ arw[] >> uex_tac >> qexists_tac ‘a’ >> arw[] >>
+ rpt strip_tac >> fs[Inj_def] >> first_assum irule >> arw[])
+(form_goal
+ “∀A B f:A->B. Inj(f) ⇒
+ cardeq(Whole(A),IMAGE(f,Whole(A)))”));
+
+val Inj_Image = prove_store("Inj_Image",
+e0
+(rpt strip_tac >>
+ rw[Inj_def] >> rw[Image_def,GSYM IN_EXT_iff] >>
+ rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (first_assum (qspecl_then [‘App(f,x)’] assume_tac) >>
+     qby_tac ‘∃a. IN(a,x1) & App(f,x) = App(f,a)’ 
+     >-- (qexists_tac ‘x’ >> arw[]) >>
+     first_assum (drule o iffLR) >>
+     pop_assum strip_assume_tac >>
+     fs[Inj_def] >> first_assum drule >> fs[]) >>
+ first_assum (qspecl_then [‘App(f,x)’] assume_tac) >>
+ qby_tac ‘∃a. IN(a,x2) & App(f,x) = App(f,a)’ 
+ >-- (qexists_tac ‘x’ >> arw[]) >>
+ first_assum (drule o iffRL) >> 
+ pop_assum strip_assume_tac >>
+ fs[Inj_def] >> first_assum drule >> fs[])
+(form_goal
+ “∀A B f:A-> B. Inj(f) ⇒ Inj(Image(f))”));
 
 val POW_def = IN_def_P |> qspecl [‘Pow(A)’] 
                        |> fVar_sInst_th “P(s:mem(Pow(A)))”
@@ -63,33 +164,6 @@ val nPow_def = qdefine_psym("nPow",[‘n:mem(N)’,‘A’,‘B’])
 |> gen_all
 
 
-val cardleq_def = 
-qdefine_psym("cardleq",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’])
-‘?f:A->B. INJ(f,s1,s2)’ |> gen_all
-
-
-val Id_INJ = prove_store("Id_INJ",
-e0
-(rw[INJ_def,Id_def])
-(form_goal “∀A s:mem(Pow(A)). INJ(Id(A),s,s)”));
-
-
-val Id_SURJ = prove_store("Id_SURJ",
-e0
-(rw[SURJ_def,Id_def] >> rpt strip_tac >>
- qexists_tac ‘x’ >> arw[])
-(form_goal “∀A s:mem(Pow(A)). SURJ(Id(A),s,s)”));
-
-val Id_BIJ = prove_store("Id_BIJ",
-e0
-(rw[BIJ_def,Id_INJ,Id_SURJ])
-(form_goal “∀A s:mem(Pow(A)). BIJ(Id(A),s,s)”));
-
-val cardeq_REFL = prove_store("cardeq_REFL",
-e0
-(rw[cardeq_def] >>
- rpt strip_tac >> qexists_tac ‘Id(A)’ >> rw[Id_BIJ])
-(form_goal “!A s:mem(Pow(A)). cardeq(s,s)”));
 
 val FIB_constf = prove_store("FIB_constf",
 e0
@@ -108,7 +182,56 @@ e0
 
 val Sgf_def = proved_th $
 e0
-(cheat)
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?sf:Pow(A)-> B.
+   (∀a. App(sf,Sing(a)) = App(f,a)) &
+   (∀s. (∀a. ~(s = Sing(a))) ⇒ App(sf,s) = b0)’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘sf’ >> arw[] >>
+     rpt strip_tac >>
+     rw[GSYM FUN_EXT] >> rpt strip_tac >>
+     qcases ‘∃a0. a = Sing(a0)’ (* 2 *)
+     >-- fs[] >>
+     qby_tac
+     ‘∀a0. ~(a = Sing(a0))’
+     >-- (strip_tac >> ccontra_tac >>
+         qby_tac ‘∃a0. a = Sing(a0)’ 
+         >-- (qexists_tac ‘a0’ >> arw[]) >>
+         rfs[]) >>
+     first_x_assum drule >> first_x_assum drule>> fs[]) >>
+ qby_tac
+ ‘∀s:mem(Pow(A)).
+  ?!b. (∃a. s = Sing(a) & b = App(f,a))|
+       (∀a. ~(s = Sing(a))) & b = b0’
+ >-- (strip_tac >>
+     qcases ‘∃a. s = Sing(a)’ 
+     >-- (uex_tac >> pop_assum strip_assume_tac >>
+         qexists_tac ‘App(f,a)’ >> arw[] >>
+         rpt strip_tac (* 3 *)
+         >-- (disj1_tac >> qexists_tac ‘a’ >> rw[])
+         >-- fs[Sing_eq_eq] >>
+         fs[Sing_eq_eq] >>
+         first_x_assum (qspecl_then [‘a’] assume_tac) >> fs[]) >>
+     uex_tac >> qexists_tac ‘b0’ >>
+     rpt strip_tac (* 2 *)
+     >-- 
+     (disj2_tac >> rw[] >> strip_tac >> ccontra_tac >>
+     qby_tac
+     ‘∃a. s = Sing(a)’
+     >-- (qexists_tac ‘a’ >> arw[]) >> rfs[]) >>
+     qby_tac
+     ‘∃a. s = Sing(a)’
+     >-- (qexists_tac ‘a’ >> arw[]) >> rfs[]) >>
+ drule
+ (P2fun |> qspecl [‘Pow(A)’,‘B’] 
+ |> fVar_sInst_th “P(s:mem(Pow(A)),b:mem(B))”
+    “(∃a. s = Sing(a) & b = App(f:A->B,a))|
+     (∀a. ~(s = Sing(a))) & b = b0”) >>
+ pop_assum strip_assume_tac >> 
+ qexists_tac ‘f'’ >>
+ arw[] >> rpt strip_tac (* 2 *)
+ >-- (disj1_tac >> qexists_tac ‘a’ >> rw[]) >>
+ disj2_tac >> arw[])
 (form_goal
  “∀A B f:A->B b0:mem(B). 
   ?!sf:Pow(A)-> B.
@@ -188,15 +311,6 @@ e0
  )
 (form_goal “∀A An. nPow(n,A,An) ⇒ nPow(Suc(n),A,Pow(An))”));
 
-val cardeq_char= proved_th $
-e0
-cheat
-(form_goal
- “∀s1:mem(Pow(A)) s2:mem(Pow(B)). cardeq(s1,s2) ⇔ 
- ∃R:A~>B. 
- (∀a. IN(a,s1) ⇒ ?!b:mem(B). IN(b,s2) & Holds(R,a,b)) &
- (∀b. IN(b,s2) ⇒ ?!a:mem(A). IN(a,s1) & Holds(R,a,b))”)
-
 val Inj_IMAGE_cardeq = proved_th $
 e0
 cheat
@@ -204,23 +318,7 @@ cheat
  “∀A B f:A->B. Inj(f) ⇒
   ∀s.cardeq(IMAGE(f,s),s)”)
 
-
-val cardeq_SYM = prove_store("cardeq_SYM",
-e0
-(cheat)
-(form_goal
- “cardeq(s1:mem(Pow(A)),s2:mem(Pow(B))) ==> cardeq(s2,s1)”));
-
-
-
-val cardeq_TRANS = prove_store("cardeq_TRANS",
-e0
-cheat
-(form_goal “!A s1:mem(Pow(A)) B s2:mem(Pow(B)).
- cardeq(s1,s2) ==>
- !C s3:mem(Pow(C)).cardeq(s2,s3) ==>
- cardeq(s1,s3)”));
-
+ 
 
 val INS_def = 
 qfun_compr ‘s:mem(Pow(X))’ ‘Ins(x0:mem(X),s)’ 
@@ -246,6 +344,10 @@ val content_Sing = content_def
 val ctt_def = qdefine_fsym("ctt",[‘s:mem(Pow(X))’,‘x0:mem(X)’])
 ‘App(content(x0),s)’ |> gen_all
 
+val cardeq_Whole_Inj_ex = prove_store("cardeq_Whole_Inj_ex",
+e0
+
+
 
 val nPow_Suc = prove_store("nPow_Suc",
 e0
@@ -253,9 +355,13 @@ e0
  rw[nPow_def] >> rw[Lt_Suc_Le] >> 
  fs[nPow_def] >>
  qexistsl_tac [‘Pow(X+1)’] >>
+ drule $ iffLR cardeq_char >>
+ qby_tac
+ ‘’
  qby_tac
  ‘∃i:Pow(An) -> Pow(X). Inj(i)’
  >-- cheat >> pop_assum strip_assume_tac >> 
+ 
  define_lambda
  “∀x1s. 
     ((∃s0:mem(Pow(An)). 
@@ -264,7 +370,7 @@ e0
     ((∃x. 
        x1s = Sing(SOME(x)) & App(f,x) = n) ⇒
     App(f1,x1s) = ctt(IMAGE(f,PREIM(i1(X,1),x1s)),O)) &
-    (ELSE ⇒ App(f1,x1s) = Suc(Suc(n)))” 
+    (ELSE ⇒ App(f1,x1s) = Suc(Suc(n)))” >>
 
 rastt "ctt(IMAGE(f,FIB(i1(X,1),x1s)),O)" 
 
