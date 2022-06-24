@@ -1085,6 +1085,68 @@ e0
 (form_goal
  “∀A n An1 An2. nPow(n,A,An1) & nPow(n,A,An2) ⇒ cardeq(Whole(An1),Whole(An2))”));
 
+val nPow_uex = prove_store("nPow_uex",
+e0
+(rpt strip_tac >>
+ qspecl_then [‘A’,‘n’] strip_assume_tac nPow_ex >> 
+ qexists_tac ‘An’ >> arw[] >>
+ rpt strip_tac >> irule nPow_unique >> 
+ qexistsl_tac [‘A’,‘n’] >> arw[])
+(form_goal
+ “∀A n. ∃An. nPow(n,A,An) & 
+        ∀An1. nPow(n,A,An1) ⇒ cardeq(Whole(An),Whole(An1))”));
+
+val nPow_ts_ex = proved_th $
+e0
+(rpt strip_tac >> qexists_tac ‘A’ >> rw[])
+(form_goal “∀A n:mem(N). ∃An.T”)
+
+val cardeq_Whole_REFL = proved_th $
+e0
+(rw[cardeq_REFL])
+(form_goal
+ “∀An. cardeq(Whole(An),Whole(An))”)
+
+val cardeq_Whole_SYM = proved_th $
+e0
+(rw[cardeq_SYM])
+(form_goal
+ “∀An An'. cardeq(Whole(An),Whole(An')) ⇒ cardeq(Whole(An'),Whole(An))”)
+
+
+val cardeq_Whole_TRANS = proved_th $
+e0
+(rpt strip_tac >> rev_drule cardeq_TRANS >>
+ first_x_assum irule >> arw[])
+(form_goal
+ “∀An An' An''. 
+ cardeq(Whole(An),Whole(An')) & 
+ cardeq(Whole(An'),Whole(An'')) ⇒ cardeq(Whole(An),Whole(An''))”)
+
+
+local
+val uexth = nPow_uex |> spec_all
+val eth = nPow_ts_ex |> spec_all
+val eqvth = conjI cardeq_Whole_REFL 
+                  (conjI cardeq_Whole_SYM cardeq_Whole_TRANS)
+val fnames = ["Pn"]
+val arg1 = List.map (dest_var o rastt) 
+                    ["An"]
+val arg2 = List.map (dest_var o rastt) 
+                     ["An'"]
+val eqr = 
+“cardeq(Whole(An),Whole(An'))”
+val arg = arg1
+val Q = “nPow(n,A,An)”
+val argQ = (arg,Q)
+val vl = List.map dest_var [rastt "A",rastt "n:mem(N)"]
+val arg12eqr = (arg1,arg2,eqr)
+val uexth = (nPow_uex |> spec_all)
+in
+val Pn_def = 
+new_spec argQ arg12eqr fnames vl eth eqvth (nPow_uex |> spec_all)
+|> gen_all
+end
 
 
 val large_ex = prove_store("large_ex",
