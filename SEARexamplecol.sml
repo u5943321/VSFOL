@@ -956,7 +956,121 @@ e0
  drule nPow_Suc>> arw[] )
 (form_goal “!A n. ?An. nPow(n,A,An)”));
 
+val nPowf_def = 
+qdefine_psym("nPowf",[‘n:mem(N)’,‘A’,‘B’,‘f:X->N’])
+‘cardeq(FIB(f,O),Whole(A)) & 
+            cardeq(FIB(f,n),Whole(B)) &
+  (!n0. Lt(n0,n) ==>
+   cardeq(POW(FIB(f,n0)),FIB(f,Suc(n0))))’ |> gen_all
 
+val m2s_def = 
+Thm_2_4' |> qspecl [‘A’] 
+         |> fVar_sInst_th “P(a:mem(A))” “IN(a,s:mem(Pow(A)))” 
+         |> set_spec (rastt "A") "m2s" "minc" 
+         [("s",mem_sort (rastt "Pow(A)"))]
+
+
+val cardeq_m2s = prove_store("cardeq_m2s",
+e0
+(cheat)
+(form_goal
+ “∀A s:mem(Pow(A)). cardeq(s,Whole(m2s(s)))”));
+
+val nPowf_Preds = prove_store("nPowf_Preds",
+e0
+(strip_tac >> 
+ rpt gen_tac >> disch_tac >>
+ Nind_tac >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘A’ >> fs[nPowf_def,NOT_Lt_O]) >>
+ qby_tac ‘Le(n',n)’ 
+ >-- (irule Le_trans >> qexists_tac ‘Suc(n')’ >> arw[] >>
+     irule Lt_Le >> rw[Lt_Suc]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ fs[nPowf_def] >> 
+ qexists_tac ‘m2s(FIB(f,Suc(n')))’ >> rw[cardeq_m2s] >>
+ rpt strip_tac >>
+ last_x_assum irule >> irule Lt_Le_Lt >>
+ qexists_tac ‘Suc(n')’ >> arw[])
+(form_goal
+ “∀A n B f:X->N. nPowf(n,A,B,f) ⇒
+   ∀n0. Le(n0,n) ⇒ ∃B0. nPowf(n0,A,B0,f)”));
+
+
+val nPowf_Preds_FIB = prove_store("nPowf_Preds_FIB",
+e0
+(strip_tac >> 
+ rpt gen_tac >> disch_tac >>
+ Nind_tac >> rpt strip_tac (* 2 *)
+ >-- (cheat) >>
+ qby_tac ‘Le(n',n)’ 
+ >-- (irule Le_trans >> qexists_tac ‘Suc(n')’ >> arw[] >>
+     irule Lt_Le >> rw[Lt_Suc]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ fs[nPowf_def] >> rw[cardeq_m2s] >>
+ rpt strip_tac >>
+ last_x_assum irule >> irule Lt_Le_Lt >>
+ qexists_tac ‘Suc(n')’ >> arw[])
+(form_goal
+ “∀A n B f:X->N. nPowf(n,A,B,f) ⇒
+   ∀n0. Le(n0,n) ⇒ nPowf(n0,A,m2s(FIB(f,n0)),f)”));
+
+val nPow_nPowf = prove_store("nPow_nPowf",
+e0
+(rpt strip_tac >> rw[nPow_def,nPowf_def] )
+(form_goal
+ “∀A n B. nPow(n,A,B) ⇔ ∃X f:X->N.nPowf(n,A,B,f)”));
+
+val nPow_unique = prove_store("nPow_unique",
+e0
+(strip_tac >>
+ Nind_tac >> rpt strip_tac (* 2 *)
+ >-- (fs[nPow_def] >>
+     irule cardeq_TRANS >> qexistsl_tac [‘A’,‘Whole(A)’] >>
+     strip_tac (* 2 *)
+     >-- (irule cardeq_TRANS >> qexistsl_tac [‘X'’,‘FIB(f',O)’] >> 
+         arw[] >> irule cardeq_SYM >> arw[]) >>
+     irule cardeq_TRANS >> qexistsl_tac [‘X’,‘FIB(f,O)’] >> 
+     arw[] >> irule cardeq_SYM >> arw[]) >>
+ drule $ iffLR nPow_nPowf >>
+ pop_assum strip_assume_tac >>
+ rev_drule $ iffLR nPow_nPowf >>
+ pop_assum strip_assume_tac >>
+ rev_drule nPowf_Preds >>
+ drule nPowf_Preds >>
+ last_x_assum (qspecl_then [‘n’] assume_tac) >> fs[LESS_EQ_SUC] >>
+  last_x_assum (qspecl_then [‘n’] assume_tac) >> fs[LESS_EQ_SUC] >> 
+ qspecl_then [‘A’,‘An1’,‘X'’,‘f'’,‘Suc(n)’] assume_tac nPowf_def >>
+ qspecl_then [‘A’,‘An2’,‘X’,‘f’,‘Suc(n)’] assume_tac nPowf_def >> rfs[] >>
+ qsuff_tac
+ ‘cardeq(FIB(f', Suc(n)),FIB(f, Suc(n)))’
+ >-- (strip_tac >>
+     irule $ iffLR cardeq_BITRANS >>
+     qexistsl_tac [‘X'’,‘FIB(f', Suc(n))’,‘X’,‘FIB(f, Suc(n))’] >> arw[]) >>
+ qsuff_tac
+ ‘cardeq(POW(FIB(f',n)),POW(FIB(f,n)))’
+ >-- (strip_tac >>
+     irule $ iffLR cardeq_BITRANS >>
+     qexistsl_tac [‘Pow(X')’,‘POW(FIB(f', n))’,
+                   ‘Pow(X)’,‘POW(FIB(f, n))’] >> arw[] >> strip_tac >> 
+     first_x_assum irule >> rw[Lt_Suc]) >>
+ irule cardeq_POW >>  
+ qsuff_tac
+ ‘cardeq(Whole(m2s(FIB(f',n))),Whole(m2s(FIB(f,n))))’
+ >-- (rpt strip_tac >> irule $ iffLR cardeq_BITRANS >>
+     qexistsl_tac [‘m2s(FIB(f',n))’,‘Whole(m2s(FIB(f',n)))’,
+                   ‘m2s(FIB(f,n))’,‘Whole(m2s(FIB(f,n)))’] >>
+      arw[] >> strip_tac >> irule cardeq_SYM >> rw[cardeq_m2s]) >>
+ first_x_assum irule >>
+ strip_tac (* 2 *)
+ >-- (rw[nPow_nPowf] >> qexistsl_tac [‘X'’,‘f'’] >>
+     irule nPowf_Preds_FIB >> qexistsl_tac [‘B0'’,‘n’] >>
+     arw[Le_refl]) >>
+ rw[nPow_nPowf] >> qexistsl_tac [‘X’,‘f’] >>
+  irule nPowf_Preds_FIB >> qexistsl_tac [‘B0’,‘n’] >> arw[Le_refl] )
+(form_goal
+ “∀A n An1 An2. nPow(n,A,An1) & nPow(n,A,An2) ⇒ cardeq(Whole(An1),Whole(An2))”));
 
 val large_ex = prove_store("large_ex",
 e0
