@@ -1148,6 +1148,13 @@ new_spec argQ arg12eqr fnames vl eth eqvth (nPow_uex |> spec_all)
 |> gen_all
 end
 
+val isset_minc = proved_th $
+e0
+(rw[isset_def,m2s_def] >> rpt strip_tac >>
+ rw[GSYM IN_EXT_iff,IMAGE_def,Whole_def] >>
+ strip_tac >> 
+ qsspecl_then [‘s’] strip_assume_tac m2s_def >> arw[])
+(form_goal “∀A s:mem(Pow(A)).isset(minc(s), s)”)
 
 val large_ex = prove_store("large_ex",
 e0
@@ -1157,19 +1164,29 @@ e0
  |> fVar_sInst_th “P(n:mem(N),An)”
      “nPow(n,A,An)”) >>
  pop_assum strip_assume_tac >> qexists_tac ‘Y’ >> 
- rpt strip_tac >>
+ strip_tac >>
+ qspecl_then [‘A’,‘n’] assume_tac Pn_def >>
  first_x_assum drule >>
  pop_assum strip_assume_tac >>
- first_x_assum (qsspecl_then [‘b’] assume_tac) >> 
- rw[cardleq_def] >> 
- f
-
-
- qsspecl_then [‘n’] assume_tac nPow_ex >>
- pop_assum strip_assume_tac >> )
+ first_x_assum (qsspecl_then [‘minc(rsi(M,b))’,‘b’] assume_tac) >>
+ fs[isset_minc] >>
+ qby_tac
+ ‘nPow(n, A, m2s(rsi(M, b)))’
+ >-- (fs[nPow_def] >> rfs[] >> 
+     qexistsl_tac [‘X'’,‘f'’] >> arw[]) >>
+ qsspecl_then [‘rsi(M,b)’] strip_assume_tac m2s_def >>
+ qby_tac ‘cardeq(Whole(Pn(A,n)),Whole(m2s(rsi(M,b))))’
+ >-- (irule nPow_unique >> qexistsl_tac [‘A’,‘n’] >> arw[]) >>
+ drule cardeq_SYM>>
+ drule cardeq_Whole_Inj_ex >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘minc(rsi(M,b)) o i’ >>
+ irule o_Inj_Inj >>
+ arw[])
 (form_goal 
  “!A. 
     ?P. 
-      !n An. nPow(n,A,An) ==> cardleq(Whole(An),Whole(P)) ”));
+      !n. ∃i:Pn(A,n:mem(N)) -> P. Inj(i) ”));
 
 
+(*rastt "f:Pn(A,n:mem(N))->A" must anno the n *)
