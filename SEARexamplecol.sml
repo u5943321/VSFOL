@@ -968,11 +968,24 @@ Thm_2_4' |> qspecl [‘A’]
          |> fVar_sInst_th “P(a:mem(A))” “IN(a,s:mem(Pow(A)))” 
          |> set_spec (rastt "A") "m2s" "minc" 
          [("s",mem_sort (rastt "Pow(A)"))]
+         |> gen_all
 
 
 val cardeq_m2s = prove_store("cardeq_m2s",
 e0
-(cheat)
+(rpt strip_tac >>
+ qsspecl_then [‘s’] strip_assume_tac m2s_def >>
+ rw[cardeq_def] >>
+ (strip_assume_tac o uex2ex_rule)
+ (AX1 |> qspecl [‘A’,‘m2s(s:mem(Pow(A)))’] 
+ |> fVar_sInst_th “P(a:mem(A),b:mem(m2s(s:mem(Pow(A)))))”
+     “App(minc(s):m2s(s:mem(Pow(A)))->A,b) = a”) >>
+ qexists_tac ‘R’ >> arw[Whole_def] >>
+ drule Inj_ex_uex  >> arw[] >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘b’ >> arw[]) >>
+ uex_tac >> qexists_tac ‘App(minc(s),b)’ >> rw[] >> rpt strip_tac (* 2 *)
+ >-- (qexists_tac ‘b’ >> arw[]) >>
+ arw[])
 (form_goal
  “∀A s:mem(Pow(A)). cardeq(s,Whole(m2s(s)))”));
 
@@ -1071,6 +1084,8 @@ e0
   irule nPowf_Preds_FIB >> qexistsl_tac [‘B0’,‘n’] >> arw[Le_refl] )
 (form_goal
  “∀A n An1 An2. nPow(n,A,An1) & nPow(n,A,An2) ⇒ cardeq(Whole(An1),Whole(An2))”));
+
+
 
 val large_ex = prove_store("large_ex",
 e0
