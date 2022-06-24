@@ -1002,7 +1002,7 @@ e0
 (strip_tac >> 
  rpt gen_tac >> disch_tac >>
  Nind_tac >> rpt strip_tac (* 2 *)
- >-- (cheat) >>
+ >-- fs[nPowf_def,cardeq_m2s,NOT_Lt_O] >>
  qby_tac ‘Le(n',n)’ 
  >-- (irule Le_trans >> qexists_tac ‘Suc(n')’ >> arw[] >>
      irule Lt_Le >> rw[Lt_Suc]) >>
