@@ -14,13 +14,22 @@ val AX5 = store_ax("AX5",
   P(App(p,b),S)) & 
  !a:mem(A) X. P(a,X) ==> ?b. App(p,b) = a”)
 
+(*
+{} ⊆ {*}
+ ~
+{} ⊆ {}
+'a -> 'b
+
+R: 'a ~>'b
+
+*)
 
 
 val cardeq_def = 
 qdefine_psym("cardeq",[‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’])
 ‘∃R:A~>B. 
- (∀a. IN(a,s1) ⇒ ?!b:mem(B). IN(b,s2) & Holds(R,a,b)) &
- (∀b. IN(b,s2) ⇒ ?!a:mem(A). IN(a,s1) & Holds(R,a,b))’
+ (∀a. IN(a,s1) ⇒ ?!b. IN(b,s2) & Holds(R,a,b)) &
+ (∀b. IN(b,s2) ⇒ ?!a. IN(a,s1) & Holds(R,a,b))’
 
 val cardeq_REFL = prove_store("cardeq_REFL",
 e0
@@ -413,14 +422,6 @@ val OE_def =
 qdefine_fsym("OE",[‘f:A->B’,‘b0:mem(B)’])
 ‘coPa(f,El(b0))’
 
-val Inj_IMAGE_cardeq = proved_th $
-e0
-cheat
-(form_goal
- “∀A B f:A->B. Inj(f) ⇒
-  ∀s.cardeq(IMAGE(f,s),s)”)
-
- 
 
 val INS_def = 
 qfun_compr ‘s:mem(Pow(X))’ ‘Ins(x0:mem(X),s)’ 
@@ -446,25 +447,200 @@ val content_Sing = content_def
 val ctt_def = qdefine_fsym("ctt",[‘s:mem(Pow(X))’,‘x0:mem(X)’])
 ‘App(content(x0),s)’ |> gen_all
 
+val Sg_Sing = prove_store("Sg_Sing",
+e0
+(cheat)
+(form_goal “∀A a.Sing(a)  = App(Sg(A),a)”));
+
+val PREIM_i1_Sing_SOME = prove_store("PREIM_i1_Sing_SOME",
+e0
+(cheat)
+(form_goal
+ “PREIM(i1(X, 1), Sing(SOME(x0))) = Sing(x0)”));
+
+
+val IMAGE_Sing  = prove_store("IMAGE_Sing",
+e0
+(cheat)
+(form_goal
+ “IMAGE(f:A->B,Sing(a)) = Sing(App(f,a))”));
+
+
+val ctt_Sing = prove_store("ctt_Sing",
+e0
+(cheat)
+(form_goal
+ “∀A a0:mem(A) a.ctt(Sing(a),a0) = a”));
+
+
+val Sing_SOME_NEQ_Ins_NONE = prove_store("Sing_SOME_NEQ_Ins_NONE",
+e0
+(cheat)
+(form_goal “∀A a s.~(Sing(SOME(a)) = Ins(NONE(A),s))”));
+
 val nPow_Suc_ex_lemma = proved_th $
 e0
-(rpt strip_tac >> cheat
- (*define_lambda
+(rpt strip_tac >> 
+ x_choose_then "f1" assume_tac
+ (define_lambda
  “∀x1s. 
-    ((∃s0:mem(Pow(An)). 
-        x1s = Ins(NONE(X),App(Image(i1(X,1)) o i,s0))) ⇒
-     App(f1,x1s) = Suc(n)) &
+    ((∃s0. 
+        x1s = Ins(NONE(X),App(Image(i1(X,1)) o i:C->Pow(X),s0))) ⇒
+     App(f1,x1s) = b0) &
     ((∃x. 
-       x1s = Sing(SOME(x)) & App(f,x) = n) ⇒
-    App(f1,x1s) = ctt(IMAGE(f,PREIM(i1(X,1),x1s)),O)) &
-    (ELSE ⇒ App(f1,x1s) = Suc(Suc(n)))”*) )
+       x1s = Sing(SOME(x))) ⇒
+       App(f1,x1s) = ctt(IMAGE(f:X->B,PREIM(i1(X,1),x1s)),b0)) &
+    (ELSE ⇒ App(f1,x1s) = b1)”
+ |> uex2ex_rule) >> 
+ qexists_tac ‘f1’ >> rpt strip_tac (* 2 *) >--
+ (rw[GSYM IN_EXT_iff,FIB_def,PREIM_def,IN_Sing,IMAGE_def] >>
+ rw[IN_EXT_iff] >> strip_tac >>
+ dimp_tac >> rpt strip_tac >> arw[] (* 2 *)
+ >-- (rfs[] >>
+     qcases
+     ‘(∃s0. 
+        x = Ins(NONE(X),App(Image(i1(X,1)) o i:C->Pow(X),s0)))’ (* 2 *)
+     >-- (first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+         first_x_assum drule >>
+         qsuff_tac
+         ‘b1 = b0’ >-- arw[] >>
+         pop_assum (assume_tac o GSYM) >> 
+         qpick_x_assum ‘~(b1 = b0)’ (K all_tac) >> fs[]) >>
+     qcases 
+     ‘∃x0. x = Sing(SOME(x0))’ 
+     >-- (first_x_assum (qspecl_then [‘x’] strip_assume_tac) >> 
+         qby_tac
+         ‘App(f1, x) = ctt(IMAGE(f, PREIM(i1(X, 1), x)), b0)’
+         >-- (first_x_assum irule >> arw[]) >> 
+         fs[] >> qexists_tac ‘x0’ >> 
+         arw[App_App_o,GSYM SOME_def,Sg_Sing] >>
+         qexists_tac ‘App(f1,x)’ >> arw[] >>  
+         fs[] >> fs[PREIM_i1_Sing_SOME,ctt_Sing,IMAGE_Sing]) >>
+     qsuff_tac ‘b = b1’ >-- (strip_tac >> fs[]) >>
+     first_x_assum (qspecl_then [‘x’] strip_assume_tac) >> rfs[]) >>
+ qexists_tac ‘b’ >> fs[] >> rfs[] >>
+ qsuff_tac
+ ‘App(f1, x) = ctt(IMAGE(f, PREIM(i1(X, 1), x)), b0)’ 
+ >-- (strip_tac >> arw[] >> rfs[] >>
+     rw[App_App_o,GSYM SOME_def,GSYM Sg_Sing,PREIM_i1_Sing_SOME,
+        IMAGE_Sing,ctt_Sing] >> arw[]) >>
+ first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+ first_x_assum irule >> fs[App_App_o,GSYM SOME_def,GSYM Sg_Sing]>>
+ rw[Sing_eq_eq,SOME_eq_eq,Sing_SOME_NEQ_Ins_NONE] >>
+ rpt strip_tac (* 2 *)
+ >-- (ccontra_tac >> fs[]) >>
+ qexists_tac ‘a’ >> rw[]) >>
+ rw[GSYM IN_EXT_iff,FIB_def,PREIM_def,IN_Sing,IMAGE_def,Whole_def]  >>
+ rw[IN_EXT_iff,App_App_o,INS_def] >> rw[GSYM App_App_o] >> strip_tac >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- rfs[] >> ccontra_tac >>
+     qsuff_tac
+     ‘App(f1,x) = b1’ 
+     >-- (strip_tac >> fs[]) >>
+     first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+     first_x_assum irule >> arw[] >> 
+  
+     
+
+
+(*{x} |-> f(x)
+  {NONE} U App(i,c) |-> b0
+
+
+*)
+ qby_tac
+ ‘FIB(f1, b0) =
+               IMAGE(INS(NONE(X)) o Image(i1(X, 1)) o i, Whole(C))’)
 (form_goal
  “∀C X i:C-> Pow(X). Inj(i) ⇒
   ∀B f:X->B bs:mem(Pow(B)) b0. 
   ~IN(b0,bs) ⇒
+  ∀b1. ~(b1 = b0) & ~IN(b1,bs) ⇒ 
   ∃f1: Pow(X+1) -> B.
   (∀b. IN(b,bs) ⇒ FIB(f1,b) = IMAGE(Sg(X+1) o i1(X,1),FIB(f,b))) & 
   FIB(f1,b0) = IMAGE(INS(NONE(X)) o Image(i1(X, 1)) o i,Whole(C)) ”)
+
+
+
+val nPow_Suc_ex_lemma = proved_th $
+e0
+(rpt strip_tac >> 
+ x_choose_then "f1" assume_tac
+ (define_lambda
+ “∀x1s. 
+    ((∃s0. 
+        x1s = Ins(NONE(X),App(Image(i1(X,1)) o i:C->Pow(X),s0))) ⇒
+     App(f1,x1s) = b0) &
+    ((∃x. 
+       x1s = Sing(SOME(x))) ⇒
+       App(f1,x1s) = ctt(IMAGE(f:X->B,PREIM(i1(X,1),x1s)),b0)) &
+    (ELSE ⇒ App(f1,x1s) = b1)”
+ |> uex2ex_rule) >> 
+ qexists_tac ‘f1’ >> rpt strip_tac (* 2 *) >--
+ (rw[GSYM IN_EXT_iff,FIB_def,PREIM_def,IN_Sing,IMAGE_def] >>
+ rw[IN_EXT_iff] >> strip_tac >>
+ dimp_tac >> rpt strip_tac >> arw[] (* 2 *)
+ >-- (rfs[] >>
+     qcases
+     ‘(∃s0. 
+        x = Ins(NONE(X),App(Image(i1(X,1)) o i:C->Pow(X),s0)))’ (* 2 *)
+     >-- (first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+         first_x_assum drule >>
+         qsuff_tac
+         ‘b1 = b0’ >-- arw[] >>
+         pop_assum (assume_tac o GSYM) >> 
+         qpick_x_assum ‘~(b1 = b0)’ (K all_tac) >> fs[]) >>
+     qcases 
+     ‘∃x0. x = Sing(SOME(x0))’ 
+     >-- (first_x_assum (qspecl_then [‘x’] strip_assume_tac) >> 
+         qby_tac
+         ‘App(f1, x) = ctt(IMAGE(f, PREIM(i1(X, 1), x)), b0)’
+         >-- (first_x_assum irule >> arw[]) >> 
+         fs[] >> qexists_tac ‘x0’ >> 
+         arw[App_App_o,GSYM SOME_def,Sg_Sing] >>
+         qexists_tac ‘App(f1,x)’ >> arw[] >>  
+         fs[] >> fs[PREIM_i1_Sing_SOME,ctt_Sing,IMAGE_Sing]) >>
+     qsuff_tac ‘b = b1’ >-- (strip_tac >> fs[]) >>
+     first_x_assum (qspecl_then [‘x’] strip_assume_tac) >> rfs[]) >>
+ qexists_tac ‘b’ >> fs[] >> rfs[] >>
+ qsuff_tac
+ ‘App(f1, x) = ctt(IMAGE(f, PREIM(i1(X, 1), x)), b0)’ 
+ >-- (strip_tac >> arw[] >> rfs[] >>
+     rw[App_App_o,GSYM SOME_def,GSYM Sg_Sing,PREIM_i1_Sing_SOME,
+        IMAGE_Sing,ctt_Sing] >> arw[]) >>
+ first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+ first_x_assum irule >> fs[App_App_o,GSYM SOME_def,GSYM Sg_Sing]>>
+ rw[Sing_eq_eq,SOME_eq_eq,Sing_SOME_NEQ_Ins_NONE] >>
+ rpt strip_tac (* 2 *)
+ >-- (ccontra_tac >> fs[]) >>
+ qexists_tac ‘a’ >> rw[]) >>
+ rw[GSYM IN_EXT_iff,FIB_def,PREIM_def,IN_Sing,IMAGE_def,Whole_def]  >>
+ rw[IN_EXT_iff,App_App_o,INS_def] >> rw[GSYM App_App_o] >> strip_tac >>
+ dimp_tac >> rpt strip_tac (* 2 *) 
+ >-- (rfs[] >> ccontra_tac >>
+     qsuff_tac
+     ‘App(f1,x) = b1’ 
+     >-- (strip_tac >> fs[]) >>
+     first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+     first_x_assum irule >> arw[] >> ccontra_tac >>
+     qby_tac
+     ‘ App(f1, x) = ctt(IMAGE(f, PREIM(i1(X, 1), x)), b0)’
+     >-- first_x_assum irule >> arw[] >>
+     fs[] >> rfs[] >> fs[] >>
+     fs[PREIM_i1_Sing_SOME,IMAGE_Sing,ctt_Sing] >> rfs[]) >>
+ qexists_tac ‘b0’ >> arw[] >>
+ first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+ rfs[] >> first_x_assum irule >> qexists_tac ‘a’ >> rw[])
+(form_goal
+ “∀C X i:C-> Pow(X). Inj(i) ⇒
+  ∀B f:X->B bs:mem(Pow(B)) b0. 
+  (∀x. ~(App(f,x) = b0)) ⇒
+  ~IN(b0,bs) ⇒
+  ∀b1. ~(b1 = b0) & ~IN(b1,bs) ⇒ 
+  ∃f1: Pow(X+1) -> B.
+  (∀b. IN(b,bs) ⇒ FIB(f1,b) = IMAGE(Sg(X+1) o i1(X,1),FIB(f,b))) & 
+  FIB(f1,b0) = IMAGE(INS(NONE(X)) o Image(i1(X, 1)) o i,Whole(C)) ”)
+
 
 val biunique_def = 
 qdefine_psym("biunique",[‘R:A~>B’,‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’])
@@ -564,6 +740,13 @@ e0
       cardeq(s3,s4) ⇒
     (cardeq(s1,s3) ⇔ cardeq(s2,s4))”));
 
+val NONE_NOTIN_IMAGE_i1 = prove_store("NONE_NOTIN_IMAGE_i1",
+e0
+(rpt strip_tac >> fs[IMAGE_def,Image_def,GSYM SOME_def,GSYM SOME_NOTNONE] >>
+ ccontra_tac >> fs[] )
+(form_goal
+ “∀X s. (∀s0.IN(s0,IMAGE(Image(i1(X,1)),s)) ⇒ ~IN(NONE(X),s0))”));
+
 val nPow_Suc = prove_store("nPow_Suc",
 e0
 (rpt strip_tac >>
@@ -603,7 +786,22 @@ e0
  qby_tac
  ‘cardeq(IMAGE(INS(NONE(X)) o Image(i1(X, 1)) o Image(i), Whole(Pow(An))),
               Whole(Pow(An)))’
- >-- cheat >> arw[] >>
+ >-- (irule cardeq_SYM >> irule IMAGE_INJ_cardeq >>
+      qexistsl_tac [‘Whole(Pow(An))’,‘Whole(Pow(X + 1))’] >>
+      rw[SS_Refl] >> irule o_INJ_INJ >>
+      qexists_tac ‘IMAGE(Image(i1(X, 1)) o Image(i),Whole(Pow(An)))’ >>
+      strip_tac (* 2 *)
+      >-- (rw[IMAGE_o] >> 
+          qspecl_then 
+          [‘X’,‘IMAGE(Image(i), Whole(Pow(An)))’] assume_tac 
+          NONE_NOTIN_IMAGE_i1 >>
+          drule INJ_INS_NONE >>
+          irule INJ_SS_cod >> 
+          qexists_tac ‘IMAGE(INS(NONE(X)),
+                    IMAGE(Image(i1(X, 1)), IMAGE(Image(i), Whole(Pow(An)))))’>>
+          arw[SS_def,Whole_def]) >>
+      irule Inj_INJ >> irule o_Inj_Inj >> arw[] >>
+      irule Inj_Image >> rw[i1_Inj]) >> arw[] >>
  rpt strip_tac >>
  drule Le_cases >> pop_assum strip_assume_tac (* 2 *)
  >-- (first_x_assum drule >> last_x_assum drule >>
