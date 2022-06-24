@@ -431,16 +431,60 @@ qfun_compr ‘s:mem(Pow(X))’ ‘Ins(x0:mem(X),s)’
 (*content*)
 val content_def = proved_th $
 e0
-cheat
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?f:Pow(X) ->X. 
+  (!s x. s = Sing(x) ==> App(f,s) = x) &
+  (∀s.(!x. ~(s = Sing(x))) ==> App(f,s) = x0)’
+ >-- (rpt strip_tac >> uex_tac >> qexists_tac ‘f’ >>
+     arw[] >> rpt strip_tac >>
+     irule $ iffLR FUN_EXT >> strip_tac >>
+     qcases ‘∃x. a = Sing(x)’ (* 2 *)
+     >-- (fs[] >>
+         first_x_assum drule >> first_x_assum drule >> rfs[]) >>
+     qby_tac
+     ‘∀x. ~(a = Sing(x))’
+     >-- (rpt strip_tac >> 
+         ccontra_tac >>
+         qby_tac ‘∃x. a = Sing(x)’
+         >-- (qexists_tac ‘x’ >> arw[]) >> rfs[]) >>
+     first_x_assum drule >> first_x_assum drule >> fs[]) >>
+ strip_assume_tac
+ (P2fun |> qspecl [‘Pow(X)’,‘X’] 
+ |> fVar_sInst_th “P(s:mem(Pow(X)),x:mem(X))”
+    “s = Sing(x) |
+     (∀x:mem(X). ~(s = Sing(x))) & x = x0”) >>
+ qby_tac
+ ‘∀s. ?!x.s = Sing(x) |
+     (∀x:mem(X). ~(s = Sing(x))) & x = x0 ’
+ >-- (strip_tac >> uex_tac >>
+     qcases ‘∃x. s = Sing(x)’ (* 2 *)
+     >-- (pop_assum strip_assume_tac >>
+         qexists_tac ‘x’ >> arw[] >> rw[Sing_eq_eq] >>
+         rpt strip_tac >> fs[] >> 
+         first_x_assum (qspecl_then [‘x’] assume_tac) >> fs[]) >>
+      qby_tac
+     ‘∀x. ~(s = Sing(x))’
+     >-- (rpt strip_tac >> 
+         ccontra_tac >>
+         qby_tac ‘∃x. s = Sing(x)’
+         >-- (qexists_tac ‘x’ >> arw[]) >> rfs[]) >>
+     arw[] >> qexists_tac ‘x0’ >> rw[]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac>> qexists_tac ‘f’ >> arw[] >>
+ rpt strip_tac >> arw[]
+)
 (form_goal 
  “!X x0.?!f:Pow(X) ->X. 
-  !s x. s = Sing(x) ==> App(f,s) = x &
-        (!x. ~(s = Sing(x)) ==> App(f,s) = x0)”)
+  (!s x. s = Sing(x) ==> App(f,s) = x) &
+  (∀s. (!x. ~(s = Sing(x))) ==> App(f,s) = x0)”)
 |> spec_all |> qsimple_uex_spec "content" [‘x0’] 
 |> gen_all 
 
-val content_Sing = content_def 
-|> qsspecl [‘x0:mem(X)’,‘Sing(x:mem(X))’,‘x:mem(X)’]
+val content_Sing = 
+content_def |> qsspecl [‘x0:mem(X)’] 
+            |> conjE1
+            |> qsspecl [‘Sing(x:mem(X))’,‘x:mem(X)’]
 |> rewr_rule[] |> qgenl [‘X’,‘x0’,‘x’] 
 
 
