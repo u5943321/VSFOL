@@ -245,6 +245,11 @@ e0
   ∀s.cardeq(s,IMAGE(f,s))”));
 
 
+val INS_def = 
+qfun_compr ‘s:mem(Pow(X))’ ‘Ins(x0:mem(X),s)’ 
+|> qsimple_uex_spec "INS" [‘x0’] |> gen_all
+
+
 val INJ_INS_NONE = prove_store("INJ_INS_NONE",
 e0
 (rpt strip_tac >>
@@ -423,11 +428,6 @@ qdefine_fsym("OE",[‘f:A->B’,‘b0:mem(B)’])
 ‘coPa(f,El(b0))’
 
 
-val INS_def = 
-qfun_compr ‘s:mem(Pow(X))’ ‘Ins(x0:mem(X),s)’ 
-|> qsimple_uex_spec "INS" [‘x0’] |> gen_all
-
-
 (*content*)
 val content_def = proved_th $
 e0
@@ -493,33 +493,42 @@ val ctt_def = qdefine_fsym("ctt",[‘s:mem(Pow(X))’,‘x0:mem(X)’])
 
 val Sg_Sing = prove_store("Sg_Sing",
 e0
-(cheat)
+(rw[Sing_def])
 (form_goal “∀A a.Sing(a)  = App(Sg(A),a)”));
 
 val PREIM_i1_Sing_SOME = prove_store("PREIM_i1_Sing_SOME",
 e0
-(cheat)
+(rw[GSYM IN_EXT_iff,PREIM_def,IN_Sing,GSYM SOME_def] >>
+ strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- rfs[SOME_eq_eq] >>
+ qexists_tac ‘SOME(x)’ >> arw[])
 (form_goal
  “PREIM(i1(X, 1), Sing(SOME(x0))) = Sing(x0)”));
 
 
 val IMAGE_Sing  = prove_store("IMAGE_Sing",
 e0
-(cheat)
+(rw[GSYM IN_EXT_iff,IMAGE_def,IN_Sing] >>
+ strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- arw[] >>
+ qexists_tac ‘a’ >> arw[])
 (form_goal
  “IMAGE(f:A->B,Sing(a)) = Sing(App(f,a))”));
 
 
 val ctt_Sing = prove_store("ctt_Sing",
 e0
-(cheat)
+(rw[ctt_def,content_Sing])
 (form_goal
  “∀A a0:mem(A) a.ctt(Sing(a),a0) = a”));
 
 
 val Sing_SOME_NEQ_Ins_NONE = prove_store("Sing_SOME_NEQ_Ins_NONE",
 e0
-(cheat)
+(rpt strip_tac >> rw[GSYM IN_EXT_iff,Ins_def,IN_Sing] >>
+ rpt strip_tac >> ccontra_tac >>
+ first_x_assum (qspecl_then [‘NONE(A)’] assume_tac) >>
+ fs[GSYM SOME_NOTNONE])
 (form_goal “∀A a s.~(Sing(SOME(a)) = Ins(NONE(A),s))”));
 
 (*
@@ -946,6 +955,8 @@ e0
  qexists_tac ‘Pow(An)’ >>
  drule nPow_Suc>> arw[] )
 (form_goal “!A n. ?An. nPow(n,A,An)”));
+
+
 
 val large_ex = prove_store("large_ex",
 e0
