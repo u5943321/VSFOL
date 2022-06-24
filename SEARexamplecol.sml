@@ -478,79 +478,11 @@ e0
 (cheat)
 (form_goal “∀A a s.~(Sing(SOME(a)) = Ins(NONE(A),s))”));
 
+(*
+
 val nPow_Suc_ex_lemma = proved_th $
 e0
-(rpt strip_tac >> 
- x_choose_then "f1" assume_tac
- (define_lambda
- “∀x1s. 
-    ((∃s0. 
-        x1s = Ins(NONE(X),App(Image(i1(X,1)) o i:C->Pow(X),s0))) ⇒
-     App(f1,x1s) = b0) &
-    ((∃x. 
-       x1s = Sing(SOME(x))) ⇒
-       App(f1,x1s) = ctt(IMAGE(f:X->B,PREIM(i1(X,1),x1s)),b0)) &
-    (ELSE ⇒ App(f1,x1s) = b1)”
- |> uex2ex_rule) >> 
- qexists_tac ‘f1’ >> rpt strip_tac (* 2 *) >--
- (rw[GSYM IN_EXT_iff,FIB_def,PREIM_def,IN_Sing,IMAGE_def] >>
- rw[IN_EXT_iff] >> strip_tac >>
- dimp_tac >> rpt strip_tac >> arw[] (* 2 *)
- >-- (rfs[] >>
-     qcases
-     ‘(∃s0. 
-        x = Ins(NONE(X),App(Image(i1(X,1)) o i:C->Pow(X),s0)))’ (* 2 *)
-     >-- (first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
-         first_x_assum drule >>
-         qsuff_tac
-         ‘b1 = b0’ >-- arw[] >>
-         pop_assum (assume_tac o GSYM) >> 
-         qpick_x_assum ‘~(b1 = b0)’ (K all_tac) >> fs[]) >>
-     qcases 
-     ‘∃x0. x = Sing(SOME(x0))’ 
-     >-- (first_x_assum (qspecl_then [‘x’] strip_assume_tac) >> 
-         qby_tac
-         ‘App(f1, x) = ctt(IMAGE(f, PREIM(i1(X, 1), x)), b0)’
-         >-- (first_x_assum irule >> arw[]) >> 
-         fs[] >> qexists_tac ‘x0’ >> 
-         arw[App_App_o,GSYM SOME_def,Sg_Sing] >>
-         qexists_tac ‘App(f1,x)’ >> arw[] >>  
-         fs[] >> fs[PREIM_i1_Sing_SOME,ctt_Sing,IMAGE_Sing]) >>
-     qsuff_tac ‘b = b1’ >-- (strip_tac >> fs[]) >>
-     first_x_assum (qspecl_then [‘x’] strip_assume_tac) >> rfs[]) >>
- qexists_tac ‘b’ >> fs[] >> rfs[] >>
- qsuff_tac
- ‘App(f1, x) = ctt(IMAGE(f, PREIM(i1(X, 1), x)), b0)’ 
- >-- (strip_tac >> arw[] >> rfs[] >>
-     rw[App_App_o,GSYM SOME_def,GSYM Sg_Sing,PREIM_i1_Sing_SOME,
-        IMAGE_Sing,ctt_Sing] >> arw[]) >>
- first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
- first_x_assum irule >> fs[App_App_o,GSYM SOME_def,GSYM Sg_Sing]>>
- rw[Sing_eq_eq,SOME_eq_eq,Sing_SOME_NEQ_Ins_NONE] >>
- rpt strip_tac (* 2 *)
- >-- (ccontra_tac >> fs[]) >>
- qexists_tac ‘a’ >> rw[]) >>
- rw[GSYM IN_EXT_iff,FIB_def,PREIM_def,IN_Sing,IMAGE_def,Whole_def]  >>
- rw[IN_EXT_iff,App_App_o,INS_def] >> rw[GSYM App_App_o] >> strip_tac >>
- dimp_tac >> rpt strip_tac (* 2 *)
- >-- rfs[] >> ccontra_tac >>
-     qsuff_tac
-     ‘App(f1,x) = b1’ 
-     >-- (strip_tac >> fs[]) >>
-     first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
-     first_x_assum irule >> arw[] >> 
-  
-     
-
-
-(*{x} |-> f(x)
-  {NONE} U App(i,c) |-> b0
-
-
-*)
- qby_tac
- ‘FIB(f1, b0) =
-               IMAGE(INS(NONE(X)) o Image(i1(X, 1)) o i, Whole(C))’)
+(cheat)
 (form_goal
  “∀C X i:C-> Pow(X). Inj(i) ⇒
   ∀B f:X->B bs:mem(Pow(B)) b0. 
@@ -560,6 +492,7 @@ e0
   (∀b. IN(b,bs) ⇒ FIB(f1,b) = IMAGE(Sg(X+1) o i1(X,1),FIB(f,b))) & 
   FIB(f1,b0) = IMAGE(INS(NONE(X)) o Image(i1(X, 1)) o i,Whole(C)) ”)
 
+*)
 
 
 val nPow_Suc_ex_lemma = proved_th $
@@ -650,7 +583,7 @@ qdefine_psym("biunique",[‘R:A~>B’,‘s1:mem(Pow(A))’,‘s2:mem(Pow(B))’]
 val SS_Ri_restrict = prove_store("SS_Ri_restrict",
 e0
 (rpt strip_tac >> rw[SS_def,Ri_def,restrict_def] >>
- rpt strip_tac )
+ rpt strip_tac)
 (form_goal
  “∀A s1 a B R s2.  SS(App(Ri(restrict(R:A~>B, s1, s2)), a), s2)”));
 
@@ -747,11 +680,128 @@ e0
 (form_goal
  “∀X s. (∀s0.IN(s0,IMAGE(Image(i1(X,1)),s)) ⇒ ~IN(NONE(X),s0))”));
 
+
+val shrink_def = 
+define_lambda
+ “∀x. (IN(App(f0:X->B,x),s) ⇒ App(f,x) = App(f0,x)) &
+      (ELSE ⇒ App(f,x) = b0)”
+|> qsimple_uex_spec "shrink" [‘f0’,‘s’,‘b0’]
+
+(*
+val shrink_IMAGE_ex = prove_store("shrink_IMAGE_ex",
+e0
+(rpt strip_tac >>
+ strip_assume_tac
+ (define_lambda
+ “∀x. (IN(App(f0:X->B,x),s) ⇒ App(f,x) = App(f0,x)) &
+      (ELSE ⇒ App(f,x) = b0)”
+ |> uex2ex_rule) >>
+ qexists_tac ‘f’ >> arw[] >>
+ rpt strip_tac >>
+ rw[GSYM IN_EXT_iff,FIB_def,PREIM_def,IN_Sing] >>
+ strip_tac >> 
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (rfs[] >> qexists_tac ‘b’ >> arw[] >>
+     first_x_assum (assume_tac o  GSYM) >> arw[] >>
+     flip_tac >>
+     first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+     first_x_assum irule >> ccontra_tac >>
+     first_x_assum drule >>
+     fs[]) >>
+ qexists_tac ‘b’ >> arw[] >> rfs[] >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+ first_x_assum irule >> ccontra_tac >> first_x_assum drule >>
+ fs[])
+(form_goal
+ “∀X B f0:X->B s:mem(Pow(B)) b0.
+  ~IN(b0,s) ⇒
+  ∃f: X->B. 
+   (∀b. IN(b,s) ⇒ FIB(f,b) = FIB(f0,b)) &
+    ∀x. ~IN(App(f0,x),s) ⇒ App(f,x) = b0”));
+*)
+
+
+
+val shrink_IMAGE = prove_store("shrink_IMAGE",
+e0
+(rpt gen_tac >>
+ assume_tac shrink_def >> 
+ rw[GSYM IN_EXT_iff,FIB_def,PREIM_def,IN_Sing] >> arw[] >>
+ rpt strip_tac >> 
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (rfs[] >> qexists_tac ‘b’ >> arw[] >>
+     first_x_assum (assume_tac o  GSYM) >> arw[] >>
+     flip_tac >>
+     first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+     first_x_assum irule >> ccontra_tac >>
+     first_x_assum drule >>
+     fs[]) >>
+ qexists_tac ‘b’ >> arw[] >> rfs[] >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ first_x_assum (qspecl_then [‘x’] strip_assume_tac) >>
+ first_x_assum irule >> ccontra_tac >> first_x_assum drule >>
+ fs[])
+(form_goal
+ “∀X B f0:X->B s:mem(Pow(B)) b0.
+  ~IN(b0,s) ⇒
+   (∀b. IN(b,s) ⇒ FIB(shrink(f0,s,b0),b) = FIB(f0,b)) &
+    ∀x. ~IN(App(f0,x),s) ⇒ App(shrink(f0,s,b0),x) = b0”));
+
+val nPow_shrink_IMAGE_ex = prove_store("nPow_shrink_IMAGE_ex",
+e0
+(rpt strip_tac >>
+ fs[nPow_def] >>
+ strip_assume_tac
+ (IN_def_P_ex |> qspecl [‘N’] 
+ |> fVar_sInst_th “P(n0:mem(N))” “Le(n0,n)”
+ |> GSYM) >>
+ qsspecl_then [‘f’,‘s’,‘Suc(Suc(n))’] strip_assume_tac 
+ shrink_IMAGE >>
+ rfs[] >>
+ fs[NOT_LESS_EQ] >>
+ qby_tac
+ ‘Lt(n, Suc(Suc(n)))’
+ >-- (irule Lt_trans >> qexists_tac ‘Suc(n)’ >> rw[Lt_Suc]) >>
+ first_x_assum drule >>
+ qexistsl_tac [‘X’,‘shrink(f,s,Suc(Suc(n)))’] >>
+ pop_assum strip_assume_tac >> 
+ rpt strip_tac (* 4 *)
+ >-- (first_x_assum (qspecl_then [‘O’] assume_tac) >>
+     fs[O_LESS_EQ])
+ >-- (first_x_assum (qspecl_then [‘n’] assume_tac) >>
+     fs[Le_refl]) 
+ >-- (qby_tac ‘Le(Suc(n0),n)’ 
+     >-- fs[Lt_Le_Suc] >>
+     first_assum drule >>
+     drule Lt_Le >> first_assum drule >> fs[] >>
+     first_assum irule >> arw[]) >>
+ qsspecl_then [‘Suc(Suc(n))’,‘s’,‘f’,‘x’]
+ strip_assume_tac (shrink_def |> gen_all) >>
+ rfs[] >>
+ qcases ‘Le(App(f, x), n)’  (* 2 *)
+ >-- (first_x_assum drule >> arw[] >> ccontra_tac >> fs[] >>
+     fs[GSYM Lt_Le_Suc,Lt_def]) >>
+ first_x_assum drule >>
+ arw[] >> rw[GSYM Suc_NEQ] )
+(form_goal
+ “nPow(n,A,An) ⇒ 
+  ?X f:X->N. cardeq(FIB(f,O),Whole(A)) & 
+            cardeq(FIB(f,n),Whole(An)) &
+  (!n0. Lt(n0,n) ==>
+   cardeq(POW(FIB(f,n0)),FIB(f,Suc(n0)))) &
+  ∀x. ~(App(f,x) = Suc(n))”));
+
+
+
+
+
 val nPow_Suc = prove_store("nPow_Suc",
 e0
 (rpt strip_tac >>
  rw[nPow_def] >> rw[Lt_Suc_Le] >> 
- fs[nPow_def] >>
+ drule nPow_shrink_IMAGE_ex >> 
+ pop_assum strip_assume_tac >> 
  qexistsl_tac [‘Pow(X+1)’] >>
  drule cardeq_Whole_Inj_ex >>
  pop_assum strip_assume_tac >>
@@ -765,7 +815,15 @@ e0
  qby_tac
  ‘~IN(Suc(n),s)’ 
  >-- arw[NOT_LESS_EQ,Lt_Suc]  >>
+ rfs[] >> 
  first_x_assum drule >>
+ first_x_assum (qspecl_then [‘Suc(Suc(n))’] assume_tac) >>
+ fs[Suc_eq_eq,GSYM Suc_NEQ] >>
+ qby_tac
+ ‘~Le(Suc(Suc(n)), n)’
+ >-- (rw[NOT_LESS_EQ] >>
+     irule Lt_trans >> qexists_tac ‘Suc(n)’ >> rw[Lt_Suc]) >>
+ first_x_assum drule >> 
  pop_assum strip_assume_tac >>
  qexists_tac ‘f1’ >> rfs[] >> 
  qby_tac
@@ -833,6 +891,8 @@ e0
  (qsspecl_then [‘IMAGE(INS(NONE(X)) o Image(i1(X, 1)) o Image(i), Whole(Pow(An)))’, ‘Whole(Pow(An))’] assume_tac) >>
  first_x_assum drule >> arw[])
 (form_goal “∀A An. nPow(n,A,An) ⇒ nPow(Suc(n),A,Pow(An))”));
+
+
 
 
 val nPow_ex = prove_store("nPow_ex",
