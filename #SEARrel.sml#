@@ -197,6 +197,6 @@ e0
 
 val op_op = prove_store("op_op",
 e0
-(rpt strip_tac >> irule $ iffLR R_EXT >> )
+(rpt strip_tac >> irule $ iffLR R_EXT >> rw[op_def])
 (form_goal
  “∀A B R:A~>B. op(op(R)) = R”));

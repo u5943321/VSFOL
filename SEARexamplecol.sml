@@ -130,13 +130,6 @@ e0
  cardeq(Whole(A),IMAGE(f,Whole(A)))”));
 
 
-val cardeq_Inj_IMAGE_gen = prove_store("cardeq_Inj_IMAGE_gen",
-e0
-(cheat)
-(form_goal
- “∀A B f:A->B. Inj(f) ⇒
- ∀s.cardeq(s,IMAGE(f,s))”));
-
 val Inj_Image = prove_store("Inj_Image",
 e0
 (rpt strip_tac >>
@@ -167,14 +160,72 @@ val INJ_def =
                                    x = y)’ |> gen_all
 
 
-val IMAGE_INJ_cardeq = 
-prove_store("IMAGE_INJ_cardeq",
+val IMAGE_INJ_cardeq = prove_store("IMAGE_INJ_cardeq",
 e0
-cheat
+(rpt strip_tac >>
+ rw[cardeq_def] >>
+ strip_assume_tac 
+ (AX1 |> qspecl [‘A’,‘B’] 
+      |> fVar_sInst_th “P(a:mem(A),b:mem(B))”
+         “IN(a,s1)& b = App(f:A->B,a)”
+      |> uex2ex_rule) >> 
+ qexists_tac ‘R’ >> arw[IMAGE_def] >>
+ rpt strip_tac (* 2 *)
+ >-- (uex_tac >> qexists_tac ‘App(f,a)’ >> 
+     fs[SS_def] >> first_assum drule >> arw[] >>
+     rpt strip_tac >>
+     qexists_tac ‘a’ >> arw[]) >>
+     arw[] >> fs[INJ_def] >> uex_tac >>
+     qexists_tac ‘a’ >> arw[] >> fs[SS_def] >> 
+     first_x_assum drule >> arw[] >> rpt strip_tac >>
+     first_x_assum irule >> arw[])
 (form_goal
  “!A s1 B s2 f:A->B.INJ(f,s1,s2) ==>
   !s01. SS(s01,s1) ==> cardeq(s01,IMAGE(f,s01))”));
 
+val Inj_INJ = prove_store("Inj_INJ",
+e0
+(rpt strip_tac >> fs[Inj_def,INJ_def] >> rpt strip_tac (* 2 *)
+ >-- (rw[IMAGE_def] >> qexists_tac ‘x’ >> arw[]) >>
+ first_x_assum irule >> arw[])
+(form_goal
+ “∀A B f:A->B. Inj(f) ⇒
+  ∀s.INJ(f,s,IMAGE(f,s))”));
+
+val INJ_SS_dom = prove_store("INJ_SS_dom",
+e0
+(rw[SS_def,INJ_def] >> rpt strip_tac (* 2 *)
+ >-- (first_x_assum drule >> first_x_assum drule >> arw[]) >>
+ first_x_assum irule >> arw[] >> strip_tac >> first_x_assum irule >> arw[])
+(form_goal
+ “∀A B f:A->B s1 s2. INJ(f,s1,s2) ⇒
+  ∀s. SS(s,s1) ⇒ INJ(f,s,s2)”));
+
+val cardeq_Inj_IMAGE_gen = prove_store("cardeq_Inj_IMAGE_gen",
+e0
+(cheat)
+(form_goal
+ “∀A B f:A->B. Inj(f) ⇒
+ ∀s.cardeq(s,IMAGE(f,s))”));
+
+
+val INJ_INS_NONE = prove_store("INJ_INS_NONE",
+e0
+(rpt strip_tac >>
+ rw[INJ_def] >> rpt strip_tac (* 2 *)
+ >-- (rw[IMAGE_def] >> qexists_tac ‘x’ >> arw[]) >>
+ fs[GSYM IN_EXT_iff,INS_def,Ins_def] >>
+ strip_tac >> 
+ first_assum drule >> first_assum drule >>
+ dimp_tac >> strip_tac (* 2 *)
+ >-- (first_x_assum (qspecl_then [‘x'’] assume_tac) >> rfs[] >>
+     fs[] >> first_x_assum rev_drule >> fs[]) >>
+ first_x_assum (qspecl_then [‘x'’] assume_tac) >>
+ rfs[] >> fs[])
+(form_goal
+ “∀X s:mem(Pow(Pow(X+1))). 
+   (∀s0.IN(s0,s) ⇒ ~IN(NONE(X),s0)) ⇒
+   INJ(INS(NONE(X)),s,IMAGE(INS(NONE(X)),s))”));
 
 val POW_def = IN_def_P |> qspecl [‘Pow(A)’] 
                        |> fVar_sInst_th “P(s:mem(Pow(A)))”
@@ -182,9 +233,14 @@ val POW_def = IN_def_P |> qspecl [‘Pow(A)’]
                        |> qsimple_uex_spec "POW" [‘s0’]
                        |> gen_all
 
+val POW_Whole_Pow = prove_store("POW_Whole_Pow",
+e0
+(rw[GSYM IN_EXT_iff,Whole_def,POW_def,SS_def] )
+(form_goal “∀A. POW(Whole(A)) = Whole(Pow(A))”));
+
 val cardeq_POW_Whole_Pow = prove_store("cardeq_POW_Whole_Pow",
 e0
-cheat
+(rw[POW_Whole_Pow,cardeq_REFL])
 (form_goal
  “∀A.cardeq(POW(Whole(A)),Whole(Pow(A)))”));
 
@@ -304,6 +360,7 @@ qdefine_psym
 
 *)
 
+(*
 
 val Sgf_cardeq = prove_store("Sgf_cardeq",
 e0
@@ -313,6 +370,7 @@ e0
   ~IN(b0,IMAGE(f,Whole(A))) ⇒
   ∀b. IN(b,IMAGE(f,Whole(A))) ⇒ 
       cardeq(FIB(f,b),FIB(Sgf(f,b0),b))”));
+*)
 
 (*
 val same_FIB_cardeq = prove_store("same_FIB_cardeq",
@@ -327,41 +385,6 @@ e0
 val OE_def = 
 qdefine_fsym("OE",[‘f:A->B’,‘b0:mem(B)’])
 ‘coPa(f,El(b0))’
-
-val nPow_Suc = prove_store("nPow_Suc",
-e0
-(rpt strip_tac >>
- rw[nPow_def] >> rw[Lt_Suc_Le] >> 
- fs[nPow_def] >>
- qexistsl_tac [‘Pow(X+1)’] >>
- qby_tac ‘cardeq(Whole(An),FIB(f, n))’ >-- cheat >>
- drule $ iffLR cardeq_def  >>
- pop_assum strip_assume_tac >> 
- qby_tac
- ‘INJ(OE(f,))’
- qby_tac
- ‘Inj(Image(f'))’ 
- >-- cheat >>
- 
-
- qby_tac
- ‘∃i:Pow(An) -> Pow(X). Inj(i)’
- define_lambda
- “∀px1.
-   (∃x. px1 = Sing(SOME(x))) ⇒
-   App(f1,px1) = App(Sgf(OE(f,Suc(n)),Suc(Suc(n))),px1) &
-   (∃x. px1 = Ins(NONE(X),Sing(SOME(x)))) ⇒
-   App(f1,px1) = )”
- 
- rastt "App(Sgf(coPa(f:X->N,El(Suc(n))),NONE(X)),px1)"
- qexists_tac ‘Sg(X+1) o ’
- qsuff_tac
- ‘∃f:Pow(X+1) -> N.
-   cardeq(FIB(f,O),Whole(A)) & 
-   cardeq(F)’
- 
- )
-(form_goal “∀A An. nPow(n,A,An) ⇒ nPow(Suc(n),A,Pow(An))”));
 
 val Inj_IMAGE_cardeq = proved_th $
 e0
@@ -438,7 +461,7 @@ e0
 val biunique_Ri_restrict = prove_store("biunique_Ri_restrict",
 e0
 (rpt strip_tac >>
- arw[] >> flip_tac >>
+ arw[] >>
  rw[GSYM IN_EXT_iff] >> rw[Ri_def,restrict_def,op_def] >>
  rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
  >-- (qsuff_tac ‘x = a'’ >-- (strip_tac >> arw[]) >>
@@ -458,33 +481,39 @@ e0
  qexists_tac ‘x’ >> arw[])
 (form_goal
  “biunique(R:A~>B,s1,s2) ⇒
-  ∀s t. SS(s,s1) & SS(t,s2) ⇒
-  t = App(Ri(restrict(R,s1,s2)),s) ⇒ s = App(Ri(restrict(op(R),s2,s1)),t) ”)); 
+  ∀s. SS(s,s1) (*& SS(t,s2)*) ⇒
+   App(Ri(restrict(op(R),s2,s1)),App(Ri(restrict(R,s1,s2)),s)) = s”)); 
 
 
-   App(Ri(restrict(R, s1, s2)), App(Ri(restrict(op(R), s2, s1)), b)) = b
+val cardeq_biunique = cardeq_def |> rewr_rule[GSYM biunique_def]
+
+ (*App(Ri(restrict(R, s1, s2)), App(Ri(restrict(op(R), s2, s1)), b)) = b*)
+
+
 
 val cardeq_POW = prove_store("cardeq_POW",
 e0
-(rpt strip_tac >> fs[cardeq_def] >>
+(rpt strip_tac >> fs[cardeq_biunique] >>
  (assume_tac o uex2ex_rule)
  (AX1 |> qspecl [‘Pow(A)’,‘Pow(B)’]
       |> fVar_sInst_th “P(s:mem(Pow(A)),t:mem(Pow(B)))”
       “SS(s,s1) & SS(t,s2) & t = App(Ri(restrict(R:A~>B,s1,s2)),s)”) >>
  pop_assum (x_choose_then "R1" assume_tac) >>
  qexists_tac ‘R1’ >>
- rw[POW_def] >> arw[] >> rpt strip_tac (* 2 *)
+ rw[POW_def,biunique_def] >> arw[] >> rpt strip_tac (* 2 *)
  >-- (uex_tac >>
      qexists_tac ‘App(Ri(restrict(R, s1, s2)), a)’ >>
-     drule SS_Ri_restrict >> arw[] >>
+     rw[SS_Ri_restrict] >>
      rpt strip_tac >> arw[]) >>
  uex_tac >>
  qexists_tac ‘App(Ri(restrict(op(R), s2, s1)), b)’ >>
- drule SS_Ri_restrict >> arw[] >>
- qsuff_tac
- ‘App(Ri(restrict(R, s1, s2)), App(Ri(restrict(op(R), s2, s1)), b)) = b’
- >-- (strip_tac >> arw[] >> rpt strip_tac >> arw[] 
- )
+ rw[SS_Ri_restrict] >> arw[] >>
+ drule biunique_op >>
+ drule biunique_Ri_restrict >>
+ first_x_assum drule >> fs[op_op] >>
+ rpt strip_tac  >> arw[] >>
+ rev_drule biunique_Ri_restrict >>
+ first_x_assum drule >> arw[] )
 (form_goal
  “∀A s1:mem(Pow(A)) B s2:mem(Pow(B)).
   cardeq(s1,s2) ⇒ cardeq(POW(s1),POW(s2))”));
@@ -578,91 +607,6 @@ e0
  first_x_assum 
  (qsspecl_then [‘IMAGE(INS(NONE(X)) o Image(i1(X, 1)) o Image(i), Whole(Pow(An)))’, ‘Whole(Pow(An))’] assume_tac) >>
  first_x_assum drule >> arw[])
-(form_goal “∀A An. nPow(n,A,An) ⇒ nPow(Suc(n),A,Pow(An))”));
-
-
-val nPow_Suc = prove_store("nPow_Suc",
-e0
-(rpt strip_tac >>
- rw[nPow_def] >> rw[Lt_Suc_Le] >> 
- fs[nPow_def] >>
- qexistsl_tac [‘Pow(X+1)’] >>
- drule $ iffLR cardeq_char >>
- qby_tac
- ‘’
- qby_tac
- ‘∃i:Pow(An) -> Pow(X). Inj(i)’
- >-- cheat >> pop_assum strip_assume_tac >> 
- 
- define_lambda
- “∀x1s. 
-    ((∃s0:mem(Pow(An)). 
-        x1s = Ins(NONE(X),App(Image(i1(X,1)) o i,s0))) ⇒
-     App(f1,x1s) = Suc(n)) &
-    ((∃x. 
-       x1s = Sing(SOME(x)) & App(f,x) = n) ⇒
-    App(f1,x1s) = ctt(IMAGE(f,PREIM(i1(X,1),x1s)),O)) &
-    (ELSE ⇒ App(f1,x1s) = Suc(Suc(n)))” >>
-
-rastt "ctt(IMAGE(f,FIB(i1(X,1),x1s)),O)" 
-
- qsuff_tac
- ‘∃f1:Pow(X+1) ->N.
-  (∀x1s x. Le(App(f,x),n) ⇒
-           (App(f1,x1s) = App(f,x) ⇔ x1s = Sing(SOME(x)))) &
-  (∀x1s. App(f1,x1s) = Suc(n) ⇔
-         ∃s0:mem(Pow(An)). 
-           x1s = Ins(NONE(X),App(Image(i1(X,1)) o i,s0)))’ 
- >-- strip_tac >>
-     qexists_tac ‘f1’ >>
-     qby_tac
-     ‘∀n0.Le(n0,n) ⇒ FIB(f1,n0) = IMAGE(Sg(X+1) o i1(X,1),FIB(f,n0))’
-     >-- cheat >> 
-     qby_tac 
-     ‘cardeq(FIB(f1, O), Whole(A))’
-     >-- (first_x_assum (qspecl_then [‘O’] assume_tac) >>
-         fs[O_LESS_EQ] >> 
-         qby_tac ‘Inj(Sg(X + 1) o i1(X, 1))’ 
-         >-- cheat >>
-         drule Inj_IMAGE_cardeq >> 
-         first_x_assum (qspecl_then [‘FIB(f,O)’] assume_tac) >>
-         drule cardeq_TRANS >>
-         first_x_assum drule >> arw[]) >>
-     arw[] >>
-     qby_tac
-     ‘cardeq(FIB(f1, Suc(n)), Whole(Pow(An)))’
-     >-- qby_tac
-         ‘FIB(f1, Suc(n)) = 
-          IMAGE(INS(NONE(X)) o Image(i1(X, 1)) o i,Whole(Pow(An)))’
-         >-- cheat >>
-         arw[] >>
-         
-     qby_tac
-     ‘∀n0. Le(n0,n) ⇒
-      cardeq(POW(FIB(f1, n0)), FIB(f1, Suc(n0)))’
-     >-- rpt strip_tac >>
-         first_assum drule >>
-         arw[] >>
-         drule Le_cases >>
-         pop_assum strip_assume_tac (* 2 *)
-         >-- (last_x_assum drule >> 
-             qby_tac
-             ‘Le(Suc(n0),n)’
-             >-- arw[GSYM Lt_Le_Suc] >>
-             first_assum drule >>
-             arw[] >> cheat) >>
-             (*then use inj and trans*) 
-         arw[] >>
-         (*need to prove pow(An) before prove this *)
-
-          “x1s = Ins(NONE(X),App(Image(i1(X,1)) o i,s0:mem(Pow(An))))”
- qsuff_tac
- ‘∃f1:Pow(X+1) ->N.
-   (∀x. App(f1,Sing(SOME(x))) = App(f,x)) &
-   (∀x1s s0.   ⇔ App(f1,xs) = Suc(n)) &
-   ()’
- qby_tac
- ‘’)
 (form_goal “∀A An. nPow(n,A,An) ⇒ nPow(Suc(n),A,Pow(An))”));
 
 
