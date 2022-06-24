@@ -192,6 +192,7 @@ e0
  “∀A B f:A->B. Inj(f) ⇒
   ∀s.INJ(f,s,IMAGE(f,s))”));
 
+
 val INJ_SS_dom = prove_store("INJ_SS_dom",
 e0
 (rw[SS_def,INJ_def] >> rpt strip_tac (* 2 *)
@@ -201,12 +202,38 @@ e0
  “∀A B f:A->B s1 s2. INJ(f,s1,s2) ⇒
   ∀s. SS(s,s1) ⇒ INJ(f,s,s2)”));
 
+
+val INJ_SS_cod = prove_store("INJ_SS_cod",
+e0
+(rw[SS_def,INJ_def] >> rpt strip_tac (* 2 *)
+ >-- (first_x_assum drule >> first_x_assum drule >> arw[]) >>
+ first_x_assum irule >> arw[] >> strip_tac >> first_x_assum irule >> arw[])
+(form_goal
+ “∀A B f:A->B s1 s2. INJ(f,s1,s2) ⇒
+  ∀s. SS(s2,s) ⇒ INJ(f,s1,s)”));
+
+val o_INJ_INJ = prove_store("o_INJ_INJ",
+e0
+(rpt strip_tac >> fs[INJ_def] >>
+ rpt strip_tac (* 2 *)
+ >-- (rw[App_App_o] >> first_x_assum irule >> first_x_assum irule >> arw[]) >>
+ first_x_assum irule >> arw[] >>
+ fs[App_App_o] >> first_x_assum irule >> arw[] >>
+ strip_tac >>
+ first_x_assum irule >> arw[])
+(form_goal
+ “∀A B f:A->B s1 s2. INJ(f,s1,s2) ⇒
+ ∀C g:B->C s3. INJ(g,s2,s3) ⇒ INJ(g o f, s1,s3)”));
+
 val cardeq_Inj_IMAGE_gen = prove_store("cardeq_Inj_IMAGE_gen",
 e0
-(cheat)
+(rpt strip_tac >> irule IMAGE_INJ_cardeq >>
+ drule Inj_INJ >> 
+ first_x_assum (qspecl_then [‘s’] assume_tac) >>
+ qexistsl_tac [‘s’,‘IMAGE(f,s)’] >> arw[SS_Refl])
 (form_goal
  “∀A B f:A->B. Inj(f) ⇒
- ∀s.cardeq(s,IMAGE(f,s))”));
+  ∀s.cardeq(s,IMAGE(f,s))”));
 
 
 val INJ_INS_NONE = prove_store("INJ_INS_NONE",
