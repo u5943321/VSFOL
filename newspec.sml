@@ -187,9 +187,14 @@ fun check_inputs vl vs0 =
     in ()
     end
 
+
+fun check_no_fVars f = HOLset.equal(fVars f,HOLset.empty String.compare) orelse 
+raise ERR ("check_no_fVars. the input has formula variables",[],[],[f])
+
 fun mk_newfsym fnames vl uexth = 
     let val (newspvs,b) = dest_n_exists (length fnames) (concl uexth)
         val (main,impf) = dest_conj b 
+        val _ = check_no_fVars main 
         val recoverex = mk_existss newspvs main
         val sts = List.map snd newspvs
         val (ct,asm) = (cont uexth,ant uexth)
