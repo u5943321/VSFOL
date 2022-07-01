@@ -411,6 +411,49 @@ e0
       ==>
       IN(x', k))”));
 
+
+
+
+
+val lemma5 = prove_store("lemma5",
+e0
+(rpt strip_tac >>
+ rw[fchains_def,Sing_NONEMPTY] >> 
+ qby_tac
+ ‘upper_bounds(Empty(A), r) = range(r)’
+ >-- rw[GSYM IN_EXT_iff,upper_bounds_def,Empty_def]>>
+ qby_tac
+ ‘IN(range(r),hatclass(r))’
+ >-- (rw[hatclass_def] >>
+     qexists_tac ‘Empty(A)’ >> arw[Diff_Empty]) >>
+ fs[ischoice_def] >>
+ first_x_assum drule >>
+ qby_tac
+ ‘chain0(Sing(App(f, range(r))), r)’
+ >-- (rw[chain0_def,IN_Sing] >>
+     rpt strip_tac >> arw[] >>
+     fs[SS_def,reflexive_def] >> 
+     first_x_assum drule >>
+     first_x_assum drule >> fs[]) >> arw[] >>
+ rw[Inter_Sing_NONEMPTY] >>
+ rw[SS_Sing] >> rw[minimal_elements_def] >>
+ rw[IN_Inter,IN_Sing] >> gen_tac >>
+ strip_tac (* 2 *)
+ >-- (fs[IN_Sing] >> rfs[Diff_def,IN_Sing]) >>
+ fs[] >> rfs[] >>
+ fs[Diff_Empty] >>
+ rpt strip_tac >> fs[])
+(form_goal
+ “!r:mem(Pow(A * A)) f s. 
+   ischoice(f,hatclass(r)) &
+   SS(range(r),s) &
+   ~(range(r) = Empty(A)) &
+   reflexive(r,s) ==>
+   IN(Sing(App(f,range(r))),fchains(r,f))”));
+
+
+
+
 val lemma9 = prove_store("lemma9",
 e0
 (cheat)
