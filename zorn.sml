@@ -336,6 +336,45 @@ e0
   ==>
   IN(Pair(x,x'),r)”));
 
+val lemma3 = prove_store("lemma3",
+e0
+(rpt strip_tac >>
+ fs[antisym_def,SS_def] >> ccontra_tac >>
+ fs[neg_or_distr] >>
+ assume_tac
+(forall_exists_dual
+     |> qspecl [‘A’] 
+     |> fVar_sInst_th “P(a:mem(A))”
+        “IN(a:mem(A),k1) ==> 
+         IN(a,k2)”) >>
+ fs[] >> fs[neg_imp_conj] >>
+ assume_tac
+(forall_exists_dual
+     |> qspecl [‘A’] 
+     |> fVar_sInst_th “P(a:mem(A))”
+        “IN(a:mem(A),k2) ==> 
+         IN(a,k1)”) >>
+ fs[] >> fs[neg_imp_conj] >>
+ qby_tac
+ ‘IN(Pair(a,a'),r)’
+ >-- (irule lemma2 >> arw[] >>
+     qexistsl_tac [‘f’,‘k1’,‘k2’] >> arw[]) >>
+ qby_tac
+ ‘IN(Pair(a',a),r)’
+ >-- (irule lemma2 >> arw[] >>
+     qexistsl_tac [‘f’,‘k2’,‘k1’] >> arw[]) >>
+ qby_tac ‘a' = a’
+ >-- (first_x_assum irule >> arw[]) >>
+ fs[])
+(form_goal
+ “!f r:mem(Pow(A*A)) k1 k2.
+  ischoice(f,hatclass(r)) & 
+  transitive(r) & 
+  antisym(r) & 
+  IN(k1, fchains(r,f)) &
+  IN(k2, fchains(r,f))
+  ==>
+  SS(k1,k2) | SS(k2,k1)”));
 
 val lemma4 = prove_store("lemma4",
 e0
