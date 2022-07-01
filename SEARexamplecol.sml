@@ -49,6 +49,7 @@ e0
  “∀A s1 B s2. cardeq(s1:mem(Pow(A)),s2:mem(Pow(B))) ==> cardeq(s2,s1)”));
 
 
+
 val restrict_def = 
     AX1 |> qspecl [‘A’,‘B’]
         |> fVar_sInst_th “P(a:mem(A),b:mem(B))”

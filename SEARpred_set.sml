@@ -1054,6 +1054,11 @@ e0
 (rw[SS_def,Whole_def,GSYM IN_EXT_iff])
 (form_goal “!A X.SS(Whole(A),X) ==> X = Whole(A)”));
 
+val SS_Whole = prove_store("SS_Whole",
+e0
+(rw[SS_def,Whole_def])
+(form_goal “!A X. SS(X,Whole(A))”));
+
 
 val Sing_Ins_Empty = prove_store("Sing_Ins_Empty",
 e0
@@ -1064,6 +1069,12 @@ val EMPTY_Empty_Whole = prove_store("EMPTY_Empty_Whole",
 e0
 (rw[GSYM IN_EXT_iff,Empty_def,Whole_def,EMPTY_def])
 (form_goal “!A. EMPTY(A) <=> Empty(A) = Whole(A)”));
+
+val NOT_EMPTY = prove_store("NOT_EMPTY",
+e0
+(rw[EMPTY_Empty_Whole] >> flip_tac >>
+ rw[GSYM IN_NONEMPTY,Whole_def])
+(form_goal “!A. ~EMPTY(A) <=> ?a:mem(A). T”));
 
 
 
@@ -1643,3 +1654,10 @@ fun set_spec oriset sname iname fvs uexth =
         val eqvth = set_spec_eqv |> allE oriset
     in new_spec argQ arg12eqr [sname,iname] fvs eth eqvth uexth
     end
+
+
+
+val Diff_def = 
+IN_def_P |> qspecl [‘A’]
+|> fVar_sInst_th “P(a:mem(A))” “IN(a:mem(A),s1) & ~IN(a,s2)”
+|> qsimple_uex_spec "Diff" [‘s1’,‘s2’] |>gen_all
