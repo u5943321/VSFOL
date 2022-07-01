@@ -451,7 +451,102 @@ e0
    reflexive(r,s) ==>
    IN(Sing(App(f,range(r))),fchains(r,f))”));
 
+val lemma6 = prove_store("lemma6",
+e0
+(rpt gen_tac >> strip_tac >>
+ qby_tac
+ ‘!x'. IN(x',C) ==> IN(Pair(x',x),r) & ~(x' = x)’ 
+ >-- (fs[Diff_def,upper_bounds_def] >>
+     rpt strip_tac >> first_x_assum drule >> fs[] >>
+     ccontra_tac >> fs[]) >>
+ qby_tac ‘SS(C,k)’ >--
+ (fs[SS_def] >> 
+  qsspecl_then [‘r’,‘f’] assume_tac lemma4 >>
+  rfs[] >>
+  rpt strip_tac >> first_x_assum irule >> arw[] >>
+  last_assum drule >> arw[] >>
+  first_x_assum drule >>
+  qexists_tac ‘x’ >> arw[] >>
+  rw[IN_BIGUNION] >> qexists_tac ‘k’ >> arw[]) >>
+ qby_tac
+ ‘~(Inter(Diff(upper_bounds(C,r),C),k) = Empty(A))’
+ >-- (rw[GSYM IN_NONEMPTY] >>
+     qexists_tac ‘x’ >> arw[IN_Inter]) >>
+ strip_tac (* 2 *)
+ >-- (drule $ iffLR fchains_def >> fs[] >>
+ qsuff_tac
+         ‘IN(App(f, Diff(upper_bounds(C, r), C)),
+                minimal_elements(Inter(Diff(upper_bounds(C, r), C), k), r))’
+         >-- (rw[minimal_elements_def,IN_Inter] >>
+             rpt strip_tac) >>
+ first_x_assum irule >> arw[]) >>
+ fs[fchains_def,minimal_elements_def,chain0_def] >>
+ first_x_assum (qspecl_then [‘C’] assume_tac) >> rfs[] >>
+ first_x_assum(qspecl_then [‘x’] assume_tac) >>
+ rfs[IN_Inter] >>
+ qby_tac
+ ‘IN(Pair(App(f, Diff(upper_bounds(C, r), C)), x), r)  |
+  IN(Pair(x,App(f, Diff(upper_bounds(C, r), C))), r)’ 
+ >-- (last_assum irule >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ fs[] >> rfs[])
+(form_goal
+ “!r:mem(Pow(A * A)) f k x C.
+  ischoice(f,hatclass(r)) &
+  transitive(r) &
+  antisym(r) &
+  IN(k,fchains(r,f)) &
+  IN(x,k) &
+  chain0(C, r) &
+  IN(x,Diff(upper_bounds(C,r),C)) &
+  SS(C,BIGUNION (fchains(r,f)))
+  ==>
+  IN(App(f,Diff(upper_bounds(C,r),C)),k) &
+  IN(Pair(App(f,Diff(upper_bounds(C,r),C)),x),r)”));
 
+val lemma7 = prove_store("lemma7",
+e0
+(rpt strip_tac >>
+ fs[fchains_def] >> rpt strip_tac (* 3 *)
+ >-- (qsspecl_then [‘r’,‘f’] assume_tac lemma4 >> rfs[]) 
+ >-- (rw[BIGUNION_NONEMPTY] >>
+     qexists_tac ‘Sing(App(f,range(r)))’ >>
+     rw[Sing_NONEMPTY] >>
+     irule lemma5 >> arw[] >>
+     qexists_tac ‘s’ >> arw[]) >>
+ qby_tac
+ ‘?x k. IN (x,Diff(upper_bounds(C,r), C)) &
+        IN (x,k ) & IN(k, fchains(r,f))’ 
+ >-- (fs[GSYM IN_NONEMPTY,IN_Inter,IN_BIGUNION] >>
+     qexistsl_tac [‘a'’,‘ss’] >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘IN(App(f,Diff(upper_bounds(C,r), C)),k) & 
+  IN(Pair(App(f,Diff(upper_bounds(C,r), C)),x),r)’
+ >-- (irule lemma6 >> arw[]) >>
+ rw[minimal_elements_def] >>
+ rpt strip_tac (* 2 *)
+ >-- (rw[IN_Inter,IN_BIGUNION] >> 
+     drule $ iffLR ischoice_def >>
+     pop_assum strip_assume_tac >>
+     strip_tac (* 2 *)
+     >-- (first_x_assum irule >> rw[hatclass_def] >>
+         qexists_tac ‘C’ >> rw[]) >>
+     qexists_tac ‘k’ >> arw[]) >>
+ fs[antisym_def] >>
+ first_assum irule >> arw[] >>
+ fs[IN_Inter,IN_BIGUNION] >> 
+ qsspecl_then [‘r’,‘f’,‘ss’,‘x'’,‘C’] 
+ assume_tac lemma6 >>
+ rfs[] >> rfs[IN_Inter,GSYM antisym_def])
+(form_goal
+ “!r:mem(Pow(A * A)) f s.
+   ischoice(f,hatclass(r)) &
+   SS(range(r),s) & ~(range(r) = Empty(A)) &
+   antisym(r) & reflexive(r,s) &
+   transitive(r)
+   ==>
+   IN(BIGUNION (fchains(r,f)),fchains(r,f))”)); 
 
 
 val lemma9 = prove_store("lemma9",
@@ -764,3 +859,97 @@ qpat_x_assum
       x IN k
       ==>
       x' IN k)”
+
+
+“!r k x C.
+  transitive r /\
+  antisym r /\
+  k IN fchains r /\
+  x IN k /\
+  chain C r /\
+  x IN upper_bounds C r DIFF C /\
+  C SUBSET BIGUNION (fchains r)
+  ==>
+  CHOICE (upper_bounds C r DIFF C) IN k /\ (CHOICE (upper_bounds C r DIFF C),x) IN r”
+
+
+
+
+ A(x : mem(A))(r : mem(Pow(A * A)))(k : mem(Pow(A)))(C : mem(Pow(A)))(f :
+      fun(Pow(A), A))
+   1.ischoice(f, hatclass(r))
+   2.transitive(r)
+   3.antisym(r)
+   4.IN(k, fchains(r, f))
+   5.IN(x, k)
+   6.chain0(C, r)
+   7.IN(x, Diff(upper_bounds(C, r), C))
+   8.SS(C, BIGUNION(fchains(r, f)))
+   9.!(x' : mem(A)). IN(x'#, C) ==> IN(Pair(x'#, x), r) & ~x'# = x
+   10.SS(C, k)
+   11.~Inter(Diff(upper_bounds(C, r), C), k) = Empty(A)
+   ----------------------------------------------------------------------
+   IN(Pair(App(f, Diff(upper_bounds(C, r), C)), x), r)
+
+
+
+qpat_x_assum
+‘C ⊆
+        BIGUNION
+          {k' |
+           (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
+           ∀C'.
+             (∀x y. x ∈ C' ∧ y ∈ C' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ C' ⊆ k' ∧
+             (upper_bounds C' r DIFF C') ∩ k' ≠ ∅ ⇒
+             ((CHOICE (upper_bounds C' r DIFF C') ∈ upper_bounds C' r ∧
+               CHOICE (upper_bounds C' r DIFF C') ∉ C') ∧
+              CHOICE (upper_bounds C' r DIFF C') ∈ k') ∧
+             ∀x''.
+               ((x'' ∈ upper_bounds C' r ∧ x'' ∉ C') ∧ x'' ∈ k') ∧
+               (x'',CHOICE (upper_bounds C' r DIFF C')) ∈ r ⇒
+               CHOICE (upper_bounds C' r DIFF C') = x''}’
+(K all_tac) >>
+first_x_assum (qspecl_then [‘C’] strip_assume_tac) >>
+qpat_x_assum
+‘k ≠ ∅’
+(K all_tac) >>
+qpat_x_assum
+‘transitive r’ (K all_tac) >>
+qpat_x_assum
+‘antisym r’ (K all_tac) >>
+first_x_assum drule_all >> strip_tac >>
+first_x_assum(qspecl_then [‘x’] assume_tac) >> 
+qpat_x_assum
+‘∀x'. x' ∈ C ⇒ (x',x) ∈ r ∧ x' ≠ x’
+(K all_tac) >>
+qpat_x_assum
+‘ ∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r’
+(K all_tac) >>
+qpat_x_assum
+‘’
+
+metis_tac[]
+
+ qpat_x_assum
+ ‘ ∀C'.
+          (∀x y. x ∈ C' ∧ y ∈ C' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ C' ⊆ k ∧
+          (upper_bounds C' r DIFF C') ∩ k ≠ ∅ ⇒
+          ((CHOICE (upper_bounds C' r DIFF C') ∈ upper_bounds C' r ∧
+            CHOICE (upper_bounds C' r DIFF C') ∉ C') ∧
+           CHOICE (upper_bounds C' r DIFF C') ∈ k) ∧
+          ∀x''.
+            ((x'' ∈ upper_bounds C' r ∧ x'' ∉ C') ∧ x'' ∈ k) ∧
+            (x'',CHOICE (upper_bounds C' r DIFF C')) ∈ r ⇒
+            CHOICE (upper_bounds C' r DIFF C') = x''
+’ (K all_tac)  
+metis_tac[]
+
+
+
+-----
+
+“!r s.
+   range r SUBSET s /\ (range r <> {}) /\ antisym r /\ reflexive r s /\
+   transitive r
+   ==>
+   BIGUNION (fchains r) IN fchains r”

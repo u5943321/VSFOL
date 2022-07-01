@@ -353,6 +353,14 @@ e0
 (form_goal “!A ss. BIGUNION(ss) = Empty(A) <=> 
  (!s. IN(s,ss) ==> s = Empty(A))”));
 
+val BIGUNION_NONEMPTY = 
+prove_store("BIGUNION_NONEMPTY",
+e0
+(cheat)
+(form_goal
+ “!A ss. ~(BIGUNION(ss) = Empty(A)) <=> 
+ (?s. IN(s,ss) & ~(s = Empty(A)))”));
+
 
 val BIGUNION_Empty_Empty' = prove_store("BIGUNION_Empty_Empty'",
 e0
@@ -1684,5 +1692,5 @@ e0
 
 val Diff_Empty = prove_store("Diff_Empty",
 e0
-()
+(rw[GSYM IN_EXT_iff,Diff_def,Empty_def])
 (form_goal “!A s. Diff(s,Empty(A)) = s”));
