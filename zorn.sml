@@ -378,12 +378,28 @@ e0
 
 val lemma4 = prove_store("lemma4",
 e0
-((*rpt strip_tac (* 2 *)
- >-- rw[chain0_def] >> rpt strip_tac >>
-    cheat >> *)
-  )
+(rpt strip_tac (* 2 *)
+ >-- (rw[chain0_def] >> rpt gen_tac >>
+     rw[IN_BIGUNION] >> rpt strip_tac >>
+     qcases ‘IN(y,ss)’
+     >-- (rev_drule $ iffLR fchains_def >>
+         fs[chain0_def] >>
+         first_x_assum irule >> arw[]) >>
+     disj1_tac >> irule lemma2 >>
+     arw[] >> 
+     qexistsl_tac [‘f’,‘ss’,‘ss'’] >> arw[]) >>
+ fs[IN_BIGUNION] >>
+ ccontra_tac >> 
+ qsuff_tac ‘x = x'’ 
+ >-- (strip_tac >> fs[]) >> 
+ fs[antisym_def] >>
+ first_x_assum irule >>
+ arw[] >>
+ irule lemma2 >> arw[] >>
+ qexistsl_tac [‘f’,‘k’,‘ss’] >> arw[])
 (form_goal
  “!r:mem(Pow(A * A)) f. 
+    ischoice(f,hatclass(r)) &
     antisym(r) & transitive(r) ==>
     chain0 (BIGUNION (fchains(r,f)), r) &
     (!x x' k.
@@ -681,3 +697,27 @@ qpat_x_assum
 ‘∀x y. x ∈ k1 ∧ y ∈ k1 ⇒ (x,y) ∈ r ∨ (y,x) ∈ r’
 (K all_tac) need this
 ‘∀x. x ∈ C ⇒ x ∈ k1’ 
+
+“!r. antisym r /\ transitive r ==>
+    chain (BIGUNION (fchains r)) r /\
+    (!x x' k.
+      (x',x) IN r /\
+      x' IN BIGUNION (fchains r) /\
+      x IN BIGUNION (fchains r) /\
+      k IN fchains r /\
+      x IN k
+      ==>
+      x' IN k)”
+
+“!r. antisym r /\ transitive r ==>
+    chain (BIGUNION (fchains r)) r”
+
+“!r. antisym r /\ transitive r ==>
+    (!x x' k.
+      (x',x) IN r /\
+      x' IN BIGUNION (fchains r) /\
+      x IN BIGUNION (fchains r) /\
+      k IN fchains r /\
+      x IN k
+      ==>
+      x' IN k)”
