@@ -600,7 +600,43 @@ e0
   >-- (first_x_assum irule >> arw[]) >>
   pop_assum strip_assume_tac >> fs[]) >>
  qcases ‘~(Inter(Diff(upper_bounds(C, r), C),k) = Empty(A))’
- >-- (*rw[minimal_elements_def] >> rpt strip_tac (* 2 *)
+ >-- rw[minimal_elements_def] >>
+     rw[IN_Inter,Ins_def,Diff_def,upper_bounds_def] >>
+     rpt strip_tac  (* 6 *)
+     >-- fs[Diff_def,upper_bounds_def] 
+     >-- (fs[Diff_def,upper_bounds_def] >>
+          first_x_assum drule >> arw[]) 
+     >-- fs[Diff_def] 
+     >-- (disj2_tac >> fs[fchains_def,minimal_elements_def,IN_Inter] >> 
+         first_x_assum (qspecl_then [‘C’] assume_tac) >> rfs[]) 
+     >-- fs[antisym_def] >> first_x_assum irule >> arw[] >>
+         rfs[] >> fs[fchains_def] >>
+         first_x_assum (qspecl_then [‘C’] assume_tac) >>
+         rfs[] >> fs[minimal_elements_def] >> 
+
+
+
+
+
+         fs[Diff_def,upper_bounds_def] >> cheat 
+     >-- fs[antisym_def] >> first_x_assum irule >> arw[] >>
+         rfs[] >> fs[fchains_def] >>
+         first_x_assum (qspecl_then [‘C’] assume_tac) >>
+         rfs[] >> fs[minimal_elements_def] >> 
+         first_x_assum ()
+
+
+fs[antisym_def] >> first_x_assum irule >> arw[] >>
+         fs[Diff_def,upper_bounds_def,SS_def] >> 
+         last_x_assum irule
+
+
+fs[Diff_def] >> fs[upper_bounds_def] >>
+         cheat 
+     >-- rfs[]
+
+
+(*rw[minimal_elements_def] >> rpt strip_tac (* 2 *)
      >-- fs[Diff_def,IN_Inter,Ins_def] cheat >>
      fs[SS_def,fchains_def,Diff_Ins_NONEMPTY,GSYM IN_NONEMPTY,
      Diff_def,IN_Inter,upper_bounds_def,Ins_def] (* 2 *)
@@ -858,67 +894,38 @@ e0
   (CHOICE (upper_bounds k r DIFF k) INSERT k IN fchains r)”
 
 
+“!r s k.
+   range r SUBSET s /\
+   (range r <> {}) /\
+   reflexive r s /\ antisym r /\ transitive r /\
+   k IN fchains r /\
+   (upper_bounds k r DIFF k <> {})
+   ==>
+  (CHOICE (upper_bounds k r DIFF k) INSERT k IN fchains r)”
 
 
-      range r
-   16.  !y. y IN C ==>
-            (y,
-             CHOICE ({x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C)
-this
-) IN
-            r
-   17.  CHOICE ({x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C) NOTIN
-        C
-   18.  C SUBSET k
-   19.  ({x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C) INTER k = {}
-   20.  {x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C =
-        {x | x IN range r /\ !y. y IN k ==> (y,x) IN r} DIFF k this
-   21.  y IN C
-   ------------------------------------
-        (y,CHOICE ({x | x IN range r /\ !y. y IN k ==> (y,x) IN r} DIFF k)) IN
-        r
+fs[antisym_def]
 
-fs[]
-
-
- 17.  CHOICE ({x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C) NOTIN
-        C
-   18.  C SUBSET k
-   19.  ({x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C) INTER k = {}
-   20.  {x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C =
-        {x | x IN range r /\ !y. y IN k ==> (y,x) IN r} DIFF k
-   ------------------------------------
-        CHOICE ({x | x IN range r /\ !y. y IN k ==> (y,x) IN r} DIFF k) NOTIN
-        C
-
-fs[]
-
-‘F’ suffices_by metis_tac[]
-
-C subset K, x' not in C but in k
+qpat_x_assum
+‘∀C'.
+          chain C' r ∧ (∀x. x ∈ C' ⇒ x ∈ k) ∧
+          (∃x. ((x ∈ range r ∧ ∀y. y ∉ C' ∨ (y,x) ∈ r) ∧ x ∉ C') ∧ x ∈ k) ⇒
+          (((CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') ∈
+             range r ∧
+             ∀y. y ∈ C' ⇒
+                 (y,
+                  CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C')) ∈
+                 r) ∧
+            CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') ∉ C') ∧
+           CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') ∈ k) ∧
+          ∀x'.
+            (((x' ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x') ∈ r) ∧ x' ∉ C') ∧ x' ∈ k) ∧
+            (x',CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C')) ∈
+            r ⇒
+            CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') = x'’ (K all_tac) use
 
 
-A(s : mem(Pow(A)))(r : mem(Pow(A * A)))(k : mem(Pow(A)))(C : mem(Pow(A)))(f :
-      fun(Pow(A), A))
-   1.ischoice(f, hatclass(r))
-   2.SS(range(r), s)
-   3.~range(r) = Empty(A)
-   4.reflexive(r, s)
-   5.antisym(r)
-   6.transitive(r)
-   7.IN(k, fchains(r, f))
-   8.~Diff(upper_bounds(k, r), k) = Empty(A)
-   9.IN(App(f, Diff(upper_bounds(k, r), k)), upper_bounds(k, r))
-   10.~IN(App(f, Diff(upper_bounds(k, r), k)), k)
-   11.chain0(C, r)
-   12.SS(C, Ins(App(f, Diff(upper_bounds(k, r), k)), k))
-   13.~Inter(Diff(upper_bounds(C, r), C),
-                Ins(App(f, Diff(upper_bounds(k, r), k)), k)) = Empty(A)
-   14.IN(App(f, Diff(upper_bounds(C, r), C)), upper_bounds(C, r))
-   15.~IN(App(f, Diff(upper_bounds(C, r), C)), C)
-   16.SS(C, k)
-   17.~Inter(Diff(upper_bounds(C, r), C), k) = Empty(A)
-   ----------------------------------------------------------------------
-   App(f, Diff(upper_bounds(C, r), C)) = App(f, Diff(upper_bounds(k, r), k)) |
-             IN(App(f, Diff(upper_bounds(C, r), C)), k)
-   : proofmanager.proof
+
+first_x_assum ()
+
+metis_tac[]

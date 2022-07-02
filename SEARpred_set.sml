@@ -1718,10 +1718,11 @@ e0
  “!A s1 s2. Inter(s1,s2) = Empty(A) ==>
   !a.IN(a,s2) ==> ~IN(a,s1)”));
 
-
+(*
 val Inter_Empty_Ins_Inter_Empty = prove_store("Inter_Empty_Ins_Inter_Empty",
 e0
 (cheat)
 (form_goal 
  “!A s1 s2. Inter(s1,s2) = Empty(A) ==>
   !a.Inter(s1,Ins(a,s2)) = ”));
+*)
