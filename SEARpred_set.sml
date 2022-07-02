@@ -356,7 +356,11 @@ e0
 val BIGUNION_NONEMPTY = 
 prove_store("BIGUNION_NONEMPTY",
 e0
-(cheat)
+(rw[GSYM IN_NONEMPTY,IN_BIGUNION] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac(* 2 *)
+ >-- (qexists_tac ‘ss'’ >> arw[] >> qexists_tac ‘a’ >>
+     arw[]) >>
+ qexistsl_tac [‘a’,‘s’] >> arw[])
 (form_goal
  “!A ss. ~(BIGUNION(ss) = Empty(A)) <=> 
  (?s. IN(s,ss) & ~(s = Empty(A)))”));
@@ -1698,14 +1702,74 @@ e0
 
 val Diff_Empty_SS = prove_store("Diff_Empty_SS",
 e0
-(cheat)
+(rw[GSYM IN_EXT_iff,Empty_def,Diff_def,SS_def,neg_and_distr] >> rpt strip_tac >> dimp_tac >> rpt strip_tac (*2*)
+ >-- (first_x_assum (qspecl_then [‘a’] assume_tac) >>
+     fs[]) >>
+ qcases ‘~IN(x, s1)’ >> fs[] >>
+ first_x_assum drule >> arw[])
 (form_goal
  “!A s1 s2. Diff(s1,s2) = Empty(A) <=>
  SS(s1,s2)”));
 
+val Ins_Union = prove_store("Ins_Union",
+e0
+(rw[GSYM IN_EXT_iff,IN_Union,Ins_def,IN_Sing])
+(form_goal
+ “!A a:mem(A) s. Ins(a,s) = Union(Sing(a),s)”));
+
+val Union_Empty_both_Empty = prove_store
+("Union_Empty_both_Empty",
+e0
+(rw[GSYM IN_EXT_iff,Empty_def,IN_Union] >>
+ rpt strip_tac >> dimp_tac >> rpt strip_tac (* 3 *)
+ >-- (ccontra_tac>> 
+     first_x_assum (qspecl_then [‘x’] assume_tac) >>
+     rfs[]) 
+ >-- (ccontra_tac >>
+     first_x_assum (qspecl_then [‘x’] assume_tac)>>
+     rfs[]) >>
+ first_x_assum (qspecl_then [‘x’] assume_tac) >>
+  first_x_assum (qspecl_then [‘x’] assume_tac)>>
+ arw[])
+(form_goal
+ “!A s1 s2. Union(s1,s2) = Empty(A) <=>
+            s1 = Empty(A) & s2 = Empty(A)”));
+
+val Inter_Union = prove_store("Inter_Union",
+e0
+(rpt strip_tac >> 
+ rw[GSYM IN_EXT_iff,IN_Inter,IN_Union] >>
+ strip_tac >> dimp_tac >> rpt strip_tac (* 6 *)
+ >> arw[])
+(form_goal
+ “!A s1 s2 s3:mem(Pow(A)). Inter(s1,Union(s2,s3)) = 
+  Union(Inter(s1,s2),Inter(s1,s3))”));
+
+val Inter_Diff_Sing_NONEMPTY = 
+prove_store("Inter_Diff_Sing_NONEMPTY",
+e0
+(rpt strip_tac >>
+ rw[GSYM IN_EXT_iff,IN_Inter,Empty_def,IN_Sing] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (ccontra_tac >> fs[neg_and_distr] >>
+     qby_tac
+     ‘!x'. ~IN(x', Diff(s1, s2)) | ~(x' = x)’
+     >-- (strip_tac >> qcases ‘x' = x’ >> arw[]) >>
+     fs[]) >>
+ccontra_tac >> 
+first_x_assum (qspecl_then [‘x’] assume_tac) >>
+fs[])
+(form_goal
+ “!A s1 s2 x.
+  ~(Inter(Diff(s1, s2), Sing(x)) = Empty(A)) <=> 
+   IN(x,Diff(s1,s2))”));
+
 val Diff_Ins_NONEMPTY = prove_store("Diff_Ins_NONEMPTY",
 e0
-(cheat)
+(rpt strip_tac >> 
+ rw[Ins_Union,Inter_Union,Union_Empty_both_Empty] >>
+ rw[neg_and_distr,Inter_Diff_Sing_NONEMPTY] >>
+ dimp_tac >> rpt strip_tac (* 4 *)>> arw[] )
 (form_goal
  “!A s1 s2 s3 x:mem(A).
   ~(Inter(Diff(s1,s2),Ins(x,s3)) = Empty(A)) <=>
@@ -1713,10 +1777,21 @@ e0
 
 val Inter_Empty2 = prove_store("Inter_Empty2",
 e0
-(cheat)
+(rpt strip_tac >> ccontra_tac >>
+ fs[GSYM IN_EXT_iff,Empty_def,IN_Inter] >> 
+ first_x_assum (qspecl_then [‘a’] assume_tac) >>
+ rfs[])
 (form_goal 
  “!A s1 s2. Inter(s1,s2) = Empty(A) ==>
   !a.IN(a,s2) ==> ~IN(a,s1)”));
+
+val Inter_both_NONEMPTY = prove_store("Inter_both_NONEMPTY",
+e0
+(rpt strip_tac >> ccontra_tac >>
+ fs[Inter_Empty,Empty_Inter])
+(form_goal
+ “!A s1 s2. ~(Inter(s1,s2) = Empty(A)) ==>
+   ~(s1 = Empty(A)) & ~(s2 = Empty(A))”));
 
 (*
 val Inter_Empty_Ins_Inter_Empty = prove_store("Inter_Empty_Ins_Inter_Empty",
@@ -1726,3 +1801,35 @@ e0
  “!A s1 s2. Inter(s1,s2) = Empty(A) ==>
   !a.Inter(s1,Ins(a,s2)) = ”));
 *)
+
+val neg_imp_conj = prove_store("neg_imp_conj",
+e0
+(dimp_tac >> strip_tac (* 2 *)
+ >-- (strip_tac (* 2 *) >--
+     (ccontra_tac >> fs[]) >>
+     ccontra_tac >> fs[]) >>
+ ccontra_tac >> first_x_assum drule >> fs[])
+(form_goal “~(A ==> B) <=> A & ~B”)); 
+
+
+
+val forall_exists_dual = prove_store("forall_exists_dual",
+e0
+(strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (ccontra_tac >> rfs[]) >>
+ strip_tac >> ccontra_tac >>
+ qsuff_tac ‘?a:mem(A). ~P(a)’ >-- arw[] >> 
+ qexists_tac ‘a’ >> arw[])
+(form_goal “!A. (!a:mem(A).P(a)) <=>
+ ~(?a:mem(A).~P(a))”));
+
+
+val neg_conj_imp = prove_store("neg_conj_imp",
+e0
+(dimp_tac >> strip_tac (* 2 *)
+ >-- (strip_tac >> ccontra_tac >>
+     qby_tac ‘A & B’ >-- (strip_tac >> arw[]) >>
+     rfs[]) >>
+ ccontra_tac >>
+ fs[])
+(form_goal “~(A & B) <=> (A ==> ~B)”));

@@ -589,13 +589,15 @@ val ubound_def = qdefine_psym("ubound",[‘s:mem(Pow(A))’,‘R:A~>A’,‘x:me
 ‘!y. IN(y,s) ==> Holds(R,y,x)’
 
 val ismax_def = qdefine_psym("ismax",[‘R:A~>A’,‘m:mem(A)’]) 
-‘!x. Holds(R,m,x) ==> x = m’
+‘!x. Holds(R,m,x) ==> x = m’;
 
+(*
 val zorns_lemma = store_ax("zorns_lemma",
 “!A R:A~>A. ptorder(R) ==> 
   (!c. chain(c,R) & ~(c = Empty(A)) ==> ?ub. ubound(c,R,ub)) ==>
   ?m. ismax(R,m)”);
-
+*)
+use "zorns.sml";
 
 
 
@@ -736,6 +738,12 @@ e0
      >-- arw[SS_Refl] >>
      rfs[] >> fs[Inj_def] >> first_x_assum irule >>
      irule SS_SS_eq >> arw[]) >>
+ arw[] >>
+ qby_tac ‘~EMPTY(pf)’ 
+ >-- (rw[NOT_EMPTY] >>
+     first_x_assum 
+     (qspecl_then [‘s’] assume_tac) >> 
+    rfs[SS_Refl] >> qexists_tac ‘b’ >> arw[]) >>
  arw[] >>
  rpt strip_tac >>
  qby_tac ‘~EMPTY(A)’ >-- fs[pfilter_def,filter_def] >>
