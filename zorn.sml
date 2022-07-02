@@ -600,7 +600,7 @@ e0
   >-- (first_x_assum irule >> arw[]) >>
   pop_assum strip_assume_tac >> fs[]) >>
  qcases ‘~(Inter(Diff(upper_bounds(C, r), C),k) = Empty(A))’
- >-- rw[minimal_elements_def] >>
+ >-- (rw[minimal_elements_def] >>
      rw[IN_Inter,Ins_def,Diff_def,upper_bounds_def] >>
      rpt strip_tac  (* 6 *)
      >-- fs[Diff_def,upper_bounds_def] 
@@ -609,39 +609,18 @@ e0
      >-- fs[Diff_def] 
      >-- (disj2_tac >> fs[fchains_def,minimal_elements_def,IN_Inter] >> 
          first_x_assum (qspecl_then [‘C’] assume_tac) >> rfs[]) 
-     >-- fs[antisym_def] >> first_x_assum irule >> arw[] >>
-         rfs[] >> fs[fchains_def] >>
+     >-- (fs[antisym_def] >> first_x_assum irule >> arw[] >> rfs[] >>
+         fs[Diff_def,upper_bounds_def] >> last_x_assum irule >>
+         drule $ iffLR fchains_def >> fs[] >>
          first_x_assum (qspecl_then [‘C’] assume_tac) >>
-         rfs[] >> fs[minimal_elements_def] >> 
-
-
-
-
-
-         fs[Diff_def,upper_bounds_def] >> cheat 
-     >-- fs[antisym_def] >> first_x_assum irule >> arw[] >>
-         rfs[] >> fs[fchains_def] >>
-         first_x_assum (qspecl_then [‘C’] assume_tac) >>
-         rfs[] >> fs[minimal_elements_def] >> 
-         first_x_assum ()
-
-
-fs[antisym_def] >> first_x_assum irule >> arw[] >>
-         fs[Diff_def,upper_bounds_def,SS_def] >> 
-         last_x_assum irule
-
-
-fs[Diff_def] >> fs[upper_bounds_def] >>
-         cheat 
-     >-- rfs[]
-
-
-(*rw[minimal_elements_def] >> rpt strip_tac (* 2 *)
-     >-- fs[Diff_def,IN_Inter,Ins_def] cheat >>
-     fs[SS_def,fchains_def,Diff_Ins_NONEMPTY,GSYM IN_NONEMPTY,
-     Diff_def,IN_Inter,upper_bounds_def,Ins_def] (* 2 *)
-     >-- fs[antisym_def] >> first_x_assum irule >> rfs[] >>*)
- cheat >>
+         fs[minimal_elements_def] >>
+         rfs[Diff_def,IN_Inter]) >>
+     drule $ iffLR fchains_def >>
+     fs[] >>
+     first_x_assum (qspecl_then [‘C’] assume_tac) >>
+     rfs[] >>
+     fs[minimal_elements_def] >>
+     first_x_assum irule >> fs[IN_Inter,Diff_def,upper_bounds_def])>>
  fs[] >>
  qsuff_tac
  ‘Diff(upper_bounds(C, r), C) = Diff(upper_bounds(k, r), k)’
@@ -904,28 +883,61 @@ e0
   (CHOICE (upper_bounds k r DIFF k) INSERT k IN fchains r)”
 
 
-fs[antisym_def]
+0.  range r ⊆ s
+    1.  range r ≠ ∅
+    2.  reflexive r s
+    3.  antisym r
+    4.  transitive r
+    5.  chain k r
+    6.  k ≠ ∅
+    7.  ∀C. chain C r ∧ C ⊆ k ∧ (upper_bounds C r DIFF C) ∩ k ≠ ∅ ⇒
+            CHOICE (upper_bounds C r DIFF C) ∈
+            minimal_elements ((upper_bounds C r DIFF C) ∩ k) r
+    8.  upper_bounds k r DIFF k ≠ ∅
+    9.  chain C r
+   10.  C ⊆ CHOICE (upper_bounds k r DIFF k) INSERT k
+   11.  (upper_bounds C r DIFF C) ∩
+        (CHOICE (upper_bounds k r DIFF k) INSERT k) ≠ ∅
+   12.  CHOICE (upper_bounds k r DIFF k) ∈ upper_bounds k r DIFF k
+   13.  CHOICE (upper_bounds C r DIFF C) ∈ upper_bounds C r DIFF C
+   14.  C ⊆ k
+   15.  (upper_bounds C r DIFF C) ∩ k ≠ ∅
+   16.  x' ∈ upper_bounds C r
+   17.  x' ∉ C
+   18.  x' ∈ k
+   19.  (x',CHOICE (upper_bounds C r DIFF C)) ∈ r
+   ------------------------------------
+        CHOICE (upper_bounds C r DIFF C) = x'
 
-qpat_x_assum
-‘∀C'.
-          chain C' r ∧ (∀x. x ∈ C' ⇒ x ∈ k) ∧
-          (∃x. ((x ∈ range r ∧ ∀y. y ∉ C' ∨ (y,x) ∈ r) ∧ x ∉ C') ∧ x ∈ k) ⇒
-          (((CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') ∈
-             range r ∧
-             ∀y. y ∈ C' ⇒
-                 (y,
-                  CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C')) ∈
-                 r) ∧
-            CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') ∉ C') ∧
-           CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') ∈ k) ∧
-          ∀x'.
-            (((x' ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x') ∈ r) ∧ x' ∉ C') ∧ x' ∈ k) ∧
-            (x',CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C')) ∈
-            r ⇒
-            CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') = x'’ (K all_tac) use
 
+first_x_assum (qspecl_then [‘C’] assume_tac) >> 
+rfs[]
 
+ 0.  range r ⊆ s
+    1.  range r ≠ ∅
+    2.  reflexive r s
+    3.  antisym r
+    4.  transitive r
+    5.  chain k r
+    6.  k ≠ ∅
+    7.  upper_bounds k r DIFF k ≠ ∅
+    8.  chain C r
+    9.  C ⊆ CHOICE (upper_bounds k r DIFF k) INSERT k
+   10.  (upper_bounds C r DIFF C) ∩
+        (CHOICE (upper_bounds k r DIFF k) INSERT k) ≠ ∅
+   11.  CHOICE (upper_bounds k r DIFF k) ∉ k
+   12.  CHOICE (upper_bounds k r DIFF k) ∈ upper_bounds k r
+   13.  CHOICE (upper_bounds C r DIFF C) ∉ C
+   14.  CHOICE (upper_bounds C r DIFF C) ∈ upper_bounds C r
+   15.  C ⊆ k
+   16.  (upper_bounds C r DIFF C) ∩ k ≠ ∅
+   17.  x' ∈ upper_bounds C r
+   18.  x' ∉ C
+   19.  x' ∈ k
+   20.  (x',CHOICE (upper_bounds C r DIFF C)) ∈ r
+   21.  CHOICE (upper_bounds C r DIFF C) ∈
+        minimal_elements ((upper_bounds C r DIFF C) ∩ k) r
+   ------------------------------------
+        CHOICE (upper_bounds C r DIFF C) = x'
 
-first_x_assum ()
-
-metis_tac[]
+qsp
