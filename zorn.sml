@@ -580,9 +580,71 @@ e0
      rw[hatclass_def] >>
      qexists_tac ‘C’ >> rw[]) >>
  qby_tac ‘SS(C,k)’ >--
- (rw[SS_def])
-     
-      )
+ (fs[SS_def,fchains_def,Diff_Ins_NONEMPTY,GSYM IN_NONEMPTY,
+     Diff_def,IN_Inter,upper_bounds_def,Ins_def] (* 2 *)
+  >-- (rpt strip_tac >>
+      qby_tac
+      ‘a'''' = App(f, Diff(upper_bounds(k, r), k)) | IN(a'''', k)’
+      >-- (first_x_assum irule >> arw[]) >>
+      pop_assum strip_assume_tac>> arw[] >> 
+      qsuff_tac
+      ‘a''' = App(f, Diff(upper_bounds(k, r), k))’
+      >-- (strip_tac >> fs[]) >>
+      fs[antisym_def] >> first_x_assum irule >>
+      strip_tac (*2  *)
+      >-- (first_x_assum irule >> arw[]) >>
+      first_x_assum irule >> arw[]) >>
+  rpt strip_tac >>
+  qby_tac
+  ‘a''' = App(f, Diff(upper_bounds(k, r), k)) | IN(a''', k)’ 
+  >-- (first_x_assum irule >> arw[]) >>
+  pop_assum strip_assume_tac >> fs[]) >>
+ qcases ‘~(Inter(Diff(upper_bounds(C, r), C),k) = Empty(A))’
+ >-- (*rw[minimal_elements_def] >> rpt strip_tac (* 2 *)
+     >-- fs[Diff_def,IN_Inter,Ins_def] cheat >>
+     fs[SS_def,fchains_def,Diff_Ins_NONEMPTY,GSYM IN_NONEMPTY,
+     Diff_def,IN_Inter,upper_bounds_def,Ins_def] (* 2 *)
+     >-- fs[antisym_def] >> first_x_assum irule >> rfs[] >>*)
+ cheat >>
+ fs[] >>
+ qsuff_tac
+ ‘Diff(upper_bounds(C, r), C) = Diff(upper_bounds(k, r), k)’
+ >-- (strip_tac >> fs[] >> 
+      rw[minimal_elements_def] >>
+      rw[IN_Inter,Ins_def,Diff_def,upper_bounds_def] >>
+      rpt strip_tac (* 4 *)
+      >-- fs[Diff_def,upper_bounds_def]
+      >-- (fs[Diff_def,upper_bounds_def] >>
+          first_x_assum drule >> arw[]) 
+      >-- fs[Diff_def] >>
+      fs[]) >>
+ rw[GSYM IN_EXT_iff] >> rw[Diff_def] >>
+ strip_tac >> dimp_tac >> strip_tac >>
+ fs[upper_bounds_def] >> rpt strip_tac (* 4 *)
+ >-- (qsuff_tac ‘?y'. IN(y',C) & IN(Pair(y,y'),r)’
+     >-- (strip_tac >> fs[transitive_def] >> last_x_assum irule >>
+         qexists_tac ‘y'’ >> arw[] >> first_x_assum irule >> arw[]) >>
+     drule Inter_Empty2 >>
+     first_x_assum drule >> fs[Diff_def]  >>
+     fs[neg_and_distr] (* 2 *)
+     >-- (fs[upper_bounds_def] >>
+         qby_tac ‘IN(y,range(r))’ 
+         >-- (rw[range_def] >> 
+             drule $ iffLR fchains_def >>
+             fs[chain0_def] >> 
+             first_x_assum (qsspecl_then [‘y’,‘y’] assume_tac) >>
+             qexists_tac ‘y’ >> rfs[])>>
+         fs[] >>
+         cheat) (*logical lemma*) >>
+     qexists_tac ‘y’ >> arw[] >>
+     fs[fchains_def,chain0_def] >>
+     first_x_assum (qsspecl_then [‘y’,‘y’] assume_tac) >> rfs[]) 
+ >-- (ccontra_tac >>
+     drule Inter_Empty2 >> first_x_assum drule >>
+     fs[Diff_def] >> rfs[] >>
+     fs[upper_bounds_def] >> rfs[]) 
+ >-- (first_x_assum irule >> fs[SS_def] >> first_x_assum irule >> arw[]) >>
+ ccontra_tac >> fs[SS_def] >> first_x_assum drule >> fs[])
 (form_goal
  “!r:mem(Pow(A * A)) f s k.
   ischoice(f,hatclass(r)) &
@@ -786,505 +848,77 @@ e0
   (!c. chain(c,R) & ~(c = Empty(A)) ==> ?ub. ubound(c,R,ub)) ==>
   ?m. ismax(R,m)”));
 
-
-
-“!r k1 k2 x x'.
-  transitive r /\
-  k1 IN fchains r /\
-  k2 IN fchains r /\
-  x IN k1 /\
-  x' IN k2 /\
-  x' NOTIN k1
-  ==>
-  (x,x') IN r”
-qpat_x_assum
-‘∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r’ (K all_tac) >>
-qpat_x_assum
-‘∀x y. x ∈ k1 ∧ y ∈ k1 ⇒ (x,y) ∈ r ∨ (y,x) ∈ r’ (K all_tac) >>
-qpat_x_assum
-‘∀C'.
-          (∀x y. x ∈ C' ∧ y ∈ C' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ C' ⊆ k2 ∧
-          (upper_bounds C' r DIFF C') ∩ k2 ≠ ∅ ⇒
-          ((CHOICE (upper_bounds C' r DIFF C') ∈ upper_bounds C' r ∧
-            CHOICE (upper_bounds C' r DIFF C') ∉ C') ∧
-           CHOICE (upper_bounds C' r DIFF C') ∈ k2) ∧
-          ∀x'³'.
-            ((x'³' ∈ upper_bounds C' r ∧ x'³' ∉ C') ∧ x'³' ∈ k2) ∧
-            (x'³',CHOICE (upper_bounds C' r DIFF C')) ∈ r ⇒
-            CHOICE (upper_bounds C' r DIFF C') = x'³'’ (K all_tac) >>
-qpat_x_assum
-‘∀C'.
-          (∀x y. x ∈ C' ∧ y ∈ C' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ C' ⊆ k1 ∧
-          (upper_bounds C' r DIFF C') ∩ k1 ≠ ∅ ⇒
-          ((CHOICE (upper_bounds C' r DIFF C') ∈ upper_bounds C' r ∧
-            CHOICE (upper_bounds C' r DIFF C') ∉ C') ∧
-           CHOICE (upper_bounds C' r DIFF C') ∈ k1) ∧
-          ∀x'³'.
-            ((x'³' ∈ upper_bounds C' r ∧ x'³' ∉ C') ∧ x'³' ∈ k1) ∧
-            (x'³',CHOICE (upper_bounds C' r DIFF C')) ∈ r ⇒
-            CHOICE (upper_bounds C' r DIFF C') = x'³'’ (K all_tac) >>
-qpat_x_assum
- ‘CHOICE (upper_bounds C r DIFF C) ∈ upper_bounds C r’
-(K all_tac) >>
- qpat_x_assum
- ‘CHOICE (upper_bounds C r DIFF C) ∉ C’
-(K all_tac) >>
-first_x_assum (qspecl_then [‘x'’] strip_assume_tac) >> rfs[] >>
-qpat_x_assum
- ‘x' ∉ C’
-(K all_tac) >>
-qpat_x_assum
- ‘x' ∉ k1’ (K all_tac) >>
-qpat_x_assum
- ‘x ∈ k1’ (K all_tac) >>
-qpat_x_assum
- ‘x' ∈ range r’ (K all_tac) >>
-qpat_x_assum
- ‘C ⊆ k2’ (K all_tac) >>
-qpat_x_assum
- ‘C ⊆ k1’ (K all_tac) >>
-qpat_x_assum
- ‘k1 ≠ ∅’ (K all_tac) >>
-qpat_x_assum
- ‘k2 ≠ ∅’ (K all_tac) >>
-qpat_x_assum
- ‘transitive(r)’ (K all_tac) >>
-qpat_x_assum
-‘ x ∈ range r’ (K all_tac) >>
-qpat_x_assum
-‘x' ∈ upper_bounds C r’ (K all_tac) >>
-qpat_x_assum
-‘Abbrev (C = {x | x ∈ k1 ∧ x ∈ k2 ∧ (x,x') ∈ r})’
-(K all_tac) >>
-qabbrev_tac
-‘t = CHOICE (upper_bounds C r DIFF C)’ >>
-qpat_x_assum
-‘ Abbrev (t = CHOICE (upper_bounds C r DIFF C))’
-(K all_tac)
-            
-need
-‘(x',CHOICE (upper_bounds C r DIFF C)) ∈ r ⇒
-        CHOICE (upper_bounds C r DIFF C) = x'’
-
-(*need x' in k2*)
-Cases_on ‘(x',t) ∈ r ’
->-- first_x_assum drule >> strip_tac >> rw[]
-
- metis_tac[]
-
-
-qpat_x_assum
- ‘x' ∈ upper_bounds C r’
- (K all_tac)
-
- metis_tac[]
-imp_res_tac
-
-pop_assum
-‘∀x y. x ∈ k2 ∧ y ∈ k2 ⇒ (x,y) ∈ r ∨ (y,x) ∈ r’ by simp[] 
-
-
-“!r k1 k2 x x'.
-  transitive r /\
-  k1 IN fchains r /\
-  k2 IN fchains r /\
-  x IN k1 /\
-  x' IN k2 /\
-  x' NOTIN k1
-  ==>
-  (x,x') IN r”
-
-qpat_x_assum
-‘ ∀C'.
-          (∀x y. x ∈ C' ∧ y ∈ C' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-          (∀x. x ∈ C' ⇒ x ∈ k2) ∧
-          (∃x''.
-             ((x'' ∈ range r ∧ ∀y. y ∉ C' ∨ (y,x'') ∈ r) ∧ x'' ∉ C') ∧
-             x'' ∈ k2) ⇒
-          CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') ∈
-          minimal_elements
-            (({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') ∩ k2) r’
-(K all_tac) >>
-qpat_x_assum
- ‘ ∀C'.
-          (∀x y. x ∈ C' ∧ y ∈ C' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-          (∀x. x ∈ C' ⇒ x ∈ k1) ∧
-          (∃x''.
-             ((x'' ∈ range r ∧ ∀y. y ∉ C' ∨ (y,x'') ∈ r) ∧ x'' ∉ C') ∧
-             x'' ∈ k1) ⇒
-          CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') ∈
-          minimal_elements
-            (({x | x ∈ range r ∧ ∀y. y ∈ C' ⇒ (y,x) ∈ r} DIFF C') ∩ k1) r’
-(K all_tac) >>
-qpat_x_assum
-‘(CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C ⇒ (y,x) ∈ r} DIFF C),x') ∈ r’ (K all_tac) >>
-qpat_x_assum
-‘CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C ⇒ (y,x) ∈ r} DIFF C) ∈
-        minimal_elements
-          (({x | x ∈ range r ∧ ∀y. y ∈ C ⇒ (y,x) ∈ r} DIFF C) ∩ k2) r’
-(K all_tac) >>
-qpat_x_assum
-‘CHOICE ({x | x ∈ range r ∧ ∀y. y ∈ C ⇒ (y,x) ∈ r} DIFF C) ∈ k2’ (K all_tac) >>
-qpat_x_assum
-‘∀x y. x ∈ k2 ∧ y ∈ k2 ⇒ (x,y) ∈ r ∨ (y,x) ∈ r’
-(K all_tac) >>
-qpat_x_assum
-‘ x'³' ∈ k2’ (K all_tac) >>
-qpat_x_assum
-‘∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r’
-(K all_tac) >> 
-qpat_x_assum
-‘Abbrev (C = {x | x ∈ k1 ∧ x ∈ k2 ∧ (x,x') ∈ r})’
-(K all_tac) >> 
-qpat_x_assum
-‘x' ∉ C’ (K all_tac) >> 
-qpat_x_assum
-‘∀y. y ∈ C ⇒ (y,x') ∈ r’ (K all_tac) >> 
-qpat_x_assum
-‘∀x. x ∈ C ⇒ x ∈ k2’ (K all_tac) >> 
-qpat_x_assum
-‘x'' ∈ k1’ (K all_tac) >> 
-qpat_x_assum
-‘ x' ∉ k1’ (K all_tac) >> 
-qpat_x_assum
-‘x' ∈ range r’ (K all_tac) >> 
-qpat_x_assum
-‘x' ∈ k2’ (K all_tac) >>
-qpat_x_assum
-‘transitive r’ (K all_tac) >>
-
-
-metis_tac[]
-
-
-qpat_x_assum
-‘∀x y. x ∈ k1 ∧ y ∈ k1 ⇒ (x,y) ∈ r ∨ (y,x) ∈ r’
-(K all_tac) need this
-‘∀x. x ∈ C ⇒ x ∈ k1’ 
-
-“!r. antisym r /\ transitive r ==>
-    chain (BIGUNION (fchains r)) r /\
-    (!x x' k.
-      (x',x) IN r /\
-      x' IN BIGUNION (fchains r) /\
-      x IN BIGUNION (fchains r) /\
-      k IN fchains r /\
-      x IN k
-      ==>
-      x' IN k)”
-
-“!r. antisym r /\ transitive r ==>
-    chain (BIGUNION (fchains r)) r”
-
-“!r. antisym r /\ transitive r ==>
-    (!x x' k.
-      (x',x) IN r /\
-      x' IN BIGUNION (fchains r) /\
-      x IN BIGUNION (fchains r) /\
-      k IN fchains r /\
-      x IN k
-      ==>
-      x' IN k)”
-
-
-“!r k x C.
-  transitive r /\
-  antisym r /\
-  k IN fchains r /\
-  x IN k /\
-  chain C r /\
-  x IN upper_bounds C r DIFF C /\
-  C SUBSET BIGUNION (fchains r)
-  ==>
-  CHOICE (upper_bounds C r DIFF C) IN k /\ (CHOICE (upper_bounds C r DIFF C),x) IN r”
+“!r s k.
+   range r SUBSET s /\
+   (range r <> {}) /\
+   reflexive r s /\ antisym r /\ transitive r /\
+   k IN fchains r /\
+   (upper_bounds k r DIFF k <> {})
+   ==>
+  (CHOICE (upper_bounds k r DIFF k) INSERT k IN fchains r)”
 
 
 
 
- A(x : mem(A))(r : mem(Pow(A * A)))(k : mem(Pow(A)))(C : mem(Pow(A)))(f :
+      range r
+   16.  !y. y IN C ==>
+            (y,
+             CHOICE ({x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C)
+this
+) IN
+            r
+   17.  CHOICE ({x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C) NOTIN
+        C
+   18.  C SUBSET k
+   19.  ({x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C) INTER k = {}
+   20.  {x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C =
+        {x | x IN range r /\ !y. y IN k ==> (y,x) IN r} DIFF k this
+   21.  y IN C
+   ------------------------------------
+        (y,CHOICE ({x | x IN range r /\ !y. y IN k ==> (y,x) IN r} DIFF k)) IN
+        r
+
+fs[]
+
+
+ 17.  CHOICE ({x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C) NOTIN
+        C
+   18.  C SUBSET k
+   19.  ({x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C) INTER k = {}
+   20.  {x | x IN range r /\ !y. y IN C ==> (y,x) IN r} DIFF C =
+        {x | x IN range r /\ !y. y IN k ==> (y,x) IN r} DIFF k
+   ------------------------------------
+        CHOICE ({x | x IN range r /\ !y. y IN k ==> (y,x) IN r} DIFF k) NOTIN
+        C
+
+fs[]
+
+‘F’ suffices_by metis_tac[]
+
+C subset K, x' not in C but in k
+
+
+A(s : mem(Pow(A)))(r : mem(Pow(A * A)))(k : mem(Pow(A)))(C : mem(Pow(A)))(f :
       fun(Pow(A), A))
    1.ischoice(f, hatclass(r))
-   2.transitive(r)
-   3.antisym(r)
-   4.IN(k, fchains(r, f))
-   5.IN(x, k)
-   6.chain0(C, r)
-   7.IN(x, Diff(upper_bounds(C, r), C))
-   8.SS(C, BIGUNION(fchains(r, f)))
-   9.!(x' : mem(A)). IN(x'#, C) ==> IN(Pair(x'#, x), r) & ~x'# = x
-   10.SS(C, k)
-   11.~Inter(Diff(upper_bounds(C, r), C), k) = Empty(A)
+   2.SS(range(r), s)
+   3.~range(r) = Empty(A)
+   4.reflexive(r, s)
+   5.antisym(r)
+   6.transitive(r)
+   7.IN(k, fchains(r, f))
+   8.~Diff(upper_bounds(k, r), k) = Empty(A)
+   9.IN(App(f, Diff(upper_bounds(k, r), k)), upper_bounds(k, r))
+   10.~IN(App(f, Diff(upper_bounds(k, r), k)), k)
+   11.chain0(C, r)
+   12.SS(C, Ins(App(f, Diff(upper_bounds(k, r), k)), k))
+   13.~Inter(Diff(upper_bounds(C, r), C),
+                Ins(App(f, Diff(upper_bounds(k, r), k)), k)) = Empty(A)
+   14.IN(App(f, Diff(upper_bounds(C, r), C)), upper_bounds(C, r))
+   15.~IN(App(f, Diff(upper_bounds(C, r), C)), C)
+   16.SS(C, k)
+   17.~Inter(Diff(upper_bounds(C, r), C), k) = Empty(A)
    ----------------------------------------------------------------------
-   IN(Pair(App(f, Diff(upper_bounds(C, r), C)), x), r)
-
-
-
-qpat_x_assum
-‘C ⊆
-        BIGUNION
-          {k' |
-           (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
-           ∀C'.
-             (∀x y. x ∈ C' ∧ y ∈ C' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ C' ⊆ k' ∧
-             (upper_bounds C' r DIFF C') ∩ k' ≠ ∅ ⇒
-             ((CHOICE (upper_bounds C' r DIFF C') ∈ upper_bounds C' r ∧
-               CHOICE (upper_bounds C' r DIFF C') ∉ C') ∧
-              CHOICE (upper_bounds C' r DIFF C') ∈ k') ∧
-             ∀x''.
-               ((x'' ∈ upper_bounds C' r ∧ x'' ∉ C') ∧ x'' ∈ k') ∧
-               (x'',CHOICE (upper_bounds C' r DIFF C')) ∈ r ⇒
-               CHOICE (upper_bounds C' r DIFF C') = x''}’
-(K all_tac) >>
-first_x_assum (qspecl_then [‘C’] strip_assume_tac) >>
-qpat_x_assum
-‘k ≠ ∅’
-(K all_tac) >>
-qpat_x_assum
-‘transitive r’ (K all_tac) >>
-qpat_x_assum
-‘antisym r’ (K all_tac) >>
-first_x_assum drule_all >> strip_tac >>
-first_x_assum(qspecl_then [‘x’] assume_tac) >> 
-qpat_x_assum
-‘∀x'. x' ∈ C ⇒ (x',x) ∈ r ∧ x' ≠ x’
-(K all_tac) >>
-qpat_x_assum
-‘ ∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r’
-(K all_tac) >>
-qpat_x_assum
-‘’
-
-metis_tac[]
-
- qpat_x_assum
- ‘ ∀C'.
-          (∀x y. x ∈ C' ∧ y ∈ C' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ C' ⊆ k ∧
-          (upper_bounds C' r DIFF C') ∩ k ≠ ∅ ⇒
-          ((CHOICE (upper_bounds C' r DIFF C') ∈ upper_bounds C' r ∧
-            CHOICE (upper_bounds C' r DIFF C') ∉ C') ∧
-           CHOICE (upper_bounds C' r DIFF C') ∈ k) ∧
-          ∀x''.
-            ((x'' ∈ upper_bounds C' r ∧ x'' ∉ C') ∧ x'' ∈ k) ∧
-            (x'',CHOICE (upper_bounds C' r DIFF C')) ∈ r ⇒
-            CHOICE (upper_bounds C' r DIFF C') = x''
-’ (K all_tac)  
-metis_tac[]
-
-
-
------
-
-“!r s.
-   range r SUBSET s /\ (range r <> {}) /\ antisym r /\ reflexive r s /\
-   transitive r
-   ==>
-   BIGUNION (fchains r) IN fchains r”
-
-
-“!r s.
-   range r SUBSET s /\
-   (range r <> {}) /\
-   antisym r /\ reflexive r s /\ transitive r
-   ==>
-   upper_bounds (BIGUNION (fchains r)) r SUBSET maximal_elements s r”
-‘F’ suffices_by metis_tac[] >>
-qpat_x_assum ‘BIGUNION (fchains r) ∈ fchains r’
-(K all_tac) >>
-qpat_x_assum ‘range r ≠ ∅’ (K all_tac) >>
-qpat_x_assum ‘range r ⊆ s’ (K all_tac) >> 
-qpat_x_assum ‘antisym r’ (K all_tac) >> 
-qpat_x_assum ‘reflexive r s’ (K all_tac) >> 
-qpat_x_assum ‘transitive r’ (K all_tac) >>
-drule CHOICE_DEF >> strip_tac >> 
-fs[IN_DIFF] >> 
-fs[GSYM MEMBER_NOT_EMPTY] >>
-qpat_x_assum
-‘ ∀s. x ∉ s ∨ s ∉ fchains r’
-(K all_tac) >>
-first_x_assum
-(qspecl_then [‘CHOICE
-          (upper_bounds (BIGUNION (fchains r)) r DIFF BIGUNION (fchains r)) INSERT
-        BIGUNION (fchains r) ’] assume_tac) >>
-
-
-
-
-
-
-  METIS_TAC [IN_BIGUNION,  IN_INSERT]
-  METIS_TAC [IN_BIGUNION]
-
-
-
-qpat_x_assum
- ‘ u ∈
-        upper_bounds
-          (BIGUNION
-             {k' |
-              (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
-              ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                  (∀x. x ∈ C ⇒ x ∈ k') ∧ (upper_bounds C r DIFF C) ∩ k' ≠ ∅ ⇒
-                  CHOICE (upper_bounds C r DIFF C) ∈
-                  minimal_elements ((upper_bounds C r DIFF C) ∩ k') r}) r’ (K all_tac) >> 
-
-qpat_x_assum
-‘upper_bounds
-          (BIGUNION
-             {k' |
-              (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
-              ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                  (∀x. x ∈ C ⇒ x ∈ k') ∧ (upper_bounds C r DIFF C) ∩ k' ≠ ∅ ⇒
-                  CHOICE (upper_bounds C r DIFF C) ∈
-                  minimal_elements ((upper_bounds C r DIFF C) ∩ k') r}) r DIFF
-        BIGUNION
-          {k' |
-           (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
-           ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-               (∀x. x ∈ C ⇒ x ∈ k') ∧ (upper_bounds C r DIFF C) ∩ k' ≠ ∅ ⇒
-               CHOICE (upper_bounds C r DIFF C) ∈
-               minimal_elements ((upper_bounds C r DIFF C) ∩ k') r} =
-        ∅’
-(K all_tac)>>
-
-qpat_x_assum
-‘ ∀x y.
-          (∃s. x ∈ s ∧ (∀x y. x ∈ s ∧ y ∈ s ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-               s ≠ ∅ ∧
-               ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                   (∀x. x ∈ C ⇒ x ∈ s) ∧ (upper_bounds C r DIFF C) ∩ s ≠ ∅ ⇒
-                   CHOICE (upper_bounds C r DIFF C) ∈
-                   minimal_elements ((upper_bounds C r DIFF C) ∩ s) r) ∧
-          (∃s. y ∈ s ∧ (∀x y. x ∈ s ∧ y ∈ s ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-               s ≠ ∅ ∧
-               ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                   (∀x. x ∈ C ⇒ x ∈ s) ∧ (upper_bounds C r DIFF C) ∩ s ≠ ∅ ⇒
-                   CHOICE (upper_bounds C r DIFF C) ∈
-                   minimal_elements ((upper_bounds C r DIFF C) ∩ s) r) ⇒
-          (x,y) ∈ r ∨ (y,x) ∈ r
-’ (K all_tac) >>
- 
-qpat_x_assum 
-‘∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-            (∀x. x ∈ C ⇒
-                 ∃s. x ∈ s ∧ (∀x y. x ∈ s ∧ y ∈ s ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                     s ≠ ∅ ∧
-                     ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                         (∀x. x ∈ C ⇒ x ∈ s) ∧
-                         (upper_bounds C r DIFF C) ∩ s ≠ ∅ ⇒
-                         CHOICE (upper_bounds C r DIFF C) ∈
-                         minimal_elements ((upper_bounds C r DIFF C) ∩ s) r) ∧
-            (upper_bounds C r DIFF C) ∩
-            BIGUNION
-              {k' |
-               (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
-               ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                   (∀x. x ∈ C ⇒ x ∈ k') ∧ (upper_bounds C r DIFF C) ∩ k' ≠ ∅ ⇒
-                   CHOICE (upper_bounds C r DIFF C) ∈
-                   minimal_elements ((upper_bounds C r DIFF C) ∩ k') r} ≠ ∅ ⇒
-            CHOICE (upper_bounds C r DIFF C) ∈
-            minimal_elements
-              ((upper_bounds C r DIFF C) ∩
-               BIGUNION
-                 {k' |
-                  (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
-                  ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                      (∀x. x ∈ C ⇒ x ∈ k') ∧
-                      (upper_bounds C r DIFF C) ∩ k' ≠ ∅ ⇒
-                      CHOICE (upper_bounds C r DIFF C) ∈
-                      minimal_elements ((upper_bounds C r DIFF C) ∩ k') r}) r’
-(K all_tac) >>
-
-qpat_x_assum
-‘ ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-            (∀x. x ∈ C ⇒
-                 ∃s. x ∈ s ∧ (∀x y. x ∈ s ∧ y ∈ s ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                     s ≠ ∅ ∧
-                     ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                         (∀x. x ∈ C ⇒ x ∈ s) ∧
-                         (upper_bounds C r DIFF C) ∩ s ≠ ∅ ⇒
-                         CHOICE (upper_bounds C r DIFF C) ∈
-                         minimal_elements ((upper_bounds C r DIFF C) ∩ s) r) ∧
-            (upper_bounds C r DIFF C) ∩
-            BIGUNION
-              {k' |
-               (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
-               ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                   (∀x. x ∈ C ⇒ x ∈ k') ∧ (upper_bounds C r DIFF C) ∩ k' ≠ ∅ ⇒
-                   CHOICE (upper_bounds C r DIFF C) ∈
-                   minimal_elements ((upper_bounds C r DIFF C) ∩ k') r} ≠ ∅ ⇒
-            CHOICE (upper_bounds C r DIFF C) ∈
-            minimal_elements
-              ((upper_bounds C r DIFF C) ∩
-               BIGUNION
-                 {k' |
-                  (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
-                  ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-                      (∀x. x ∈ C ⇒ x ∈ k') ∧
-                      (upper_bounds C r DIFF C) ∩ k' ≠ ∅ ⇒
-                      CHOICE (upper_bounds C r DIFF C) ∈
-                      minimal_elements ((upper_bounds C r DIFF C) ∩ k') r}) r’ (K all_tac) >>?? no parse
-
-qpat_x_assum
-‘ {k' |
-         (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
-         ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-             (∀x. x ∈ C ⇒ x ∈ k') ∧ (upper_bounds C r DIFF C) ∩ k' ≠ ∅ ⇒
-             CHOICE (upper_bounds C r DIFF C) ∈
-             minimal_elements ((upper_bounds C r DIFF C) ∩ k') r} ≠ {∅}’ (K all_tac) >>
-
-qpat_x_assum
-‘{k' |
-         (∀x y. x ∈ k' ∧ y ∈ k' ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧ k' ≠ ∅ ∧
-         ∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-             (∀x. x ∈ C ⇒ x ∈ k') ∧ (upper_bounds C r DIFF C) ∩ k' ≠ ∅ ⇒
-             CHOICE (upper_bounds C r DIFF C) ∈
-             minimal_elements ((upper_bounds C r DIFF C) ∩ k') r} ≠ ∅’ (K all_tac) >>
-
-qpat_x_assum
-‘∀C. (∀x y. x ∈ C ∧ y ∈ C ⇒ (x,y) ∈ r ∨ (y,x) ∈ r) ∧
-            (∀x. x ∈ C ⇒ x ∈ k) ∧ (upper_bounds C r DIFF C) ∩ k ≠ ∅ ⇒
-            CHOICE (upper_bounds C r DIFF C) ∈
-            minimal_elements ((upper_bounds C r DIFF C) ∩ k) r’ (K all_tac) >>
-
-first_x_assum irule >>
-qpat_x_assum
-‘{y | ∃x. (x,y) ∈ r} ≠ ∅’ (K all_tac) >>
-qpat_x_assum
-‘k ≠ ∅’ (K all_tac) >>
-
-
- metis_tac[]
-
-
-----
-first_x_assum irule
------
-
-
-“!r s.
-   range r SUBSET s /\
-   (range r <> {}) /\
-   antisym r /\ reflexive r s /\ transitive r
-   ==>
-   upper_bounds (BIGUNION (fchains r)) r SUBSET maximal_elements s r”
-
-qpat_x_assum
-‘BIGUNION (fchains r) ∈ fchains r’ (K all_tac) >>
-qpat_x_assum
-‘x ∈ range r’ (K all_tac) >>
-
-
-
-qpat_x_assum
-‘u ∈ upper_bounds (BIGUNION (fchains r)) r’
-(K all_tac)
-
-
-fs[IN_DIFF,GSYM MEMBER_NOT_EMPTY,IN_BIGUNION]
-
-
-
------
-
-lemma8
-“”
+   App(f, Diff(upper_bounds(C, r), C)) = App(f, Diff(upper_bounds(k, r), k)) |
+             IN(App(f, Diff(upper_bounds(C, r), C)), k)
+   : proofmanager.proof

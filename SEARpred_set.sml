@@ -1702,3 +1702,26 @@ e0
 (form_goal
  “!A s1 s2. Diff(s1,s2) = Empty(A) <=>
  SS(s1,s2)”));
+
+val Diff_Ins_NONEMPTY = prove_store("Diff_Ins_NONEMPTY",
+e0
+(cheat)
+(form_goal
+ “!A s1 s2 s3 x:mem(A).
+  ~(Inter(Diff(s1,s2),Ins(x,s3)) = Empty(A)) <=>
+  ~(Inter(Diff(s1,s2),s3) = Empty(A))| IN(x,Diff(s1,s2))”));
+
+val Inter_Empty2 = prove_store("Inter_Empty2",
+e0
+(cheat)
+(form_goal 
+ “!A s1 s2. Inter(s1,s2) = Empty(A) ==>
+  !a.IN(a,s2) ==> ~IN(a,s1)”));
+
+
+val Inter_Empty_Ins_Inter_Empty = prove_store("Inter_Empty_Ins_Inter_Empty",
+e0
+(cheat)
+(form_goal 
+ “!A s1 s2. Inter(s1,s2) = Empty(A) ==>
+  !a.Inter(s1,Ins(a,s2)) = ”));
