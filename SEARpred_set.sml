@@ -1694,3 +1694,11 @@ val Diff_Empty = prove_store("Diff_Empty",
 e0
 (rw[GSYM IN_EXT_iff,Diff_def,Empty_def])
 (form_goal “!A s. Diff(s,Empty(A)) = s”));
+
+
+val Diff_Empty_SS = prove_store("Diff_Empty_SS",
+e0
+(cheat)
+(form_goal
+ “!A s1 s2. Diff(s1,s2) = Empty(A) <=>
+ SS(s1,s2)”));
