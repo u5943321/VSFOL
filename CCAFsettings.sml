@@ -1863,14 +1863,77 @@ e0
 (form_goal “∀A.isPb(Ed(1f,A),Ed(0f,A),Ed(α,A),Ed(β,A))”));
 
 (*
+
+until Thm13, missing, need to reread.
+*)
+
+(*as reverse of tri...*)
+
+
 val Ed_ab_Pb = prove_store("Ed_ab_Pb",
 e0
 (cheat)
 (form_goal “∀A.isPb(Er1(A) o Ed(1f,A),Er1(A) o Ed(0f,A),Ed(α,A),Ed(β,A))”));
 
-until Thm13, missing, need to reread.
-*)
+Ed_ab_Pb |> rewr_rule[isPb_def] |> qspecl [‘B’]
+|>conjE2
 
+val irt_uex = proved_th $
+e0
+cheat
+(form_goal
+ “∀A B η:A->Exp(2,B) ε:A -> Exp(2,B).
+  ?!a:A -> Exp(3,B). 
+   (Ed(1f,B) o η = Ed(0f,B) o ε &
+    Ed(α,B) o a = η & Ed(β,B) o a = ε) |
+   (~(Ed(1f,B) o η = Ed(0f,B) o ε) &
+    a = Ed(0f o To1(3),B) o η)”)
+
+val irt_def0 = irt_uex |> spec_all
+                       |> qsimple_uex_spec "irt" [‘η’,‘ε’] 
+
+val irt_def = proved_th $
+e0
+cheat
+(form_goal
+ “∀A B η:A->Exp(2,B) ε:A -> Exp(2,B).
+  Ed(1f,B) o η = Ed(0f,B) o ε ⇒
+  (Ed(α,B) o irt(η,ε) = η & Ed(β,B) o irt(η,ε) = ε)  &
+  (∀a'. Ed(α,B) o a' = η & Ed(β,B) o a' = ε ⇒
+   a' = irt(η,ε))”)
+(*cod η = dom ε *)
+val vo_def = 
+qdefine_fsym("vo",[‘ε:A-> Exp(2,B)’,‘η:A->Exp(2,B)’])
+‘Ed(γ, B) o irt(η,ε)’
+
+val ID_def = 
+qdefine_fsym("ID",[‘F:A->B’])
+‘Tp(F o p2(2,A))’
+
+val Adj_def = qdefine_psym("Adj",
+[‘L:X->A’,‘R:A->X’,‘η:X->Exp(2,X)’,‘ε:A->Exp(2,A)’])
+‘vo(Lw(ε,L),Rw(L,η))  = ID(L) ∧ 
+ vo(Rw(R,ε),Lw(η,R))  = ID(R)’
+|> qgenl [‘A’,‘X’,‘L’,‘R’,‘η’,‘ε’]
+
+
+val UFrom_def = 
+qdefine_psym("UFrom",[‘F:D->C’,‘x:1->C’,‘y:1->D’,‘f:2->C’])
+‘ dom(f) = F o y ∧ cod(f) = x ∧
+ (∀x':1->D f':2-> C. dom(f') = F o x' ∧ cod(f') = x ⇒
+ ∃!fh:2->D. f' = f @ (F o fh))’ 
+|> qgenl [‘D’,‘C’,‘F’,‘x’,‘y’,‘f’]
+
+
+val Thm13 = prove_store("Thm13",
+e0
+(cheat)
+(form_goal
+ “∀X A F:X->A. 
+  (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
+  (∀a:1->A. ∃!x:1->X f:2->A. cod(f) = a ∧ U(x,f)) ⇒
+  ∃!G:A->X η ε:A->Exp(2,A). Adj(F,G,η,ε) ∧
+   ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))”));
 
 
 val CC6 = store_ax("CC6",
