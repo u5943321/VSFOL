@@ -200,7 +200,7 @@ e0
  “!f:1->2. ~(f = 0f) <=> f = 1f”));
 
 
-
+(*
 
 val CC5_Disc_uex_one = prove_store("CC5_Disc_uex_one",
 e0
@@ -209,6 +209,7 @@ e0
  “∀A. Disc(A) ==> 
     !a0:1->A.
       ?!cf:A->2. ∀a:1->A. cf o a = 0f <=> a = a0”));
+*)
 
 val no_arrow_1f_to_0f = prove_store("no_arrow_1f_to_0f",
 e0
@@ -432,17 +433,18 @@ e0
  “!D c:D->1+1 S i:S->D. isPb(c, i2(1, 1), i, To1(S)) ==>
   !d:1->D. (?s:1->S. i o s = d) <=> c o d = i2(1,1)”));
 
-(*not really used?*)
+(*not really used
 val FSC_Disc_Disc = prove_store("FSC_Disc_Disc",
 e0
 cheat
 (form_goal “!D. Disc(D) ==>
             !S i:S->D. FSC(i) ==> Disc(S)”));
-
+*)
 
 val Disc_1 = prove_store("Disc_1",
 e0
-(cheat)
+(rw[Disc_def,isid_def] >> 
+ strip_tac >> qexists_tac ‘Id(1)’ >> rw[IdL,To1_def])
 (form_goal “Disc(1)”));
 
 (*
