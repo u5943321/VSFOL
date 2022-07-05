@@ -38,7 +38,22 @@ e0
 (*zf_ne_of,CC2_1*)
 val zf_xor_of = prove_store("zf_xor_of",
 e0
-cheat
+(strip_tac >> qcases ‘f = 0f’ >> arw[zf_ne_of] >>
+ ccontra_tac >>
+ qsspecl_then [‘id(f)’] strip_assume_tac CC2_1 (* 3 *) >> fs[id_def]
+ >-- (qby_tac
+     ‘f o To1(2) o 0f = 𝟘 o 0f’ 
+     >-- arw[GSYM o_assoc] >>
+     fs[zero_def,o_assoc,one_to_one_Id,IdR]) 
+ >-- (qby_tac
+     ‘f o To1(2) o 0f = 𝟙 o 0f’ 
+     >-- arw[GSYM o_assoc] >>
+     fs[one_def,o_assoc,one_to_one_Id,IdR]) >>
+ qby_tac
+ ‘f o To1(2) o 0f = 𝟚 o 0f’ 
+ >-- arw[GSYM o_assoc] >>
+ fs[two_def,o_assoc,one_to_one_Id,IdR,IdL]
+ )
 (form_goal
  “!f:1->2. ~(f = 0f) <=> f = 1f”));
 
@@ -53,10 +68,23 @@ e0
     !a0:1->A.
       ?!cf:A->2. ∀a:1->A. cf o a = 0f <=> a = a0”));
 
+val no_arrow_1f_to_0f = prove_store("no_arrow_1f_to_0f",
+e0
+(strip_tac >>
+ qsspecl_then [‘f’] strip_assume_tac CC2_1 >> 
+ arw[dom_cod_zot,zf_ne_of,GSYM zf_ne_of])
+(form_goal
+ “!f:2->2. ~(dom(f) = 1f & cod(f) = 0f)”));
+
 (*So no arrow of Q goes from any other object*)
 val no_arrow_from_other = prove_store("no_arrow_from_other",
 e0
-(cheat)
+(rpt strip_tac >> ccontra_tac >>
+ qsuff_tac
+ ‘dom(f o g) = 1f & cod(f o g) = 0f’
+ >-- rw[no_arrow_1f_to_0f] >>
+ fs[dom_def,cod_def,o_assoc] >>
+ first_x_assum irule >> arw[])
 (form_goal
  “!A a0:1->A f:A-> 2.
   (f o a0 = 0f &
@@ -292,9 +320,18 @@ e0
     (!d:1->D. (?s:1->S. i o s = d) <=> c o d = i2(1,1)) ==>
     isPb(c, i2(1, 1), i, To1(S))”));
 
+(*val DISTI_EL = store_ax("DISTI_EL",“?X x1:1->X x2. ~(x1 = x2)”);*)
 val i1_ne_i2 = prove_store("i1_ne_i2",
 e0
-cheat
+(ccontra_tac >>
+ assume_tac zf_ne_of >>
+ qsuff_tac ‘0f = 1f’ >-- arw[] >>
+ qby_tac ‘coPa(0f,1f) o i1(1,1) = 0f &
+          coPa(0f,1f) o i2(1,1) = 1f’ >--
+ rw[i12_of_coPa] >>
+ pop_assum (assume_tac o GSYM) >> 
+ qpick_x_assum ‘~(0f = 1f)’ (K all_tac) >> 
+ once_arw[] >> pop_assum (K all_tac) >> arw[])
 (form_goal
  “~(i1(1,1) = i2(1,1))”));
 
