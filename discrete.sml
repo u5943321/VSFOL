@@ -277,7 +277,18 @@ e0
 
 val Disc_fac_eq = prove_store("Disc_fac_eq",
 e0
-(cheat)
+(rpt strip_tac >>
+ irule $ iffLR fun_ext >> strip_tac >>
+ fs[Disc_def,isid_alt] >> rw[o_assoc] >>
+ first_x_assum (qspecl_then [‘h o a’] assume_tac) >> fs[] >>
+ first_x_assum (qspecl_then [‘f o a’] assume_tac) >> fs[] >> 
+ qsuff_tac ‘g o id(dom(f o a))  = k o id(dom(h o a))’
+ >-- arw[] >>
+ rw[id_def,dom_def] >>
+ qsuff_tac
+ ‘g o ((f o a) o 0f) = k o ((h o a) o 0f)’ 
+ >-- (strip_tac >> arw[GSYM o_assoc]) >>
+ arw[o_assoc])
 (form_goal
  “!A B f:A->B D g:B -> D
      C h:A->C   k:C -> D.
