@@ -41,9 +41,137 @@ e0
   R(g @ f, h) ⇒ ∀f1 g1. R(f,f1) ∧ R(g,g1) ⇒ h = g1 @ f1) ⇒
  ?!cf:A->B. ∀a:2->A b:2->B. R(a,b) ⇔ cf o a = b”));
 
+val fun_ext_Disc = prove_store("fun_ext_Disc",
+e0
+(rpt strip_tac >> fs[Disc_def] >>
+ fs[isid_def] >>
+ irule $ iffLR fun_ext >> strip_tac >>
+ first_x_assum (qspecl_then [‘a’] strip_assume_tac) >> fs[] >>
+ arw[GSYM o_assoc])
+(form_goal “∀A. Disc(A) ⇒ ∀B f:A->B g. 
+ (∀a:1->A. f o a = g o a) ⇒ f = g”));
+
+val id_eq_eq = prove_store("id_eq_eq",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] >>
+ fs[id_def] >>
+ qby_tac
+ ‘a1 o To1(2) o 0f = a2 o To1(2) o 0f’
+ >-- arw[GSYM o_assoc] >>
+ fs[one_to_one_Id,IdR])
+(form_goal “∀A a1:1->A a2. id(a1) = id(a2) ⇔ a1 = a2”));
+
+val id_dom = prove_store("id_dom",
+e0
+(rw[dom_def,id_def,o_assoc,one_to_one_Id,IdR])
+(form_goal “∀A a:1->A. dom(id(a)) = a”));
+
+
+val id_cod = prove_store("id_cod",
+e0
+(rw[cod_def,id_def,o_assoc,one_to_one_Id,IdR])
+(form_goal “∀A a:1->A. cod(id(a)) = a”));
+
+val isid_alt = prove_store("isid_alt",
+e0
+(rw[isid_def] >> rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (rw[id_def,dom_def] >> arw[one_to_one_Id] >>
+     qby_tac
+     ‘((f0 o To1(2)) o 0f) o To1(2) = 
+      f0 o (To1(2) o 0f) o To1(2)’
+     >-- rw[o_assoc] >>
+     arw[one_to_one_Id,IdL]) >>
+ fs[id_def,dom_def] >>
+ qexists_tac ‘f o 0f’ >> fs[])
+(form_goal
+ “!A f:2->A. isid(f) <=> 
+   id(dom(f)) = f”)); 
+
+val cpsb_idL = prove_store("cpsb_idL",
+e0
+cheat
+(form_goal
+ “∀A a:1->A f.cpsb(id(a),f) ⇒ id(a) @ f = f”));
+
+
+val cpsb_idR = prove_store("cpsb_idR",
+e0
+cheat
+(form_goal
+ “∀A a:1->A f.cpsb(f,id(a)) ⇒ f @ id(a) = f”));
+
 val CC5_Disc_uex = prove_store("CC5_Disc_uex",
 e0
-(cheat)
+((*rpt strip_tac >> 
+ qsuff_tac
+ ‘?cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘cf’ >> arw[] >>
+      rpt strip_tac >> irule fun_ext_Disc >> arw[] >>
+      pop_assum (assume_tac o GSYM) >> arw[]) >>
+ assume_tac
+ (CC5_uex |> qspecl [‘A’,‘B’] 
+ |> fVar_sInst_th “R(f:2->A,g:2->B)”
+    “∃a1:1->A b1:1->B. f = id(a1) & g = id(b1) & R(a1,b1)”) >>
+ qsuff_tac
+ ‘?!cf:A->B. 
+   ∀a:2->A b:2->B.
+    (∃a1:1->A b1:1->B. a = id(a1) & b = id(b1) & R(a1,b1)) ⇔ 
+   cf o a = b’ 
+ >-- (strip_tac >> 
+     pop_assum (strip_assume_tac o uex2ex_rule) >>
+     qexists_tac ‘cf’ >> 
+     rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+     >-- (first_x_assum (qspecl_then [‘id(a)’,‘id(b)’] assume_tac) >>
+         qsuff_tac ‘cf o id(a) = id(b)’ 
+         >-- (rw[id_def] >>
+             strip_tac >>
+             qby_tac ‘(cf o a o To1(2)) o 0f = (b o To1(2)) o 0f’ 
+             >-- arw[] >> fs[o_assoc,one_to_one_Id,IdR]) >>
+         first_x_assum (irule o iffLR) >> 
+         qexistsl_tac [‘a’,‘b’] >> arw[]) >>
+     first_x_assum (qspecl_then [‘id(a)’,‘id(b)’] assume_tac) >>
+   (*  fs[id_def] loop ,do not know why*)
+     qsuff_tac ‘cf o id(a) = id(b)’ 
+     >-- (strip_tac >> first_x_assum (drule o iffRL) >>
+         pop_assum strip_assume_tac >> fs[id_eq_eq] (*slow*)) >>
+     rw[id_def] >> arw[GSYM o_assoc]) >>
+ first_x_assum irule >> rpt strip_tac (* 4 *)
+ >-- (qexistsl_tac [‘a1’,‘b1’] >> arw[] >> rw[id_dom]) 
+ >-- (qexistsl_tac [‘a1’,‘b1’] >> arw[] >> rw[id_cod]) 
+ >-- (qsuff_tac
+     ‘∃g:2->B.
+        ∃a1 b1. f = id(a1) & g = id(b1) & R(a1,b1)’
+     >-- (strip_tac >> uex_tac >> qexists_tac ‘g’ >> rpt strip_tac (* 2 *)
+         >-- (qexistsl_tac [‘a1’,‘b1’]  >> arw[]) >>
+         fs[id_eq_eq] >> rfs[] >>
+         first_x_assum (qspecl_then [‘a1’] assume_tac) >>
+         pop_assum (strip_assume_tac o uex_expand) >>
+         qsuff_tac ‘b1' = b & b1 = b’ 
+         >-- (rpt strip_tac >> arw[]) >>
+         strip_tac >> first_x_assum irule >> arw[]) >>
+     first_x_assum 
+     (qspecl_then [‘dom(f)’] (strip_assume_tac o uex2ex_rule)) >>
+     qexistsl_tac [‘id(b)’,‘dom(f)’,‘b’] >> arw[] >>
+     flip_tac >> fs[Disc_def,isid_alt]) >>
+ fs[] >> 
+ qby_tac ‘a1'' = a1’ 
+ >-- (drule cpsb_idR >> fs[id_eq_eq])  >>
+ qby_tac ‘a1' = a1’
+ >-- (drule cpsb_idL >> fs[id_eq_eq]) >>
+ fs[] >>
+ qby_tac ‘b1' = b1’
+ >-- (first_x_assum (qspecl_then [‘a1’] (strip_assume_tac o uex_expand)) >>
+     qsuff_tac ‘b1 = b & b1' = b’
+     >-- (strip_tac >> arw[]) >> strip_tac >> 
+     first_x_assum irule >> arw[]) >>
+ qby_tac ‘b1'' = b1’
+ >-- (first_x_assum (qspecl_then [‘a1’] (strip_assume_tac o uex_expand)) >>
+     qsuff_tac ‘b1 = b & b1'' = b’
+     >-- (strip_tac >> arw[]) >> strip_tac >> 
+     first_x_assum irule >> arw[]) >>
+ arw[] >>
+ flip_tac >> irule cpsb_idL >> rw[cpsb_def] >>
+ rw[id_dom,id_cod] line by line okay, seems loop if as a whole*) cheat )
 (form_goal
  “∀A. Disc(A) ==> !B. 
  (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
@@ -106,16 +234,6 @@ e0
   !g:2->A. cod(g) = a0 ==> dom(g) = a0”));
 
 
-val id_dom = prove_store("id_dom",
-e0
-(rw[dom_def,id_def,o_assoc,one_to_one_Id,IdR])
-(form_goal “∀A a:1->A. dom(id(a)) = a”));
-
-
-val id_cod = prove_store("id_cod",
-e0
-(rw[cod_def,id_def,o_assoc,one_to_one_Id,IdR])
-(form_goal “∀A a:1->A. cod(id(a)) = a”));
 
 val CC5_ap2_Thm20 = prove_store("CC5_ap2_Thm20",
 e0
@@ -156,20 +274,6 @@ e0
     !f:2->A. Id(A) o f = id(dom(f))”));
 *)
 
-val isid_alt = prove_store("isid_alt",
-e0
-(rw[isid_def] >> rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
- >-- (rw[id_def,dom_def] >> arw[one_to_one_Id] >>
-     qby_tac
-     ‘((f0 o To1(2)) o 0f) o To1(2) = 
-      f0 o (To1(2) o 0f) o To1(2)’
-     >-- rw[o_assoc] >>
-     arw[one_to_one_Id,IdL]) >>
- fs[id_def,dom_def] >>
- qexists_tac ‘f o 0f’ >> fs[])
-(form_goal
- “!A f:2->A. isid(f) <=> 
-   id(dom(f)) = f”)); 
 
 val Disc_fac_eq = prove_store("Disc_fac_eq",
 e0
