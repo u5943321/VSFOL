@@ -14,9 +14,24 @@ e0
  “!A B f:A->B g:A->B Q q:B-> Q. 
   iscoEq(f,g,q) ==> Epi(q)”));
 
+val fun_ext_alt = prove_store("fun_ext_alt",
+e0
+(rpt strip_tac >>
+ irule $ iffLR fun_ext >>
+ arw[])
+(form_goal “∀A B f:A->B g. (∀a:2->A b. f o a = b ⇔ g o a = b) ⇒
+ f = g”));
+
 val CC5_uex = prove_store("CC5_uex",
 e0
-(cheat)
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?cf:A->B. ∀a:2->A b:2->B. R(a,b) ⇔ cf o a = b’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘cf’ >>
+     rpt strip_tac >> arw[] >>
+     irule fun_ext_alt >> 
+     pop_assum (assume_tac o GSYM) >> arw[]) >>
+ irule CC5 >> arw[])
 (form_goal
  “∀A B. 
  (∀f:2->A. ∃!g:2->B. R(f,g)) ∧
