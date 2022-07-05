@@ -1821,7 +1821,7 @@ e0
 (form_goal “areIso(Exp(2,2),3)”));
 
 
-val _ = add_parse (int_of "η")
+val _ = add_parse (int_of "η");
 
 val cpnt_def = qdefine_fsym("cpnt",
 [‘η:A -> Exp(2,B)’,‘a:1->A’])
@@ -1877,9 +1877,6 @@ val Ed_ab_Pb = prove_store("Ed_ab_Pb",
 e0
 (cheat)
 (form_goal “∀A.isPb(Er1(A) o Ed(1f,A),Er1(A) o Ed(0f,A),Ed(α,A),Ed(β,A))”));
-
-Ed_ab_Pb |> rewr_rule[isPb_def] |> qspecl [‘B’]
-|>conjE2
 
 val irt_uex = proved_th $
 e0
