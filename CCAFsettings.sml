@@ -1818,6 +1818,12 @@ e0
 (form_goal “∀f:2->3. f = α | f = β | f = γ | f = id(dom(α)) | f = id(cod(β)) | f = id(dom(β))”));
 
 
+val Thm12 = prove_store("Thm12",
+e0
+(cheat)
+(form_goal “areIso(Exp(2,2),3)”));
+
+
 val _ = add_parse (int_of "η")
 
 val cpnt_def = qdefine_fsym("cpnt",
