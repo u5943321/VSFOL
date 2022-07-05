@@ -372,7 +372,12 @@ e0
      f0 o (To1(2) o 0f) o To1(2)’
     >-- rw[o_assoc] >> 
     arw[one_to_one_Id,IdL]) >>
- qby_tac ‘cpsb(g1,f1)’ >-- cheat >>
+ qby_tac ‘cpsb(g1,f1)’ 
+ >-- (rw[cpsb_def] >> drule $ iffLR FSC_def >> fs[] >>
+     fs[Mono_def] >> first_x_assum irule >>
+     rw[dom_def,cod_def] >> arw[GSYM o_assoc] >> 
+     rw[o_assoc] >> rw[GSYM dom_def,GSYM cod_def] >>
+     fs[cpsb_def]) >>
  drule fun_pres_oa >>
  first_x_assum (qsspecl_then [‘i’] assume_tac) >> rfs[] >>
  rev_drule fun_pres_oa >> 
