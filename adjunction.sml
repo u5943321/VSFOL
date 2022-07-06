@@ -74,12 +74,18 @@ e0
  rw[o_assoc,p12_of_Pa,Pa_distr] >> 
  rw[Ev_of_Tp_el] >> rw[Pa_distr,o_assoc,p12_of_Pa])
 (form_goal
- “∀A B f:A->B C g:B->C X. Ed(g o f,B) = 
- Ed(f,B) o Ed(g,B)”));
+ “∀A B f:A->B C g:B->C X. Ed(g o f,X) = 
+ Ed(f,X) o Ed(g,X)”));
+
+val Ed_eq = prove_store("Ed_eq",
+e0
+(rpt strip_tac >> rw[Ed_def] >> arw[])
+(form_goal
+ “∀A B f:A->B g. f = g ⇒ Ed(f,X) = Ed(g,X)”));
 
 val Ed_1f_gamma = prove_store("Ed_1f_gamma",
 e0
-()
+(rw[GSYM Ed_o] >> irule Ed_eq >> rw[CC4_1])
 (form_goal
  “Ed(1f, B) o Ed(γ, B) = Ed(1f, B) o Ed(β, B)”));
 
