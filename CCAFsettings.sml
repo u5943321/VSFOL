@@ -947,6 +947,14 @@ e0
 (form_goal
  “!A B X f:X->A * B.  f = Pa(p1(A,B) o f,p2(A,B) o f)”));
 
+val to_P_has_comp = prove_store("to_P_has_comp",
+e0
+(rpt strip_tac >>
+ qexistsl_tac [‘p1(A,B) o f’,‘p2(A,B) o f’] >>
+ rw[GSYM to_P_component])
+(form_goal
+ “!A B X f:X->A * B. ∃a:X->A b:X->B.  
+  f = Pa(a,b)”));
 
 val to_P_eq = prove_store("to_P_eq",
 e0
@@ -1014,7 +1022,7 @@ e0
 
 val To1_o_To1 = prove_store("To1_o_To1",
 e0
-(cheat)
+(rw[To1_def])
 (form_goal
  “∀A f:X->A. To1(A) o f = To1(X)”));
 
@@ -1821,7 +1829,7 @@ e0
 (form_goal “areIso(Exp(2,2),3)”));
 
 
-val _ = add_parse (int_of "η")
+val _ = add_parse (int_of "η");
 
 val cpnt_def = qdefine_fsym("cpnt",
 [‘η:A -> Exp(2,B)’,‘a:1->A’])
@@ -1878,9 +1886,6 @@ e0
 (cheat)
 (form_goal “∀A.isPb(Er1(A) o Ed(1f,A),Er1(A) o Ed(0f,A),Ed(α,A),Ed(β,A))”));
 
-Ed_ab_Pb |> rewr_rule[isPb_def] |> qspecl [‘B’]
-|>conjE2
-
 val irt_uex = proved_th $
 e0
 cheat
@@ -1904,6 +1909,7 @@ cheat
   (Ed(α,B) o irt(η,ε) = η & Ed(β,B) o irt(η,ε) = ε)  &
   (∀a'. Ed(α,B) o a' = η & Ed(β,B) o a' = ε ⇒
    a' = irt(η,ε))”)
+
 (*cod η = dom ε *)
 val vo_def = 
 qdefine_fsym("vo",[‘ε:A-> Exp(2,B)’,‘η:A->Exp(2,B)’])
