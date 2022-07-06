@@ -343,13 +343,44 @@ e0
 (form_goal
  “∀X A L:X->A. Nt(ID(L), L, L)”));
 
+(*look through the procedure get one more equation.*)
+val csL_Pt_Ed = prove_store("csL_Pt_Ed",
+e0
+(rw[Er1_def,Ed_def] >> 
+ rw[o_assoc,Pa_distr,IdL,To1_def] >>
+ rw[Ev_of_Tp_el] >> 
+ rw[Pa_distr,p12_of_Pa,To1_def,o_assoc] >>
+ rpt strip_tac >> rw[GSYM zero_def] >>
+ rw[csL_def,Pt_def,o_assoc,p12_of_Pa,Pa_distr,
+    two_def,IdR])
+(form_goal
+ “∀A B η:A->Exp(2,B) f:2->A.
+ csL(Pt(η o f)) :2->B = Er1(B) o Ed(0f, B) o η o f”));
+
 
 
 
 val vo_Nt_Nt = prove_store("vo_Nt_Nt",
 e0
 (rpt strip_tac >> 
- fs[Nt_def] >> cheat)
+ fs[Nt_def] >> strip_tac >>
+ qsspecl_then [‘η2’,‘η1’] assume_tac cs_of_vo_0f >>
+ qsspecl_then [‘η2’,‘η1’] assume_tac cs_of_vo_1f >>
+ qby_tac
+ ‘Ed(1f, B) o η2 = Ed(0f, B) o η1’
+ >-- cheat >>
+ qby_tac
+ ‘Ed(1f, B) o η2 = Ed(0f, B) o η1’
+ >-- cheat >>
+ first_x_assum drule >>
+ first_x_assum drule >>
+ fs[GSYM o_assoc,fun_ext] >> 
+ 
+ 
+
+
+
+cheat)
 (form_goal
  “∀A B F1:A->B F2:A->B F3:A->B 
   η1:A -> Exp(2,B) η2:A -> Exp(2,B).
