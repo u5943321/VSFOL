@@ -55,7 +55,7 @@ qdefine_psym("UFrom",[‘F:D->C’,‘x:1->C’,‘y:1->D’,‘f:2->C’])
  ∃!fh:2->D. f' = f @ (F o fh))’ 
 |> qgenl [‘D’,‘C’,‘F’,‘x’,‘y’,‘f’]
 
-“ Nt(ε:A->Exp(2,A),R o L,Id(A))”
+
 
 (*RT_cs2, BL_cs2 cs2_RT_cpsb*)
 
@@ -182,9 +182,101 @@ e0
   Nt(η1,F1,F2) & Nt(η2,F1,F2) &
   (∀a:1->A. η1 o a  = η2 o a) ⇒ η1 = η2”));
 
+val tP_def = qdefine_fsym("tP",[‘f:A * X->B’])
+‘Tp(f o Swap(X,A))’
+
+val ID_def = 
+qdefine_fsym("ID",[‘F:A->B’])
+‘Tp(Pt(id(Tp1(F))) o Swap(2,A))’
+
+
+val ID_ap = prove_store("ID_ap",
+e0
+(rw[ID_def]>> rw[GSYM Tp1_def] >>
+ rpt strip_tac >>
+ irule Ev_eq_eq >>
+ rw[Ev_of_Tp_el,o_assoc,p12_of_Pa,one_to_one_Id,IdR,
+    To1_def,id_def,Pt_def,Swap_property,p12_of_Pa])
+(form_goal
+ “∀X A L:X->A x:1->X. 
+ Tp1(id(L o x)) = ID(L) o x”));
+
+
+
+val ID_ap_ar = prove_store("ID_ap_ar",
+e0
+(rw[ID_def]>> rw[GSYM Tp1_def] >>
+ rpt strip_tac >>
+ irule Ev_eq_eq >>
+ rw[Ev_of_Tp_el,o_assoc,p12_of_Pa,one_to_one_Id,IdR,
+    To1_def,id_def,Pt_def,Swap_property,p12_of_Pa] >>
+ qby_tac
+ ‘L o f o p1(2, 2) o Swap(2, 2) o Pa(p1(2, 2), p2(2, 2)) = L o f o (p1(2, 2) o Swap(2, 2)) o Pa(p1(2, 2), p2(2, 2))’
+ >-- rw[o_assoc] >>
+ arw[Swap_property,p12_of_Pa])
+(form_goal
+ “∀X A L:X->A f:2->X. 
+ Tp(Pt(id(Tp1(L o f))) o Swap(2,2)) = ID(L) o f”));
+
+
+val Ev_of_el = prove_store("Ev_of_el",
+e0
+(rpt strip_tac >>
+ qby_tac 
+ ‘f = Tp1(Tp0(f))’ >-- rw[Tp1_Tp0_inv] >> once_arw[] >>
+ rw[GSYM Tp1_def,Ev_of_Tp_el'] >> rw[Tp1_def,Tp1_Tp0_inv] >>
+ rw[o_assoc,p12_of_Pa,idR])
+(form_goal
+ “!A B f:1->Exp(A,B) a:1->A.
+  Ev(A,B) o Pa(a,f) = Tp0(f) o a”));
+
+
+val Ev_of_el_gen = prove_store("Ev_of_el_gen",
+e0
+(rpt strip_tac >>
+ rw[Pt_def] >> rw[o_assoc,Pa_distr,p12_of_Pa,IdR])
+(form_goal
+ “!A B f:X->Exp(A,B) a:X->A.
+  Ev(A,B) o Pa(a,f) = Pt(f) o Pa(a,Id(X))”));
+
+(*,csR_csB'*)
+val ID_Nt = prove_store("ID_Nt",
+e0
+(rw[Nt_def] >> rw[GSYM ID_ap_ar] >>
+ rw[Pt_Tp] >> 
+ rw[id_def,o_assoc,csL_def,csB_def,csR_def,To1_def] >>
+ rpt strip_tac (* 2 *)
+ >-- (rw[Pt_def,Tp1_def,Ev_of_Tp_el,o_assoc,
+        GSYM Swap_def,p12_of_Pa,Pa_distr,To1_def] >>
+     once_rw[Ev_of_el_gen] >> 
+     rw[Pt_def] >> rw[two_def] >> rw[GSYM Tp1_def] >>
+     qby_tac
+     ‘(Tp(((L o f) o p1(2, 1))) o To1(2)) o p2(2, 2) = 
+      Tp(((L o f) o p1(2, 1))) o (To1(2) o p2(2, 2))’
+     >-- rw[o_assoc] >> arw[] >>
+     rw[Ev_of_Tp_el] >>
+     rw[o_assoc,p12_of_Pa,Pa_distr,IdR]) >>
+ rw[Pt_def,Tp1_def,Ev_of_Tp_el,o_assoc,
+        GSYM Swap_def,p12_of_Pa,Pa_distr,To1_def] >>
+ once_rw[Ev_of_el_gen] >> 
+ rw[Pt_def] >> rw[two_def] >> rw[GSYM Tp1_def] >>
+     qby_tac
+     ‘(Tp(((L o f) o p1(2, 1))) o To1(2)) o p2(2, 2) = 
+      Tp(((L o f) o p1(2, 1))) o (To1(2) o p2(2, 2))’
+     >-- rw[o_assoc] >> arw[] >>
+     rw[Ev_of_Tp_el] >>
+     rw[o_assoc,p12_of_Pa,Pa_distr,IdR])
+(form_goal
+ “∀X A L:X->A. Nt(ID(L), L, L)”));
+
 val Adj_alt = prove_store("Adj_alt",
 e0
 (rpt strip_tac >> rw[Adj_def] >>
+ strip_tac (* 2 *)
+ >-- irule Nt_ext >> arw[ID_ap] >>
+     qexistsl_tac [‘L’,‘L’] >> rw[ID_Nt] >>
+     
+     
  )
 (form_goal 
  “∀L:X->A R:A->X η: X-> Exp(2,X) ε:A->Exp(2,A).
