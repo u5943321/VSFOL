@@ -35,6 +35,74 @@ val vo_def =
 qdefine_fsym("vo",[‘ε:A-> Exp(2,B)’,‘η:A->Exp(2,B)’])
 ‘Ed(γ, B) o irt(η,ε)’
 
+val cs_of_vo_0f = prove_store("cs_of_vo_0f",
+e0
+(rpt strip_tac >> drule irt_def >>
+pop_assum strip_assume_tac >>  
+rw[vo_def] >> 
+qby_tac
+‘Ed(0f, B) o Ed(γ, B) = Ed(0f, B) o Ed(α, B)’
+>-- cheat >>
+arw[GSYM o_assoc] >> rw[o_assoc] >>
+qby_tac
+‘Ed(0f, B) o Ed(α, B) o irt(η, ε) o f = 
+Ed(0f, B) o (Ed(α, B) o irt(η, ε)) o f’ 
+>-- rw[o_assoc] >>
+arw[])
+(form_goal
+“∀η:A -> Exp(2,B) ε:A -> Exp(2,B).
+ Ed(1f,B) o η = Ed(0f,B) o ε ⇒
+ ∀f:2->A. Ed(0f, B) o vo(ε,η) o f = 
+          Ed(0f, B) o η o f”));
+
+val Pa_o_split = prove_store("Pa_o_split",
+e0
+(rpt strip_tac >> irule to_P_eq >>
+ rw[p12_of_Pa] >> rw[GSYM o_assoc,p12_of_Pa] >>
+ rw[o_assoc,p12_of_Pa])
+(form_goal
+ “!B X f:B->X Y g:X->Y A.Pa(p1(A,B),g:X->Y o f o p2(A,B)) = 
+  Pa(p1(A,X), g o p2(A,X)) o Pa(p1(A,B),f o p2(A,B))”));
+
+
+val Ed_o = prove_store("Ed_o",
+e0
+(rw[Ed_def] >> rpt strip_tac >>
+ irule Ev_eq_eq >> rw[Ev_of_Tp_el] >>
+ rw[o_assoc,p12_of_Pa,Pa_distr] >>
+ rw[Pa_o_split] >> rw[GSYM o_assoc,Ev_of_Tp_el] >>
+ rw[o_assoc,p12_of_Pa,Pa_distr] >> 
+ rw[Ev_of_Tp_el] >> rw[Pa_distr,o_assoc,p12_of_Pa])
+(form_goal
+ “∀A B f:A->B C g:B->C X. Ed(g o f,B) = 
+ Ed(f,B) o Ed(g,B)”));
+
+val Ed_1f_gamma = prove_store("Ed_1f_gamma",
+e0
+()
+(form_goal
+ “Ed(1f, B) o Ed(γ, B) = Ed(1f, B) o Ed(β, B)”));
+
+val cs_of_vo_1f = prove_store("cs_of_vo_1f",
+e0
+(rpt strip_tac >> drule irt_def >>
+pop_assum strip_assume_tac >>  
+rw[vo_def] >> 
+qby_tac
+‘Ed(1f, B) o Ed(γ, B) = Ed(1f, B) o Ed(β, B)’
+>-- cheat >>
+arw[GSYM o_assoc] >> rw[o_assoc] >>
+qby_tac
+‘Ed(1f, B) o Ed(β, B) o irt(η, ε) o f = 
+Ed(1f, B) o (Ed(β, B) o irt(η, ε)) o f’ 
+>-- rw[o_assoc] >>
+arw[])
+(form_goal
+“∀η:A -> Exp(2,B) ε:A -> Exp(2,B).
+ Ed(1f,B) o η = Ed(0f,B) o ε ⇒
+ ∀f:2->A. Ed(1f, B) o vo(ε,η) o f = 
+          Ed(1f, B) o ε o f”));
+
 
 val ID_def = 
 qdefine_fsym("ID",[‘F:A->B’])
@@ -268,6 +336,19 @@ e0
      rw[o_assoc,p12_of_Pa,Pa_distr,IdR])
 (form_goal
  “∀X A L:X->A. Nt(ID(L), L, L)”));
+
+
+
+
+val vo_Nt_Nt = prove_store("vo_Nt_Nt",
+e0
+(rpt strip_tac >> 
+ fs[Nt_def] >> cheat)
+(form_goal
+ “∀A B F1:A->B F2:A->B F3:A->B 
+  η1:A -> Exp(2,B) η2:A -> Exp(2,B).
+  Nt(η1,F1,F2) & Nt(η2,F2,F3) ⇒
+  Nt(vo(η2,η1),F1,F3)”));
 
 val Adj_alt = prove_store("Adj_alt",
 e0
