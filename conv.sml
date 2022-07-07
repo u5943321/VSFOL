@@ -143,7 +143,9 @@ fun changed_fconv (fc:form -> thm) f =
 
 fun repeatfc fc f = 
     ((fc thenfc (repeatfc fc)) orelsefc all_fconv) f
-
+(*in all the convs below should not use view-form, need a separate 
+dest_pred, dest_conn, dest_quant
+*)
 fun pred_fconv c f = 
     case view_form f of 
         vPred (P,_,tl) => EQ_psym P (List.map c tl)
@@ -238,7 +240,7 @@ let val th0 = fc (subst_bound (mk_var(n,s)) b)
 fun forall_fconv fc f = 
     case view_form f of
         (vQ("!",n,s,b)) => 
-        let val th0 = fc (subst_bound (mk_var(n,s)) b)
+        let val th0 = fc (*(subst_bound (mk_var(n,s)) b) *) b
         in forall_iff (n,s) th0
            handle _ =>
                   let val (n',_) = dest_var 
@@ -246,7 +248,7 @@ fun forall_fconv fc f =
                                              (mk_var(n,s))) 
                       val f' = rename_bound n' f 
                       val ((n',s'),b') = dest_forall f'
-                      val th1 = fc (subst_bound (mk_var(n',s')) b')
+                      val th1 = fc (*subst_bound (mk_var(n',s')) b'*) b'
                   in
                       forall_iff (n',s') th1
                   end
@@ -256,7 +258,7 @@ fun forall_fconv fc f =
 fun exists_fconv fc f = 
     case view_form f of
         (vQ("?",n,s,b)) => 
-        let val th0 = fc (subst_bound (mk_var(n,s)) b)
+        let val th0 = fc (*subst_bound (mk_var(n,s)*) b
         in exists_iff (n,s) th0
            handle _ =>
                   let val (n',_) = dest_var 
@@ -264,7 +266,7 @@ fun exists_fconv fc f =
                                              (mk_var(n,s))) 
                       val f' = rename_bound n' f 
                       val ((n',s'),b') = dest_exists f'
-                      val th1 = fc (subst_bound (mk_var(n',s')) b')
+                      val th1 = fc (*subst_bound (mk_var(n',s')*) b'
                   in
                       exists_iff (n',s') th1
                   end
@@ -274,7 +276,7 @@ fun exists_fconv fc f =
 fun uex_fconv fc f = 
     case view_form f of
         (vQ("?!",n,s,b)) => 
-        let val th0 = fc (subst_bound (mk_var(n,s)) b)
+        let val th0 = fc (*subst_bound (mk_var(n,s)*) b
         in uex_iff (n,s) th0
            handle _ =>
                   let val (n',_) = dest_var 
@@ -282,7 +284,7 @@ fun uex_fconv fc f =
                                              (mk_var(n,s))) 
                       val f' = rename_bound n' f 
                       val ((n',s'),b') = dest_uex f'
-                      val th1 = fc (subst_bound (mk_var(n',s')) b')
+                      val th1 = fc (*subst_bound (mk_var(n',s')*) b'
                   in
                       uex_iff (n',s') th1
                   end
@@ -608,13 +610,6 @@ fun conj_pair th =
       raise ERR ("conj_pair.not a conjunction",[],[],[concl th])
  
 
-
-fun rv_subset_lv th = 
-    let val th0 = spec_all th 
-        val (l,r) = dest_dimp (concl th)
-        val (lv,rv) = (fvf l,fvf r)
-    in HOLset.isSubset (lv,rv)
-    end 
 
 
 fun rw_fcanon th = 

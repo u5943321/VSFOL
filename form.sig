@@ -64,7 +64,7 @@ val substf: (string * sort) * term -> form -> form
 
 val fvf: form -> (string * sort) set
 val fvfl: form list -> (string * sort) set
-val subst_bound: term -> form -> form
+(*val subst_bound: term -> form -> form *)
 val abstract: string * sort -> form -> form
 
 type vd = term.vd
