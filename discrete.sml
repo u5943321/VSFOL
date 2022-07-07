@@ -177,11 +177,6 @@ e0
  (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
  ?!cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b”));
 
-
-
-
-
-
 val CC5_Disc_uex = prove_store("CC5_Disc_uex",
 e0
 (rpt strip_tac >> 
@@ -202,12 +197,12 @@ e0
      ‘∃g:2->B.
         ∃a1 b1. f = id(a1) & g = id(b1) & R(a1,b1)’
      >-- (strip_tac >> uex_tac >> qexists_tac ‘g’ >> rpt strip_tac (* 2 *)
-         >-- (qexistsl_tac [‘a1’,‘b1’]  >> arw[]) >>
+         >-- cheat (*qexistsl_tac [‘a1’,‘b1’]  >> arw[]*) >>
          fs[id_eq_eq] >> rfs[] >>
          first_x_assum (qspecl_then [‘a1’] assume_tac) >>
          pop_assum (strip_assume_tac o uex_expand) >>
          qsuff_tac ‘b1' = b & b1 = b’ 
-         >-- (rpt strip_tac >> arw[]) >>
+         >-- cheat (*rpt strip_tac >> arw[]*) >>
          strip_tac >> first_x_assum irule >> arw[]) >> cheat
      ) >> cheat  )
 (form_goal
@@ -215,6 +210,9 @@ e0
  (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
  ?!cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b”));
 
+
+
+(*
 proved_th $
 e0
 (rpt strip_tac >> 
@@ -333,6 +331,7 @@ e0
  “∀A. Disc(A) ==> !B. 
  (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
  ?!cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b”));
+*)
 
 (*zf_ne_of,CC2_1*)
 val zf_xor_of = prove_store("zf_xor_of",
