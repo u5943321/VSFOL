@@ -248,7 +248,7 @@ fun dest_fvar f =
 fun eq_form fp = PolyML.pointerEq (fst fp,snd fp) orelse
     case fp of 
         (Pred(P1,b1,tl1),Pred(P2,b2,tl2)) => 
-        P1 = P2 andalso b1 = b2 andalso List.all (fn (t1,t2) => t1 = t2) (zip tl1 tl2)
+        P1 = P2 andalso b1 = b2 andalso (*List.all (fn (t1,t2) => t1 = t2) (zip tl1 tl2)*) tl1 = tl2
       | (Conn(co1,fl1),Conn(co2,fl2)) => co1 = co2 andalso 
                                          ListPair.all eq_form (fl1,fl2)
       | (Quant(q1,n1,s1,b1),Quant(q2,n2,s2,b2)) => 
