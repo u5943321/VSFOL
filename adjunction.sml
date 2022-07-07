@@ -358,44 +358,131 @@ e0
  csL(Pt(η o f)) :2->B = Er1(B) o Ed(0f, B) o η o f”));
 
 
+(*look through the procedure get one more equation.*)
+val csR_Pt_Ed = prove_store("csR_Pt_Ed",
+e0
+(rw[Er1_def,Ed_def] >> 
+ rw[o_assoc,Pa_distr,IdL,To1_def] >>
+ rw[Ev_of_Tp_el] >> 
+ rw[Pa_distr,p12_of_Pa,To1_def,o_assoc] >>
+ rpt strip_tac >> rw[GSYM one_def] >>
+ rw[csR_def,Pt_def,o_assoc,p12_of_Pa,Pa_distr,
+    two_def,IdR])
+(form_goal
+ “∀A B η:A->Exp(2,B) f:2->A.
+ csR(Pt(η o f)) :2->B = Er1(B) o Ed(1f, B) o η o f”));
 
+
+val Er1_eq_eq = prove_store("Er1_eq_eq",
+e0
+cheat
+(form_goal “∀A B f1 f2:A-> Exp(1,B). 
+Er1(B) o f1 = Er1(B) o f2 ⇔ f1 = f2”));
 
 val vo_Nt_Nt = prove_store("vo_Nt_Nt",
 e0
 (rpt strip_tac >> 
  fs[Nt_def] >> strip_tac >>
- qsspecl_then [‘η2’,‘η1’] assume_tac cs_of_vo_0f >>
- qsspecl_then [‘η2’,‘η1’] assume_tac cs_of_vo_1f >>
+ qsspecl_then [‘η1’,‘η2’] assume_tac cs_of_vo_0f >>
+ qsspecl_then [‘η1’,‘η2’] assume_tac cs_of_vo_1f >>
  qby_tac
- ‘Ed(1f, B) o η2 = Ed(0f, B) o η1’
- >-- cheat >>
+ ‘Ed(1f, B) o η1 = Ed(0f, B) o η2’
+ >-- (irule $ iffLR fun_ext >>
+     strip_tac >> irule $ iffLR Er1_eq_eq >>
+     arw[o_assoc,GSYM csR_Pt_Ed,GSYM csL_Pt_Ed])>>
  qby_tac
- ‘Ed(1f, B) o η2 = Ed(0f, B) o η1’
- >-- cheat >>
+ ‘Ed(1f, B) o η1 = Ed(0f, B) o η2’
+ >-- (irule $ iffLR fun_ext >>
+     strip_tac >> irule $ iffLR Er1_eq_eq >>
+     arw[o_assoc,GSYM csR_Pt_Ed,GSYM csL_Pt_Ed]) >>
  first_x_assum drule >>
  first_x_assum drule >>
- fs[GSYM o_assoc,fun_ext] >> 
- 
- 
-
-
-
-cheat)
+ (*fs[GSYM o_assoc,fun_ext] >> *)
+ arw[csL_Pt_Ed,csR_Pt_Ed] >> 
+ rw[GSYM csL_Pt_Ed,GSYM csR_Pt_Ed] >> arw[])
 (form_goal
  “∀A B F1:A->B F2:A->B F3:A->B 
   η1:A -> Exp(2,B) η2:A -> Exp(2,B).
   Nt(η1,F1,F2) & Nt(η2,F2,F3) ⇒
   Nt(vo(η2,η1),F1,F3)”));
 
+val Nt_Lw_Nt = prove_store("Nt_Lw_Nt",
+e0
+(rw[Nt_def] >> rpt gen_tac >> strip_tac >>
+ rpt gen_tac >>
+ arw[Lw_def,o_assoc])
+(form_goal 
+ “∀A B F1 F2:A->B η.
+  Nt(η,F1,F2) ⇒
+  ∀C F3:C->A. Nt(Lw(η,F3),F1 o F3,F2 o F3)”));
+
+(*
+val csL_Pt_o = prove_store("csL_Pt_o",
+e0
+()
+(form_goal
+ “csL(Pt(Ec(F, X) o f)) = ”));
+*)
+
+val Er1_Ed_Tp = prove_store("Er1_Ed_Tp",
+e0
+(rw[Ed_def,Er1_def,Pa_distr,IdR,o_assoc,To1_def,IdL] >>
+rw[Ev_of_Tp_el] >> 
+rw[o_assoc,Pa_distr,To1_def,p12_of_Pa]  >>
+rw[Ev_of_Tp_el'] >>
+rw[o_assoc,Pa_distr,To1_def,IdR,IdL,p12_of_Pa])
+(form_goal 
+ “Er1(C) o Ed(f, C) o Tp((F o Ev(X, B))) = 
+  F o Er1(B) o Ed(f, B)”));
+
+(*
+rw[Ed_def,Er1_def,Pa_distr,IdR,o_assoc,To1_def,IdL] >>
+rw[Ev_of_Tp_el] >> 
+rw[o_assoc,Pa_distr,To1_def,p12_of_Pa]  >>
+rw[Ev_of_Tp_el'] >>
+rw[o_assoc,Pa_distr,To1_def,IdR,IdL,p12_of_Pa]
+“ Er1(C) o Ed(0f, C) o Tp((F3 o Ev(2, B))) = 
+  F3 o Er1(B) o Ed(0f, B)”
+*)
+
+val Nt_Rw_Nt = prove_store("Nt_Rw_Nt",
+e0
+(rw[Nt_def] >> rpt gen_tac >> strip_tac >>
+ rpt gen_tac >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ rw[csL_Pt,csR_Pt] >> arw[o_assoc] >>
+ rw[csL_Pt,csR_Pt] >> rw[Rw_def,Ec_def] >>
+ rw[o_assoc] >>
+ qsuff_tac
+ ‘(Er1(C) o Ed(0f, C) o Tp((F3 o Ev(2, B)))) o η o f = 
+  (F3 o Er1(B) o Ed(0f, B)) o η o f &
+  (Er1(C) o Ed(1f, C) o Tp((F3 o Ev(2, B)))) o η o f = 
+  (F3 o Er1(B) o Ed(1f, B)) o η o f’
+ >-- rw[o_assoc] >>
+ rw[Er1_Ed_Tp])
+(form_goal 
+ “∀A B F1 F2:A->B η.
+  Nt(η,F1,F2) ⇒
+  ∀C F3:B->C. Nt(Rw(F3,η),F3 o F1,F3 o F2)”));
+
 val Adj_alt = prove_store("Adj_alt",
 e0
 (rpt strip_tac >> rw[Adj_def] >>
  strip_tac (* 2 *)
- >-- irule Nt_ext >> arw[ID_ap] >>
+ >-- (irule Nt_ext >> arw[ID_ap] >>
      qexistsl_tac [‘L’,‘L’] >> rw[ID_Nt] >>
-     
-     
- )
+     irule vo_Nt_Nt >>
+     qexistsl_tac [‘L o R o L’] >>
+     strip_tac (* 2 *)
+     >-- (rev_drule Nt_Lw_Nt >> fs[IdL,o_assoc]) >>
+     drule Nt_Rw_Nt >> fs[IdR]) >>
+ irule Nt_ext >> arw[ID_ap] >>
+ qexistsl_tac [‘R’,‘R’] >> rw[ID_Nt] >>
+ irule vo_Nt_Nt >>
+ qexistsl_tac [‘R o L o R’] >>
+ strip_tac (* 2 *)
+ >-- (rev_drule Nt_Rw_Nt >> fs[IdR]) >>
+ drule Nt_Lw_Nt >> fs[IdL,o_assoc])
 (form_goal 
  “∀L:X->A R:A->X η: X-> Exp(2,X) ε:A->Exp(2,A).
   Nt(ε, L o R,Id(A)) &
@@ -404,10 +491,13 @@ e0
   vo(Lw(ε,L),Rw(L,η)) o x = Tp1(id(L o x))) & 
   (∀a:1->A.
   vo(Rw(R,ε),Lw(η,R)) o a = Tp1(id(R o a))) ⇒
-  Adj(L,R,η,ε)”
+  Adj(L,R,η,ε)”));
 
+(*
 vo(Lw(ε,L),Rw(L,η))  = ID(L) ∧ 
   vo(Rw(R,ε),Lw(η,R))  = ID(R)”));
+*)
+
 
 val Thm13_ex = prove_store("Thm13_ex",
 e0
