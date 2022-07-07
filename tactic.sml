@@ -125,7 +125,7 @@ fun match_mp_tac th (ct:cont,asl:form list,w) =
         val (hyp,conseq) = dest_imp impl
         val (con,cvs) = strip_forall (conseq)
         val th1 = (C specl) (undisch ((C specl) th (List.map mk_var gvs))) (List.map mk_var cvs) 
-        val (vs,evs) = partition (fn v => HOLset.member(fvf con,v)) gvs
+        val (vs,evs) = List.partition (fn v => HOLset.member(fvf con,v)) gvs
         val th2 = uncurry disch (itlist efn evs (hyp, th1)) 
         val (gl,vs) = strip_forall w
         val env = match_form (fvfl (ant th)) (fVarsl (ant th)) con gl mempty
@@ -274,7 +274,7 @@ fun exists_tac t (G,fl,f) =
 fun spec_all_tac (G,fl,f) = 
     case view_form f of
         vQ("!",n,s,b) =>
-        let val f' = subst_bound (mk_var(n,s)) b 
+        let val f' = (*subst_bound (mk_var(n,s))*) b 
             val G' = HOLset.union(G,fvt (mk_var(n,s))) 
         in
             ([(G',fl,f')], sing (allI (n,s)))
@@ -282,7 +282,7 @@ fun spec_all_tac (G,fl,f) =
         | _ => raise ERR ("spec_all_tac.goal is not universally quantified",[],[],[f])
 
  
-
+(*
 fun then_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) = 
     let val (gl,func) = tac1 (G,fl,f)
         val branches = List.map tac2 gl
@@ -295,10 +295,28 @@ fun then_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) =
              else raise ERR ("then_tac.length list not consistent,start with respectively: ",[],[],[concl (hd l),#3 (hd gl1)]))
     in (gl1,func1) 
     end
+*)
+
+
+
+fun then_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) = 
+    let val (gl,func) = tac1 (G,fl,f)
+        val branches = List.map tac2 gl
+        val (sgs,vs) = ListPair.unzip branches
+        val gl1 = flatten sgs
+        val shapes = (List.map List.length sgs)
+        fun func1 l = 
+            (if List.length l = List.length gl1 then 
+                 func (mapshape shapes vs l)
+             else raise ERR ("then_tac.length list not consistent,start with respectively: ",[],[],[concl (hd l),#3 (hd gl1)]))
+    in (gl1,func1) 
+    end
+
 
 
 val op >> = then_tac
 
+(*
 fun then1_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) = 
     let val (gl,func) = tac1 (G,fl,f)
         val (gl1,func1) = tac2 (hd gl)
@@ -310,7 +328,37 @@ fun then1_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) =
              else raise simple_fail "then1_tac.incorrect number of list items")
     in (gl',func')
     end
- 
+
+*)
+
+fun then1_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) = 
+    let val (gl,func) = tac1 (G,fl,f)
+        val (gl1,func1) = tac2 (hd gl)
+        val gl' = gl1 @ (tl gl)
+        fun func' l = 
+            (if length l = length gl' then
+                 func ((func1 (List.take (l,length gl1))) :: (List.drop (l,length gl1)))
+             else raise simple_fail "then1_tac.incorrect number of list items")
+    in (gl',func')
+    end
+
+(*
+fun then1_tac ((tac1:tactic),(tac2:tactic)) goal = 
+    let val (gl,func) = tac1 goal
+        val (gl1,func1) = tac2 (hd gl)
+        val gl' = gl1 @ (tl gl)
+        fun func' l =       
+            (if length l = length gl' then
+             let 
+                 val (takel,dropl) = listfn (l,length gl1)
+                 val th1 = (func1 takel)    
+             in func (th1 :: dropl)  
+             end             
+             else raise simple_fail "then1_tac.incorrect number of list items")
+    in (gl',func')
+    end 
+*)
+
 
 val op >-- = then1_tac
 
@@ -350,14 +398,6 @@ fun conj_pair th =
     handle ERR _ => 
       raise ERR ("conj_pair.not a conjunction",[],[],[concl th])
  
-
-
-fun rv_subset_lv th = 
-    let val th0 = spec_all th 
-        val (l,r) = dest_dimp (concl th)
-        val (lv,rv) = (fvf l,fvf r)
-    in HOLset.isSubset (lv,rv)
-    end 
 
 
 fun rw_fcanon th = 
