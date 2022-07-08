@@ -466,7 +466,7 @@ val isPo_expand = isPo_def
 
 val Epi_iff_Po_Id = prove_store("Epi_iff_Po_Id",
 e0
-cheat
+(cheat)
 (form_goal
  “∀A B f:A->B. Epi(f) ⇔ isPo(f,f,Id(B),Id(B))”));
 
@@ -1862,9 +1862,92 @@ val Lw_def = qdefine_fsym("Lw",[‘η:A->Exp(2,B)’,‘H:X->A’])
 ‘η o H’ |> gen_all
 
 
+(*A -> B^C to C -> B ^ A
+Pt(f:X -> Exp(A,B)): A * X -> B
+pT(f:X -> Exp(A,B)): X * A -> B
+Tp(f:A * X -> B) : X -> Exp(A,B)
+tP(f:A * X -> B) : A -> Exp(X,B)
+TP(f:X->Exp(A,B)): A-> Exp(X,B)
+*)
+
+
+
+val TP_def = qdefine_fsym("TP",[‘f:X->Exp(A,B)’])
+‘Tp(pT(f))’
+
+(*
+val pT_Tp = prove_store("pT_Tp",
+e0
+()
+(form_goal
+ “pT(Tp(f)) = ”));
+*)
+
+val TP_TP_inv = prove_store("TP_TP_inv",
+e0
+(rpt strip_tac >>
+ rw[TP_def,pT_def,Pt_def] >> irule Ev_eq_eq >>
+ rw[Ev_of_Tp_el] >> rw[o_assoc,p12_of_Pa,Pa_distr,Swap_Pa]  )
+(form_goal “∀X A B f:X->Exp(A,B). TP(TP(f)) = f”));
+
+
+val TP_eq_eq = prove_store("TP_eq_eq",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac >> arw[] >>
+ once_rw[GSYM TP_TP_inv] >> arw[])
+(form_goal “∀X A B f:X->Exp(A,B) g. TP(f) = TP(g) ⇔ f = g”));
+
+
+
+val Swap_Pa = prove_store("Swap_Pa",
+e0
+(rpt strip_tac >> 
+ rw[GSYM Swap_def,o_assoc,p12_of_Pa,Pa_eq_eq,Pa_distr])
+(form_goal
+ “∀X A f:X->A B g. Swap(A,B) o Pa(f,g) = Pa(g,f)”));
+
+val TP_Ed_o = prove_store("TP_Ed_o",
+e0
+(rpt strip_tac >> irule Ev_eq_eq >>
+ rw[o_assoc,TP_def,Ev_of_Tp_el] >> rw[pT_def] >>
+ rw[Pt_def] >> rw[o_assoc,p12_of_Pa,Pa_distr,Swap_Pa] >>
+ rw[Ed_def,Ev_of_Tp_el] >>  
+ rw[Pa_distr,p12_of_Pa,o_assoc] )
+(form_goal
+ “∀X Y f:X-> Y T u:T -> Exp(Y,A).
+   TP(Ed(f, A) o u) = TP(u) o f”));
+
 val Ed_Po_Pb = prove_store("Ed_Po_Pb",
 e0
-(cheat)
+(rpt strip_tac >> rw[isPb_def] >> 
+ qby_tac
+ ‘Ed(f, A) o Ed(p, A) = Ed(g, A) o Ed(q, A)’
+ >-- (rw[GSYM Ed_o] >> fs[isPo_def] >>
+     irule Ed_eq >> arw[]) >>
+ arw[] >> rpt strip_tac >>
+ fs[isPo_def] >>
+ first_x_assum (qsspecl_then [‘TP(u)’,‘TP(v)’] assume_tac) >>
+ qby_tac
+ ‘TP(u) o f = TP(v) o g’ 
+ >-- (qby_tac
+     ‘TP(u) o f = TP(Ed(f, A) o u) &
+      TP(v) o g = TP(Ed(g, A) o v)’ 
+     >-- arw[GSYM TP_Ed_o] >>
+     arw[]) >>
+ first_x_assum drule >>
+ qsuff_tac
+ ‘∀a: A'-> Exp(P,A). 
+  (Ed(p, A) o a = u & Ed(q, A) o a = v) ⇔
+  TP(a) o p = TP(u) & TP(a) o q = TP(v)’
+ >-- (strip_tac >> arw[] >>
+     pop_assum (K all_tac) >>
+     pop_assum (strip_assume_tac o uex_expand) >>
+     uex_tac >> qexists_tac ‘TP(a)’ >>
+     rw[TP_TP_inv] >> arw[] >> rpt strip_tac >>
+     irule $ iffLR TP_eq_eq >> rw[TP_TP_inv] >>
+     first_x_assum irule >> arw[]) >>
+ rpt strip_tac >> once_rw[GSYM TP_eq_eq] >>
+ rw[TP_Ed_o] >> rw[TP_eq_eq])
 (form_goal “∀X Y f:X->Y Z g:X->Z P p:Y->P q:Z->P. isPo(f,g,p,q) ⇒
  ∀A. isPb(Ed(f,A),Ed(g,A),Ed(p,A),Ed(q,A))”));
 
