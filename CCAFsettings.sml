@@ -1082,6 +1082,20 @@ e0
  “∀A f:2-> Exp(2,A). csT(Pt(f)) = 
   (Er1(A) o Ed(0f,A)) o Tp(Pt(f)o Swap(2,2))”));
 
+
+val csB_Pt = prove_store("csB_Pt",
+e0
+(rpt strip_tac >> 
+ rw[Er1_def,Ed_def,Pt_def,csB_def] >>
+ rw[Pa_distr,o_assoc,To1_o_To1,IdL] >>
+ rw[Ev_of_Tp_el,o_assoc,Pa_distr,p12_of_Pa] >>
+ rw[Ev_of_Tp_el',Pa_distr,o_assoc,GSYM Swap_def,p12_of_Pa,
+    two_def,one_def] )
+(form_goal 
+ “∀A f:2-> Exp(2,A). csB(Pt(f)) = 
+  (Er1(A) o Ed(1f,A)) o Tp(Pt(f)o Swap(2,2))”));
+
+
 val csL_Pt = prove_store("csL_Pt",
 e0
 (rpt strip_tac >> 
@@ -1872,8 +1886,6 @@ TP(f:X->Exp(A,B)): A-> Exp(X,B)
 
 
 
-val TP_def = qdefine_fsym("TP",[‘f:X->Exp(A,B)’])
-‘Tp(pT(f))’
 
 (*
 val pT_Tp = prove_store("pT_Tp",
@@ -1882,6 +1894,27 @@ e0
 (form_goal
  “pT(Tp(f)) = ”));
 *)
+
+val Pa_eq_eq = prove_store("Pa_eq_eq",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ qby_tac ‘p1(A,B) o Pa(f1, g1) = p1(A,B) o Pa(f2, g2) &
+          p2(A,B) o Pa(f1, g1) = p2(A,B) o Pa(f2, g2)’
+ >-- arw[] >>
+ fs[p12_of_Pa])
+(form_goal
+ “!A X f1:X->A f2:X->A B g1:X->B g2:X->B. 
+  Pa(f1,g1) = Pa(f2,g2) <=> f1 = f2 & g1 = g2”));
+
+val Swap_Pa = prove_store("Swap_Pa",
+e0
+(rpt strip_tac >> 
+ rw[GSYM Swap_def,o_assoc,p12_of_Pa,Pa_eq_eq,Pa_distr])
+(form_goal
+ “∀X A f:X->A B g. Swap(A,B) o Pa(f,g) = Pa(g,f)”));
+
+val TP_def = qdefine_fsym("TP",[‘f:X->Exp(A,B)’])
+‘Tp(pT(f))’
 
 val TP_TP_inv = prove_store("TP_TP_inv",
 e0
@@ -1899,13 +1932,6 @@ e0
 
 
 
-val Swap_Pa = prove_store("Swap_Pa",
-e0
-(rpt strip_tac >> 
- rw[GSYM Swap_def,o_assoc,p12_of_Pa,Pa_eq_eq,Pa_distr])
-(form_goal
- “∀X A f:X->A B g. Swap(A,B) o Pa(f,g) = Pa(g,f)”));
-
 val TP_Ed_o = prove_store("TP_Ed_o",
 e0
 (rpt strip_tac >> irule Ev_eq_eq >>
@@ -1916,6 +1942,36 @@ e0
 (form_goal
  “∀X Y f:X-> Y T u:T -> Exp(Y,A).
    TP(Ed(f, A) o u) = TP(u) o f”));
+
+val Pa_o_split = prove_store("Pa_o_split",
+e0
+(rpt strip_tac >> irule to_P_eq >>
+ rw[p12_of_Pa] >> rw[GSYM o_assoc,p12_of_Pa] >>
+ rw[o_assoc,p12_of_Pa])
+(form_goal
+ “!B X f:B->X Y g:X->Y A.Pa(p1(A,B),g:X->Y o f o p2(A,B)) = 
+  Pa(p1(A,X), g o p2(A,X)) o Pa(p1(A,B),f o p2(A,B))”));
+
+
+val Ed_o = prove_store("Ed_o",
+e0
+(rw[Ed_def] >> rpt strip_tac >>
+ irule Ev_eq_eq >> rw[Ev_of_Tp_el] >>
+ rw[o_assoc,p12_of_Pa,Pa_distr] >>
+ rw[Pa_o_split] >> rw[GSYM o_assoc,Ev_of_Tp_el] >>
+ rw[o_assoc,p12_of_Pa,Pa_distr] >> 
+ rw[Ev_of_Tp_el] >> rw[Pa_distr,o_assoc,p12_of_Pa])
+(form_goal
+ “∀A B f:A->B C g:B->C X. Ed(g o f,X) = 
+ Ed(f,X) o Ed(g,X)”));
+
+
+val Ed_eq = prove_store("Ed_eq",
+e0
+(rpt strip_tac >> rw[Ed_def] >> arw[])
+(form_goal
+ “∀A B f:A->B g. f = g ⇒ Ed(f,X) = Ed(g,X)”));
+
 
 val Ed_Po_Pb = prove_store("Ed_Po_Pb",
 e0
@@ -2002,6 +2058,7 @@ val ID_def =
 qdefine_fsym("ID",[‘F:A->B’])
 ‘Tp(F o p2(2,A))’
 
+(*
 val Adj_def = qdefine_psym("Adj",
 [‘L:X->A’,‘R:A->X’,‘η:X->Exp(2,X)’,‘ε:A->Exp(2,A)’])
 ‘vo(Lw(ε,L),Rw(L,η))  = ID(L) ∧ 
@@ -2026,7 +2083,7 @@ e0
   (∀a:1->A. ∃!x:1->X f:2->A. cod(f) = a ∧ U(x,f)) ⇒
   ∃!G:A->X η ε:A->Exp(2,A). Adj(F,G,η,ε) ∧
    ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))”));
-
+*)
 
 val CC6 = store_ax("CC6",
 “?A f:2->A. iso(f) & ~isid(f)”); 
@@ -2341,3 +2398,8 @@ val FT_def = qdefine_psym("FT",[‘f:A->B’,‘b:X->B’])
 ‘∃a:X->A. b = f o a’ |> gen_all
 
 
+
+val Tp0_eq_eq = prove_store("Tp0_eq_eq",
+e0
+(cheat)
+(form_goal “∀A B f:1->Exp(A,B) g. Tp0(f) = Tp0(g) ⇔ f = g”));
