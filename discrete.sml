@@ -87,19 +87,6 @@ e0
  “!A f:2->A. isid(f) <=> 
    id(dom(f)) = f”)); 
 
-val cpsb_idL = prove_store("cpsb_idL",
-e0
-cheat
-(form_goal
- “∀A a:1->A f.cpsb(id(a),f) ⇒ id(a) @ f = f”));
-
-
-val cpsb_idR = prove_store("cpsb_idR",
-e0
-cheat
-(form_goal
- “∀A a:1->A f.cpsb(f,id(a)) ⇒ f @ id(a) = f”));
-
 val CC5_Disc_uex = prove_store("CC5_Disc_uex",
 e0
 ((*rpt strip_tac >> 
