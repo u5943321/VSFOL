@@ -1359,6 +1359,18 @@ e0
  “∀A B F:A->B a.cod(F o a) = F o cod(a)”));
 
 
+val F_id_dom = prove_store("F_id_dom",
+e0
+(rw[id_def,dom_def,o_assoc])
+(form_goal “∀A B F g. F:A->B o id(dom(g)) = id(F o dom(g))”));
+
+ 
+val F_id_cod = prove_store("F_id_cod",
+e0
+(rw[id_def,cod_def,o_assoc])
+(form_goal “∀A B F g. F:A->B o id(cod(g)) = id(F o cod(g))”));
+
+
 val Thm13_G_ex = prove_store("Thm13_G_ex",
 e0
 (rpt strip_tac >>  
@@ -1372,7 +1384,7 @@ e0
       dom(f2) = F o cod(ga) & cod(f2) = a2 &
       U(dom(ga:2->X),f1) & U(cod(ga),f2) & 
       f2 @ (F o ga) = a @ f1”) >> strip_tac (* 2 *) >--
-rpt strip_tac >>
+(rpt strip_tac >>
 qsuff_tac
       ‘∃g.
 !(a1 : fun(1, A))  (a2 : fun(1, A)).
@@ -1449,49 +1461,7 @@ qsuff_tac
  last_x_assum (qspecl_then [‘a2’] assume_tac) >>
  qby_tac ‘Ga2 = cod(g') & fa2 = f2’ 
  >-- (first_x_assum irule >> arw[]) >> 
- arw[] >> 
-
-.U(Ga1, fa1) U(dom(g), f1)
- U(cod(g), f2) U(Ga2, fa2)
-(last_x_assum (qspecl_then [‘a1’] assume_tac) >>
-              qsuff_tac
-              ‘Ga1 = dom(g) & fa1 = f1’
-              >-- (strip_tac >> arw[]) >>
-              first_x_assum irule >> arw[])
- 
-  qby_tac
-  ‘cod(g) = Ga2’ 
-       strip_tac (* 2 *) >--
-         (first_x_assum 
-          (qspecl_then [‘a1’,‘a2’] assume_tac) >> fs[] >> 
-          qsuff_tac
-          ‘fa1 = f1 & fa2 = f2’ >-- (strip_tac >> arw[]) >>
-          strip_tac (* 2 *)
-          >-- (last_x_assum (qspecl_then [‘a1’] assume_tac) >>
-              qsuff_tac
-              ‘Ga1 = dom(g') & fa1 = f1’
-              >-- (strip_tac >> arw[]) >>
-              first_x_assum irule >> arw[]) >>
-          last_x_assum (qspecl_then [‘a2’] assume_tac) >>
-          qsuff_tac
-          ‘Ga2 = cod(g') & fa2 = f2’
-          >-- (strip_tac >> arw[]) >>
-          first_x_assum irule >> arw[]) >>
-         last_x_assum 
-          (qspecl_then [‘a1’,‘a2’] assume_tac) >> fs[] >> 
-          qsuff_tac
-          ‘fa1 = f1 & fa2 = f2’ >-- (strip_tac >> arw[]) >>
-          strip_tac (* 2 *)
-          >-- (last_x_assum (qspecl_then [‘a1’] assume_tac) >>
-              qsuff_tac
-              ‘Ga1 = dom(g) & fa1 = f1’
-              >-- (strip_tac >> arw[]) >>
-              first_x_assum irule >> arw[]) >>
-          last_x_assum (qspecl_then [‘a2’] assume_tac) >>
-          qsuff_tac
-          ‘Ga2 = cod(g) & fa2 = f2’
-          >-- (strip_tac >> arw[]) >>
-          first_x_assum irule >> arw[]) >>
+ arw[]) >> 
  qabbrev_tac ‘dom(f) = a1’ >>
  qabbrev_tac ‘cod(f) = a2’ >>
  last_assum (qspecl_then [‘a1’] assume_tac) >>
@@ -1502,14 +1472,19 @@ qsuff_tac
  drule $ iffLR UFrom_def >>
  pop_assum strip_assume_tac >>
  first_x_assum (qspecl_then [‘Ga1’,‘f @ fa1’] assume_tac) >>
+ qby_tac ‘cpsb(f,fa1)’ 
+ >-- arw[cpsb_def] >>  
  qby_tac
  ‘dom(f @ fa1) = F o Ga1 & cod(f @ fa1) = cod(fa2)’
- >-- cheat >>
+ >-- (drule oa_dom_cod >> arw[] >>  
+ (*dom(fa1) = F o Ga1 since U(Ga1, fa1),
+   last line of this block repeat this step*)
+ last_assum rev_drule >> drule $ iffLR UFrom_def >> arw[]) >>
  first_x_assum drule >>
  pop_assum (strip_assume_tac o uex_expand) >>
  qexists_tac ‘fh’ >> rpt strip_tac >>
  qexistsl_tac [‘fa1’,‘fa2’] >>
- arw[] >>
+ arw[] >> 
  qby_tac
  ‘a1' = a1’ 
  >-- (qpick_x_assum ‘dom(f) = a1'’
@@ -1520,8 +1495,58 @@ qsuff_tac
      (assume_tac o GSYM) >> arw[]) >>
  arw[] >>
  fs[] >> pop_assum (K all_tac) >> pop_assum(K all_tac) >>
- qby_tac
- ‘dom(fh) = ’
+ last_assum rev_drule >> drule $ iffLR UFrom_def >> arw[]) >>
+ strip_tac (* 2 *) >-- rpt gen_tac >> strip_tac >> 
+ strip_tac (* 2 *)
+ >-- (rpt strip_tac >> rw[id_dom,id_cod] >>
+     qabbrev_tac ‘dom(f) = d’ >>
+     qabbrev_tac ‘cod(f) = c’ >>
+     last_assum (qspecl_then [‘d’] assume_tac) >>
+     pop_assum
+     (x_choosel_then ["Gd","fd"] strip_assume_tac) >>
+     qexistsl_tac [‘fd’,‘fd’] >>
+     first_x_assum (qspecl_then [‘d’,‘c’] assume_tac) >>
+     rfs[] >> 
+     qby_tac ‘d = a1 & d = a2’ >-- (fs[id_dom,id_cod]) >>
+     arw[] >> pop_assum (K all_tac) >>
+     qby_tac ‘a1 = a2’ >-- fs[id_dom,id_cod] >>
+     arw[] >> pop_assum (K all_tac) >>
+     qsuff_tac ‘fd = f1’ 
+     >-- (strip_tac >> arw[] >> rw[F_id_dom] >>
+         qby_tac ‘cpsb(id(a2),f1)’ 
+         >-- (rw[cpsb_def,id_dom]  >> arw[] >>
+             fs[id_dom,id_cod]) >>
+         drule cpsb_idL >> arw[] >>
+         qby_tac ‘cpsb(f1, id(F o dom(g)))’
+         >-- (rw[cpsb_def,id_cod] >> arw[]) >> 
+         drule cpsb_idR >> arw[]) >> 
+     qsuff_tac ‘Gd = dom(g) & fd = f1’ 
+     >-- (strip_tac >> arw[]) >>
+     first_x_assum irule >> arw[] >> 
+     qexists_tac ‘d’ >> rw[]) >> 
+cpsb_idL
+
+     qby_tac ‘dom(fd) = F o dom(g)’ 
+     >-- (qpick_x_assum ‘’)
+  
+     qexistsl_tac [‘F o id(dom(g))’,‘F o id(dom(g))’] >>
+     rw[dom_o,cod_o,id_dom,id_cod] >>
+     first_x_assum (qspecl_then [‘dom(f)’,‘cod(f)’]
+     assume_tac) >> fs[] >>
+     qby_tac
+     ‘dom(f1) = a1 & dom’ >-- 
+     first_assum (qsspecl_then [‘dom(g)’] assume_tac) >>
+     rw[F_id_dom,F_id_cod] >>
+     
+ 
+
+
+ fs[id_dom,id_cod] >> rfs[] >>
+ first_x_assum (qspecl_then [‘a1’,‘cod(f)’] assume_tac) >>
+ fs[] >>
+ qexistsl_tac [‘f1’,‘f2’] >> arw[] >>
+ 
+
  )
 (form_goal
  “∀X A F:X->A. 
