@@ -1014,7 +1014,7 @@ val A1f_def = qdefine_fsym("A1f",[‘A’])
 
 val fun_pres_oa = prove_store("fun_pres_oa",
 e0
-(cheat)
+(rw[oa_def] >> cheat)
 (form_goal
  “∀A f:2->A g. cpsb(g,f) ⇒
   ∀B k:A->B. k o (g @ f) = (k o g) @ (k o f)”));

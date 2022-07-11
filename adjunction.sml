@@ -773,7 +773,8 @@ e0
 (rw[dom_def,id_def,o_assoc,one_to_one_Id,IdR])
 (form_goal “∀A a:1->A. dom(id(a)) = a”));
 
-(*idL idR*)
+
+(*(*idL idR*)
 val Thm13_eqn2_lemma = prove_store("Thm13_eqn2_lemma",
 e0
 (rpt strip_tac >>
@@ -818,6 +819,60 @@ drule oa_dom_cod >> arw[])
    U(dom(h2), F o h2) & 
     F o (h2 @ h1) = F o id(G o a) ⇒
   h2 @ h1 = id(G o a)”));
+
+*)
+
+
+(*idL idR*)
+val Thm13_eqn2_lemma = prove_store("Thm13_eqn2_lemma",
+e0
+(rpt strip_tac >>
+first_assum rev_drule >>
+drule $ iffLR UFrom_def >>
+pop_assum strip_assume_tac >>
+first_x_assum (qsspecl_then [‘G o a’,‘e’] assume_tac) >>
+rfs[] >>
+qby_tac
+‘e @ id(F o G o a) = e’
+>-- (qby_tac ‘cpsb(e,id(F o G o a))’
+    >-- (rw[cpsb_def]>> arw[id_cod]) >>
+    drule cpsb_idR >> arw[]) >>
+qby_tac
+‘e @ (F o id(G o a)) = e’
+>-- (qsuff_tac ‘(F o id(G o a)) = id(F o G o a)’
+    >-- (strip_tac >> arw[]) >>
+    rw[id_def,o_assoc]) >>
+qby_tac
+ ‘∀k. dom(k) = G o a & cod(k) = G o a &
+      e @ F o k = e ⇒ k = id(G o a)’
+>-- (qpick_x_assum
+    ‘?!fh:2->X. dom(fh) = G o a & cod(fh) = G o a & 
+     e @ (F o fh) = e’ 
+    (strip_assume_tac o uex_expand) >>
+    rpt strip_tac >>
+    qsuff_tac ‘k = fh & id(G o a) = fh’ 
+    >-- (strip_tac >> arw[]) >>
+    strip_tac >> first_x_assum irule >> arw[id_dom,id_cod] ) >>
+   (*by uniqueness
+      ?!(fh : fun(2, X)). e = e @ F o fh#*) 
+first_x_assum irule >>
+arw[] >>
+drule oa_dom_cod >> arw[])
+(form_goal
+“∀X A F:X->A G:A->X h1 h2 a. 
+  (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
+  (*(∀a:1->A. ∃x:1->X f:2->A. cod(f) = a ∧ U(x,f)) &
+  (∀a:1->A x1:1->X f1:2->A x2:1->X f2:2->A. 
+   cod(f1) = a ∧ U(x1,f1) &
+   cod(f2) = a ∧ U(x2,f2) ⇒ x1 = x2 & f1 = f2) &*)
+  (∃e. U(G o a:1->A,e) & dom(e) = cod(F o h2)) &
+   cpsb(h2,h1) &
+   cod(h2) = G o a & dom(h1) = G o a &
+   (*U(dom(h2), F o h2) & *)
+    F o (h2 @ h1) = F o id(G o a) ⇒
+  h2 @ h1 = id(G o a)”));
+
+
 
 (*
 val Thm13_eqn2_lemma = prove_store("Thm13_eqn2_lemma",
@@ -1739,9 +1794,11 @@ e0
   cod(ca) = a ∧ U(G o a,ca) ⇔ ca = cpnt(ε,a)”));
 
 
+(*
 cod_cpnt_cod_csB
 cs_of_Nt
 Nt_def
+*)
 
 val Nt_dom_cod_cpnt = prove_store("Nt_dom_cod_cpnt",
 e0
@@ -1754,7 +1811,11 @@ e0
  
 val Nt_natural_dom_cod = prove_store("Nt_natural_dom_cod",
 e0
-(cheat)
+(rpt strip_tac >>
+ drule $ GSYM cs_of_Nt >>
+ arw[] >> 
+ first_x_assum (qspecl_then [‘f’] assume_tac) >>
+ rfs[] >> rw[cs_comm])
 (form_goal
  “∀A B F1:A->B F2:A->B η:A->Exp(2,B).
   Nt(η,F1,F2) ⇒
@@ -1896,229 +1957,326 @@ e0
    cx = cpnt(η,x)
    ”));
 
-val Thm13_ex = prove_store("Thm13_ex",
+
+val Thm13_G_epsilon_eta = prove_store("Thm13_G_epsilon_eta",
 e0
-(rpt strip_tac >> 
- qby_tac
- ‘∃G:A->X. 
-  ∀a:2->A a1 a2. dom(a) = a1 & cod(a) = a2 ⇒
-           ∃f1:2->A f2:2->A.
-           dom(f1) = F o G o a1 & cod(f1) = a1 &
-           dom(f2) = F o G o a2 & cod(f2) = a2 &
-           U(G o a1,f1) & U(G o a2,f2) & 
-           f2 @ (F o G o a) = a @ f1’
- >-- qsuff_tac
-     ‘?(cf : fun(A, X)).
-        !(a : fun(2, A))  (b : fun(2, X)).
+(rpt strip_tac >>
+ qpick_x_assum
+ ‘(!(a : fun(2, A))  (b : fun(2, X)).
           (!(a1 : fun(1, A))  (a2 : fun(1, A)).
-              dom(a) = a1 & cod(a) = a2 ==>
+              (dom(a) = a1 & cod(a) = a2 ==>
               ?(f1 : fun(2, A))  (f2 : fun(2, A)).
                 dom(f1) = F o dom(b) &
                 cod(f1) = a1 &
                 dom(f2) = F o cod(b) &
                 cod(f2) = a2 &
-                U(dom(b), f1) & U(cod(b), f2) & f2 @ F o b = a @ f1) ⇔ cf o a = b’ 
-    >-- (strip_tac >> qexists_tac ‘cf’ >>
-        rpt gen_tac >> strip_tac >>
-        first_x_assum 
-        (qspecl_then [‘a’,‘cf o a’] assume_tac) >> fs[] >>
-        first_x_assum 
-        (qspecl_then [‘a1’,‘a2’] assume_tac) >>
-        rfs[] >> qexistsl_tac [‘f1’,‘f2’] >> arw[] >>
-        fs[dom_o,cod_o] >>  rfs[]) >>
-    match_mp_tac     
- (CC5 |> qspecl [‘A’,‘X’] 
- |> fVar_sInst_th “R(a:2->A,ga:2->X)”
-    “∀a1:1->A a2:1->A.
-     dom(a) = a1 & cod(a) = a2 ⇒
-     ∃f1:2->A f2:2->A.
-      dom(f1) = F o dom(ga) & cod(f1) = a1 &
-      dom(f2) = F o cod(ga) & cod(f2) = a2 &
-      U(dom(ga:2->X),f1) & U(cod(ga),f2) & 
-      f2 @ (F o ga) = a @ f1”) >> strip_tac (* 2 *)
-  >-- rpt strip_tac >>
-      qsuff_tac
-      ‘∃g.
-!(a1 : fun(1, A))  (a2 : fun(1, A)).
-                 dom(f) = a1 & cod(f) = a2 ==>
-                 ?(f1 : fun(2, A))  (f2 : fun(2, A)).
-                   dom(f1) = F o dom(g) &
-                   cod(f1) = a1 &
-                   dom(f2) = F o cod(g) &
-                   cod(f2) = a2 &
-                   U(dom(g), f1) & U(cod(g), f2) & f2 @ F o g = f @ f1 ’ 
-      >-- strip_tac >> uex_tac >> qexists_tac ‘g’ >>
-          arw[] >> rpt strip_tac >>
-          qby_tac
-          ‘∃a1 a2. dom(f) = a1 & cod(f) = a2’ 
-          >-- (qexistsl_tac [‘dom(f)’,‘cod(f)’] >> rw[]) >>
-          pop_assum strip_assume_tac >> 
-          last_assum (qspecl_then [‘a1’] assume_tac) >>
-          pop_assum 
-          (x_choosel_then ["Ga1","fa1"] strip_assume_tac) >>
-          last_x_assum (qspecl_then [‘a2’] assume_tac) >>
-          pop_assum 
-          (x_choosel_then ["Ga2","fa2"] strip_assume_tac) >>
-          last_assum drule >> drule $ iffLR UFrom_def >>
-          pop_assum strip_assume_tac >>
-          first_x_assum 
-          (qspecl_then [‘Ga1’,‘f @ fa1’] assume_tac) >>
-          qby_tac
-          ‘cpsb(f,fa1)’ 
-          >-- (rw[cpsb_def] >> arw[]) >>
-          drule oa_dom_cod >> fs[] >> rfs[] >>
-          qby_tac
-          ‘dom(fa1) = F o Ga1’
-          >-- (last_x_assum rev_drule >>
-              drule $ iffLR UFrom_def >>
-              arw[]) >> 
-          first_x_assum drule >>
-          qby_tac
-          ‘∀g1:2->X g2.
-           f @ fa1 = fa2 @ F o g1 &  
-           f @ fa1 = fa2 @ F o g2 ⇒ g1 = g2’ 
-          >-- (pop_assum (strip_assume_tac o uex_expand) >>
-              rpt strip_tac >> 
-              qsuff_tac ‘g1 = fh & g2 = fh’
-              >-- (strip_tac >> arw[]) >>
-              strip_tac >> first_x_assum irule >> arw[] >>
-              qpick_x_assum ‘f @ fa1 = fa2 @ F o g1’
-              (assume_tac o GSYM) >> arw[]) >>
-          first_x_assum irule >> 
-          strip_tac (* 2 *) >--
-          first_x_assum 
-          (qspecl_then [‘a1’,‘a2’] assume_tac) >> fs[] >> 
-          qsuff_tac
-          ‘fa1 = f1 & fa2 = f2’ >-- (strip_tac >> arw[]) >>
-          qsuff_tac
-          ‘dom(g') = Ga1 & cod(g') = Ga2’ >-- cheat >>
-          strip_tac (* 2 *)
-          >-- last_x_assum (qspecl_then [‘a1’] assume_tac) >>
-              qsuff_tac
-              ‘dom(g') = Ga1 & f1 = ’
-              first_x_assum 
-              (qsspecl_then [‘Ga1’,‘fa1’] )
-         
-          qby_tac
-          ‘Ufrom(F,a2
-           ’
-      qby_tac ‘∃’
-
-
- ‘(∀a:1->A. ∃f.U(G o a,f)) &  ’
+                U(dom(b), f1) & U(cod(b), f2) & f2 @ F o b = a @ f1)) ⇔ G o a = b)’ (assume_tac o GSYM) >>
+ arw[] >> dimp_tac >> strip_tac (* 2 *)
+ >-- (rpt strip_tac >>
+     first_x_assum (qspecl_then [‘a1’,‘a2’] assume_tac) >>
+     rfs[] >> 
+     qexistsl_tac [‘cpnt(ε,a1)’,‘cpnt(ε,a2)’] >>
+     arw[]) >>
+ rpt gen_tac >> strip_tac >>
+ first_x_assum (qspecl_then [‘a1’,‘a2’] assume_tac) >>
+ rfs[] >>
+ qsuff_tac
+ ‘cpnt(ε, a1) = f1 & cpnt(ε, a2) = f2’
+ >-- (strip_tac >> arw[]) >>
+ strip_tac (* 2 *)
+ >-- (first_x_assum 
+     (qsspecl_then [‘a1’,‘cpnt(ε,a1)’] assume_tac) >>
+     qby_tac
+     ‘cod(cpnt(ε, a1)) = a1 & U(G o a1, cpnt(ε, a1))’
+     >-- (once_arw[] >> rw[]) >>
+     qpick_x_assum ‘cod(cpnt(ε, a1)) = a1 & U(G o a1, cpnt(ε, a1)) <=>
+             cpnt(ε, a1) = cpnt(ε, a1)’ (K all_tac) >>
+     (*if instead of pick x assum us fs then seems to loop*)
+     pop_assum strip_assume_tac >>
+     qsuff_tac
+     ‘G o a1 = dom(b) & cpnt(ε, a1) = f1’
+     >-- (strip_tac >> arw[]) >> 
+     first_x_assum irule >> arw[] >>
+     qexists_tac ‘a1’ >> rw[]) >> 
+ first_x_assum 
+ (qsspecl_then [‘a2’,‘cpnt(ε,a2)’] assume_tac) >>
  qby_tac
- ‘∃G:A->X. 
-  ∀a:2->A a1 a2. dom(a) = a1 & cod(a) = a2 ⇒
-           ∃f1:2->A f2:2->A.
-           dom(f1) = F o G o a1 & cod(f1) = a1 &
-           dom(f2) = F o G o a2 & cod(f2) = a2 &
-           U(G o a1,f1) & U(G o a2,f2) & 
-           f2 @ (F o G o a) = a @ f2’
- >-- cheat >>
+ ‘cod(cpnt(ε, a2)) = a2 & U(G o a2, cpnt(ε, a2))’
+ >-- (once_arw[] >> rw[]) >>
+ qpick_x_assum 
+ ‘cod(cpnt(ε, a2)) = a2 & U(G o a2, cpnt(ε, a2)) <=>
+             cpnt(ε, a2) = cpnt(ε, a2)’ (K all_tac) >>
  pop_assum strip_assume_tac >>
- qby_tac
- ‘∃η:X -> Exp(2,X). 
+ qsuff_tac
+ ‘G o a2 = cod(b) & cpnt(ε, a2) = f2’
+ >-- (strip_tac >> arw[]) >> 
+ first_x_assum irule >> arw[] >>
+ qexists_tac ‘a2’ >> rw[]  
+ )
+(form_goal
+ “∀X A F:X->A G:A->X ε:A->Exp(2,A) η:X -> Exp(2,X). 
+  (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
+  (∀a:1->A. ∃x:1->X f:2->A. cod(f) = a ∧ U(x,f)) &
+  (∀a:1->A x1:1->X f1:2->A x2:1->X f2:2->A. 
+   cod(f1) = a ∧ U(x1,f1) &
+   cod(f2) = a ∧ U(x2,f2) ⇒ x1 = x2 & f1 = f2) & 
+  (!(a : fun(2, A))  (b : fun(2, X)).
+          (!(a1 : fun(1, A))  (a2 : fun(1, A)).
+              (dom(a) = a1 & cod(a) = a2 ==>
+              ?(f1 : fun(2, A))  (f2 : fun(2, A)).
+                dom(f1) = F o dom(b) &
+                cod(f1) = a1 &
+                dom(f2) = F o cod(b) &
+                cod(f2) = a2 &
+                U(dom(b), f1) & U(cod(b), f2) & f2 @ F o b = a @ f1)) ⇔ G o a = b) &
+  (Nt(ε, F o G,Id(A)) & 
+  ∀a:1->A ca. 
+  cod(ca) = a ∧ U(G o a,ca) ⇔ ca = cpnt(ε,a)) &
    Nt(η, Id(X), G o F) &
-   ∀x:1->X. 
-    ∃fFx:2-> A.
-      U(G o F o x,fFx) & 
-      fFx @ cpnt(Rw(F,η), x) = id(F o x)’
- >-- cheat >>
- pop_assum strip_assume_tac >>
+   (∀x:1->X cx. 
+   dom(cx) = x & cod(cx) = G o F o x & 
+   cpnt(ε,F o x) @ (F o cx) = id(F o x) ⇔
+   cx = cpnt(η,x)) ⇒ 
+  !(a : fun(2, A))  (b : fun(2, X)).
+          (!(a1 : fun(1, A))  (a2 : fun(1, A)).
+              dom(a) = a1 & cod(a) = a2 ==>
+                dom(cpnt(ε,a1)) = F o dom(b) &
+                cod(cpnt(ε,a1)) = a1 &
+                dom(cpnt(ε,a2)) = F o cod(b) &
+                cod(cpnt(ε,a2)) = a2 &
+                U(dom(b), cpnt(ε,a1)) &
+                U(cod(b), cpnt(ε,a2)) & 
+                cpnt(ε,a2) @ F o b = a @ cpnt(ε,a1)) ⇔ G o a = b
+ ”));
+
+
+
+val Thm13_G_epsilon_eta_ex = 
+prove_store("Thm13_G_epsilon_eta_ex",
+e0
+(cheat
+ )
+(form_goal
+ “∀X A F:X->A. 
+  (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
+  (∀a:1->A. ∃x:1->X f:2->A. cod(f) = a ∧ U(x,f)) &
+  (∀a:1->A x1:1->X f1:2->A x2:1->X f2:2->A. 
+   cod(f1) = a ∧ U(x1,f1) &
+   cod(f2) = a ∧ U(x2,f2) ⇒ x1 = x2 & f1 = f2) ⇒
+  ∃G:A->X ε:A->Exp(2,A) η:X -> Exp(2,X).
+  (!(a : fun(2, A))  (b : fun(2, X)).
+          (!(a1 : fun(1, A))  (a2 : fun(1, A)).
+              dom(a) = a1 & cod(a) = a2 ==>
+                dom(cpnt(ε,a1)) = F o dom(b) &
+                cod(cpnt(ε,a1)) = a1 &
+                dom(cpnt(ε,a2)) = F o cod(b) &
+                cod(cpnt(ε,a2)) = a2 &
+                U(dom(b), cpnt(ε,a1)) &
+                U(cod(b), cpnt(ε,a2)) & 
+                cpnt(ε,a2) @ F o b = a @ cpnt(ε,a1)) ⇔ G o a = b) &
+  (Nt(ε, F o G,Id(A)) & 
+  ∀a:1->A ca. 
+  cod(ca) = a ∧ U(G o a,ca) ⇔ ca = cpnt(ε,a)) &
+   Nt(η, Id(X), G o F) &
+   (∀x:1->X cx. 
+   dom(cx) = x & cod(cx) = G o F o x & 
+   cpnt(ε,F o x) @ (F o cx) = id(F o x) ⇔
+   cx = cpnt(η,x)) ”));
+
+
+val cpnt_o_Rw = prove_store("cpnt_o_Rw",
+e0
+(rpt strip_tac >> rw[cpnt_def] >> rw[Pt_def] >>
+ rw[o_assoc,p12_of_Pa,Pa_distr] >>
+ rw[Rw_def,Ec_def] >>  
+rw[Ev_of_Tp_el,Pa_distr,o_assoc])
+(form_goal
+ “∀A B η a C F.F:B->C o cpnt(η:A->Exp(2,B),a:1->A) = 
+  cpnt(Rw(F,η),a)”));
+
+
+val cpnt_o_Lw = prove_store("cpnt_o_Lw",
+e0
+(rpt strip_tac >> rw[cpnt_def] >> rw[Pt_def] >>
+ rw[o_assoc,p12_of_Pa,Pa_distr] >>
+ rw[Lw_def,Ec_def] >> rw[o_assoc])
+(form_goal
+ “∀A B C η a F.cpnt(η:B->Exp(2,C),F o a:1->A) = 
+  cpnt(Lw(η,F),a)”));
+
+
+val Nt_vo_cpnt = prove_store("Nt_vo_cpnt",
+e0
+(rpt strip_tac >>
+ irule vo_cpnt >> fs[Nt_def] >>
+ fs[csL_Pt_Ed,csR_Pt_Ed] >> 
+ irule $ iffLR Er1_eq_eq >>
+ irule $ iffLR fun_ext >> strip_tac >>
+ arw[o_assoc])
+(form_goal
+ “∀A B F1:A->B F2:A->B F3:A->B η1:A->Exp(2,B) η2:A->Exp(2,B).
+  Nt(η1,F1,F2) & Nt(η2,F2,F3) ⇒
+  ∀a:1->A. 
+  cpnt(vo(η2, η1), a) = cpnt(η2, a) @ cpnt(η1, a)”));
+
+val Thm13_ex = prove_store("Thm13_ex",
+e0
+(rpt strip_tac >>
  qby_tac
- ‘∃ε:A -> Exp(2,A). 
-   Nt(ε,F o G,Id(A)) &
-   ∀a:1->A. 
-      U(G o a,cpnt(ε,a)) & 
-     ∃f. cpnt(ε,a) @ f = id(a)’
- >-- cheat >>
- pop_assum strip_assume_tac >> 
+ ‘ ∃G:A->X ε:A->Exp(2,A) η:X -> Exp(2,X).
+  (!(a : fun(2, A))  (b : fun(2, X)).
+          (!(a1 : fun(1, A))  (a2 : fun(1, A)).
+              dom(a) = a1 & cod(a) = a2 ==>
+                dom(cpnt(ε,a1)) = F o dom(b) &
+                cod(cpnt(ε,a1)) = a1 &
+                dom(cpnt(ε,a2)) = F o cod(b) &
+                cod(cpnt(ε,a2)) = a2 &
+                U(dom(b), cpnt(ε,a1)) &
+                U(cod(b), cpnt(ε,a2)) & 
+                cpnt(ε,a2) @ F o b = a @ cpnt(ε,a1)) ⇔ G o a = b) &
+  (Nt(ε, F o G,Id(A)) & 
+  ∀a:1->A ca. 
+  cod(ca) = a ∧ U(G o a,ca) ⇔ ca = cpnt(ε,a)) &
+   Nt(η, Id(X), G o F) &
+   (∀x:1->X cx. 
+   dom(cx) = x & cod(cx) = G o F o x & 
+   cpnt(ε,F o x) @ (F o cx) = id(F o x) ⇔
+   cx = cpnt(η,x))’ 
+ >-- (irule Thm13_G_epsilon_eta_ex >> arw[]) >>
+ pop_assum strip_assume_tac >>
  qexistsl_tac [‘G’,‘η’,‘ε’] >>
  qby_tac
- ‘∀a.cod(cpnt(ε, a)) = a & U(G o a, cpnt(ε, a)) ’
- >-- (*strip_tac >>
-     arw[] >> 
-     (*follows from Nt(ε, F o G, Id(A))*)
-     fs[Nt_def] >> 
-     first_x_assum*) cheat >>
- arw[] >> irule Adj_alt1 >> arw[] >> 
- qsspecl_then [‘Rw(F, η)’,‘Lw(ε, F)’] assume_tac
- vo_cpnt >>
+ ‘!(a : fun(1, A)). cod(cpnt(ε, a)) = a & 
+  U(G o a, cpnt(ε, a))’
+ >-- arw[] >> arw[] >>
+ irule Adj_alt1 >> arw[] >>
  qby_tac
- ‘Ed(1f, A) o Rw(F, η) = Ed(0f, A) o Lw(ε, F)’
- >-- cheat >>
- first_x_assum drule>> arw[] >>
- pop_assum (K all_tac) >> pop_assum (K all_tac) >>
- qsspecl_then [‘Lw(η, G)’,‘Rw(G, ε)’] assume_tac
- vo_cpnt >>
+ ‘∀x. cpnt(vo(Lw(ε, F), Rw(F, η)), x) = id(F o x)’
+ >-- (strip_tac >>
+     drule Nt_Rw_Nt >>
+     first_x_assum (qsspecl_then [‘F’] assume_tac) >> 
+     pop_assum mp_tac >> rw[IdR,o_assoc] >> strip_tac >>
+     rev_drule Nt_Lw_Nt >>
+     first_x_assum (qsspecl_then [‘F’] assume_tac) >>
+     pop_assum mp_tac >> rw[IdL,o_assoc] >> strip_tac >>
+     qsspecl_then [‘F’,‘F o G o F’,‘F’,‘Rw(F,η)’,‘Lw(ε,F)’] 
+     assume_tac vo_Nt_Nt >> rfs[] >>
+     qsspecl_then [‘F’,‘F o G o F’,‘F’,‘Rw(F,η)’,‘Lw(ε,F)’] 
+     assume_tac Nt_vo_cpnt >>
+     rfs[] >>
+     rw[GSYM cpnt_o_Lw,GSYM cpnt_o_Rw] >>
+     first_x_assum
+     (qsspecl_then [‘x’,‘cpnt(η,x)’] assume_tac) >>
+     pop_assum mp_tac >> rw[] >> strip_tac >> arw[])>> 
+ arw[] >> strip_tac >> 
+ drule Nt_Lw_Nt >>
+ first_x_assum (qsspecl_then [‘G’] assume_tac) >> 
+ pop_assum mp_tac >> rw[IdL,o_assoc] >> strip_tac >>
+ rev_drule Nt_Rw_Nt >>
+ first_x_assum (qsspecl_then [‘G’] assume_tac) >>
+ pop_assum mp_tac >> rw[IdR,o_assoc] >> strip_tac >>
+ qsspecl_then 
+ [‘G o F o G’,‘G’,‘G o F o G’,‘Rw(G,ε)’,‘Lw(η,G)’] 
+ assume_tac Nt_vo_cpnt >> 
+(*
  qby_tac
- ‘Ed(1f, X) o Lw(η, G) = Ed(0f, X) o Rw(G, ε)’
- >-- cheat >>
- first_x_assum drule>> arw[] >> rw[Lw_cpnt,Rw_cpnt] >>
- rpt strip_tac (* 2 *)
- >-- cheat >>
- irule Thm13_eqn2_lemma >> arw[] >>
- qexists_tac ‘F’ >> arw[] >> 
+ ‘!(a : fun(1, X)).
+               cpnt(vo(Lw(ε, F), Rw(F, η)), a) = cpnt(Lw(ε, F), a) @
+                 cpnt(Rw(F, η), a)’
+ >-- *)
  qby_tac
- ‘∃e:2->A. U(G o a, e) & dom(e) = cod(F o G o cpnt(ε, a))’
- >-- (qexists_tac ‘cpnt(ε,a)’ >> arw[] >>
-     qby_tac
-     ‘cod(F o G o cpnt(ε, a)) = F o G o a’ 
-     >-- cheat >> arw[] >>
-     drule $ iffLR Nt_def >> rw[dom_cpnt_dom_csL] >>
-     rw[dom_def,o_assoc,id_def] >>
-     rw[one_to_one_Id] >> rw[IdR]) >> 
- arw[] >>
- qby_tac
- ‘F o (G o cpnt(ε, a)) @ cpnt(η, G o a) = F o id(G o a)’
- >-- first_assum (qspecl_then [‘G o a’] assume_tac) >> 
-     pop_assum strip_assume_tac >>
-     ‘(G o cpnt(ε, a)) @ cpnt(η, G o a)’
-     qby_tac
-     ‘fFx = F o ()’
- qby_tac
- ‘U(dom(G o cpnt(ε, a)), F o G o cpnt(ε, a))’
-     arw[] 
-     rw[GSYM Er1_Ed_dom_cpnt] 
-
-
-     drule $ iffLR Nt_def >> fs[o_assoc] >>
-     first_x_assum (qspecl_then [‘cpnt(ε,a)’] assume_tac) >>
-     pop_assum strip_assume_tac >>
-     qpick_x_assum ‘csL(Pt(ε o cpnt(ε, a))) = 
-                    F o G o cpnt(ε, a)’
-     (assume_tac o GSYM) >> arw[] >>
-     fs[IdL] >>
-     q
-     arw[] >>
-     
- rw[GSYM Er1_Ed_dom_cpnt]  
-
-
+ ‘cpnt(vo(Rw(G, ε), Lw(η, G)), a) = 
+  cpnt(Rw(G, ε),a) @ cpnt(Lw(η, G), a)’ 
+ >-- (irule Nt_vo_cpnt >>
+     qexistsl_tac [‘G’,‘G o F o G’,‘G’] >>
+     arw[]) >> arw[] >>
+ first_x_assum (qsspecl_then [‘a’,‘cpnt(ε,a)’] assume_tac) >>
+ pop_assum mp_tac >> rw[] >>
+ strip_tac >>
+ last_assum drule >>
+ qby_tac ‘cpsb(cpnt(Rw(G, ε), a),cpnt(Lw(η, G), a))’ 
+ >-- (rw[cpsb_def] >> 
+     drule Nt_dom_cod_cpnt >> arw[o_assoc] >>
+ qsspecl_then [‘G’,‘G o F o G’,‘Lw(η,G)’]
+ assume_tac Nt_dom_cod_cpnt >> 
+ first_x_assum drule >> arw[o_assoc]) >>
  qsuff_tac
- ‘’
- 
- 
-
-
-
-
-     qby_tac ‘U(G o a,cpnt(ε,a))’ >-- arw[] >>
-     last_assum drule >>
-     drule $ iffLR UFrom_def >> 
-
-
-“fFx @ cpnt(Rw(F,η), x) = id(F o x:1->X)”
-
-rastt "cpnt(Lw(F:X->A,η:X->Exp(2,X)), x:1->X)"
-“id(F o x:1->X) = a”
-
-Adj_def
- qby_tac
- ‘!G:A->X η:X->Exp(2,X) ε:A->Exp(2,A). 
-  
-   ⇒ Adj(F,G,η,ε) ∧
-   ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))’)
+ ‘cpnt(ε,a) @ 
+  (F o (cpnt(Rw(G, ε), a) @ cpnt(Lw(η, G), a))) = 
+  cpnt(ε,a)’
+ >-- (strip_tac >> 
+     drule $ iffLR UFrom_def >>
+     pop_assum strip_assume_tac >> 
+     first_x_assum 
+     (qsspecl_then [‘G o a’,‘cpnt(ε,a)’] assume_tac) >>
+     rfs[] >> assume_tac
+     (uex_unique |> qspecl [‘2’,‘X’] 
+     |> fVar_sInst_th “P(fh:2->X)”
+        “dom(fh:2->X) = G:A->X o a &
+         cod(fh) = G o a & 
+         cpnt(ε, a) @ F:X->A o fh = cpnt(ε, a)”) >>
+     first_x_assum drule >>
+     first_x_assum irule >>
+     rw[id_dom,id_cod] >> arw[] >> 
+     qby_tac ‘cpnt(ε, a) @ F o id(G o a) = cpnt(ε, a)’ 
+     >-- (rw[id_def,o_assoc] >> rw[GSYM o_assoc] >>
+         rw[GSYM id_def] >> rw[o_assoc] >>
+         irule cpsb_idR >> arw[cpsb_def] >>
+         rw[id_cod]) >> arw[] >> 
+     drule oa_dom_cod  >> arw[] >>
+     rw[GSYM cpnt_o_Lw,GSYM cpnt_o_Rw] >>
+     rw[cod_o] >> 
+     qsspecl_then [‘Id(X)’,‘G o F’,‘η’] 
+     assume_tac Nt_dom_cod_cpnt >>
+     first_x_assum drule >> arw[o_assoc,IdL]) >>
+rev_drule Nt_natural_dom_cod >>
+first_x_assum 
+ (qsspecl_then [‘cpnt(ε,a)’,‘F o G o a’,‘a’] assume_tac) >>
+rfs[] >>
+qby_tac ‘dom(cpnt(ε, a)) = F o G o a’ 
+>-- rev_drule Nt_dom_cod_cpnt >> arw[o_assoc] >>
+first_x_assum drule >>
+pop_assum mp_tac >> rw[o_assoc,IdL] >> strip_tac >>
+qby_tac
+‘cpnt(ε, F o G o a) @ (F o cpnt(η,G o a)) = id(F o G o a)’
+>-- (first_x_assum (qspecl_then [‘G o a’] assume_tac) >>
+     qsspecl_then [‘F’,‘F o G o F’,‘F’,‘Rw(F, η)’,‘Lw(ε, F)’] assume_tac Nt_vo_cpnt >>
+     qby_tac
+     ‘Nt(Rw(F, η), F, F o G o F) &
+      Nt(Lw(ε, F), F o G o F, F)’
+     >-- (rev_drule Nt_Lw_Nt >> pop_assum mp_tac >> 
+         rw[IdL,o_assoc] >>
+         strip_tac >> arw[] >>
+         qsspecl_then [‘Id(X)’,‘G o F’,‘η’] assume_tac
+         Nt_Rw_Nt >>
+         first_x_assum drule >> 
+         pop_assum mp_tac >> rw[IdR] >>
+         strip_tac >> arw[]) >> 
+    first_x_assum drule >>
+    fs[] >> 
+    fs[GSYM cpnt_o_Lw] >> fs[GSYM cpnt_o_Rw]) >>
+drule fun_pres_oa >> arw[] >>
+drule cpsb_o >>
+first_x_assum (qsspecl_then [‘F’] assume_tac) >>
+qby_tac
+‘cpnt(ε, a) @ (F o cpnt(Rw(G, ε), a)) @ F o cpnt(Lw(η, G), a) = 
+ (cpnt(ε, a) @ (F o cpnt(Rw(G, ε), a))) @ F o cpnt(Lw(η, G), a)’
+>-- (flip_tac >> irule Thm8 >> arw[] >>
+     rw[cpsb_def,cod_o] >> 
+     drule Nt_dom_cod_cpnt >> arw[o_assoc]) >>
+arw[] >> arw[GSYM cpnt_o_Rw] >>
+qby_tac
+‘(cpnt(ε, a) @ cpnt(ε, F o G o a)) @ F o cpnt(Lw(η, G), a) =
+ cpnt(ε, a) @ cpnt(ε, F o G o a) @ F o cpnt(Lw(η, G), a)’
+>-- (irule Thm8 >> arw[cpsb_def,dom_o,cod_o] >>
+     qsspecl_then [‘G’,‘G o F o G’,‘Lw(η,G)’] assume_tac 
+     Nt_dom_cod_cpnt >>
+     first_x_assum drule >> arw[o_assoc] >>
+     rev_drule Nt_dom_cod_cpnt  >> arw[o_assoc]) >>
+arw[GSYM cpnt_o_Lw] >>
+irule cpsb_idR >> 
+rw[cpsb_def] >>
+rev_drule Nt_dom_cod_cpnt >> arw[o_assoc,id_cod])
 (form_goal
  “∀X A F:X->A. 
   (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
@@ -2129,133 +2287,4 @@ Adj_def
   ∃G:A->X η ε:A->Exp(2,A). Adj(F,G,η,ε) ∧
    ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))”));
 
-
-
-val Thm13_ex = prove_store("Thm13_ex",
-e0
-(rpt strip_tac >> 
- qby_tac
- ‘∀a:1->A. 
-   ∃x:1->X f:2->A. cod(f) = a & U(x,f)’ 
- CC5 
- ‘(∀a:1->A. ∃f.U(G o a,f)) &  ’
- qby_tac
- ‘∃G:A->X. 
-  ∀a:2->A a1 a2. dom(a) = a1 & cod(a) = a2 ⇒
-           ∃f1:2->A f2:2->A.
-           dom(f1) = F o G o a1 & cod(f1) = a1 &
-           dom(f2) = F o G o a2 & cod(f2) = a2 &
-           U(G o a1,f1) & U(G o a2,f2) & 
-           f2 @ (F o G o a) = a @ f2’
- >-- cheat >>
- pop_assum strip_assume_tac >>
- qby_tac
- ‘∃η:X -> Exp(2,X). 
-   Nt(η, Id(X), G o F) &
-   ∀x:1->X. 
-    ∃fFx:2-> A.
-      U(G o F o x,fFx) & 
-      fFx @ cpnt(Rw(F,η), x) = id(F o x)’
- >-- cheat >>
- pop_assum strip_assume_tac >>
- qby_tac
- ‘∃ε:A -> Exp(2,A). 
-   Nt(ε,F o G,Id(A)) &
-   ∀a:1->A. 
-      U(G o a,cpnt(ε,a)) & 
-     ∃f. cpnt(ε,a) @ f = id(a)’
- >-- cheat >>
- pop_assum strip_assume_tac >> 
- qexistsl_tac [‘G’,‘η’,‘ε’] >>
- qby_tac
- ‘∀a.cod(cpnt(ε, a)) = a & U(G o a, cpnt(ε, a)) ’
- >-- (*strip_tac >>
-     arw[] >> 
-     (*follows from Nt(ε, F o G, Id(A))*)
-     fs[Nt_def] >> 
-     first_x_assum*) cheat >>
- arw[] >> irule Adj_alt1 >> arw[] >> 
- qsspecl_then [‘Rw(F, η)’,‘Lw(ε, F)’] assume_tac
- vo_cpnt >>
- qby_tac
- ‘Ed(1f, A) o Rw(F, η) = Ed(0f, A) o Lw(ε, F)’
- >-- cheat >>
- first_x_assum drule>> arw[] >>
- pop_assum (K all_tac) >> pop_assum (K all_tac) >>
- qsspecl_then [‘Lw(η, G)’,‘Rw(G, ε)’] assume_tac
- vo_cpnt >>
- qby_tac
- ‘Ed(1f, X) o Lw(η, G) = Ed(0f, X) o Rw(G, ε)’
- >-- cheat >>
- first_x_assum drule>> arw[] >> rw[Lw_cpnt,Rw_cpnt] >>
- rpt strip_tac (* 2 *)
- >-- cheat >>
- irule Thm13_eqn2_lemma >> arw[] >>
- qexists_tac ‘F’ >> arw[] >> 
- qby_tac
- ‘∃e:2->A. U(G o a, e) & dom(e) = cod(F o G o cpnt(ε, a))’
- >-- (qexists_tac ‘cpnt(ε,a)’ >> arw[] >>
-     qby_tac
-     ‘cod(F o G o cpnt(ε, a)) = F o G o a’ 
-     >-- cheat >> arw[] >>
-     drule $ iffLR Nt_def >> rw[dom_cpnt_dom_csL] >>
-     rw[dom_def,o_assoc,id_def] >>
-     rw[one_to_one_Id] >> rw[IdR]) >> 
- arw[] >>
- qby_tac
- ‘F o (G o cpnt(ε, a)) @ cpnt(η, G o a) = F o id(G o a)’
- >-- first_assum (qspecl_then [‘G o a’] assume_tac) >> 
-     pop_assum strip_assume_tac >>
-     ‘(G o cpnt(ε, a)) @ cpnt(η, G o a)’
-     qby_tac
-     ‘fFx = F o ()’
- qby_tac
- ‘U(dom(G o cpnt(ε, a)), F o G o cpnt(ε, a))’
-     arw[] 
-     rw[GSYM Er1_Ed_dom_cpnt] 
-
-
-     drule $ iffLR Nt_def >> fs[o_assoc] >>
-     first_x_assum (qspecl_then [‘cpnt(ε,a)’] assume_tac) >>
-     pop_assum strip_assume_tac >>
-     qpick_x_assum ‘csL(Pt(ε o cpnt(ε, a))) = 
-                    F o G o cpnt(ε, a)’
-     (assume_tac o GSYM) >> arw[] >>
-     fs[IdL] >>
-     q
-     arw[] >>
-     
- rw[GSYM Er1_Ed_dom_cpnt]  
-
-
- qsuff_tac
- ‘’
- 
- 
-
-
-
-
-     qby_tac ‘U(G o a,cpnt(ε,a))’ >-- arw[] >>
-     last_assum drule >>
-     drule $ iffLR UFrom_def >> 
-
-
-“fFx @ cpnt(Rw(F,η), x) = id(F o x:1->X)”
-
-rastt "cpnt(Lw(F:X->A,η:X->Exp(2,X)), x:1->X)"
-“id(F o x:1->X) = a”
-
-Adj_def
- qby_tac
- ‘!G:A->X η:X->Exp(2,X) ε:A->Exp(2,A). 
-  
-   ⇒ Adj(F,G,η,ε) ∧
-   ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))’)
-(form_goal
- “∀X A F:X->A. 
-  (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
-  (∀a:1->A. ∃!x:1->X f:2->A. cod(f) = a ∧ U(x,f)) ⇒
-  ∃G:A->X η ε:A->Exp(2,A). Adj(F,G,η,ε) ∧
-   ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))”));
 
