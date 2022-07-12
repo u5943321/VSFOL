@@ -2287,4 +2287,23 @@ rev_drule Nt_dom_cod_cpnt >> arw[o_assoc,id_cod])
   ∃G:A->X η ε:A->Exp(2,A). Adj(F,G,η,ε) ∧
    ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))”));
 
-
+val Thm13_unique = prove_store("Thm13_unique",
+e0
+(rpt gen_tac >> strip_tac >> rpt gen_tac >> strip_tac >>
+ qby_tac ‘e1 = e2’ >-- cheat >> arw[] >>
+ (*prove e1 = e2 first by component equal*) >>
+ 
+ )
+(form_goal
+ “∀X A F:X->A. 
+  (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
+  (∀a:1->A. ∃x:1->X f:2->A. cod(f) = a ∧ U(x,f)) &
+  (∀a:1->A x1:1->X f1:2->A x2:1->X f2:2->A. 
+   cod(f1) = a ∧ U(x1,f1) &
+   cod(f2) = a ∧ U(x2,f2) ⇒ x1 = x2 & f1 = f2) ⇒
+  ∀G1:A->X η1 e1:A->Exp(2,A) G2 η2 e2. 
+   (Adj(F,G1,η1,e1) ∧
+   ∀a:1->A. cod(cpnt(e1,a)) = a ∧ U(G1 o a,cpnt(e1,a)))&
+   (Adj(F,G2,η2,e2) ∧
+   ∀a:1->A. cod(cpnt(e2,a)) = a ∧ U(G2 o a,cpnt(e2,a))) ⇒
+   G1 = G2 & η1 = η2 & e1 = e2”));
