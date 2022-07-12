@@ -712,6 +712,14 @@ e0
   (∀a'. a' o α = u & a' o β = v ⇒ a' = tri(u,v))”)
 |> rewr_rule[GSYM dom_def,GSYM cod_def]
 
+val is_tri = proved_th $
+e0
+(cheat)
+(form_goal
+ “∀A u:2->A v:2->A. 
+  dom(v) = cod(u) ⇒
+  (∀a'. a' o α = u & a' o β = v ⇒ a' = tri(u,v))”)
+
 val oa_def = qdefine_fsym("@",[‘g:2->A’,‘f:2->A’])
 ‘tri(f,g) o γ’ |> gen_all
 

@@ -267,6 +267,7 @@ e0
 (form_goal “∀A A'. isop(A,A') ⇒ 
  ∀f:2->A. cod(opf(f,2,A')) = opf(dom(f),1,A') ”));
 
+(*
 
 val opf_ab = prove_store("opf_ab",
 e0
@@ -282,6 +283,20 @@ e0
  op(_,_,_), as a function symbol.*)
  )
 (form_goal “opf(α,2,3) = β ∧ opf(β,2,3) = α”));
+
+*)
+
+
+val opf_ab = prove_store("opf_ab",
+e0
+(cheat)
+(form_goal “isopf(α,β) & isopf(β,α)”));
+
+
+
+
+
+
 
 (*if add the assumption that opf ⇒ is op cat, then agree with the actual situation, and can avoid the precondition in opf_opf_o*)
 
@@ -500,21 +515,68 @@ e0
   ∀f' g':2->A'.isopf(f,f') & isopf(g,g') ⇒
  cpsb(f',g')”));
 
+
+val opf_o_eq = prove_store("opf_o_eq",
+e0
+(rpt strip_tac >>
+ dimp_tac >> strip_tac (* 2 *)
+ >-- (irule opf_unique >>
+     qexistsl_tac [‘A’,‘C’,‘a’] >> arw[] >>
+     pop_assum (assume_tac o GSYM) >>
+     arw[] >>
+     irule opf_o_opf >>
+     arw[]) >>
+ irule opf_unique >>
+ qexistsl_tac [‘A'’,‘C'’,‘a'’] >> arw[] >>
+ rpt strip_tac (* 4 *)
+ >-- (irule opf_opf_refl >> arw[]) 
+ >-- (irule op_op_refl >> arw[]) 
+ >-- (irule op_op_refl >> arw[]) >>
+ pop_assum (assume_tac o GSYM) >>
+ arw[] >>
+ irule opf_o_opf >> strip_tac >>
+ irule opf_opf_refl >> arw[])
+(form_goal
+ “∀A B f:A->B A' B' f':A'->B' 
+   C g:B->C C' g':B'->C'.
+  isop(A, A') & isop(B,B') & isop(C, C') & 
+  isopf(f,f') & isopf(g,g') ⇒
+  ∀a a'. isopf(a,a') ⇒
+   (g o f = a ⇔ g' o f' = a') 
+  ”));
+
 val opf_tri = prove_store("opf_tri",
 e0
-(
- qby_tac
- ‘Poa(1f, 0f, α, β, opf(g, 2, A'), opf(f, 2, A')) = 
- opf(Poa(1f,0f,α,β,f,g),3,A')’ 
- >-- flip_tac >> irule is_Poa_ab >> fs[cpsb_def] >>
-     qsuff_tac 
-     ‘opf(Poa(1f, 0f, α, β, f, g), 3, A') o opf(α,2,3) =
-      opf(f, 2, A') ∧ 
-      opf(Poa(1f, 0f, α, β, f, g), 3, A') o opf(β,2,3) =
-      opf(g, 2, A')’
-     >-- rw[opf_ab] >>
-     (*Poa_ab_eqn*)
-)
+(rpt strip_tac >>
+ qsuff_tac
+ ‘∀t. 
+   isopf(tri(f,g),t) ⇒ t = tri(g',f')’
+ >-- (strip_tac >>
+     qby_tac
+     ‘∃!t:3->A'. isopf(tri(f,g),t)’
+     >-- (irule opf_uex >> arw[op_3]) >>
+     pop_assum (strip_assume_tac o uex2ex_rule) >>
+     first_x_assum drule >> fs[]) >>
+ rpt strip_tac >>
+ irule is_tri >>
+ drule opf_cpsb >> 
+ rw[GSYM cpsb_def] >> first_x_assum drule >>
+ qby_tac ‘cpsb(f',g')’ 
+ >-- (first_x_assum irule >> arw[]) >>
+ arw[] >>
+ qsuff_tac
+ ‘tri(f, g) o β = g & tri(f,g) o α = f’ 
+ >-- (rpt strip_tac >--
+     (irule $ iffLR opf_o_eq >>
+     qexistsl_tac [‘2’,‘3’,‘β’,‘A’,‘g’,‘tri(f,g)’]>>
+     arw[] >> rw[op_2,op_3] >>
+     rw[opf_ab]) >>
+     irule $ iffLR opf_o_eq >>
+     qexistsl_tac [‘2’,‘3’,‘α’,‘A’,‘f’,‘tri(f,g)’]>>
+     arw[] >> rw[op_2,op_3] >>
+     rw[opf_ab]) >> 
+ qsspecl_then [‘f’,‘g’] assume_tac tri_eqns >>
+ rfs[cpsb_def])
 (form_goal 
  “∀A f:2->A g:2->A. cpsb(g,f) ⇒
   ∀A'. isop(A,A') ⇒ 
