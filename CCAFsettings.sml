@@ -1837,6 +1837,12 @@ e0
 (form_goal “∀f:2->3. f = α | f = β | f = γ | f = id(dom(α)) | f = id(cod(β)) | f = id(dom(β))”));
 
 
+val is_gamma = prove_store("is_gamma",
+e0
+(cheat)
+(form_goal “∀f:2->3. dom(f) = dom(α) & cod(f) = cod(β) ⇒
+ f = γ ”));
+
 val Thm12 = prove_store("Thm12",
 e0
 (cheat)

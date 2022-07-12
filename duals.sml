@@ -227,6 +227,7 @@ e0
 (cheat)
 (form_goal “~isid(α) ∧ ~isid(β)”));
 
+(*
 val dom_opf_cod = prove_store("dom_opf_cod",
 e0
 (rpt strip_tac >> drule opar_dom_cod >>
@@ -237,7 +238,22 @@ e0
  )
 (form_goal “∀A A'. isop(A,A') ⇒ 
  ∀f:2->A. dom(opf(f,2,A')) = opf(cod(f),1,A') ”));
+*)
 
+(*
+val dom_opf_cod = prove_store("dom_opf_cod",
+e0
+(rpt strip_tac >> drule opar_dom_cod >>
+ irule is_opf >> arw[op_1] >> 
+ qsuff_tac ‘isopf(f,opf(f,2,A'))’ 
+ >-- (strip_tac >> first_x_assum drule >> arw[]) >>
+ irule opf_property >> arw[op_2] cheat
+ )
+(form_goal “∀A A'. isop(A,A') ⇒ 
+ ∀f:2->A f':2->A'.isopf(f,f') ⇒
+ isopf(cod(f),dom(f')) ”));
+is precisely opar_dom_cod 
+*)
 
 
 val cod_opf_dom = prove_store("cod_opf_dom",
@@ -461,13 +477,71 @@ e0
   isopf(f,f1) & isopf(f,f2) ⇒ f1 = f2”));
 
 
+val opf_gamma = prove_store("opf_gamma",
+e0
+(cheat (* use is_gamma *))
+(form_goal
+ “isopf(γ,γ)”));
+
+val opf_cpsb = prove_store("opf_cpsb",
+e0
+(rpt strip_tac >> fs[cpsb_def] >>
+ drule opar_dom_cod >>
+ first_x_assum rev_drule >>
+ irule opf_unique >>
+ qexistsl_tac [‘1’,‘A’,‘cod(f)’] >>
+ arw[op_1] >>
+ last_x_assum (assume_tac o GSYM) >> arw[] >>
+ drule opar_dom_cod >>
+ first_x_assum drule >> arw[])
+(form_goal 
+ “∀A f:2->A g:2->A. cpsb(g,f) ⇒
+  ∀A'. isop(A,A') ⇒ 
+  ∀f' g':2->A'.isopf(f,f') & isopf(g,g') ⇒
+ cpsb(f',g')”));
+
+val opf_tri = prove_store("opf_tri",
+e0
+(
+ qby_tac
+ ‘Poa(1f, 0f, α, β, opf(g, 2, A'), opf(f, 2, A')) = 
+ opf(Poa(1f,0f,α,β,f,g),3,A')’ 
+ >-- flip_tac >> irule is_Poa_ab >> fs[cpsb_def] >>
+     qsuff_tac 
+     ‘opf(Poa(1f, 0f, α, β, f, g), 3, A') o opf(α,2,3) =
+      opf(f, 2, A') ∧ 
+      opf(Poa(1f, 0f, α, β, f, g), 3, A') o opf(β,2,3) =
+      opf(g, 2, A')’
+     >-- rw[opf_ab] >>
+     (*Poa_ab_eqn*)
+)
+(form_goal 
+ “∀A f:2->A g:2->A. cpsb(g,f) ⇒
+  ∀A'. isop(A,A') ⇒ 
+  ∀f' g':2->A'.isopf(f,f') & isopf(g,g') ⇒
+ isopf(tri(f,g),tri(g',f'))”));
+
+val opf_oa = prove_store("opf_oa",
+e0
+(rpt strip_tac >>
+ qby_tac ‘cpsb(f',g')’ 
+ >-- (irule opf_cpsb >>
+     qexistsl_tac [‘A’,‘f’,‘g’] >> arw[]) >>
+ rw[oa_def] >>
+ qby_tac
+ ‘isopf(tri(f,g),tri(g',f'))’ 
+ >-- (rev_drule opf_tri >>
+     first_x_assum irule >> arw[]) >>
+ irule opf_o_opf >> arw[opf_gamma])
+(form_goal
+ “∀A f:2->A g:2->A. cpsb(g,f) ⇒
+  ∀A'. isop(A,A') ⇒ 
+  ∀f' g':2->A'.isopf(f,f') & isopf(g,g') ⇒
+isopf(g @ f,f' @ g')”));
 
 val isopf_oa = prove_store("opf_oa",
 e0
-((*rpt strip_tac >-- (fs[cpsb_def] >>
- drule dom_opf_cod >> arw[] >>
- drule cod_opf_dom >> arw[] >> cheat
- (*same problem as above*)) >>
+(rpt strip_tac >-- cheat >>
  qby_tac ‘cpsb(opf(f,2,A'),opf(g,2,A'))’
  >-- cheat >>
  rw[] >> drule oa_def' >> arw[] >>
