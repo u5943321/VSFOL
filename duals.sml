@@ -611,6 +611,108 @@ e0
  ∀b:2->B.
   R(a,b) ⇔ cf o a' = b”));
 
+val isDiso_def = 
+qdefine_psym("isDiso",[‘A’,‘i:A1->A2’])
+‘isop(A,A1) & isop(A,A2) & 
+ Iso(i) &
+ (∀f:2->A f1:2->A1.
+   isopf(f,f1) ⇒ 
+   ∀f2:2->A2.isopf(f,f2) ⇔ 
+   i o f1 = f2)’
 
-val Thm19 = prove_store("Thm19",
 
+
+val isopf_of_o = prove_store("isopf_of_o",
+e0
+(rpt strip_tac >>
+ qspecl_then [‘A’,‘B’,‘f’,‘A'’,‘B'’]
+ assume_tac opf_uex >>
+ rfs[] >>
+ pop_assum (strip_assume_tac o uex2ex_rule) >>
+ qspecl_then [‘B’,‘C’,‘g’,‘B'’,‘C'’]
+ assume_tac opf_uex >> rfs[] >>
+ pop_assum (strip_assume_tac o uex2ex_rule) >>
+ qexistsl_tac [‘f'’,‘f''’] >> arw[] >>
+ irule opf_unique >>
+ qexistsl_tac [‘A’,‘C’,‘g o f’] >>
+ arw[] >> irule opf_o_opf >> arw[])
+(form_goal
+ “∀A C A' C'. isop(A,A') & isop(C,C') ⇒
+ ∀B f:A->B g:B->C gf':A'->C'. 
+ isopf(g o f,gf') ⇒
+ ∀B'. isop(B,B') ⇒
+∃f':A' -> B' g':B'->C'.
+ isopf(f,f') & isopf(g,g') &
+ gf' = g' o f'”));
+
+val Thm19_natural = prove_store("Thm19_natural",
+e0
+(rpt strip_tac >> fs[isDiso_def] >>
+ irule $ iffLR fun_ext >>
+ rw[o_assoc] >> strip_tac >>
+ flip_tac >>
+ first_assum $ irule o iffLR >>
+ qby_tac
+ ‘?!f1a0:2->B. isopf(f1 o a,f1a0)’ 
+ >-- (irule opar_uex >> irule op_op_refl >> arw[]) >>
+ pop_assum (strip_assume_tac o uex2ex_rule) >>
+ qexists_tac ‘f1a0’ >> drule opf_opf_refl >>
+ arw[] >>
+ qby_tac
+ ‘∃a0:2->A f0:A->B. 
+  isopf(a,a0) & isopf(f1,f0) &
+  f1a0 = f0 o a0’
+ >-- (irule isopf_of_o >>
+     rw[op_2] >>
+     rpt strip_tac (* 3 *)
+     >-- (irule opf_opf_refl >> arw[]) 
+     >-- (irule op_op_refl >> arw[]) >>
+     irule op_op_refl >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ arw[]>>
+ qby_tac ‘f0= f’ 
+ >-- (irule opf_unique >>
+     qexistsl_tac [‘A1’,‘B1’,‘f1’] >> arw[] >>
+     rpt strip_tac (* 3 *)
+     >-- (irule opf_opf_refl >> arw[]) 
+     >-- (irule op_op_refl >> arw[]) >>
+     irule op_op_refl >> arw[]) >> fs[] >>
+ irule opf_o_opf >>
+ arw[] >> 
+ first_assum $ irule o iffRL >>
+ qexists_tac ‘a’ >> rw[]>>
+ irule opf_opf_refl >> arw[])
+(form_goal
+ “∀A A1 A2 iA:A1->A2
+   B B1 B2 iB:B1->B2. 
+   isDiso(A,iA) & isDiso(B,iB) ⇒
+   ∀f:A->B f1:A1->B1 f2:A2->B2.
+    isopf(f,f1) & isopf(f,f2) ⇒
+    f2 o iA = iB o f1
+   ”));
+
+
+val Thm19_uex = prove_store("Thm19_uex",
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?i:A1 -> A2. isDiso(A,i)’
+ >-- (strip_tac >> uex_tac >> 
+     qexists_tac ‘i’ >> arw[] >>
+     rpt strip_tac >>
+     qspecl_then [‘A’,‘A1’,‘A2’,‘i’,
+                  ‘A’,‘A1’,‘A2’,‘i'’] assume_tac
+     Thm19_natural >>
+     rfs[] >>
+     first_x_assum 
+     (qsspecl_then [‘Id(A)’,‘Id(A1)’,‘Id(A2)’]
+      assume_tac) >>
+     rev_drule opf_id_id >> 
+     drule opf_id_id >> fs[] >>
+     fs[IdL,IdR]) >>
+ 
+ 
+ )
+(form_goal
+ “∀A A1 A2. isop(A,A1) & isop(A,A2) ⇒
+  ?!i:A1 -> A2. isDiso(A,i)”));
