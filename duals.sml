@@ -216,11 +216,21 @@ e0
 (cheat)
 (form_goal “∀f:2->3 g:2->3. ~isid(f) ∧ ~isid(g) ∧ dom(g) = cod(f) ⇒ g = β ∧ f = α”));
 
+(*
 val isid_opf = prove_store("isid_opf",
 e0
 (cheat)
 (form_goal “∀A A'. isop(A,A') ⇒ 
  (∀f:2->A. isid(f) ⇔ isid(opf(f,2,A')))”));
+*)
+
+val isid_opf = prove_store("isid_opf",
+e0
+(cheat)
+(form_goal “∀A A'. isop(A,A') ⇒ 
+ (∀f:2->A f':2->A'. isopf(f,f') ⇒
+  (isid(f) ⇔ isid(f')))”));
+
 
 val ab_not_id = prove_store("ab_not_id",
 e0
@@ -286,10 +296,33 @@ e0
 
 *)
 
+val opf_cod_a = prove_store("opf_cod_a",
+e0
+cheat
+(form_goal
+ “isopf(cod(α), cod(α))”));
 
 val opf_ab = prove_store("opf_ab",
 e0
-(cheat)
+(qsuff_tac ‘isopf(α,β)’
+ >-- (strip_tac >> arw[] >> irule opf_opf_refl >>
+     arw[]) >> 
+ qsuff_tac
+ ‘∀f:2->3. isopf(α,f) ⇒ f = β’ >-- cheat >>
+ rpt strip_tac >>
+ qsuff_tac ‘f = β & α = α’ 
+ >-- (strip_tac >> arw[]) >> 
+ irule oa_gamma_ba >> rw[ab_not_id] >>
+ assume_tac op_3 >>
+ drule isid_opf >>
+ first_x_assum drule >>
+ pop_assum (assume_tac o GSYM) >>
+ arw[ab_not_id] >>
+ irule $ opf_unique >>
+ qexistsl_tac [‘1’,‘3’,‘cod(α)’] >> 
+ rw[op_1,op_3,opf_cod_a] >>
+ drule opar_dom_cod >>
+ first_x_assum drule >> arw[])
 (form_goal “isopf(α,β) & isopf(β,α)”));
 
 
