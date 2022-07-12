@@ -501,6 +501,15 @@ cheat >>
  cpsb(f',g') ∧
 isopf(g @ f,f' @ g')”));
 
+val opf_oa = prove_store("opf_oa",
+e0
+(cheat)
+(form_goal
+ “∀A f:2->A g:2->A. cpsb(g,f) ⇒
+  ∀A'. isop(A,A') ⇒ 
+  ∀f' g':2->A'.isopf(f,f') & isopf(g,g') ⇒
+isopf(g @ f,f' @ g')”));
+
 
 
 val Thm18 = prove_store("Thm18",
@@ -694,10 +703,14 @@ e0
 
 val Thm19_uex = prove_store("Thm19_uex",
 e0
-(rpt strip_tac >>
- qsuff_tac
- ‘?i:A1 -> A2. isDiso(A,i)’
- >-- (strip_tac >> uex_tac >> 
+(qsuff_tac
+ ‘∀A A1 A2. isop(A,A1) & isop(A,A2) ⇒
+  ?i:A1 -> A2. isDiso(A,i)’
+ >-- (rpt strip_tac >> 
+     first_x_assum 
+     (qspecl_then [‘A’,‘A1’,‘A2’] assume_tac) >>
+     rfs[] >> 
+     uex_tac >> 
      qexists_tac ‘i’ >> arw[] >>
      rpt strip_tac >>
      qspecl_then [‘A’,‘A1’,‘A2’,‘i’,
@@ -710,9 +723,83 @@ e0
      rev_drule opf_id_id >> 
      drule opf_id_id >> fs[] >>
      fs[IdL,IdR]) >>
- 
- 
- )
+ qsuff_tac
+ ‘∀A A1 A2. isop(A,A1) & isop(A,A2) ⇒
+  ?i:A1 -> A2. 
+  (∀f:2->A f1:2->A1.
+   isopf(f,f1) ⇒ 
+   ∀f2:2->A2.isopf(f,f2) ⇔ 
+   i o f1 = f2)’ >--
+ (rpt strip_tac >>
+ first_assum 
+ (qspecl_then [‘A’,‘A1’,‘A2’] assume_tac) >>
+ first_x_assum
+ (qspecl_then [‘A’,‘A2’,‘A1’] assume_tac) >>
+ rfs[] >> 
+ qexists_tac ‘i’ >>
+ rw[isDiso_def] >> arw[] >>
+ rw[Iso_def] >>
+ qexists_tac ‘i'’ >> strip_tac (* 2 *)
+ >-- (irule $ iffLR fun_ext >>
+     rw[o_assoc,IdL] >>
+     strip_tac >>
+     first_x_assum $ irule o iffLR >>
+     rev_drule op_op_refl >>
+     qspecl_then [‘2’,‘A1’,‘a’,‘2’,‘A’]
+     assume_tac opf_uex >>
+     rfs[op_2] >>
+     pop_assum (assume_tac o uex2ex_rule) >>
+     pop_assum (x_choose_then "a0" assume_tac) >>
+     qexists_tac ‘a0’ >>
+     drule opf_opf_refl >> arw[] >>
+     first_x_assum (irule o iffRL) >>
+     qexists_tac ‘a’ >> arw[]) >>
+ irule $ iffLR fun_ext >> 
+ rw[o_assoc,IdL] >>
+ strip_tac >>
+ first_x_assum $ irule o iffLR >>
+ drule op_op_refl >>
+ qspecl_then [‘2’,‘A2’,‘a’,‘2’,‘A’]
+ assume_tac opf_uex >>
+ rfs[op_2] >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum (x_choose_then "a0" assume_tac) >>
+ qexists_tac ‘a0’ >>
+ drule opf_opf_refl >> arw[] >>
+ first_x_assum (irule o iffRL) >>
+ qexists_tac ‘a’ >> arw[]) >>
+ rpt strip_tac >> 
+ assume_tac
+ (Thm18 |> qspecl [‘A’,‘A2’] 
+ |> fVar_sInst_th “R(f:2->A,g:2->A2)”
+    “isopf(f:2->A,g:2->A2)”) >>
+ qsuff_tac
+ ‘!(Aop : cat).
+               isop(A, Aop) ==>
+               ?(cf : fun(Aop, A2)).
+                 !(a : fun(2, A))  (a' : fun(2, Aop)).
+                   isopf(a, a') ==>
+                   !(b : fun(2, A2)). isopf(a, b) <=> cf o a' = b’
+ >-- (strip_tac >>
+     first_x_assum (qspecl_then [‘A1’] assume_tac) >>
+     rfs[] >>
+     qexists_tac ‘cf’ >>
+     rpt strip_tac >>
+     first_x_assum irule >> arw[]) >>
+ first_x_assum match_mp_tac >>
+ strip_tac (* 2 *)
+ >-- (strip_tac >> 
+     irule opf_uex >> arw[op_2]) >>
+ strip_tac (* 2 *) 
+ >-- (drule opar_dom_cod >>
+     rpt gen_tac >> strip_tac >>
+     first_x_assum drule >>
+     drule opf_opf_id >> arw[]) >>
+ rpt strip_tac >>
+ irule opf_unique >>
+ qexistsl_tac [‘2’,‘A’,‘g @ f’] >>
+ arw[op_2] >>
+ irule opf_oa >> arw[])
 (form_goal
  “∀A A1 A2. isop(A,A1) & isop(A,A2) ⇒
   ?!i:A1 -> A2. isDiso(A,i)”));
