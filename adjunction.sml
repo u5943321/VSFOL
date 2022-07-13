@@ -927,7 +927,7 @@ e0
    csR(Pt(η o f)) = F2 o f”));
 
 
-
+(*
 local
 val l = 
 csT_Pt |> qsspecl [‘id(a:1-> Exp(2,A))’] 
@@ -1012,6 +1012,7 @@ e0
 (form_goal “!A a:1->Exp(2,A).
  csL(Pt(id(a))) = id(dom(Tp0(a)))”));
 end
+*)
 
 val cpnt_csB_Pt = prove_store("cpnt_csB_Pt",
 e0
