@@ -1401,18 +1401,6 @@ dom_cpnt_dom_csT |> rewr_rule[GSYM dom_csL_dom_csT]
 
 
 
-val dom_o = prove_store("dom_o",
-e0
-(rw[o_assoc,dom_def])
-(form_goal
- “∀A B F:A->B a.dom(F o a) = F o dom(a)”));
-
-val cod_o = prove_store("cod_o",
-e0
-(rw[o_assoc,cod_def])
-(form_goal
- “∀A B F:A->B a.cod(F o a) = F o cod(a)”));
-
 
 val F_id_dom = prove_store("F_id_dom",
 e0

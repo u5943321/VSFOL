@@ -466,7 +466,17 @@ val isPo_expand = isPo_def
 
 val Epi_iff_Po_Id = prove_store("Epi_iff_Po_Id",
 e0
-(cheat)
+(rpt strip_tac >> rw[isPo_def,IdR] >>
+ dimp_tac >> rpt strip_tac (* 2 *)
+ >-- (uex_tac >> 
+     fs[Epi_def] >>
+     first_x_assum drule >> arw[] >>
+     qexists_tac ‘v’ >> rw[] >>
+     rpt strip_tac >> arw[]) >>
+ rw[Epi_def] >> rpt strip_tac >>
+ first_x_assum drule >>
+ pop_assum (strip_assume_tac o uex2ex_rule) >>
+ pop_assum (assume_tac o GSYM) >> arw[])
 (form_goal
  “∀A B f:A->B. Epi(f) ⇔ isPo(f,f,Id(B),Id(B))”));
 
@@ -1020,9 +1030,35 @@ val A1f_def = qdefine_fsym("A1f",[‘A’])
 ‘Er1(A) o Ed(1f,A)’ |> gen_all
 
 
+val dom_o = prove_store("dom_o",
+e0
+(rw[o_assoc,dom_def])
+(form_goal
+ “∀A B F:A->B a.dom(F o a) = F o dom(a)”));
+
+val cod_o = prove_store("cod_o",
+e0
+(rw[o_assoc,cod_def])
+(form_goal
+ “∀A B F:A->B a.cod(F o a) = F o cod(a)”));
+
+
+val tri_o = prove_store("tri_o",
+e0
+(rpt strip_tac >>
+ irule is_tri >>
+ fs[cpsb_def] >>
+ drule tri_eqns  >>
+ arw[o_assoc] >> rw[dom_o,cod_o] >>
+ arw[])
+(form_goal
+ “∀A f:2->A g. cpsb(g,f) ⇒
+  ∀B k:A->B. k o tri(f, g)  = tri((k o f), (k o g))”));
+
 val fun_pres_oa = prove_store("fun_pres_oa",
 e0
-(rw[oa_def] >> cheat)
+(rw[oa_def] >> rpt strip_tac >>
+ drule tri_o >> arw[GSYM o_assoc])
 (form_goal
  “∀A f:2->A g. cpsb(g,f) ⇒
   ∀B k:A->B. k o (g @ f) = (k o g) @ (k o f)”));
