@@ -147,6 +147,7 @@ e0
 
 (*RT_cs2, BL_cs2 cs2_RT_cpsb*)
 
+(*
 val cs2_arrows = prove_store("cs2_arrows",
 e0
 (strip_tac >> 
@@ -239,7 +240,7 @@ e0
   csR(s1) = csR(s2) &
   csT(s1) = csT(s2) &
   csB(s1) = csB(s2) ⇒ s1 = s2”));
-
+*)
 
 
 val Nt_ext = prove_store("Nt_ext",
@@ -748,7 +749,7 @@ e0
  “cpnt(Rw(H:B->C,η:A->Exp(2,B)), a:1->A) = 
   H o cpnt(η, a)”));
 
-
+(*
 val cpsb_idL = prove_store("cpsb_idL",
 e0
 cheat
@@ -772,7 +773,7 @@ val id_dom = prove_store("id_dom",
 e0
 (rw[dom_def,id_def,o_assoc,one_to_one_Id,IdR])
 (form_goal “∀A a:1->A. dom(id(a)) = a”));
-
+*)
 
 (*(*idL idR*)
 val Thm13_eqn2_lemma = prove_store("Thm13_eqn2_lemma",
@@ -1079,7 +1080,7 @@ e0
  “∀A cs:2 * 2->A.
   cod(csR(cs)) = cod(csB(cs))”));
 
-
+(*
 val csB_Pt_Tp0 = prove_store("csB_Pt_Tp0",
 e0
 (rpt strip_tac >> rw[csB_Pt,GSYM Tp0_def,Er1_def] >>
@@ -1116,6 +1117,9 @@ drule oa_dom_cod >> arw[])
 “∀A f1 g1:2->Exp(2,A).
  cpsb(g1,f1) ⇒
  csB(Pt(g1 @ f1)) = csB(Pt(g1))”));
+*)
+
+(*
 
 val Pa_cpsb_one = prove_store("Pa_cpsb_one",
 e0
@@ -1198,7 +1202,7 @@ drule fun_pres_oa >> arw[])
  cpsb(g1,f1) ⇒ 
  csL(Pt(g1)) @ csL(Pt(f1)) = csL(Pt(g1 @ f1))”));
 
-
+*)
 
 
 val Nt_compr = prove_store("Nt_compr",

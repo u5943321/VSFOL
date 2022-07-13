@@ -72,6 +72,7 @@ e0
 (rw[cod_def,id_def,o_assoc,one_to_one_Id,IdR])
 (form_goal “∀A a:1->A. cod(id(a)) = a”));
 
+(*
 val isid_alt = prove_store("isid_alt",
 e0
 (rw[isid_def] >> rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
@@ -86,6 +87,7 @@ e0
 (form_goal
  “!A f:2->A. isid(f) <=> 
    id(dom(f)) = f”)); 
+*)
 
 val CC5_Disc_uex = prove_store("CC5_Disc_uex",
 e0

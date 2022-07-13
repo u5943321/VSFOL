@@ -205,12 +205,13 @@ e0
 
 val op_3 = store_ax("op_3",“isop(3,3)”);
 
+(*
 val ab_dom_cod = prove_store("ab_dom_cod",
 e0
 (rw[dom_def,cod_def] >> assume_tac CC4_2 >>
  fs[isPo_def])
 (form_goal “dom(β) = cod(α)”));
-
+*)
 val oa_gamma_ba = prove_store("oa_gamma_ba",
 e0
 (cheat)
