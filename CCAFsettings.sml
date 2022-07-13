@@ -480,13 +480,17 @@ e0
 (form_goal
  “∀A B f:A->B. Epi(f) ⇔ isPo(f,f,Id(B),Id(B))”));
 
+
+(*
 val iso_Po_Po = prove_store("iso_Po_Po",
 e0
-(cheat)
+(rpt strip_tac >>
+ )
 (form_goal
  “∀X A f:X->A B g:X->B P1 p1:A->P1 q1:B->P1. isPo(f,g,p1,q1) ⇒
   ∀P2 p2: A-> P2 q2: B -> P2 i:P1->P2 j: P2 -> P1.
   j o i = Id(P1) & i o j = Id(P2) ⇒ isPo(f,g,p2,q2)”));
+
 
 val Po_equal_Id = prove_store("Po_equal_Id",
 e0
@@ -503,8 +507,11 @@ e0
  first_assum (qspecl_then [‘p o a’] assume_tac) >>
  first_x_assum (qspecl_then [‘Id(P)’] assume_tac) >>
  rfs[IdL,o_assoc,IdR])
-(form_goal “∀A B e:A->B P p:B->P. isPo(e,e,p,p) ⇒
+(form_goal
+ “∀A B e:A->B P p:B->P. isPo(e,e,p,p) ⇒
  isPo(e,e,Id(B),Id(B))”));
+
+*)
 
 val _ = add_parse (int_of "𝟚");
 
@@ -513,14 +520,22 @@ val _ = add_parse (int_of "𝟚");
 val two_def = 
 qdefine_fsym("𝟚",[]) ‘Id(2)’
 
+
+val eq_Po_Epi_lemma = proved_th $
+e0
+(rw[isPo_def,Epi_def] >>
+ rpt strip_tac >>
+ first_x_assum drule >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum strip_assume_tac >>
+ pop_assum (assume_tac o GSYM) >> arw[])
+(form_goal
+ “∀X A a K e.isPo(a:X->A,a,e:A->K,e) ⇒ Epi(a)”)
+
 val e1_ne_e2 = prove_store("e1_ne_e2",
 e0
-(ccontra_tac >>
- qsuff_tac ‘isPo(coPa(0f,1f),coPa(0f,1f),𝟚,𝟚)’
- >-- rw[GSYM Epi_iff_Po_Id,two_def,CC3] >>
- assume_tac E_def >> rfs[two_def] >>
- drule Po_equal_Id >> first_x_assum accept_tac
- )
+(ccontra_tac >> assume_tac E_def >> rfs[] >>
+ drule eq_Po_Epi_lemma >> fs[CC3])
 (form_goal “~(ε1 = ε2)”));
 
 
@@ -688,7 +703,14 @@ val tri0 = CC4_2 |> rewr_rule[isPo_def]
 
 val tri_uex = proved_th $
 e0
-(cheat)
+(rpt strip_tac >>
+ qcases ‘u o 1f = v o 0f’ >--
+ (arw[] >>
+ assume_tac CC4_2 >>
+ fs[isPo_def] >>
+ first_x_assum rev_drule >> arw[]) >>
+ uex_tac >> arw[] >>
+ qexists_tac ‘dom(u) o To1(3)’ >> rw[])
 (form_goal
  “∀A u:2->A v:2->A.
   ?!a:3->A. 
@@ -698,11 +720,17 @@ e0
 val tri_def0 = 
 tri_uex |> spec_all |> qsimple_uex_spec "tri" [‘u’,‘v’] 
 
+
 (*isPo_expand |> qsspecl [‘1f’,‘0f’,‘α’,‘β’]*)
 
 val tri_def1 = proved_th $
 e0
-(cheat)
+(rpt gen_tac >>
+ strip_tac >>
+ assume_tac tri_def >>
+ fs[dom_def,cod_def] >>
+ last_x_assum (assume_tac o GSYM) >>
+ first_x_assum drule >> arw[])
 (form_goal
  “∀A u:2->A v:2->A. 
   u o 1f = v o 0f ⇒
@@ -714,7 +742,8 @@ e0
 
 val tri_def = proved_th $
 e0
-(cheat)
+(rpt gen_tac >> strip_tac >>
+ irule tri_def1 >> arw[])
 (form_goal
  “∀A u:2->A v:2->A. 
   dom(v) = cod(u) ⇒
@@ -724,7 +753,9 @@ e0
 
 val is_tri = proved_th $
 e0
-(cheat)
+(rpt strip_tac >>
+ drule tri_def >>
+ pop_assum strip_assume_tac >> first_x_assum irule >> arw[])
 (form_goal
  “∀A u:2->A v:2->A. 
   dom(v) = cod(u) ⇒
@@ -1252,7 +1283,17 @@ e0
 
 val o_Cr1_eq = prove_store("o_Cr1_eq",
 e0
-(cheat)
+(rpt strip_tac (* 2 *)
+ >-- (dimp_tac >> strip_tac >> arw[] >>
+     qby_tac
+     ‘(f o p1(A, 1)) o Pa(Id(A),To1(A)) = 
+      (g o p1(A, 1)) o Pa(Id(A),To1(A))’
+     >-- arw[] >> fs[o_assoc,Cr1_iso,IdR]) >>
+ dimp_tac >> strip_tac >> arw[] >>
+ qby_tac
+ ‘(f o Pa(Id(A), To1(A))) o p1(A,1) =
+  (g o Pa(Id(A), To1(A))) o p1(A,1)’ 
+ >-- arw[] >> fs[o_assoc,Cr1_iso,IdR])
 (form_goal
  “∀A B.
   (∀f:A->B g. f o p1(A,1) = g o p1(A,1) ⇔ f = g) ∧ 
@@ -1476,7 +1517,11 @@ val id_def = qdefine_fsym("id",[‘a:1->A’])
 
 val cs_hpara_ex = prove_store("cs_vpara_ex",
 e0
-(cheat)
+(rpt strip_tac >>
+ qexists_tac ‘f o p1(2,2)’ >>
+ rw[csL_def,csR_def,o_assoc,id_def,
+    cod_def,dom_def,p12_of_Pa,zero_def,one_def] >> 
+ rw[csT_def,csB_def,p12_of_Pa,two_def,IdR,o_assoc])
 (form_goal
  “∀A f:2->A. ∃s: 2 * 2 -> A. 
   csL(s) = id(dom(f)) ∧ csR(s) = id(cod(f)) ∧ 
@@ -1484,15 +1529,35 @@ e0
 
 val cs_vpara_ex = prove_store("cs_vpara_ex",
 e0
-(cheat)
+(rpt strip_tac >>
+ qexists_tac ‘f o p2(2,2)’ >>
+ rw[csL_def,csR_def,o_assoc,id_def,
+    cod_def,dom_def,p12_of_Pa,zero_def,one_def] >> 
+ rw[csT_def,csB_def,p12_of_Pa,two_def,IdR,o_assoc] >>
+ rw[zero_def,one_def])
 (form_goal
  “∀A f:2->A. ∃s: 2 * 2 -> A. 
   csL(s) = f ∧ csR(s) = f ∧ 
   csT(s) = id(dom(f)) ∧ csB(s) = id(cod(f))”));
 
+val PCC2 = store_ax("PCC2",
+“(∃s:2 * 2 -> 2.
+   s o Pa(𝟚,𝟘) = 𝟚 & s o Pa(𝟘,𝟚) = 𝟚 &
+   s o Pa(𝟙,𝟚) = 𝟙 & s o Pa(𝟚,𝟙) = 𝟙) & 
+ (∃s':2 * 2 -> 2.
+   s' o Pa(𝟚,𝟘) = 𝟘 & s' o Pa(𝟘,𝟚) = 𝟘 &
+   s' o Pa(𝟙,𝟚) = 𝟚 & s' o Pa(𝟚,𝟙) = 𝟚)”)
+
+(*I think PCC2 in the paper is wrong. should confirm it.*)
+
 val cs_lu_ex = prove_store("cs_lu_ex",
 e0
-(cheat)
+(rpt strip_tac >> 
+ strip_assume_tac PCC2 >>
+ qexists_tac ‘f o s’ >>
+ arw[csL_def,csR_def,o_assoc,id_def,
+    cod_def,dom_def,p12_of_Pa,csT_def,csB_def] >>  
+ rw[one_def,two_def,IdR])
 (form_goal
  “∀A f:2->A. ∃s: 2 * 2 -> A. 
   csL(s) = f ∧ csR(s) = id(cod(f)) ∧ 
@@ -1501,7 +1566,12 @@ e0
 
 val cs_rl_ex = prove_store("cs_rl_ex",
 e0
-(cheat)
+(rpt strip_tac >> 
+ strip_assume_tac PCC2 >>
+ qexists_tac ‘f o s'’ >>
+ arw[csL_def,csR_def,o_assoc,id_def,
+    cod_def,dom_def,p12_of_Pa,csT_def,csB_def] >>  
+ rw[zero_def,two_def,IdR])
 (form_goal
  “∀A f:2->A. ∃s: 2 * 2 -> A. 
   csL(s) = id(dom(f)) ∧ csR(s) = f ∧ 
