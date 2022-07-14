@@ -3283,7 +3283,8 @@ e0
                    (?f0:2->B. f = i2(A,B) o f0)”));
 
 
-(*
+
+
 val FSC_def = qdefine_psym("FSC",[‘i:S->A’])
 ‘Mono(i) & 
  !f:2->A d:1->S c:1->S. dom(f) = i o d & cod(f) = i o c ==> 
@@ -3296,10 +3297,10 @@ val FSCC_def = qdefine_psym("FSCC",[‘t:1->Cl’])
 
 val FT_def = qdefine_psym("FT",[‘f:A->B’,‘b:X->B’])
 ‘∃a:X->A. b = f o a’ |> gen_all
-*)
 
 
-(*
+
+
 val Thm17 = prove_store("Thm17",
 e0
 (qby_tac ‘∃Cl o1:1->Cl o2:1->Cl a1:2->Cl a2:2->Cl. 
@@ -3319,4 +3320,4 @@ e0
  >-- 
  )
 (form_goal “?Cl t:1->Cl. FSCC(t)”));
-*)
+
