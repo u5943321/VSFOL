@@ -555,57 +555,6 @@ e0
 
 
 
-val Adj_alt_iff = prove_store("Adj_alt_iff",
-e0
-(rpt strip_tac >>
- rw[Adj_alt_iff0]>>
- qcases ‘Nt(ε, L o R, Id(A))’ >> arw[] >>
- qcases ‘Nt(η, Id(X), R o L)’ >> arw[] >>
- qby_tac
- ‘∀x. cpnt(vo(Lw(ε, L), Rw(L, η)), x) = 
-      cpnt(ε, L o x) @ L o cpnt(η, x)’
- >-- (strip_tac >>
-     qby_tac
-     ‘cpnt(vo(Lw(ε, L), Rw(L, η)), x) = 
-     cpnt(Lw(ε, L),x) @ cpnt(Rw(L, η), x)’ 
-     >-- (irule Nt_vo_cpnt >>
-         rev_drule Nt_Lw_Nt >>
-         drule Nt_Rw_Nt >> fs[o_assoc,IdL,IdR] >> 
-         qexistsl_tac [‘L’,‘L o R o L’,‘L’] >> arw[]) >>
-     arw[] >>
-     qby_tac ‘cpnt(Lw(ε, L), x) = cpnt(ε, (L o x))’
-     >-- rw[Lw_cpnt] >> arw[] >>
-     qby_tac ‘cpnt(Rw(L, η), x) = L o cpnt(η, x)’ 
-     >-- rw[Rw_cpnt] >> arw[]) >>
- arw[] >>
- qby_tac
- ‘!(a : fun(1, A)). 
-   cpnt(vo(Rw(R, ε), Lw(η, R)), a) = 
-   (R o cpnt(ε, a)) @ cpnt(η, R o a)’ 
- >-- (strip_tac >>
-     qby_tac
-     ‘cpnt(vo(Rw(R, ε), Lw(η, R)), a) = 
-      cpnt(Rw(R, ε),a) @ cpnt(Lw(η, R), a)’ 
-     >-- (irule Nt_vo_cpnt >>
-         drule Nt_Lw_Nt >>
-         rev_drule Nt_Rw_Nt >> fs[o_assoc,IdL,IdR] >> 
-         qexistsl_tac [‘R’,‘R o L o R’,‘R’] >> arw[]) >>
-     arw[] >>
-     qby_tac ‘cpnt(Rw(R, ε), a) = R o cpnt(ε, a)’
-     >-- rw[Rw_cpnt] >> arw[] >>
-     qby_tac ‘cpnt(Lw(η, R), a) = cpnt(η, R o a)’ 
-     >-- rw[Lw_cpnt] >> arw[]) >>
- arw[])
-(form_goal
- “∀L:X->A R:A->X η: X-> Exp(2,X) ε:A->Exp(2,A).
-  Adj(L,R,η,ε) ⇔ 
-  Nt(ε, L o R,Id(A)) &
-  Nt(η,Id(X),R o L) &
-  (∀x:1->X. 
-   cpnt(ε, L o x) @ L o cpnt(η, x) = id(L o x)) & 
-  (∀a:1->A.
-   (R o cpnt(ε, a)) @ cpnt(η, R o a) = id(R o a))”));
-
 (*
 vo(Lw(ε,L),Rw(L,η))  = ID(L) ∧ 
   vo(Rw(R,ε),Lw(η,R))  = ID(R)”));
@@ -2411,6 +2360,58 @@ e0
   Nt(η1,F1,F2) & Nt(η2,F1,F2) &
   (∀a:1->A. cpnt(η1, a)  = cpnt(η2, a)) ⇒ η1 = η2”));
 
+val Adj_alt_iff = prove_store("Adj_alt_iff",
+e0
+(rpt strip_tac >>
+ rw[Adj_alt_iff0]>>
+ qcases ‘Nt(ε, L o R, Id(A))’ >> arw[] >>
+ qcases ‘Nt(η, Id(X), R o L)’ >> arw[] >>
+ qby_tac
+ ‘∀x. cpnt(vo(Lw(ε, L), Rw(L, η)), x) = 
+      cpnt(ε, L o x) @ L o cpnt(η, x)’
+ >-- (strip_tac >>
+     qby_tac
+     ‘cpnt(vo(Lw(ε, L), Rw(L, η)), x) = 
+     cpnt(Lw(ε, L),x) @ cpnt(Rw(L, η), x)’ 
+     >-- (irule Nt_vo_cpnt >>
+         rev_drule Nt_Lw_Nt >>
+         drule Nt_Rw_Nt >> fs[o_assoc,IdL,IdR] >> 
+         qexistsl_tac [‘L’,‘L o R o L’,‘L’] >> arw[]) >>
+     arw[] >>
+     qby_tac ‘cpnt(Lw(ε, L), x) = cpnt(ε, (L o x))’
+     >-- rw[Lw_cpnt] >> arw[] >>
+     qby_tac ‘cpnt(Rw(L, η), x) = L o cpnt(η, x)’ 
+     >-- rw[Rw_cpnt] >> arw[]) >>
+ arw[] >>
+ qby_tac
+ ‘!(a : fun(1, A)). 
+   cpnt(vo(Rw(R, ε), Lw(η, R)), a) = 
+   (R o cpnt(ε, a)) @ cpnt(η, R o a)’ 
+ >-- (strip_tac >>
+     qby_tac
+     ‘cpnt(vo(Rw(R, ε), Lw(η, R)), a) = 
+      cpnt(Rw(R, ε),a) @ cpnt(Lw(η, R), a)’ 
+     >-- (irule Nt_vo_cpnt >>
+         drule Nt_Lw_Nt >>
+         rev_drule Nt_Rw_Nt >> fs[o_assoc,IdL,IdR] >> 
+         qexistsl_tac [‘R’,‘R o L o R’,‘R’] >> arw[]) >>
+     arw[] >>
+     qby_tac ‘cpnt(Rw(R, ε), a) = R o cpnt(ε, a)’
+     >-- rw[Rw_cpnt] >> arw[] >>
+     qby_tac ‘cpnt(Lw(η, R), a) = cpnt(η, R o a)’ 
+     >-- rw[Lw_cpnt] >> arw[]) >>
+ arw[])
+(form_goal
+ “∀L:X->A R:A->X η: X-> Exp(2,X) ε:A->Exp(2,A).
+  Adj(L,R,η,ε) ⇔ 
+  Nt(ε, L o R,Id(A)) &
+  Nt(η,Id(X),R o L) &
+  (∀x:1->X. 
+   cpnt(ε, L o x) @ L o cpnt(η, x) = id(L o x)) & 
+  (∀a:1->A.
+   (R o cpnt(ε, a)) @ cpnt(η, R o a) = id(R o a))”));
+
+
 val Thm13_eta_cpnt_unique = 
 prove_store("Thm13_eta_cpnt_unique",
 e0
@@ -2548,14 +2549,39 @@ first_x_assum irule >> arw[])
    G1 = G2”));
 
 
-(*
+
+
 val Thm13_unique = prove_store("Thm13_unique",
 e0
 (rpt gen_tac >> strip_tac >> rpt gen_tac >> strip_tac >>
- qby_tac ‘e1 = e2’ >-- cheat >> arw[] >>
- (*prove e1 = e2 first by component equal*) >>
- 
- )
+ qby_tac ‘G1 = G2’ 
+ >-- (irule Thm13_G_unique >> once_arw[] >>
+     rw[] >> qexistsl_tac [‘F’,‘e1’,‘e2’,‘η1’,‘η2’] >>
+     once_arw[] >> rw[]) >>
+ fs[] >>
+ qby_tac ‘η1 = η2’ 
+ >-- (irule Nt_ext_cpnt >> 
+     drule $ iffLR Adj_alt_iff >>
+     pop_assum strip_assume_tac >> 
+     rev_drule $ iffLR Adj_alt_iff >>
+     pop_assum strip_assume_tac >> strip_tac (* 2 *)
+     >-- (qexistsl_tac [‘Id(X)’,‘G2 o F’] >> arw[]) >>
+     irule Thm13_eta_cpnt_unique >>
+     qexistsl_tac [‘A’,‘F’,‘G2’,‘G2’,‘e1’,‘e2’] >>
+     once_arw[] >> rw[]) >> arw[] >>
+ irule Nt_ext_cpnt >>
+ drule $ iffLR Adj_alt_iff >>
+ pop_assum strip_assume_tac >> 
+ rev_drule $ iffLR Adj_alt_iff >>
+ pop_assum strip_assume_tac >> strip_tac (* 2 *)
+ >-- (qexistsl_tac [‘F o G2’,‘Id(A)’] >> arw[]) >>
+ qsuff_tac
+ ‘(!a:1->A. G1 o a = G2 o a) & 
+   (∀a.cpnt(e1,a) = cpnt(e2,a))’
+ >-- (strip_tac >> arw[]) >>
+ irule Thm13_G_ob_e_cpnt_unique >>
+ once_arw[] >> rw[] >> once_arw[] >> rw[] >>
+ qexistsl_tac [‘F’,‘η1’,‘η2’] >> once_arw[] >> rw[])
 (form_goal
  “∀X A F:X->A. 
   (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
@@ -2569,4 +2595,3 @@ e0
    (Adj(F,G2,η2,e2) ∧
    ∀a:1->A. cod(cpnt(e2,a)) = a ∧ U(G2 o a,cpnt(e2,a))) ⇒
    G1 = G2 & η1 = η2 & e1 = e2”));
-*)
