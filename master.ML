@@ -1,4 +1,3 @@
-structure Globals = struct val hol_clock = Timer.startCPUTimer(); end;
 
 fun emacs_hol_mode_loaded () =
    ["HOL_Interactive", "Meta",

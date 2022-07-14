@@ -38,6 +38,39 @@ fun useScript fname =
 
 end
 
+structure Globals =
+struct
+  val hol_clock = Timer.startCPUTimer()
+  val interactive = ref true
+end
+
+structure HOL_Interactive =
+struct
+  val qd = ref false
+  fun toggle_quietdec () =
+    if !qd then
+      ( PolyML.Compiler.prompt1 := "> "
+      ; PolyML.Compiler.prompt2 := "# "
+      ; PolyML.print_depth 100
+      ; qd := false
+      ; false
+      )
+    else
+      ( PolyML.Compiler.prompt1 := ""
+      ; PolyML.Compiler.prompt2 := ""
+      ; PolyML.print_depth 0
+      ; qd := true
+      ; true
+      )
+  fun amquiet () = !qd
+end
+
+structure PPBackEnd = struct datatype foo = emacs_terminal end
+structure Parse =
+struct
+  val current_backend = ref PPBackEnd.emacs_terminal
+end
+
 val use = QUse.use
 
 fun main() = let
