@@ -447,27 +447,6 @@ e0
 (form_goal “!A. (?a:mem(A).P(a)) <=>
  ~(!a:mem(A).~P(a))”));
 
-
-val forall_exists_dual = prove_store("forall_exists_dual",
-e0
-(strip_tac >> dimp_tac >> strip_tac (* 2 *)
- >-- (ccontra_tac >> rfs[]) >>
- strip_tac >> ccontra_tac >>
- qsuff_tac ‘?a:mem(A). ~P(a)’ >-- arw[] >> 
- qexists_tac ‘a’ >> arw[])
-(form_goal “!A. (!a:mem(A).P(a)) <=>
- ~(?a:mem(A).~P(a))”));
-
-val neg_conj_imp = prove_store("neg_conj_imp",
-e0
-(dimp_tac >> strip_tac (* 2 *)
- >-- (strip_tac >> ccontra_tac >>
-     qby_tac ‘A & B’ >-- (strip_tac >> arw[]) >>
-     rfs[]) >>
- ccontra_tac >>
- fs[])
-(form_goal “~(A & B) <=> (A ==> ~B)”));
-
 val Prop_5_4_1 = prove_store("Prop_5_4_1",
 e0
 (rw[GSYM IN_EXT_iff,csee_def,IN_Compl,osee_def] >>
@@ -480,15 +459,6 @@ e0
 (form_goal
  “!M:mem(Pow(W * W) * Exp(W,Pow(A))) X. 
   csee(M,X) = Compl(osee(M,Compl(X)))”));
-
-val neg_imp_conj = prove_store("neg_imp_conj",
-e0
-(dimp_tac >> strip_tac (* 2 *)
- >-- (strip_tac (* 2 *) >--
-     (ccontra_tac >> fs[]) >>
-     ccontra_tac >> fs[]) >>
- ccontra_tac >> first_x_assum drule >> fs[])
-(form_goal “~(A ==> B) <=> A & ~B”)); 
 
 val Prop_5_4_2 = prove_store("Prop_5_4_2",
 e0
@@ -1063,7 +1033,15 @@ e0
  !w1:mem(W1) w2:mem(W2). (!f:mem(form(A)).PE(f) ==> satis(M1,w1,f) ==> satis(M2,w2,f)) ==>
  ?R. Sim(R,M1,M2) & Holds(R,w1,w2)”));
 
-
+ 
+val MCOMPACT_def = 
+qdefine_psym("MCOMPACT",[])
+‘!A fs:mem(Pow(form(A))).
+  (!ffs. SS(ffs,fs) & Fin(ffs) ==> 
+  ?W M:mem(Pow(W * W) * Exp(W,Pow(A))) w.
+   SATIS(M,w,ffs)) ==>
+  ?W M:mem(Pow(W * W) * Exp(W,Pow(A))) w. 
+   SATIS(M,w,fs) ’
 
 val Thm_6_23 = prove_store("Thm_6_23",
 e0

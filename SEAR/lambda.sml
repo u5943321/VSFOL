@@ -206,8 +206,10 @@ fun define_lambda_fun f =
         val (funcv,fundef0) = dest_uex (concl specp2fun) 
         val (inputa, def0) = dest_forall fundef0
         val addT = T_imp1 def0 |> GSYM
+        val provedjf' = inst_thm 
+                            (mk_inst [(inputvar,mk_var inputa)] []) provedjf
         val T2djs = conv_rule (once_depth_fconv no_conv
-                                                (rewr_fconv (GSYM provedjf)))
+                                                (rewr_fconv (GSYM provedjf')))
                                                 addT
         (*T2djs can be hand instead*)
         val distrdjs = conv_rule (basic_fconv no_conv
@@ -266,4 +268,30 @@ val define_lambda = define_lambda_fun o normalise_lambda_input
 
 (*inst_thm (mk_inst [] [("P",“P(a:mem(A))”)]) (assume “P”) 
  
+
+val f = “!a. (P1(a) ==> App(f,a) = (Suc(a))) &
+             (~P1(a) & P2(a) ==> App(f,a) = Suc(Suc(a))) &
+             (~P1(a) & ~P2(a) ==> App(f,a) = a)”
+
+val f = “!a. (P1(a) ==> App(f,a) = (Suc(a))) &
+             (P2(a) ==> App(f,a) = Suc(Suc(a))) &
+             (ELSE ==> App(f,a) = a)”
+*)
+
+
+(*
+val Pair4_def = 
+ qdefine_fsym
+ ("Pair4",
+  [‘a:mem(A)’,‘b:mem(B)’,‘c:mem(C)’,‘d:mem(D)’]) 
+ ‘Pair(a,Pair(b,Pair(c,d)))’
+
+
+“!t4:mem(N * (A + 1) * Exp(N,Tree(A+1)) * Exp(N,X)). 
+   (c42(t4) = NONE(A) ==> 
+    App(f,t4) = x0) &
+   (c42(t4) = SOME(a) ==> App(f,t4) = App(vf,a)) &
+   (ELSE ==> App(f,t4) = x0)”
+
+val g = it;
 *)

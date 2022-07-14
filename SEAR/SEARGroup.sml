@@ -1,53 +1,4 @@
 
-val mul_def = qdefine_fsym("mul",[‘m:G * G ->G’,‘g1:mem(G)’,‘g2:mem(G)’])
-‘App(m,Pair(g1,g2))’
-
-
-val asc_def = qdefine_psym("asc",[‘m:A * A -> A’])
-‘!a1 a2 a3. mul(m,mul(m,a1,a2),a3) = mul(m,a1,mul(m,a2,a3))’
-
-(*
-App(m,Pair(App(m,Pair(a1,a2)),a3)) = 
-App(m,Pair(a1,App(m,Pair(a2,a3))))’ |> gen_all
-*)
-
-val isunit_def = qdefine_psym("isunit",[‘m:A * A -> A’,‘e:mem(A)’])
-‘!a. mul(m,e,a) = a & mul(m,a,e) = a’
-
-
-val isinv_def = qdefine_psym("isinv",[‘m:A * A -> A’,‘i:A->A’,‘e:mem(A)’])
-‘!a. mul(m,App(i,a),a) = e & mul(m,a,App(i,a)) = e’
-
-
-
-(*c for component*)
-val c31_def = qdefine_fsym("c31",[‘abc:mem(A * B * C)’]) ‘Fst(abc)’
-val c32_def = qdefine_fsym("c32",[‘abc:mem(A * B * C)’]) ‘Fst(Snd(abc))’
-val c33_def = qdefine_fsym("c33",[‘abc:mem(A * B * C)’]) ‘Snd(Snd(abc))’
-
-val isgrp_def = qdefine_psym("isgrp",[‘g:mem(Exp(G * G,G) * Exp(G,G) * G)’])
-‘asc(tof(c31(g))) & 
- isunit(tof(c31(g)),c33(g)) & 
- isinv(tof(c31(g)),tof(c32(g)),c33(g))’
-
-val Grp_def = Thm_2_4 |> qspecl [‘Exp(G * G,G) * Exp(G,G) * G’]
-                      |> fVar_sInst_th “P(g:mem(Exp(G * G,G) * Exp(G,G) * G))”
-                         “isgrp(g:mem(Exp(G * G,G) * Exp(G,G) * G))”
-                      |> qSKOLEM "Grp" [‘G’]
-                      |> qSKOLEM "iG" [‘G’]
-
-val RepG_def = qdefine_fsym("RepG",[‘g:mem(Grp(G))’]) ‘App(iG(G),g)’
-
-val mof_def = qdefine_fsym("mof",[‘g:mem(Grp(G))’]) ‘tof(c31(RepG(g)))’
-val iof_def = qdefine_fsym("iof",[‘g:mem(Grp(G))’]) ‘tof(c32(RepG(g)))’
-val eof_def = qdefine_fsym("eof",[‘g:mem(Grp(G))’]) ‘c33(RepG(g))’
-
-val gmul_def = qdefine_fsym("gmul",[‘g:mem(Grp(G))’,‘x:mem(G)’,‘y:mem(G)’])
-‘mul(mof(g),x,y)’
-
-val ginv_def = qdefine_fsym("ginv",[‘g:mem(Grp(G))’,‘x:mem(G)’])
-‘App(iof(g),x)’
-
 val np_def = qdefine_fsym("np",[‘m:G * G ->G’,‘e:mem(G)’,‘x:mem(G)’])
 ‘Nrec(e,Ap1(m,x))’
 
@@ -112,9 +63,6 @@ val cyc_def = qdefine_psym("cyc",[‘g:mem(Grp(G))’])
 (*can define a set Ghom(g1,g2), and say f:mem(Ghom(g1,g2)) ==> ...
  but then run into the trouble with equalities.*)
 
-val ghom_def = qdefine_psym("ghom",[‘f:G1->G2’,‘g1:mem(Grp(G1))’,
-                                               ‘g2:mem(Grp(G2))’])
-‘!a b. App(f,gmul(g1,a,b)) = gmul(g2,App(f,a),App(f,b))’ |> gen_all
 
 (*
 By the Division Theorem, it is possible to find integers 𝑞 and 𝑟 such that 𝑛=𝑚𝑞+𝑟 with 0≤𝑟<𝑚.
@@ -219,10 +167,6 @@ e0
 
 (*exists a function Grp(G) -> Pow(Pow(G)), sending each group to the set of its subgroups. *)
 
-val issgrp_def = qdefine_psym("issgrp",[‘h:mem(Pow(G))’,‘g:mem(Grp(G))’])
-‘IN(eof(g),h) & 
- (!a b. IN(a,h) & IN(b,h) ==> IN(gmul(g,a,b),h)) &
- (!a. IN(a,h) ==> IN(ginv(g,a),h))’
 
 val lcst_def = proved_th $
 e0
@@ -239,8 +183,6 @@ cheat
 |> spec_all |> uex2ex_rule |> qSKOLEM "rcst" [‘g’,‘H’,‘a’]
 
 
-val isnml_def = qdefine_psym("isnml",[‘h:mem(Pow(G))’,‘g:mem(Grp(G))’])
-‘issgrp(h,g) & !a. rcst(g,h,a) = lcst(g,a,h)’
 
 val cstR_def = 
 AX1 |> qspecl [‘G’,‘G’] |> uex2ex_rule
@@ -311,7 +253,7 @@ e0
  rw[prrel_def] >> rpt strip_tac >> fs[cstR_def,GSYM gmul_def,GSYM mul_def] >>
  fs[isnml_def] >>
  cheat)
-(form_goal “isnml(h,g) ==> resp(mof(g:mem(Grp(G))),prrel(cstR(g,H),cstR(g,H)),cstR(g,H))”));
+(form_goal “isnml(h,g) ==> resp(mof(g:mem(Grp(G))),prrel(cstR(H),cstR(H)),cstR(H))”));
 
 val qmul_conds = proved_th $
 e0
