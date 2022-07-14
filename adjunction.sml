@@ -2280,6 +2280,8 @@ rev_drule Nt_dom_cod_cpnt >> arw[o_assoc,id_cod])
   ∃G:A->X η ε:A->Exp(2,A). Adj(F,G,η,ε) ∧
    ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))”));
 
+
+(*
 val Thm13_unique = prove_store("Thm13_unique",
 e0
 (rpt gen_tac >> strip_tac >> rpt gen_tac >> strip_tac >>
@@ -2300,3 +2302,4 @@ e0
    (Adj(F,G2,η2,e2) ∧
    ∀a:1->A. cod(cpnt(e2,a)) = a ∧ U(G2 o a,cpnt(e2,a))) ⇒
    G1 = G2 & η1 = η2 & e1 = e2”));
+*)

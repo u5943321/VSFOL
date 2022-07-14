@@ -3050,7 +3050,7 @@ e0
 
 val id_o = prove_store("id_o",
 e0
-(cheat)
+(rw[id_def,o_assoc])
 (form_goal “∀A a:1->A B F:A->B.id(F o a) = F o id(a)”));
 
 val o_cpsb = prove_store("o_cpsb",
@@ -3269,107 +3269,15 @@ e0
  drule fun_pres_oa >> arw[] >>
  irule fun_pres_oa >> irule o_cpsb >> arw[])
 (form_goal
- “!A B f:2->A + B fa:1->A fb:1->B. (?f0:2->A. f = i1(A,B) o f0) |
-                   (?f0:2->B. f = i2(A,B) o f0)”));
+ “!A B f:2->A + B fa:1->A fb:1->B.
+  (?f0:2->A. f = i1(A,B) o f0) |
+  (?f0:2->B. f = i2(A,B) o f0)”));
 
 
 
 val Thm16 = prove_store("Thm16",
 e0
-(rpt strip_tac >> 
- qby_tac ‘∃j k. j o i1(A,B) = Id(A) ∧ k o i2(A,B) = Id(B)’
- >-- cheat >>
- pop_assum strip_assume_tac >> 
- qby_tac ‘∀h:A + B -> A + B. 
- (∀f:2->A + B d0:1-> A. dom(f) = i1(A,B) o d0 ⇒ h o f = i1(A,B) o j o f)  ∧ 
- (∀f:2->A + B d0:1-> B. dom(f) = i2(A,B) o d0 ⇒ h o f = i2(A,B) o k o f) ⇒
- h = Id(A + B)’
- >-- (rpt strip_tac >>
-     irule from_coP_eq >> rw[IdL] >>
-     strip_tac
-     >-- (irule $ iffLR fun_ext >>
-     rw[o_assoc] >> strip_tac >>
-     fs[dom_def] >>
-     first_x_assum (qsspecl_then [‘i1(A, B) o a’,‘a o 0f’] assume_tac) >>
-     fs[o_assoc] >> 
-     qsuff_tac ‘i1(A, B) o (j o i1(A, B)) o a = i1(A, B) o a’ 
-     >-- rw[o_assoc] >>
-     arw[IdL]) >>
-    (irule $ iffLR fun_ext >>
-     rw[o_assoc] >> strip_tac >>
-     fs[dom_def] >>
-     first_x_assum (qsspecl_then [‘i2(A, B) o a’,‘a o 0f’] assume_tac) >>
-     fs[o_assoc] >> 
-     qsuff_tac ‘i2(A, B) o (k o i2(A, B)) o a = i2(A, B) o a’ 
-     >-- rw[o_assoc] >>
-     arw[IdL] )) >>
- qby_tac 
- ‘∃l: A + B -> 2. 
-  (∀a : 1->A. l o i1(A,B) o a = 0f) ∧ 
-  (∀b:1->B. l o i2(A,B) o b = 1f)’ 
- >-- (qexistsl_tac [‘coPa(0f o To1(A),1f o To1(B))’] >>
-     rw[GSYM o_assoc,i12_of_coPa] >>
-     rw[o_assoc,one_to_one_Id] >> rw[IdR]) >> 
- pop_assum strip_assume_tac >>
- qby_tac ‘∀p:2->A + B d0:1->B. dom(p) = i2(A,B) o d0 ⇒ 
- ~(∃c0:1->A. cod(p) = i1(A,B) o c0)’
- >-- (rpt strip_tac >>
-     ccontra_tac >> pop_assum strip_assume_tac >> 
- cases_on “isid(l:A + B ->2 o p: 2 -> A + B)”    
- >-- (fs[isid_def] >> 
-     qby_tac ‘l o p o 1f = l o p o 0f’
-     >-- (arw[GSYM o_assoc] >> rw[one_to_one_Id,IdR,o_assoc]) >>
-     rfs[dom_def,cod_def,zf_ne_of]) >>
- drule t2t_notid_two >> 
- qby_tac ‘l o p o 1f = 1f ∧ l o p o 0f = 0f’
- >-- (strip_tac >> arw[GSYM o_assoc,two_def,IdL]) >>
- rfs[dom_def,cod_def,zf_ne_of]) >> 
- qby_tac ‘∀p:2->A + B d0:1->A. dom(p) = i1(A,B) o d0 ⇒ 
- ~(∃c0:1->B. cod(p) = i2(A,B) o c0)’ >--
-  (qby_tac 
- ‘∃l1: A + B -> 2. 
-  (∀a : 1->A. l1 o i1(A,B) o a = 1f) ∧ 
-  (∀b:1->B. l1 o i2(A,B) o b = 0f)’ 
- >-- (qexistsl_tac [‘coPa(1f o To1(A),0f o To1(B))’] >>
-     rw[GSYM o_assoc,i12_of_coPa] >>
-     rw[o_assoc,one_to_one_Id] >> rw[IdR]) >> 
- pop_assum strip_assume_tac >> 
- rpt strip_tac >>
- ccontra_tac >> pop_assum strip_assume_tac >> 
- cases_on “isid(l1:A + B ->2 o p: 2 -> A + B)”    
- >-- (fs[isid_def] >> 
-     qby_tac ‘l1 o p o 1f = l1 o p o 0f’
-     >-- (arw[GSYM o_assoc] >> rw[one_to_one_Id,IdR,o_assoc]) >>
-     rfs[dom_def,cod_def,zf_ne_of]) >>
- drule t2t_notid_two >> 
- qby_tac ‘l1 o p o 1f = 1f ∧ l1 o p o 0f = 0f’
- >-- (strip_tac >> arw[GSYM o_assoc,two_def,IdL]) >>
- rfs[dom_def,cod_def,GSYM zf_ne_of]) >> 
- qsuff_tac
- ‘?(cf : fun(A + B, A + B)).
-        !(f : fun(2, A + B))  (g : fun(2, A + B)).
-          (?(a : fun(1, A)). dom(f) = i1(A, B) o a & g = i1(A, B) o j o f) |
-          (?(b : fun(1, B)). dom(f) = i2(A, B) o b & g = i2(A, B) o k o f) <=>
-          cf o f = g’ >--
- strip_tac >>
- qby_tac ‘cf = Id(A+B)’ >--
- (first_x_assum irule >> rpt strip_tac (* 2 *)
- >-- (first_x_assum (irule o iffLR) >>
-     disj1_tac >>
-     qexists_tac ‘d0’ >> arw[]) >>
- first_x_assum (irule o iffLR) >>
- disj2_tac >> qexists_tac ‘d0’ >> arw[]) >> fs[IdL] >>
- first_x_assum (qsspecl_then [‘f’,‘f’] assume_tac) >>
- fs[]
- 
- CC5 |> qspecl [‘A + B’,‘A + B’] 
- |> fVar_sInst_th “R(f:2->A + B,g:2->A + B)”
-    “(∃a:1->A. dom(f) = i1(A,B) o a &
-             g = i1(A,B) o j o f) |
-     (∃b:1->B. dom(f) = i2(A,B) o b &
-             g = i2(A,B) o k o f)”
-
- )
+(cheat)
 (form_goal
  “!A B f:2->A + B. (?f0:2->A. f = i1(A,B) o f0) |
                    (?f0:2->B. f = i2(A,B) o f0)”));
@@ -3391,6 +3299,7 @@ val FT_def = qdefine_psym("FT",[‘f:A->B’,‘b:X->B’])
 *)
 
 
+(*
 val Thm17 = prove_store("Thm17",
 e0
 (qby_tac ‘∃Cl o1:1->Cl o2:1->Cl a1:2->Cl a2:2->Cl. 
@@ -3410,3 +3319,4 @@ e0
  >-- 
  )
 (form_goal “?Cl t:1->Cl. FSCC(t)”));
+*)

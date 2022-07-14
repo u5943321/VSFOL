@@ -199,7 +199,7 @@ e0
  (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
  ?!cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b”));
 
-
+(*up to here, can have output, but very slow.*)
 
 (*
 proved_th $
@@ -599,6 +599,12 @@ cheat
 not really used
 *)
 
+
+val FSC_def = qdefine_psym("FSC",[‘i:S->A’])
+‘Mono(i) & 
+ !f:2->A d:1->S c:1->S. dom(f) = i o d & cod(f) = i o c ==> 
+ ?f0:2->S. f = i o f0’ 
+|> qgenl [‘S’,‘A’,‘i’]
 
 val Thm21_char_isPb = prove_store("Thm21_char_isPb",
 e0
