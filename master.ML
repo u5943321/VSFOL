@@ -108,4 +108,4 @@ use "History.sig";
 use "History.sml";
 use "proofmanager.sml";
 
-
+use "newspec.sml";

@@ -242,7 +242,7 @@ val fm0 = “!a.(P1(a) ==> App(f,a) = Suc(a)) &
 fun normalise_lambda_input fm0 = 
     let val (ns,fm) = dest_forall fm0
         val cls = strip_conj fm 
-        val (antes0,concs) = unzip (List.map dest_imp cls) 
+        val (antes0,concs) = ListPair.unzip (List.map dest_imp cls) 
         val antes1 = List.take (antes0,length(antes0) - 1) 
         val nums = nlist (length(antes1))
         fun mk_nth_ante (n,ante) = 
