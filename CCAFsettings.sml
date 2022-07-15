@@ -3329,10 +3329,42 @@ e0
 
 val fac_through_Mono = prove_store("fac_through_Mono",
 e0
-()
+(rpt strip_tac >>
+ qsuff_tac ‘?fb:X->S. f = i o fb’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘fb’ >> arw[] >>
+      rpt strip_tac >> fs[Mono_def] >> first_x_assum irule >> arw[]) >>
+ qsuff_tac
+ ‘?(cf : fun(X, S)).
+        !(a : fun(2, X))  (b : fun(2, S)). f o a = i o b <=> cf o a = b’ 
+ >-- (strip_tac >> qexists_tac ‘cf’ >>
+     irule $ iffLR fun_ext >> arw[o_assoc]) >>
+ match_mp_tac
+ (CC5 |> qspecl [‘X’,‘S’] 
+ |> fVar_sInst_th “R(x:2->X,s:2->S)”
+    “f:X->A o x:2->X = i:S->A o s”) >>
+ strip_tac (* 2 *) >--
+ (strip_tac >> first_x_assum (qsspecl_then [‘f'’] strip_assume_tac) >>
+ uex_tac >> qexists_tac ‘s’ >> arw[] >>
+ fs[Mono_def] >> rpt strip_tac >> first_x_assum irule >> arw[]) >>
+ strip_tac (* 2 *)
+ >-- (rpt gen_tac >> disch_tac >> arw[id_def,dom_def,cod_def,GSYM o_assoc]) >>
+ rpt strip_tac >>
+ qby_tac ‘cpsb(g1,f1)’
+ >-- (rw[cpsb_def] >> fs[Mono_def] >> first_x_assum irule >>
+     pop_assum (assume_tac o GSYM) >> arw[dom_def,GSYM o_assoc] >>
+     qpick_x_assum ‘f o f' = i o f1’ (assume_tac o GSYM) >> arw[] >>
+     arw[cod_def,GSYM o_assoc] >> arw[o_assoc,GSYM dom_def,GSYM cod_def] >>
+     fs[cpsb_def]) >>
+ drule fun_pres_oa >>
+ first_x_assum (qsspecl_then [‘i’] assume_tac) >>
+ qby_tac ‘f o (g @ f') = i o (g1 @ f1)’
+ >-- (rev_drule fun_pres_oa >>
+     arw[]) >>
+ fs[Mono_def] >> first_x_assum irule >> arw[])
 (form_goal
  “!S A i:S->A. Mono(i) ==>
-  !X f:X->A.(!a:)”));
+  !X f:X->A.(!x:2->X. ?s:2->S. f o x = i o s) ==>
+  ?!fb:X->S. f = i o fb”));
 
 
 
