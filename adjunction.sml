@@ -143,17 +143,6 @@ qdefine_psym("UFrom",[‘F:D->C’,‘x:1->C’,‘y:1->D’,‘f:2->C’])
 |> qgenl [‘D’,‘C’,‘F’,‘x’,‘y’,‘f’]
 
 
-val uex_unique = prove_store("uex_unique",
-e0
-(rpt strip_tac >>
- last_x_assum (strip_assume_tac o uex_expand) >>
- qsuff_tac ‘f1 = f & f2 = f’ >-- (strip_tac >> arw[]) >>
- strip_tac >>
- first_x_assum irule >> arw[])
-(form_goal
- “∀A B. (?!f:A->B. P(f)) ⇒
-  ∀f1:A->B f2:A->B. P(f1) & P(f2) ⇒ f1 = f2”));
-
 (*RT_cs2, BL_cs2 cs2_RT_cpsb*)
 
 (*

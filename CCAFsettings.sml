@@ -3302,6 +3302,9 @@ val FT_def = qdefine_psym("FT",[‘f:A->B’,‘b:X->B’])
 
 
 
+
+
+
 val exists_forall_dual = prove_store("exists_forall_dual",
 e0
 (strip_tac >> strip_tac >> dimp_tac >> strip_tac (* 2 *)
@@ -3713,7 +3716,6 @@ qsuff_tac
  >-- (uex_tac >> qexists_tac ‘a2’ >> arw[]) >>
  uex_tac >> qexists_tac ‘id(o2)’ >> arw[]) >> strip_tac (* 2 *) >--
  (rpt gen_tac >> strip_tac (* 4 *)
-
  >-- (arw[] >>
      once_rw[id_dom] >> once_rw[id_cod] >> 
      strip_tac (* 2 *)
@@ -3808,6 +3810,174 @@ qexists_tac ‘s2'’ >> fs[cpsb_def])
  (!oc:1->Cl. oc = o1 | oc = o2) & 
  (∀a:2-> Cl. a = id(o1) | a = id(o2) | a = a1 | a = a2) ==>
  FSCC(o1)”));
+
+val jointEpi2_def = qdefine_psym("jointEpi2",[‘f:A->X’,‘g:B->X’])
+‘∀Y y1:X->Y y2. y1 o f = y2 o f & y1 o g = y2 o g ⇒ y1 = y2’
+
+val jointEpi2_onto = prove_store("jointEpi2_onto",
+e0
+(cheat)
+(form_goal 
+ “!A B X f:A->X g:B->X. jointEpi2(f,g) ==> 
+  !x:1->X. (?a:1->A. x = f o a) | (?b:1->B. x = g o b)”));
+
+
+val uex_unique = prove_store("uex_unique",
+e0
+(rpt strip_tac >>
+ last_x_assum (strip_assume_tac o uex_expand) >>
+ qsuff_tac ‘f1 = f & f2 = f’ >-- (strip_tac >> arw[]) >>
+ strip_tac >>
+ first_x_assum irule >> arw[])
+(form_goal
+ “∀A B. (?!f:A->B. P(f)) ⇒
+  ∀f1:A->B f2:A->B. P(f1) & P(f2) ⇒ f1 = f2”));
+
+val isPo_jointEpi2 = prove_store("isPo_jointEpi2",
+e0
+(rpt strip_tac >> rw[jointEpi2_def] >> rpt strip_tac >>
+ fs[isPo_def] >>
+ first_x_assum (qsspecl_then [‘y2 o p’,‘y2 o q’] assume_tac) >> rfs[o_assoc] >>
+ drule
+ (uex_unique |> qspecl [‘P’,‘Y'’]
+ |> fVar_sInst_th “P(a:P->Y')” 
+    “a:P->Y' o p:X->P = y2 o p & a o q:Y->P = y2 o q”) >>
+ first_x_assum irule >> arw[])
+(form_goal
+ “∀H X f:H->X Y g:H ->Y P p:X->P q:Y->P.
+  isPo(f,g,p,q) ⇒ jointEpi2(p,q)”));
+
+val jointEpi2_o_Epi = prove_store("jointEpi2_o_Epi",
+e0
+(rpt strip_tac >> fs[jointEpi2_def] >>
+ rpt strip_tac >>
+ fs[Epi_def] >> first_x_assum irule >>
+ first_x_assum irule >> arw[o_assoc])
+(form_goal “∀A B X f:A->X g:B->X. jointEpi2(f,g) ⇒
+ ∀K k:X->K. Epi(k) ⇒ jointEpi2(k o f, k o g)”));
+ 
+val iscoEq_Epi = prove_store("iscoEq_Epi",
+e0
+(cheat)
+(form_goal
+ “!A B f:A->B g:A->B Q q:B-> Q. 
+  iscoEq(f,g,q) ==> Epi(q)”));
+
+val one_to_two = prove_store("one_to_two",
+e0
+cheat
+(form_goal “∀f:1->2. f = 0f | f = 1f”));
+
+val Cl_ex = prove_store("Cl_ex",
+e0
+(x_choosel_then ["C","T1","T2","h"] strip_assume_tac Thm14' >>
+ drule $ iffLR iso_def >>
+ pop_assum (x_choose_then "k" strip_assume_tac) >>
+ qsspecl_then [‘coPa(1f,0f)’,‘coPa(0f,1f)’] assume_tac isPo_ex >>
+ pop_assum (x_choosel_then ["P","m","n"] assume_tac) >>
+ qby_tac ‘cpsb(m,n)’
+ >-- (rw[cpsb_def] >> fs[isPo_def] >>
+     qby_tac ‘m o coPa(1f, 0f) o i2(1,1) = n o coPa(0f, 1f) o i2(1,1)’
+     >-- arw[GSYM o_assoc] >>
+     fs[i12_of_coPa,dom_def,cod_def]) >> 
+ qby_tac ‘cpsb(n,m)’
+ >-- (rw[cpsb_def] >> fs[isPo_def] >>
+     qby_tac ‘m o coPa(1f, 0f) o i1(1,1) = n o coPa(0f, 1f) o i1(1,1)’
+     >-- arw[GSYM o_assoc] >>
+     fs[i12_of_coPa,dom_def,cod_def]) >>
+ qby_tac ‘h o coPa(1f, 0f) = k o coPa(0f, 1f)’
+ >-- (irule from_coP_eq >> 
+      arw[o_assoc,i12_of_coPa,GSYM dom_def,GSYM cod_def]) >>
+ qby_tac ‘∃hk:P->C. hk o m = h & hk o n = k’ 
+ >-- (fs[isPo_def] >> first_x_assum drule >>
+     pop_assum (assume_tac o uex2ex_rule) >>
+     pop_assum (x_choose_then "hk" assume_tac) >> 
+     qexists_tac ‘hk’ >> arw[]) >>
+ pop_assum strip_assume_tac >> 
+ qby_tac ‘hk o m o 0f = h o 0f & hk o m o 1f = h o 1f’
+ >-- (arw[GSYM o_assoc]) >>
+ qby_tac ‘~(m o 0f  = m o 1f)’ 
+ >-- (ccontra_tac >> fs[GSYM dom_def,GSYM cod_def] >>
+      qby_tac ‘dom(h) = cod(h)’ 
+      >-- (qpick_x_assum ‘hk o cod(m) = cod(h)’ (assume_tac o GSYM) >>
+          arw[]) >> pop_assum mp_tac >> arw[]) >>
+ qby_tac ‘hk o (n @ m) = hk o m o 𝟘’ 
+ >-- (drule fun_pres_oa >> arw[] >> arw[GSYM o_assoc] >>
+     arw[zero_def,GSYM dom_def] >> rw[GSYM o_assoc,GSYM id_def,id_eq_eq] >>
+     rw[GSYM dom_def] >> arw[]) >> 
+ qsspecl_then [‘n @ m’,‘m o 𝟘’] assume_tac iscoEq_ex >>
+ pop_assum (x_choosel_then ["Cl0","q0"] assume_tac) >> 
+ qby_tac ‘∃hk0:Cl0 -> C. hk0 o q0 = hk’
+ >-- (fs[iscoEq_def] >> 
+     first_x_assum rev_drule >> 
+     pop_assum (strip_assume_tac o uex2ex_rule) >> 
+     qexists_tac ‘x0’ >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac ‘cpsb(q0 o m,q0 o n)’ 
+ >-- (irule o_cpsb >> arw[]) >>
+ qby_tac ‘hk0 o ((q0 o m) @ (q0 o n)) = hk0 o q0 o (n o 𝟘)’ 
+ >-- (drule fun_pres_oa >> arw[] >> arw[GSYM o_assoc] >>
+     rw[zero_def,GSYM o_assoc]>> rw[GSYM id_def,id_eq_eq] >>
+     rw[GSYM dom_def] >> arw[]) >> 
+ qsspecl_then [‘q0 o (m @ n)’,‘q0 o (n o 𝟘)’] assume_tac iscoEq_ex >>
+ pop_assum (x_choosel_then ["Cl","q"] assume_tac) >>
+ (*qsspecl_then [‘m’,‘n’] assume_tac fun_pres_oa >>
+ first_x_assum drule >> fs[] *)
+ qby_tac ‘∃hk1:Cl -> C. hk1 o q = hk0’ 
+ >-- (fs[iscoEq_def] >>
+     qsspecl_then [‘n’,‘m’] assume_tac fun_pres_oa >>
+     first_x_assum drule >> fs[] 
+     first_x_assum rev_drule >>
+     pop_assum (strip_assume_tac o uex2ex_rule) >>
+     qexists_tac ‘x0’ >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac ‘hk1 o q o q0 o m o 0f = h o 0f & 
+          hk1 o q o q0 o m o 1f = h o 1f’
+ >-- arw[GSYM o_assoc] >>
+ pop_assum strip_assume_tac >>
+ qby_tac ‘~(q o q0 o m o 0f = q o q0 o m o 1f)’ 
+ >-- (ccontra_tac >> fs[GSYM dom_def,GSYM cod_def]) >>
+ qby_tac ‘jointEpi2(m,n)’
+ >-- (irule isPo_jointEpi2>> 
+     qexistsl_tac [‘1+1’,‘coPa(1f, 0f)’,‘coPa(0f, 1f)’] >> arw[]) >>
+ qby_tac ‘jointEpi2(q o q0 o m,q o q0 o n)’ 
+ >-- (irule jointEpi2_o_Epi >> strip_tac (* 2 *)
+     >-- (irule jointEpi2_o_Epi >> arw[] >>
+         rev_drule iscoEq_Epi >> arw[]) >>
+     drule iscoEq_Epi >> arw[]) >>
+ drule jointEpi2_onto >>
+ fs[o_assoc] >> 
+ qby_tac ‘∀oc:1->Cl. oc = q o q0 o m o 0f | oc = q o q0 o m o 1f’ 
+ >-- (strip_tac >>
+     first_x_assum $ qsspecl_then [‘oc’] strip_assume_tac (* 2 *)
+     >-- (arw[] >> 
+         qsspecl_then [‘a’] strip_assume_tac one_to_two 
+         >-- arw[] >>
+         arw[]) >> 
+     arw[] >>
+     qsspecl_then [‘b’] strip_assume_tac one_to_two
+     >-- (arw[] >> rw[GSYM dom_def,GSYM cod_def] >> fs[cpsb_def]) >>
+     arw[] >> rw[GSYM dom_def,GSYM cod_def] >> fs[cpsb_def]) >>
+ 
+
+
+ qexistsl_tac [‘Cl’,‘q o q0 o m o 0f’,‘q o q0 o m o 1f’,
+               ‘q o q0 o m’,‘q o q0 o n’] >>
+ rw[dom_def,o_assoc,cod_def] >>
+ qby_tac ‘q o q0 o n o 0f = q o q0 o m o 1f & 
+         q o q0 o n o 1f = q o q0 o m o 0f’
+ >-- fs[cpsb_def,dom_def,cod_def] >> arw[] >>
+ qby_tac ‘jointEpi2(m,n)’ 
+ >-- rw[jointEpi2_def] >>
+     fs[isPo_def]
+) 
+(form_goal
+ “?Cl o1:1->Cl o2:1->Cl a1:2->Cl a2:2->Cl. 
+ dom(a1) = o1 ∧ cod(a1) = o2 ∧ 
+ dom(a2) = o2 ∧ cod(a2) = o1 ∧ 
+ a1 @ a2 = id(o2) ∧ a2 @ a1 = id(o1) ∧
+ ~(o1 = o2) &
+ (!oc:1->Cl. oc = o1 | oc = o2)”));
 
 val Thm17 = prove_store("Thm17",
 e0

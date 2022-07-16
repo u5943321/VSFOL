@@ -6,13 +6,6 @@ e0
 (form_goal
  “!A B f:A->B. Epi(f) ==>
   !b:1->B. ?a:1->A. b = f o a”));
- 
-val iscoEq_Epi = prove_store("iscoEq_Epi",
-e0
-(cheat)
-(form_goal
- “!A B f:A->B g:A->B Q q:B-> Q. 
-  iscoEq(f,g,q) ==> Epi(q)”));
 
 val fun_ext_alt = prove_store("fun_ext_alt",
 e0
