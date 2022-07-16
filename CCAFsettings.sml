@@ -4093,15 +4093,43 @@ e0
  fs[IdL] >> 
  qexistsl_tac [‘Cl’,‘q o q0 o m o 0f’,‘q o q0 o m o 1f’,
                ‘q o q0 o m’,‘q o q0 o n’] >>
- arw[dom_def,o_assoc,cod_def]) 
+ arw[dom_def,o_assoc,cod_def] >>
+ rpt strip_tac >>
+ qby_tac ‘∀c. ~(c = c1) ⇔ c = c2’ 
+ >-- (strip_tac >> qcases ‘c = c1’ >> arw[] >>
+     first_x_assum (qsspecl_then [‘c’] strip_assume_tac)) >>
+ qcases ‘dom(a) = c1’ >> qcases ‘cod(a) = c1’ (* 4 *)
+ >-- (disj1_tac >>
+     first_x_assum (qsspecl_then [‘a’] strip_assume_tac) >>
+     first_x_assum irule >> arw[]) 
+ >-- (rfs[] >>
+     disj2_tac >> disj2_tac >> disj1_tac >>
+     first_x_assum (qsspecl_then [‘a’] strip_assume_tac) >>
+     first_x_assum irule >> arw[]) 
+ >-- (rfs[] >> rpt disj2_tac >>
+     first_x_assum (qsspecl_then [‘a’] strip_assume_tac) >>
+     first_x_assum irule >> arw[]) >>
+ rfs[] >> disj2_tac >> disj1_tac >>
+ first_x_assum (qspecl_then [‘a’] strip_assume_tac) >>
+ first_x_assum irule >> arw[]) 
 (form_goal
  “?Cl o1:1->Cl o2:1->Cl a1:2->Cl a2:2->Cl. 
  dom(a1) = o1 ∧ cod(a1) = o2 ∧ 
  dom(a2) = o2 ∧ cod(a2) = o1 ∧ 
  a1 @ a2 = id(o2) ∧ a2 @ a1 = id(o1) ∧
  ~(o1 = o2) &
- (!oc:1->Cl. oc = o1 | oc = o2)”));
+ (!oc:1->Cl. oc = o1 | oc = o2) & 
+ !(a : fun(2, Cl)). a = id(o1) | a = id(o2) | a = a1 | a = a2”));
 
+val Thm17 = prove_store("Thm17",
+e0
+(strip_assume_tac Cl_ex >> 
+ qexistsl_tac [‘Cl’,‘o1’] >>
+ irule indisc_2_FSCC >> qexistsl_tac [‘a1’,‘a2’,‘o2’] >>
+ arw[])
+(form_goal “?Cl t:1->Cl. FSCC(t)”));
+
+(*
 val Thm17 = prove_store("Thm17",
 e0
 (qby_tac ‘∃Cl o1:1->Cl o2:1->Cl a1:2->Cl a2:2->Cl. 
@@ -4121,4 +4149,4 @@ e0
  >-- 
  )
 (form_goal “?Cl t:1->Cl. FSCC(t)”));
-
+*)
