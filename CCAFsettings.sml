@@ -3367,7 +3367,67 @@ e0
   ?!fb:X->S. f = i o fb”));
 
 
+val fac_through_Mono_ex = prove_store("fac_through_Mono_ex",
+e0
+(rpt strip_tac >>
+ qsuff_tac ‘?!fb:X->S. f = i o fb’
+ >-- (strip_tac >> pop_assum (strip_assume_tac o uex2ex_rule) >>
+     qexists_tac ‘fb’ >> arw[]) >>
+ irule fac_through_Mono >> arw[])
+(form_goal
+ “!S A i:S->A. Mono(i) ==>
+  !X f:X->A.(!x:2->X. ?s:2->S. f o x = i o s) ==>
+  ?fb:X->S. f = i o fb”));
 
+
+val fac_through_FSC = prove_store("fac_through_FSC",
+e0
+(rpt strip_tac >> irule fac_through_Mono >> fs[FSC_def] >>
+ strip_tac >> first_x_assum irule  >>
+ arw[])
+(form_goal
+ “!S A i:S->A. FSC(i) ==>
+  !X f:X->A.
+  (!x:2->X. 
+   (?s1:1->S. dom(f o x) = i o s1) & 
+   (?s2:1->S. cod(f o x) = i o s2)) ==>
+  ?!fb:X->S. f = i o fb”));
+
+
+val fac_through_FSC_ex = prove_store("fac_through_FSC_ex",
+e0
+(rpt strip_tac >> 
+ qsuff_tac ‘?!fb:X->S. f = i o fb’ 
+ >-- (strip_tac >> pop_assum (strip_assume_tac o uex2ex_rule) >>
+ qexists_tac ‘fb’ >> arw[]) >>
+irule fac_through_FSC >> arw[])
+(form_goal
+ “!S A i:S->A. FSC(i) ==>
+  !X f:X->A.
+  (!x:2->X. 
+   (?s1:1->S. dom(f o x) = i o s1) & 
+   (?s2:1->S. cod(f o x) = i o s2)) ==>
+  ?fb:X->S. f = i o fb”));
+
+
+
+
+
+val cf_lemma =  CC5 |> qspecl [‘A’,‘Cl’] 
+ |> fVar_sInst_th “R(f:2->A,g:2->Cl)”
+    “((?(s1 : fun(1, S)). dom(f:2->A) = i o s1) & 
+     (?(s2 : fun(1, S)). cod(f) = i o s2) & 
+     (g:2->Cl = id(o1))) | 
+     (~(?(s1 : fun(1, S)). dom(f) = i o s1) & 
+      ~(?(s2 : fun(1, S)). cod(f) = i o s2) & 
+     (g = id(o2))) |
+     ((?(s1 : fun(1, S)). dom(f) = i o s1) & 
+     ~(?(s2 : fun(1, S)). cod(f) = i o s2) & 
+     (g = a1)) |
+     (~(?(s1 : fun(1, S)). dom(f) = i o s1) & 
+     (?(s2 : fun(1, S)). cod(f) = i o s2) & 
+     (g = a2))”
+  |> rewr_rule[id_dom,id_cod]
 
 val indisc_2_FSCC = prove_store("indisc_2_FSCC",
 e0
@@ -3544,7 +3604,7 @@ qsuff_tac
                  ((!(s1 : fun(1, S)). ~(dom(f) = i o s1)) &
                    (!(s2 : fun(1, S)). ~(cod(f) = i o s2)) ==>
                    c o f = id(o2))’ >-- 
- strip_tac >> qexists_tac ‘c’ >> rw[isPb_def] >>
+ (strip_tac >> qexists_tac ‘c’ >> rw[isPb_def] >>
  qby_tac ‘c o i = o1 o To1(S)’
  >-- (irule $ iffLR fun_ext >> rw[o_assoc] >>
      strip_tac >> rw[To1_def,GSYM id_def] >>
@@ -3553,15 +3613,192 @@ qsuff_tac
      strip_tac (* 2 *)
      >-- (qexists_tac ‘a o 0f’ >> arw[]) >>
      qexists_tac ‘a o 1f’ >> arw[]) >> arw[] >>
- rpt strip_tac >>
+ rpt strip_tac >>rw[To1_def] >> flip_tac >> 
+ irule fac_through_FSC >> arw[] >> strip_tac >> 
+ qby_tac ‘c o dom(u o x) = o1’
+ >-- (arw[GSYM o_assoc,dom_o] >> rw[o_assoc] >> rw[one_to_one_Id,IdR]) >>
+ qby_tac ‘c o cod(u o x) = o1’
+ >-- (arw[GSYM o_assoc,cod_o] >> rw[o_assoc] >> rw[one_to_one_Id,IdR]) >>
+ qby_tac
+ ‘(!s1:1->S. ~(dom(u o x) = i o s1)) <=> 
+  ~(?s1:1->S. dom(u o x) = i o s1)’
+ >-- accept_tac(forall_exists_dual |> qspecl [‘1’,‘S’] 
+     |> fVar_sInst_th “P(s1:1->S)” “~(dom(u:A'->A o x:2->A') = i o s1:1->S)” 
+     |> rewr_rule[]) >>
+ qby_tac
+ ‘(!s2:1->S. ~(cod(u o x) = i o s2)) <=> 
+  ~(?s2:1->S. cod(u o x) = i o s2)’
+ >-- accept_tac(forall_exists_dual |> qspecl [‘1’,‘S’] 
+     |> fVar_sInst_th “P(s2:1->S)” “~(cod(u:A'->A o x:2->A') = i o s2:1->S)” 
+     |> rewr_rule[]) >> 
+ qby_tac ‘c o u o x = id(o1)’ 
+ >-- (first_x_assum irule >> 
+      once_rw[dom_o] >> arw[] >> once_rw[cod_o] >> arw[]) >> 
+ qcases ‘(?(s1 : fun(1, S)). dom(u o x) = i o s1)’ >>
+ qcases ‘?(s2 : fun(1, S)). cod(u o x) = i o s2’ (* 4 *)
+ >-- arw[] 
+ >-- (qsuff_tac ‘F’ >-- arw[] >>
+     qby_tac ‘c o u o x = a1’ 
+     >-- (first_x_assum (qsspecl_then [‘u o x’] strip_assume_tac) >>
+         first_x_assum irule >> arw[]) >>
+     qby_tac ‘cod(a1) = cod(id(o1))’
+     >-- (pop_assum (assume_tac o GSYM)>> 
+         qpick_x_assum ‘cod(a1) = o2’ (K all_tac) >> arw[]) >>
+     pop_assum mp_tac >> arw[id_cod] >> flip_tac >> arw[])
+ >-- (qsuff_tac ‘F’ >-- arw[] >>
+     qby_tac ‘c o u o x = a2’ 
+     >-- (first_x_assum (qsspecl_then [‘u o x’] strip_assume_tac) >>
+         first_x_assum irule >> arw[]) >>
+     qby_tac ‘dom(a2) = dom(id(o1))’
+     >-- (pop_assum (assume_tac o GSYM)>> 
+         qpick_x_assum ‘dom(a2) = o2’ (K all_tac) >> arw[]) >>
+     pop_assum mp_tac >> arw[id_dom] >> flip_tac >> arw[]) >>
+ qsuff_tac ‘F’ >-- arw[] >>
+ qby_tac ‘c o u o x = id(o2)’ 
+ >-- (first_x_assum (qsspecl_then [‘u o x’] strip_assume_tac) >>
+      first_x_assum irule >> arw[]) >>
+ qby_tac ‘id(o1) = id(o2)’ 
+ >-- (pop_assum (assume_tac o GSYM) >> arw[]) >>
+ fs[id_eq_eq]) >>
+ qby_tac
+ ‘!f.(!s1:1->S. ~(dom(f) = i o s1)) <=> 
+  ~(?s1:1->S. dom(f) = i o s1)’
+ >-- (strip_tac >> 
+     accept_tac(forall_exists_dual |> qspecl [‘1’,‘S’] 
+     |> fVar_sInst_th “P(s1:1->S)” “~(dom(f:2->A) = i o s1:1->S)” 
+     |> rewr_rule[])) >>
+ qby_tac
+ ‘!f.(!s2:1->S. ~(cod(f) = i o s2)) <=> 
+  ~(?s2:1->S. cod(f) = i o s2)’
+ >-- (strip_tac >>
+     accept_tac(forall_exists_dual |> qspecl [‘1’,‘S’] 
+     |> fVar_sInst_th “P(s2:1->S)” “~(cod(f:2->A) = i o s2:1->S)” 
+     |> rewr_rule[])) >> 
  qsuff_tac
- ‘?(a : fun(A', S)). i o a = u & To1(S) o a = v’
- >-- (strip_tac >> uex_tac >> qexists_tac ‘a’ >> arw[] >>
-     rpt strip_tac >> drule $ iffLR FSC_def >>
-     fs[Mono_def] >> first_x_assum irule >> arw[]) >>
- rw[To1_def] >> fs[FSC_def] >>
- 
- dflip_tac >> first_x_assum irule)
+ ‘?(cf : fun(A, Cl)).
+        !(a : fun(2, A))  (b : fun(2, Cl)).
+          (?(s1 : fun(1, S)). dom(a) = i o s1) &
+          (?(s2 : fun(1, S)). cod(a) = i o s2) & b = id(o1) |
+          ~(?(s1 : fun(1, S)). dom(a) = i o s1) &
+          ~(?(s2 : fun(1, S)). cod(a) = i o s2) & b = id(o2) |
+          (?(s1 : fun(1, S)). dom(a) = i o s1) &
+          ~(?(s2 : fun(1, S)). cod(a) = i o s2) & b = a1 |
+          ~(?(s1 : fun(1, S)). dom(a) = i o s1) &
+          (?(s2 : fun(1, S)). cod(a) = i o s2) & b = a2 <=> cf o a = b’ >--
+ (strip_tac >> qexists_tac ‘cf’ >>
+  strip_tac >> strip_tac (* 2 *)
+  >-- (rpt strip_tac >> 
+      first_x_assum $ irule o iffLR >>
+      disj1_tac >> rw[] >> strip_tac (* 2 *)
+      >-- (qexists_tac ‘s1’ >> arw[]) >>
+      qexists_tac ‘s2’ >> arw[]) >> strip_tac (* 2 *)
+  >-- (rpt strip_tac >> first_x_assum (irule o iffLR) >> 
+      disj2_tac >> disj2_tac >> disj1_tac >> arw[] >>
+      strip_tac (* 2 *)
+      >-- (qexists_tac ‘s1’ >> arw[]) >> ccontra_tac >> fs[]) >> 
+  strip_tac (* 2 *) 
+  >-- (rpt strip_tac >> first_x_assum (irule o iffLR) >>
+      rpt disj2_tac >> arw[] >> strip_tac (* 2 *)
+      >-- (ccontra_tac >> fs[]) >>
+      qexists_tac ‘s2’ >> arw[]) >>
+  rpt strip_tac >> first_x_assum (irule o iffLR) >>
+  disj2_tac >> disj1_tac >> arw[] >> rpt strip_tac >> fs[] >>
+  ccontra_tac >> fs[]) >> 
+ match_mp_tac cf_lemma >> strip_tac (* 2 *) >-- 
+ (strip_tac >> 
+ qcases ‘(?(s1 : fun(1, S)). dom(f) = i o s1)’ >>
+ qcases ‘?(s2 : fun(1, S)). cod(f) = i o s2’ >> arw[] (* 4 *)
+ >-- (uex_tac >> qexists_tac ‘id(o1)’ >> arw[])
+ >-- (uex_tac >> qexists_tac ‘a1’ >> arw[])
+ >-- (uex_tac >> qexists_tac ‘a2’ >> arw[]) >>
+ uex_tac >> qexists_tac ‘id(o2)’ >> arw[]) >> strip_tac (* 2 *) >--
+ (rpt gen_tac >> strip_tac (* 4 *)
+
+ >-- (arw[] >>
+     once_rw[id_dom] >> once_rw[id_cod] >> 
+     strip_tac (* 2 *)
+     >-- (disj1_tac >> strip_tac (* 2 *)
+         >-- (qexists_tac ‘s1’ >> rw[]) >> rw[] >>
+         qexists_tac ‘s1’ >> rw[]) >>
+     disj1_tac >> rw[] >> strip_tac (* 2 *)
+     >-- (qexists_tac ‘s2’ >> rw[]) >>
+     qexists_tac ‘s2’ >> rw[]) 
+ >-- (arw[] >> rw[id_dom,id_cod]) 
+ >-- (arw[] >> disj1_tac >> strip_tac (* 2 *)
+     >-- (qexists_tac ‘s1’ >> rw[]) >>
+     qexists_tac ‘s1’ >> rw[]) >> 
+ arw[] >> disj1_tac >> strip_tac (* 2 *)
+ >-- (qexists_tac ‘s2’ >> rw[]) >>
+ qexists_tac ‘s2’ >> rw[]) >> rpt gen_tac >> strip_tac >>
+ strip_tac (* 4 *)
+ >-- (arw[] >> drule oa_dom_cod >>
+     fs[] >> rpt strip_tac (* 16 *)
+     >-- (arw[] >> flip_tac >> irule cpsb_idR >> 
+         rw[cpsb_def,id_dom,id_cod]) 
+     >-- (* lame simplifier, .~?(s2' : fun(1, S)). i o s2 = i o s2'# in assum *)
+         (qsuff_tac ‘?(s2' : fun(1, S)). i o s2 = i o s2'’ >-- arw[] >>
+         qexists_tac ‘s2’ >> rw[]) 
+     >-- (qsuff_tac ‘?(s2' : fun(1, S)). i o s2 = i o s2'’ >-- arw[] >>
+         qexists_tac ‘s2’ >> rw[]) 
+     >-- (qsuff_tac ‘?(s1 : fun(1, S)). dom(g) = i o s1’ 
+         >-- arw[] >> 
+         qpick_x_assum ‘~(?(s1 : fun(1, S)). dom(g) = i o s1)’ (K all_tac)>>
+         fs[cpsb_def] >> qexists_tac ‘s2'’ >> rw[]) 
+     >-- (qsuff_tac ‘?(s2 : fun(1, S)). cod(f) = i o s2’ >-- arw[] >>
+         qpick_x_assum ‘~(?(s2 : fun(1, S)). cod(f) = i o s2)’ (K all_tac)>>
+         fs[cpsb_def] >> qexists_tac ‘s1'’ >> arw[]) 
+     >-- (qsuff_tac ‘?(s2' : fun(1, S)). i o s2 = i o s2'’ >-- arw[] >>
+         qexists_tac ‘s2’ >> rw[])
+     >-- (qsuff_tac ‘?(s1' : fun(1, S)). i o s1 = i o s1'’ >-- arw[] >>
+         qexists_tac ‘s1’ >> rw[])      
+     >-- (qsuff_tac ‘?(s1' : fun(1, S)). i o s1 = i o s1'’ >-- arw[] >>
+         qexists_tac ‘s1’ >> rw[]) 
+     >-- (qsuff_tac ‘?(s2 : fun(1, S)). cod(f) = i o s2’ >-- arw[] >>
+         qpick_x_assum ‘~(?(s2 : fun(1, S)). cod(f) = i o s2)’ (K all_tac) >>
+         rfs[cpsb_def] >> qexists_tac ‘s1''’ >> rw[])
+     >-- (qsuff_tac ‘?(s2' : fun(1, S)). i o s2 = i o s2'’ >-- arw[] >>
+         qexists_tac ‘s2’ >> rw[]) 
+     >-- (qsuff_tac ‘?(s2' : fun(1, S)). i o s2 = i o s2'’ >-- arw[] >>
+         qexists_tac ‘s2’ >> rw[]) 
+     >-- arw[] 
+     >-- (qsuff_tac ‘?(s1' : fun(1, S)). i o s1 = i o s1'’ >-- arw[] >>
+         qexists_tac ‘s1’ >> rw[]) 
+     >-- (qsuff_tac ‘?(s2' : fun(1, S)). i o s2 = i o s2'’ >-- arw[] >>
+         qexists_tac ‘s2’ >> rw[])
+     >-- (qsuff_tac ‘?(s2' : fun(1, S)). i o s2 = i o s2'’ >-- arw[] >>
+         qexists_tac ‘s2’ >> rw[])
+     >-- (qsuff_tac ‘?(s1' : fun(1, S)). i o s1 = i o s1'’ >-- arw[] >>
+         qexists_tac ‘s1’ >> rw[]))
+>-- (arw[] >> drule oa_dom_cod >>
+    fs[] >> rpt strip_tac (* 4 *)
+    >-- (arw[] >> flip_tac >> irule cpsb_idL >> rw[cpsb_def,id_dom,id_cod])
+    >-- (qsuff_tac ‘?(s2 : fun(1, S)). cod(f) = i o s2’ >-- arw[] >>
+        qexists_tac ‘s1’ >> fs[cpsb_def])
+    >-- (qsuff_tac ‘?(s1 : fun(1, S)). dom(g) = i o s1’ >-- arw[] >>
+        qexists_tac ‘s2’ >> fs[cpsb_def]) >>
+    arw[]) 
+>-- (arw[] >> drule oa_dom_cod >>
+    fs[] >>
+    qby_tac ‘!s:1->S. ?s0. i o s = i o s0’
+    >-- (strip_tac >> qexists_tac ‘s’ >> rw[]) >> arw[] >>
+    rpt strip_tac (* 4 *)
+    >-- (qsuff_tac ‘?(s1 : fun(1, S)). dom(g) = i o s1’ >-- arw[] >>
+        qexists_tac ‘s2’ >> fs[cpsb_def])
+    >-- (arw[] >> flip_tac >> irule cpsb_idR >> arw[cpsb_def,id_cod]) 
+    >-- (arw[] >> flip_tac >> irule cpsb_idL >> arw[cpsb_def,id_dom]) >>
+    qsuff_tac ‘?(s2 : fun(1, S)). cod(f) = i o s2’ >-- arw[] >>
+    qexists_tac ‘s1'’ >> fs[cpsb_def]) >>
+arw[] >> drule oa_dom_cod >> fs[] >> 
+qby_tac ‘!s:1->S. ?s0. i o s = i o s0’
+>-- (strip_tac >> qexists_tac ‘s’ >> rw[]) >> arw[] >>
+rpt strip_tac (* 4 *)
+>-- (qsuff_tac ‘?(s2 : fun(1, S)). cod(f) = i o s2’ >-- arw[] >>
+    qexists_tac ‘s1’ >> fs[cpsb_def])
+>-- (arw[] >> flip_tac >> irule cpsb_idR >> arw[cpsb_def,id_cod]) 
+>-- (arw[] >> flip_tac >> irule cpsb_idL >> arw[cpsb_def,id_dom]) >>
+qsuff_tac ‘?(s1 : fun(1, S)). dom(g) = i o s1’ 
+>-- arw[] >>
+qexists_tac ‘s2'’ >> fs[cpsb_def])
 (form_goal
  “!Cl o1:1->Cl o2:1->Cl a1:2->Cl a2:2->Cl. 
  dom(a1) = o1 ∧ cod(a1) = o2 ∧ 
