@@ -2890,7 +2890,27 @@ e0
 (rw[id_def,cod_def,one_def,one_to_one_Id,o_assoc])
 (form_goal “∀A f:2->A. f o 𝟙 = id(cod(f))”));
 
+(*?(cf : fun(B, C)).
+               !(a : fun(2, B))  (b : fun(2, C)).
+                 dom(a#) = B0 & ~cod(a#) = B0 & b# = h |
+                 ~dom(a#) = B0 & cod(a#) = B0 & b# = k |
+                 dom(a#) = B0 & cod(a#) = B0 & b# = h o 𝟘 |
+                 ~dom(a#) = B0 & ~cod(a#) = B0 & b# = h o 𝟙 <=> cf# o a# = b#
 
+?(cf : fun(B, C)).
+               !(a : fun(2, B))  (b : fun(2, C)).
+                 dom(a#) = B0 & ~cod(a#) = B0 & b# = h |
+                 ~dom(a#) = B0 & cod(a#) = B0 & b# = k |
+                 dom(a#) = B0 & cod(a#) = B0 & b# = h o 𝟘 |
+                 ~dom(a#) = B0 & ~cod(a#) = B0 & b# = h o 𝟙 <=> cf# o a# = b#
+
+ (k : fun(2, C))(h : fun(2, C))(f : fun(A, B))(T2 : fun(1, C))(T1 :
+      fun(1, C))(B0 : fun(1, B))CBA
+
+(k : fun(2, C))(h : fun(2, C))(g : fun(A2, B))(f : fun(A1, B))(T2 :
+      fun(1, C))(T1 : fun(1, C))(B0 : fun(1, B))CBA2A1
+
+*)
 val l = fVar_sInst_th
 “R(b:2->B,c:2->C)”
 “(dom(b:2->B) = B0 ∧ ~(cod(b) = B0) ∧ c:2->C = h) |
@@ -3814,12 +3834,115 @@ qexists_tac ‘s2'’ >> fs[cpsb_def])
 val jointEpi2_def = qdefine_psym("jointEpi2",[‘f:A->X’,‘g:B->X’])
 ‘∀Y y1:X->Y y2. y1 o f = y2 o f & y1 o g = y2 o g ⇒ y1 = y2’
 
+
+
+val l = fVar_sInst_th
+“R(b:2->B,c:2->C)”
+“(dom(b:2->B) = B0 ∧ ~(cod(b) = B0) ∧ c:2->C = h) |
+ (~(dom(b) = B0) ∧ cod(b) = B0 ∧ c = k) |
+ (dom(b) = B0 ∧ cod(b) = B0 ∧ c = h o 𝟘) |
+ (~(dom(b) = B0) ∧ ~(cod(b) = B0) ∧ c = h o 𝟙)”
+(CC5 |> qspecl [‘B’,‘C’])
+
 val jointEpi2_onto = prove_store("jointEpi2_onto",
 e0
-(cheat)
+(rpt strip_tac >>
+ x_choosel_then ["C","T1","T2","h"] strip_assume_tac Thm14' >>
+ drule $ iffLR iso_def >>
+ pop_assum (x_choose_then "k" strip_assume_tac) >>
+ ccontra_tac >> fs[jointEpi2_def] >> 
+ qby_tac
+ ‘∀a1:1->A1. ~(B0 = f o a1)’
+ >-- cheat >> 
+ qby_tac
+ ‘∀a2:1->A2. ~(B0 = g o a2)’ >-- cheat >>
+qsuff_tac ‘∃H: B ->C.
+ ∀b:2->B. 
+ (dom(b) = B0 ∧ ~(cod(b) = B0) ⇒ H o b = h) ∧ 
+ (~(dom(b) = B0) ∧ cod(b) = B0 ⇒ H o b = k) ∧ 
+ (dom(b) = B0 ∧ cod(b) = B0 ⇒ H o b = h o 𝟘) ∧
+ (~(dom(b) = B0) ∧ ~(cod(b) = B0) ⇒ H o b = h o 𝟙)’
+>-- (strip_tac >>
+     last_x_assum (qsspecl_then [‘H’,‘h o 1f o To1(B)’] assume_tac) >>
+     qby_tac ‘H o f = (h o 1f o To1(B)) o f’ 
+     >-- (irule $ iffLR fun_ext >> strip_tac >> rw[o_assoc] >>
+         qsuff_tac ‘H o f o a = h o 𝟙’
+         >-- (strip_tac >> arw[To1_def,one_def]) >>
+         first_x_assum (qsspecl_then [‘f o a’] strip_assume_tac) >>
+         first_x_assum irule >>
+         rw[dom_def,cod_def,o_assoc] >> dflip_tac >> 
+         arw[]) >>
+     qby_tac ‘H o g = (h o 1f o To1(B)) o g’ 
+     >-- (irule $ iffLR fun_ext >> strip_tac >> rw[o_assoc] >>
+         qsuff_tac ‘H o g o a = h o 𝟙’
+         >-- (strip_tac >> arw[To1_def,one_def]) >>
+         first_x_assum (qsspecl_then [‘g o a’] strip_assume_tac) >>
+         first_x_assum irule >>
+         rw[dom_def,cod_def,o_assoc] >> dflip_tac >> 
+         arw[]) >> 
+     fs[] >> 
+     qby_tac ‘H o id(B0) = h o 1f o To1(B) o id(B0)’
+     >-- arw[o_assoc] >>
+     qby_tac ‘H o id(B0) = h o 𝟘’
+     >-- (first_x_assum (qsspecl_then [‘id(B0)’] strip_assume_tac) >> rfs[o_assoc] >>
+         first_x_assum irule >> 
+         rw[id_def,dom_def,cod_def,o_assoc,one_to_one_Id,IdR]) >>
+     fs[To1_def,GSYM one_def] >> 
+     rfs[one_def,zero_def,dom_def,cod_def,GSYM o_assoc] >>
+     qby_tac ‘T1 o To1(2) o 1f = T2 o To1(2) o 1f’
+     >-- arw[GSYM o_assoc] >> fs[one_to_one_Id,IdR]) >>
+ qsuff_tac
+ ‘?cf : B->C. 
+     !a: 2->B b:2->C.
+          dom(a) = B0 & ~(cod(a) = B0) & b = h |
+          ~(dom(a) = B0) & cod(a) = B0 & b = k |
+          dom(a) = B0 & cod(a) = B0 & b = h o 𝟘 |
+          ~(dom(a) = B0) & ~(cod(a) = B0) & b = h o 𝟙 <=> cf o a = b’     
+ >-- (strip_tac >> qexists_tac ‘cf’ >>
+     strip_tac >> 
+     first_x_assum (qspecl_then [‘b’] assume_tac) >>
+     cases_on “dom(b:2->B) = B0” >> cases_on “cod(b:2->B) = B0” >> fs[]) >>
+ irule l >> strip_tac
+ >-- (rpt gen_tac >> 
+ cases_on “dom(f':2->B) = B0” >> cases_on “cod(f':2->B) = B0” >>
+ arw[] (* 4 *) >>
+ strip_tac >> arw[id1,o_zero_dom,o_one_cod]) >>
+ strip_tac >-- (strip_tac >> uex_tac >>
+ cases_on “dom(f':2->B) = B0” >> cases_on “cod(f':2->B) = B0” >>
+ arw[] (* 4 *)
+ >-- (qexists_tac ‘h o 𝟘’ >> rpt strip_tac >> arw[])
+ >-- (qexists_tac ‘h’ >> rpt strip_tac >> arw[])
+ >-- (qexists_tac ‘k’ >> rpt strip_tac >> arw[]) >>
+ qexists_tac ‘h o 𝟙’ >> rpt strip_tac >> arw[]) >>
+ rpt gen_tac >> strip_tac >> pop_assum mp_tac >> once_rw[cpsb_def] >>
+ disch_tac >> 
+ qby_tac ‘cod(g' @ f') = cod(g') ∧ dom(g' @ f') = dom(f')’
+ >-- (fs[GSYM cpsb_def] >>
+     drule oa_dom_cod >> arw[]) >>
+ qby_tac ‘(h o 𝟙) @ h = h ∧ h @ (h o 𝟘) = h ∧ 
+          k @ h = h o 𝟘 ∧ h @ k = h o 𝟙 ∧
+          (h o 𝟘) @ k = k ∧ k @ (h o 𝟙) = k ∧ 
+          (h o 𝟘) @ h o 𝟘 = (h o 𝟘) ∧
+          (h o 𝟙) @ h o 𝟙 = (h o 𝟙)’
+ >-- (rw[one_def,zero_def] >>
+     rw[GSYM o_assoc] >> rw[GSYM dom_def,GSYM cod_def] >>
+     rw[GSYM id_def] >> arw[] >>
+     rw[GSYM id_def] >> rpt strip_tac (* 6 *)
+     >-- (irule cpsb_idL >> arw[id_dom,cpsb_def]) 
+     >-- (irule cpsb_idR >> arw[id_cod,cpsb_def]) 
+     >-- (irule cpsb_idL >> arw[id_dom,cpsb_def]) 
+     >-- (irule cpsb_idR >> arw[id_cod,cpsb_def]) 
+     >-- (irule cpsb_idR >> rw[id_dom,id_cod,cpsb_def]) >>
+     irule cpsb_idR >> rw[id_dom,id_cod,cpsb_def]) >>
+     once_arw[] >>  strip_tac (* 4 *)
+     >-- (once_arw[]  >> rw[] >> rpt strip_tac >> arw[]) 
+     >-- (once_arw[]  >> rw[] >> rpt strip_tac >> arw[]) 
+     >-- (once_arw[]  >> rw[] >> rpt strip_tac >> arw[]) >>
+     once_arw[]  >> rw[] >> rpt strip_tac >> arw[])
 (form_goal 
- “!A B X f:A->X g:B->X. jointEpi2(f,g) ==> 
-  !x:1->X. (?a:1->A. x = f o a) | (?b:1->B. x = g o b)”));
+ “!A1 A2 B f:A1->B g:A2->B. jointEpi2(f,g) ==> 
+  !B0:1->B. (?a1:1->A1. B0 = f o a1) | 
+            (?a2:1->A2. B0 = g o a2)”));
 
 
 val uex_unique = prove_store("uex_unique",
