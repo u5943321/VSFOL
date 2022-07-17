@@ -3092,6 +3092,11 @@ e0
  f = γ”));
 
 
+val to_3_cases = 
+    Thm11 |> rewr_rule[ab_dom_cod]
+          |> rewr_rule[GSYM alpha2_def,GSYM alpha1_def,
+                       GSYM beta2_def]
+
 val is_id_alpha1_iff = prove_store("is_id_alpha1_iff",
 e0
 (rpt strip_tac >> dimp_tac >> strip_tac >>
@@ -3196,11 +3201,6 @@ e0
  “∃f:Exp(2,2) -> 3. 
   f o Tp(lr𝟚) = α & f o Tp(ul𝟚) = β & f o Tp(v𝟚) = γ &
   f o Tp(c𝟙) = id(β₂) & f o Tp(c𝟘) = id(α₁) & f o Tp(h𝟚) = id(α₂)”));
-
-val to_3_cases = 
-    Thm11 |> rewr_rule[ab_dom_cod]
-          |> rewr_rule[GSYM alpha2_def,GSYM alpha1_def,
-                       GSYM beta2_def]
 
 val Thm12_3_Exp22 = prove_store("Thm12_3_Exp22",
 e0
@@ -5622,16 +5622,28 @@ e0
  drule jointEpi2_onto >>
  fs[o_assoc] >> 
  qby_tac ‘∀oc:1->Cl. oc = q o q0 o m o 0f | oc = q o q0 o m o 1f’ 
- >-- (strip_tac >>
+ >-- 
+(strip_tac >>
+     first_x_assum $ qsspecl_then [‘oc’] strip_assume_tac (* 2 *)
+     >-- (arw[] >> 
+         qsspecl_then [‘a1’] strip_assume_tac one_to_two 
+         >-- arw[] >>
+         arw[]) >> 
+     arw[] >>
+     qsspecl_then [‘a2’] strip_assume_tac one_to_two
+     >-- (arw[] >> rw[GSYM dom_def,GSYM cod_def] >> fs[cpsb_def]) >>
+     arw[] >> rw[GSYM dom_def,GSYM cod_def] >> fs[cpsb_def])
+(*strip_tac >>
      first_x_assum $ qsspecl_then [‘oc’] strip_assume_tac (* 2 *)
      >-- (arw[] >> 
          qsspecl_then [‘a’] strip_assume_tac one_to_two 
          >-- arw[] >>
          arw[]) >> 
-     arw[] >>
+   arw[] >>
      qsspecl_then [‘b’] strip_assume_tac one_to_two
      >-- (arw[] >> rw[GSYM dom_def,GSYM cod_def] >> fs[cpsb_def]) >>
-     arw[] >> rw[GSYM dom_def,GSYM cod_def] >> fs[cpsb_def]) >>
+     arw[] >> rw[GSYM dom_def,GSYM cod_def] >> fs[cpsb_def]
+ confused why the variable names changes*) >>
  qby_tac
  ‘(q o q0 o m) @ (q o q0 o n) = id(q o q0 o n o 0f)’ 
  >-- (fs[iscoEq_def] >> rev_drule fun_pres_oa >>
