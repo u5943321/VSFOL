@@ -4504,6 +4504,8 @@ e0
 (form_goal
  “∀A g:2->A f B F:A->B. cpsb(g,f) ⇒ cpsb(F o g,F o f)”));
 
+
+
 val Thm16_non_init_case = prove_store("Thm16_non_init_case",
 e0
 (rpt strip_tac >> 
@@ -4606,18 +4608,30 @@ e0
      (∃b:1->B. dom(f) = i2(A,B) o b &
              g = i2(A,B) o k o f)”) >>
  qby_tac ‘Mono(i1(A,B)) & Mono(i2(A,B))’ 
- >-- cheat >> 
+ >-- (strip_tac (* 2 *)
+     >-- (rw[Mono_def] >> rpt strip_tac >>
+         qby_tac ‘j o i1(A, B) o g = j o i1(A, B) o h’
+         >-- arw[] >>
+         rfs[GSYM o_assoc,IdL]) >>
+     rw[Mono_def] >> rpt strip_tac >>
+     qby_tac ‘k o i2(A, B) o g = k o i2(A, B) o h’
+     >-- arw[] >>
+     rfs[GSYM o_assoc,IdL]) >> 
  pop_assum strip_assume_tac >> 
  qby_tac
 ‘!(p : fun(2, A + B))  (d0 : fun(1, A)).
                dom(p) = i1(A, B) o d0 ==>
                ∃c0:1->A. cod(p) = i1(A, B) o c0’
- >-- cheat >> 
+ >-- (rpt strip_tac >> first_x_assum drule >>
+     qsspecl_then [‘cod(p)’] assume_tac Thm15_comment >>
+     rfs[] >> qexists_tac ‘a’ >> rw[]) >> 
  qby_tac
 ‘!(p : fun(2, A + B))  (d0 : fun(1, B)).
                dom(p) = i2(A, B) o d0 ==>
                ∃c0:1->B. cod(p) = i2(A, B) o c0’
- >-- cheat >> 
+ >-- (rpt strip_tac >> first_x_assum drule >>
+     qsspecl_then [‘cod(p)’] assume_tac Thm15_comment >>
+     rfs[] >> qexists_tac ‘b’ >> rw[]) >> 
  qby_tac
  ‘∀ab:1->A + B a. 
   ab = i1(A,B) o a ⇒
