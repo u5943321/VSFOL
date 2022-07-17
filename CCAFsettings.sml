@@ -2732,6 +2732,78 @@ e0
   f o Tp(lr𝟚) = α & f o Tp(ul𝟚) = β & f o Tp(v𝟚) = γ &
   f o Tp(c𝟙) = id(β₂) & f o Tp(c𝟘) = id(α₁) & f o Tp(h𝟚) = id(α₂)”));
 
+val to_3_cases = 
+    Thm11 |> rewr_rule[ab_dom_cod]
+          |> rewr_rule[GSYM alpha2_def,GSYM alpha1_def,
+                       GSYM beta2_def]
+
+val Thm13_Exp22_3 = prove_store("Thm13_Exp22_3",
+e0
+(qsuff_tac
+ ‘?(cf : fun(3, Exp(2, 2))).
+        !(a : fun(2, 3))  (b : fun(2, Exp(2, 2))).
+          a = α & b = Tp(lr𝟚) |
+          a = β & b = Tp(ul𝟚) |
+          a = γ & b = Tp(v𝟚) |
+          a = id(β₂) & b = Tp(c𝟙) |
+          a = id(α₁) & b = Tp(c𝟘) | a = id(α₂) & b = Tp(h𝟚) <=>
+          cf o a = b’
+ >-- (strip_tac >> qexists_tac ‘cf’ >>
+     pop_assum (assume_tac o GSYM) >> 
+     arw[]) >>
+ match_mp_tac
+ (CC5 |> qspecl [‘3’,‘Exp(2,2)’] 
+     |> fVar_sInst_th “R(f:2->3,g:2->Exp(2,2))”
+        “(f = α & g = Tp(lr𝟚)) |
+         (f = β & g = Tp(ul𝟚)) |
+         (f = γ & g = Tp(v𝟚)) |
+         (f = id(β₂) & g = Tp(c𝟙)) |
+         (f = id(α₁) & g = Tp(c𝟘)) |
+         (f = id(α₂) & g = Tp(h𝟚))”) >>
+ strip_tac (* 2 *)
+ >-- (strip_tac >> 
+     qsspecl_then [‘f’] strip_assume_tac to_3_cases >>  
+     arw[three_ne,GSYM three_ne,unique_eq]) >>
+ strip_tac (* 2 *)
+ >-- (rpt gen_tac >> strip_tac >> 
+     once_arw[three_dom_cod] >> 
+     once_arw[id_dom,id_cod,three_ne] >>
+     rw[three_dom_cod,id_Tp1_hp,id_Tp1_co,three_ne,
+        GSYM three_ne,id_Tp1_cz,to_Exp22_dom_cod] (* 3 *)>>
+     rw[three_dom_cod]) >> 
+ rpt gen_tac >> strip_tac >> strip_tac >> arw[] (* 6 *)
+ >>
+  (rpt gen_tac >> rpt strip_tac >> 
+     drule $ iffLR cpsb_def >>
+     rfs[three_dom_cod,
+       three_ne,GSYM three_ne,Tp1_eq_eq,CC2_0,
+       GSYM CC2_0,three_oa,three_ne,oa_id,GSYM three_ne](* 8 *)
+     >> fs[twotwo2two_Tp_oa,to_Exp22_ne,GSYM to_Exp22_ne](* 3 *)
+     >> fs[to_Exp22_dom_cod,
+       to_Exp22_ne,GSYM to_Exp22_ne,Tp1_eq_eq,CC2_0,
+       GSYM CC2_0,three_oa,three_ne,oa_id,GSYM three_ne])
+
+
+
+
+ (rpt gen_tac >> rpt strip_tac >> 
+     drule $ iffLR cpsb_def >>
+     rfs[to_Exp22_dom_cod,
+       to_Exp22_ne,GSYM to_Exp22_ne,Tp1_eq_eq,CC2_0,
+       GSYM CC2_0,three_oa,three_ne,oa_id,GSYM three_ne](* 8 *)
+     >> fs[twotwo2two_Tp_oa,to_Exp22_ne,GSYM to_Exp22_ne](* 3 *)
+     >> fs[to_Exp22_dom_cod,
+       to_Exp22_ne,GSYM to_Exp22_ne,Tp1_eq_eq,CC2_0,
+       GSYM CC2_0,three_oa,three_ne,oa_id,GSYM three_ne]))
+(form_goal 
+ “∃f:3 -> Exp(2,2). 
+  f o α = Tp(lr𝟚)  & f o β = Tp(ul𝟚) & f o γ = Tp(v𝟚) &
+  f o id(β₂) = Tp(c𝟙) & f o id(α₁) = Tp(c𝟘) & 
+  f o id(α₂) = Tp(h𝟚)”));
+
+
+
+
 val Thm12 = prove_store("Thm12",
 e0
 (rw[areIso_def] >>
