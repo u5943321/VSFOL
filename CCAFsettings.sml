@@ -2089,9 +2089,653 @@ e0
 (form_goal “∀f:2->3. dom(f) = dom(α) & cod(f) = cod(β) ⇒
  f = γ ”));
 
+val id_cpsb = prove_store("id_cpsb",
+e0
+(rw[cpsb_def,id_dom,id_cod])
+(form_goal “∀A a:1->A. cpsb(id(a),id(a))”));
+
+val oa_2_to_2 = prove_store("oa_2_to_2",
+e0
+(rw[oa_one_two_two,oa_two_zero_two] >>
+ rw[one_def,zero_def,GSYM id_def] >> strip_tac (* 2 *)
+ >-- (irule cpsb_idR >> rw[cpsb_def,id_dom,id_cod]) >>
+ irule cpsb_idR >> rw[cpsb_def,id_dom,id_cod])
+(form_goal “𝟚 @ 𝟘 = 𝟚 & 𝟙 @ 𝟚 = 𝟚 & 
+            𝟙 @ 𝟙 = 𝟙 & 𝟘 @ 𝟘 = 𝟘”));
+
+val cpsb_2_to_2 = prove_store("cpsb_2_to_2",
+e0
+(rw[cpsb_def,dom_cod_zot])
+(form_goal “cpsb(𝟚,𝟘) & cpsb(𝟙,𝟚) & cpsb(𝟘,𝟘) & cpsb(𝟙,𝟙)”));
+
+(*lower right corner*)
+val lrc_def = proved_th $
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?lrc:2 * 2 -> 2. 
+  csT(lrc) = 𝟘 & csR(lrc) = 𝟚 & 
+  csL(lrc) = 𝟘 & csB(lrc) = 𝟚’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘lrc’ >>
+     arw[] >> rpt strip_tac >> irule cs_ext >> arw[]) >>
+ irule Thm7 >> rw[cpsb_2_to_2])
+(form_goal
+ “?!lrc:2 * 2 -> 2. 
+  csT(lrc) = 𝟘 & csR(lrc) = 𝟚 & 
+  csL(lrc) = 𝟘 & csB(lrc) = 𝟚”)
+|> qsimple_uex_spec "lr𝟚" [] 
+
+
+val lr2_iff = proved_th $
+e0
+(strip_tac >> dimp_tac >> strip_tac >> arw[lrc_def] >>
+ strip_assume_tac lrc_def>> irule cs_ext >> arw[])
+(form_goal 
+ “∀f. f = lr𝟚 ⇔ 
+      csT(f) = 𝟘 & csR(f) = 𝟚 & 
+  csL(f) = 𝟘 & csB(f) = 𝟚”)
+
+
+(*upper left corner*)
+val ulc_def = proved_th $
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?ulc:2 * 2 -> 2. 
+  csT(ulc) = 𝟚 & csR(ulc) = 𝟙 & 
+  csL(ulc) = 𝟚 & csB(ulc) = 𝟙’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘ulc’ >>
+     arw[] >> rpt strip_tac >> irule cs_ext >> arw[]) >>
+ irule Thm7 >> rw[cpsb_2_to_2])
+(form_goal
+ “?!ulc:2 * 2 -> 2. 
+  csT(ulc) = 𝟚 & csR(ulc) = 𝟙 & 
+  csL(ulc) = 𝟚 & csB(ulc) = 𝟙”)
+|> qsimple_uex_spec "ul𝟚" [] 
+
+
+val ul2_iff = proved_th $
+e0
+(strip_tac >> dimp_tac >> strip_tac >> arw[ulc_def] >>
+ strip_assume_tac ulc_def>> irule cs_ext >> arw[])
+(form_goal 
+ “∀f. f = ul𝟚 ⇔ 
+      csT(f) = 𝟚 & csR(f) = 𝟙 & 
+  csL(f) = 𝟚 & csB(f) = 𝟙”)
+
+
+(*vertial parallel*)
+val vp_def = proved_th $
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?vp:2 * 2 -> 2. 
+  csT(vp) = 𝟘 & csR(vp) = 𝟚 & 
+  csL(vp) = 𝟚 & csB(vp) = 𝟙’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘vp’ >>
+     arw[] >> rpt strip_tac >> irule cs_ext >> arw[]) >>
+ irule Thm7 >> rw[cpsb_2_to_2,oa_2_to_2])
+(form_goal
+ “?!vp:2 * 2 -> 2. 
+  csT(vp) = 𝟘 & csR(vp) = 𝟚 & 
+  csL(vp) = 𝟚 & csB(vp) = 𝟙”)
+|> qsimple_uex_spec "v𝟚" [] 
+
+
+val v2_iff = proved_th $
+e0
+(strip_tac >> dimp_tac >> strip_tac >> arw[vp_def] >>
+ strip_assume_tac vp_def>> irule cs_ext >> arw[])
+(form_goal 
+ “∀f. f = v𝟚 ⇔ 
+  csT(f) = 𝟘 & csR(f) = 𝟚 & 
+  csL(f) = 𝟚 & csB(f) = 𝟙”)
+
+
+
+(*horizontal parallel*)
+val hp_def = proved_th $
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?hp:2 * 2 -> 2. 
+  csT(hp) = 𝟚 & csR(hp) = 𝟙 & 
+  csL(hp) = 𝟘 & csB(hp) = 𝟚’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘hp’ >>
+     arw[] >> rpt strip_tac >> irule cs_ext >> arw[]) >>
+ irule Thm7 >> rw[cpsb_2_to_2,oa_2_to_2])
+(form_goal
+ “?!hp:2 * 2 -> 2. 
+  csT(hp) = 𝟚 & csR(hp) = 𝟙 & 
+  csL(hp) = 𝟘 & csB(hp) = 𝟚”)
+|> qsimple_uex_spec "h𝟚" [] 
+
+
+val h2_iff = proved_th $
+e0
+(strip_tac >> dimp_tac >> strip_tac >> arw[hp_def] >>
+ strip_assume_tac hp_def>> irule cs_ext >> arw[])
+(form_goal 
+ “∀f. f = h𝟚 ⇔ 
+  csT(f) = 𝟚 & csR(f) = 𝟙 & 
+  csL(f) = 𝟘 & csB(f) = 𝟚”)
+
+
+(*constant zero*)
+val cz_def = proved_th $
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?cz:2 * 2 -> 2. 
+  csT(cz) = 𝟘 & csR(cz) = 𝟘 & 
+  csL(cz) = 𝟘 & csB(cz) = 𝟘’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘cz’ >>
+     arw[] >> rpt strip_tac >> irule cs_ext >> arw[]) >>
+ irule Thm7 >> rw[cpsb_2_to_2,oa_2_to_2])
+(form_goal
+ “?!cz:2 * 2 -> 2. 
+  csT(cz) = 𝟘 & csR(cz) = 𝟘 & 
+  csL(cz) = 𝟘 & csB(cz) = 𝟘”)
+|> qsimple_uex_spec "c𝟘" [] 
+
+
+val c0_iff = proved_th $
+e0
+(strip_tac >> dimp_tac >> strip_tac >> arw[cz_def] >>
+ strip_assume_tac cz_def>> irule cs_ext >> arw[])
+(form_goal 
+ “∀f. f = c𝟘 ⇔ 
+  csT(f) = 𝟘 & csR(f) = 𝟘 & 
+  csL(f) = 𝟘 & csB(f) = 𝟘”)
+
+
+
+(*constant one*)
+val co_def = proved_th $
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘?co:2 * 2 -> 2. 
+  csT(co) = 𝟙 & csR(co) = 𝟙 & 
+  csL(co) = 𝟙 & csB(co) = 𝟙’
+ >-- (strip_tac >> uex_tac >> qexists_tac ‘co’ >>
+     arw[] >> rpt strip_tac >> irule cs_ext >> arw[]) >>
+ irule Thm7 >> rw[cpsb_2_to_2,oa_2_to_2])
+(form_goal
+ “?!co:2 * 2 -> 2. 
+  csT(co) = 𝟙 & csR(co) = 𝟙 & 
+  csL(co) = 𝟙 & csB(co) = 𝟙”)
+|> qsimple_uex_spec "c𝟙" [] 
+
+
+val c1_iff = proved_th $
+e0
+(strip_tac >> dimp_tac >> strip_tac >> arw[co_def] >>
+ strip_assume_tac co_def>> irule cs_ext >> arw[])
+(form_goal 
+ “∀f. f = c𝟙 ⇔ 
+  csT(f) = 𝟙 & csR(f) = 𝟙 & 
+  csL(f) = 𝟙 & csB(f) = 𝟙”)
+
+
+
+val dom_csL_dom_csT = prove_store("dom_csL_dom_csT",
+e0
+(rpt strip_tac >> rw[dom_def,csL_def,csT_def] >>
+ rw[o_assoc,Pa_distr,GSYM dom_def] >>
+ rw[dom_cod_zot])
+(form_goal
+ “∀A cs:2 * 2->A.dom(csL(cs)) = dom(csT(cs))”));
+
+val dom_csR_cod_csT = prove_store("dom_csL_cod_csT",
+e0
+(rpt strip_tac >> rw[dom_def,csR_def,csT_def,cod_def] >>
+ rw[o_assoc,Pa_distr,GSYM dom_def,GSYM cod_def] >>
+ rw[dom_cod_zot])
+(form_goal
+ “∀A cs:2 * 2->A.
+  dom(csR(cs)) = cod(csT(cs))”));
+
+
+val cod_csL_dom_csB = prove_store("cod_csL_dom_csB",
+e0
+(rpt strip_tac >> rw[dom_def,csL_def,csB_def,cod_def] >>
+ rw[o_assoc,Pa_distr,GSYM dom_def,GSYM cod_def] >>
+ rw[dom_cod_zot])
+(form_goal
+ “∀A cs:2 * 2->A.
+  cod(csL(cs)) = dom(csB(cs))”));
+
+
+val cod_csR_cod_csB = prove_store("cod_csR_cod_csB",
+e0
+(rpt strip_tac >> rw[dom_def,csR_def,csB_def,cod_def] >>
+ rw[o_assoc,Pa_distr,GSYM dom_def,GSYM cod_def] >>
+ rw[dom_cod_zot])
+(form_goal
+ “∀A cs:2 * 2->A.
+  cod(csR(cs)) = cod(csB(cs))”));
+
+val ne_2_to_2 = prove_store("ne_2_to_2",
+e0
+(cheat)
+(form_goal “~(𝟘 = 𝟚) & ~(𝟚 = 𝟘) & ~(𝟙 = 𝟘) & ~(𝟘 = 𝟙) & 
+ ~(𝟙 = 𝟚) & ~(𝟚 = 𝟙)”));
+
+val twotwo2two_cases = prove_store("twotwo2two_cases",
+e0
+(strip_tac >> 
+ rw[lr2_iff,ul2_iff,v2_iff,h2_iff,c0_iff,c1_iff] >>
+ qsspecl_then [‘csT(f)’] strip_assume_tac CC2_1 (* 3 *)
+ >> (arw[ne_2_to_2] >>
+     qsspecl_then [‘f’] assume_tac dom_csL_dom_csT >>
+     rfs[dom_cod_zot] >>
+     qsspecl_then [‘f’] assume_tac dom_csR_cod_csT >>
+     rfs[dom_cod_zot] >> 
+     qsspecl_then [‘f’] assume_tac cod_csR_cod_csB >>
+     qsspecl_then [‘f’] assume_tac cod_csL_dom_csB >> 
+     qsspecl_then [‘csR(f)’] assume_tac CC2_1 >>
+     qsspecl_then [‘csL(f)’] assume_tac CC2_1 >>
+     qsspecl_then [‘csB(f)’] assume_tac CC2_1 >> 
+     fs[ne_2_to_2,dom_cod_zot] >>
+     fs[ne_2_to_2,dom_cod_zot,zf_ne_of,GSYM zf_ne_of]))
+(form_goal 
+“∀f:2 * 2->2. 
+ f = lr𝟚 | f = ul𝟚 | f = v𝟚 | f = h𝟚 | f = c𝟘 | f = c𝟙”));
+
+(*see dom_Tp_cs,
+two Tp of cs are composible iff the csT of the second is the csB of the first
+*)
+
+val twotwo2two_Tp_dom_cod =
+prove_store("twotwo2two_Tp_dom_cod",
+e0
+(rw[dom_Tp_cs,Tp0_Tp1_inv,cod_Tp_cs,
+    lrc_def,ulc_def,vp_def,hp_def,cz_def,co_def])
+(form_goal 
+ “Tp0(dom(Tp(lr𝟚))) = 𝟘 & Tp0(cod(Tp(lr𝟚))) = 𝟚 & 
+  Tp0(dom(Tp(ul𝟚))) = 𝟚 & Tp0(cod(Tp(ul𝟚))) = 𝟙 &
+  Tp0(dom(Tp(v𝟚))) = 𝟘 & Tp0(cod(Tp(v𝟚))) = 𝟙 & 
+  Tp0(dom(Tp(h𝟚))) = 𝟚 & Tp0(cod(Tp(h𝟚))) = 𝟚 &
+  Tp0(dom(Tp(c𝟙))) = 𝟙 & Tp0(cod(Tp(c𝟙))) = 𝟙 &
+  Tp0(dom(Tp(c𝟘))) = 𝟘 & Tp0(cod(Tp(c𝟘))) = 𝟘”));
+
+
+val Tp0_iff_Tp1 = prove_store("Tp0_iff_Tp1",
+e0
+(cheat)
+(form_goal “∀A B f:1->Exp(A,B) g.Tp0(f) = g ⇔ f = Tp1(g)”));
+
+val to_Exp22_dom_cod = 
+ twotwo2two_Tp_dom_cod |> rewr_rule[Tp0_iff_Tp1]
+|> store_as "to_Exp22_dom_cod";
+
+val twotwo2two_Tp_cpsb = prove_store("twotwo2two_Tp_cpsb",
+e0
+(rw[cpsb_def,GSYM Tp0_eq_eq,twotwo2two_Tp_dom_cod])
+(form_goal 
+ “cpsb(Tp(ul𝟚),Tp(lr𝟚)) & 
+  cpsb(Tp(ul𝟚),Tp(h𝟚)) & 
+  cpsb(Tp(h𝟚),Tp(lr𝟚)) & 
+  cpsb(Tp(c𝟙),Tp(ul𝟚)) & 
+  cpsb(Tp(c𝟙),Tp(v𝟚)) &
+  cpsb(Tp(v𝟚),Tp(c𝟘)) & 
+  cpsb(Tp(lr𝟚),Tp(c𝟘)) & 
+  cpsb(Tp(c𝟙),Tp(c𝟙)) & 
+  cpsb(Tp(c𝟘),Tp(c𝟘)) &
+  cpsb(Tp(h𝟚),Tp(h𝟚))”));
+
+val twotwo2two_Tp_oa = prove_store("twotwo2two_Tp_oa",
+e0
+(rpt strip_tac (* 7 *)
+ >-- (qby_tac ‘cpsb(Tp(ul𝟚),Tp(lr𝟚))’
+     >-- rw[twotwo2two_Tp_cpsb] >>
+     rw[GSYM Pt_eq_eq,Pt_Tp] >> 
+     irule cs_ext >> rw[vp_def] >>
+     drule csT_Pt_oa >> 
+     drule $ GSYM csR_Pt_oa >>
+     drule $ GSYM csL_Pt_oa >>
+     drule csB_Pt_oa >> 
+     arw[Pt_Tp,ulc_def,lrc_def,oa_2_to_2])
+ >-- (qby_tac ‘cpsb(Tp(ul𝟚),Tp(h𝟚))’
+     >-- rw[twotwo2two_Tp_cpsb] >>
+     rw[GSYM Pt_eq_eq,Pt_Tp] >> 
+     irule cs_ext >> rw[vp_def] >>
+     drule csT_Pt_oa >> 
+     drule $ GSYM csR_Pt_oa >>
+     drule $ GSYM csL_Pt_oa >>
+     drule csB_Pt_oa >> 
+     arw[Pt_Tp,ulc_def,hp_def,oa_2_to_2])
+ >-- (qby_tac ‘cpsb(Tp(h𝟚),Tp(lr𝟚))’
+     >-- rw[twotwo2two_Tp_cpsb] >>
+     rw[GSYM Pt_eq_eq,Pt_Tp] >> 
+     irule cs_ext >> 
+     drule csT_Pt_oa >> 
+     drule $ GSYM csR_Pt_oa >>
+     drule $ GSYM csL_Pt_oa >>
+     drule csB_Pt_oa >> 
+     arw[Pt_Tp,lrc_def,hp_def,oa_2_to_2])
+ >-- (qby_tac ‘cpsb(Tp(c𝟙),Tp(ul𝟚))’
+     >-- rw[twotwo2two_Tp_cpsb] >>
+     rw[GSYM Pt_eq_eq,Pt_Tp] >> 
+     irule cs_ext >> 
+     drule csT_Pt_oa >> 
+     drule $ GSYM csR_Pt_oa >>
+     drule $ GSYM csL_Pt_oa >>
+     drule csB_Pt_oa >> 
+     arw[Pt_Tp,ulc_def,co_def,oa_2_to_2])
+ >-- (qby_tac ‘cpsb(Tp(c𝟙),Tp(v𝟚))’
+     >-- rw[twotwo2two_Tp_cpsb] >>
+     rw[GSYM Pt_eq_eq,Pt_Tp] >> 
+     irule cs_ext >> 
+     drule csT_Pt_oa >> 
+     drule $ GSYM csR_Pt_oa >>
+     drule $ GSYM csL_Pt_oa >>
+     drule csB_Pt_oa >> 
+     arw[Pt_Tp,vp_def,co_def,oa_2_to_2])
+ >-- (qby_tac ‘cpsb(Tp(v𝟚),Tp(c𝟘))’
+     >-- rw[twotwo2two_Tp_cpsb] >>
+     rw[GSYM Pt_eq_eq,Pt_Tp] >> 
+     irule cs_ext >> 
+     drule csT_Pt_oa >> 
+     drule $ GSYM csR_Pt_oa >>
+     drule $ GSYM csL_Pt_oa >>
+     drule csB_Pt_oa >> 
+     arw[Pt_Tp,vp_def,cz_def,oa_2_to_2]) 
+ >-- (qby_tac ‘cpsb(Tp(lr𝟚),Tp(c𝟘))’
+     >-- rw[twotwo2two_Tp_cpsb] >>
+     rw[GSYM Pt_eq_eq,Pt_Tp] >> 
+     irule cs_ext >> 
+     drule csT_Pt_oa >> 
+     drule $ GSYM csR_Pt_oa >>
+     drule $ GSYM csL_Pt_oa >>
+     drule csB_Pt_oa >> 
+     arw[Pt_Tp,lrc_def,cz_def,oa_2_to_2])
+ >-- (qby_tac ‘cpsb(Tp(c𝟙),Tp(c𝟙))’
+     >-- rw[twotwo2two_Tp_cpsb] >>
+     rw[GSYM Pt_eq_eq,Pt_Tp] >> 
+     irule cs_ext >> 
+     drule csT_Pt_oa >> 
+     drule $ GSYM csR_Pt_oa >>
+     drule $ GSYM csL_Pt_oa >>
+     drule csB_Pt_oa >> 
+     arw[Pt_Tp,co_def,oa_2_to_2])
+ >-- (qby_tac ‘cpsb(Tp(c𝟘),Tp(c𝟘))’
+     >-- rw[twotwo2two_Tp_cpsb] >>
+     rw[GSYM Pt_eq_eq,Pt_Tp] >> 
+     irule cs_ext >> 
+     drule csT_Pt_oa >> 
+     drule $ GSYM csR_Pt_oa >>
+     drule $ GSYM csL_Pt_oa >>
+     drule csB_Pt_oa >> 
+     arw[Pt_Tp,cz_def,oa_2_to_2])
+ >-- (qby_tac ‘cpsb(Tp(h𝟚),Tp(h𝟚))’
+     >-- rw[twotwo2two_Tp_cpsb] >>
+     rw[GSYM Pt_eq_eq,Pt_Tp] >> 
+     irule cs_ext >> 
+     drule csT_Pt_oa >> 
+     drule $ GSYM csR_Pt_oa >>
+     drule $ GSYM csL_Pt_oa >>
+     drule csB_Pt_oa >> 
+     arw[Pt_Tp,hp_def,oa_2_to_2]))
+(form_goal
+ “Tp(ul𝟚) @ Tp(lr𝟚) = Tp(v𝟚) & 
+  Tp(ul𝟚) @ Tp(h𝟚) = Tp(ul𝟚) & 
+  Tp(h𝟚) @ Tp(lr𝟚) = Tp(lr𝟚) & 
+  Tp(c𝟙) @ Tp(ul𝟚) = Tp(ul𝟚) & 
+  Tp(c𝟙) @ Tp(v𝟚) = Tp(v𝟚) &
+  Tp(v𝟚) @ Tp(c𝟘) = Tp(v𝟚) & 
+  Tp(lr𝟚) @ Tp(c𝟘) = Tp(lr𝟚) & 
+  Tp(c𝟙) @ Tp(c𝟙) = Tp(c𝟙) & 
+  Tp(c𝟘) @ Tp(c𝟘) = Tp(c𝟘) & 
+  Tp(h𝟚) @ Tp(h𝟚) = Tp(h𝟚)”));
+
+val Pt_iff_Tp = prove_store("Pt_iff_Tp",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] (* 2 *)
+ >-- (irule $ iffLR Pt_eq_eq >> arw[Pt_Tp]) >>
+ arw[Pt_Tp])
+(form_goal “∀A B C f:A->Exp(B,C) g. 
+ Pt(f) = g ⇔ f = Tp(g)”));
+
+val to_Exp22 = prove_store("to_Exp22",
+e0
+(strip_tac >> 
+ qsspecl_then [‘Pt(a)’] assume_tac twotwo2two_cases >> 
+ fs[Pt_iff_Tp])
+(form_goal 
+ “∀a:2->Exp(2,2). 
+  a = Tp(lr𝟚) | a = Tp(ul𝟚) | a = Tp(v𝟚) | a = Tp(h𝟚) | 
+  a = Tp(c𝟘) | a = Tp(c𝟙)”));
+
+(*CC4_1 CC4_2 ba_cpsb oa_ba
+ab_dom_cod cod_a_ne_cod_b dom_a_ne_dom_b
+dom_a_ne_cod_b is_gamma  *)
+
+val alpha1_def = qdefine_fsym("α₁",[]) ‘dom(α)’
+val alpha2_def = qdefine_fsym("α₂",[]) ‘cod(α)’ 
+
+val beta2_def = qdefine_fsym("β₂",[]) ‘cod(β)’
+ 
+val cpsb_id_dom = prove_store("cpsb_id_dom",
+e0
+(rw[cpsb_def,id_cod,id_dom] )
+(form_goal “∀A a:2->A. cpsb(a,id(dom(a)))”));
+
+
+val cpsb_id_cod = prove_store("cpsb_id_cod",
+e0
+(rw[cpsb_def,id_cod,id_dom] )
+(form_goal “∀A a:2->A. cpsb(id(cod(a)),a)”));
+
+
+val three_dom_cod = prove_store("three_dom_cod",
+e0
+(rw[alpha1_def,alpha2_def,beta2_def] >>
+ rw[ab_dom_cod] >> rw[dom_def,cod_def,CC4_1])
+(form_goal “dom(α) = α₁ & cod(α) = α₂ & dom(β) = α₂ & cod(β) = β₂ & dom(γ) = α₁ & cod(γ) = β₂”));
+
+val three_cpsb0 = prove_store("three_cpsb0",
+e0
+(rw[cpsb_id_cod,cpsb_id_dom] >>
+ rw[cpsb_def,id_dom,id_cod] >> rw[three_dom_cod])
+(form_goal 
+ “cpsb(id(cod(β)),β) & cpsb(β,id(dom(β))) &
+  cpsb(id(dom(β)),α) & cpsb(α,id(dom(α))) &
+  cpsb(β,α) & 
+  cpsb(γ,id(dom(α))) & cpsb(id(cod(β)),γ)”));
+
+
+val three_cpsb = prove_store("three_cpsb",
+e0
+(rw[alpha2_def,beta2_def,alpha1_def,three_cpsb0] >>
+ rw[cpsb_id_cod] >> rw[cpsb_def,three_dom_cod,id_cod])
+(form_goal 
+ “cpsb(id(β₂),β) & cpsb(β,id(α₂)) &
+  cpsb(id(α₂),α) & cpsb(α,id(α₁)) &
+  cpsb(β,α) & 
+  cpsb(γ,id(α₁)) & cpsb(id(β₂),γ)”));
+
+val three_oa = prove_store("three_oa",
+e0
+(rw[beta2_def,alpha1_def,alpha2_def,idL,idR,oa_ba] >> 
+ rpt strip_tac (* 3 *)
+ >-- (irule cpsb_idR >> rw[cpsb_def,id_cod,three_dom_cod])
+ >-- (irule cpsb_idR >> rw[cpsb_def,id_cod,three_dom_cod])>>
+ irule cpsb_idL >> rw[cpsb_def,id_cod,three_dom_cod,id_dom])
+(form_goal
+ “id(β₂) @ β = β & β @ id(α₂) = β & 
+  id(α₂) @ α = α & α @ id(α₁) = α & 
+  β @ α = γ & 
+  γ @ id(α₁) = γ & id(β₂) @ γ = γ”));
+
+(*
+if 
+id(β₂) @ β = β send to 
+Tp(c𝟙) @ Tp(ul𝟚) = Tp(ul𝟚) &
+
+or id(β₂) @ β = β 
+id(β₂) @ γ = γ
+
+
+Tp(c𝟙:= id(β2)) @ Tp(v𝟚) = Tp(v𝟚) &
+
+
+
+
+Tp(h𝟚) @ Tp(lr𝟚) = Tp(lr𝟚) &
+
+
+
+
+Tp(ul𝟚) @ Tp(lr𝟚) = Tp(v𝟚) &
+Tp(ul𝟚) @ Tp(h𝟚) = Tp(ul𝟚) &
+Tp(h𝟚) @ Tp(lr𝟚) = Tp(lr𝟚) &
+Tp(c𝟙) @ Tp(ul𝟚) = Tp(ul𝟚) &
+Tp(c𝟙) @ Tp(v𝟚) = Tp(v𝟚) &
+Tp(v𝟚) @ Tp(c𝟘) = Tp(v𝟚) &
+Tp(lr𝟚) @ Tp(c𝟘) = Tp(lr𝟚)
+*)
+
+val to_Exp22_ne = prove_store("to_Exp22_ne",
+e0
+(cheat)
+(form_goal
+ “~(Tp(lr𝟚) = Tp(ul𝟚)) &
+  ~(Tp(lr𝟚) = Tp(v𝟚)) &
+  ~(Tp(lr𝟚) = Tp(c𝟙)) & 
+  ~(Tp(lr𝟚) = Tp(c𝟘)) &
+  ~(Tp(lr𝟚) = Tp(h𝟚)) & 
+  ~(Tp(ul𝟚) = Tp(v𝟚)) &
+  ~(Tp(ul𝟚) = Tp(c𝟙)) &
+  ~(Tp(ul𝟚) = Tp(c𝟘)) &
+  ~(Tp(ul𝟚) = Tp(h𝟚)) &
+  ~(Tp(v𝟚) = Tp(c𝟙)) &
+  ~(Tp(v𝟚) = Tp(c𝟘)) &
+  ~(Tp(v𝟚) = Tp(h𝟚)) &
+  ~(Tp(c𝟙) = Tp(c𝟘)) &
+  ~(Tp(c𝟙) = Tp(h𝟚)) & 
+  ~(Tp(c𝟘) = Tp(h𝟚))”));
+
+val unique_eq = prove_store("unique_eq",
+e0
+(rpt strip_tac >> uex_tac >> qexists_tac ‘f’ >> rw[])
+(form_goal “∀A B f:A->B. ?!g. g = f”));
+
+val id_Tp1_cz = prove_store("id_Tp1_cz",
+e0
+(rw[GSYM Pt_iff_Tp] >> 
+ irule cs_ext >> rw[cz_def] >>
+ rw[csT_Pt_id,csR_Pt_id,csL_Pt_id,csB_Pt_id] >>
+ rw[Tp0_Tp1_inv,id_dom,id_cod] >>
+ rw[id_def,dom_def,cod_def,o_assoc] >>
+ rw[one_to_one_Id,zero_def,one_def,o_assoc] >>
+ qsuff_tac
+ ‘0f o (To1(2) o 1f) o To1(2) = 0f o To1(2) &
+  0f o (To1(2) o 0f) o To1(2) = 0f o To1(2)’
+ >-- rw[o_assoc] >>
+ rw[one_to_one_Id,IdL] )
+(form_goal “id(Tp1(𝟘)) = Tp(c𝟘)”));
+
+
+val id_Tp1_co = prove_store("id_Tp1_co",
+e0
+(rw[GSYM Pt_iff_Tp] >> 
+ irule cs_ext >> rw[co_def] >>
+ rw[csT_Pt_id,csR_Pt_id,csL_Pt_id,csB_Pt_id] >>
+ rw[Tp0_Tp1_inv,id_dom,id_cod] >>
+ rw[id_def,dom_def,cod_def,o_assoc] >>
+ rw[one_to_one_Id,zero_def,one_def,o_assoc] >>
+ qsuff_tac
+ ‘1f o (To1(2) o 1f) o To1(2) = 1f o To1(2) &
+  1f o (To1(2) o 0f) o To1(2) = 1f o To1(2)’
+ >-- rw[o_assoc] >>
+ rw[one_to_one_Id,IdL] )
+(form_goal “id(Tp1(𝟙)) = Tp(c𝟙)”));
+
+
+val id_Tp1_hp = prove_store("id_Tp1_hp",
+e0
+(rw[GSYM Pt_iff_Tp] >> 
+ irule cs_ext >> rw[hp_def] >>
+ rw[csT_Pt_id,csR_Pt_id,csL_Pt_id,csB_Pt_id] >>
+ rw[Tp0_Tp1_inv,id_dom,id_cod] >>
+ rw[id_def,dom_def,cod_def,o_assoc] >>
+ rw[one_to_one_Id,zero_def,one_def,two_def,o_assoc,IdL])
+(form_goal “id(Tp1(𝟚)) = Tp(h𝟚)”));
+
+val oa_id = prove_store("oa_id",
+e0
+(cheat)
+(form_goal “∀A a:1->A. id(a) @ id(a) = id(a) ”));
+
+val three_ne = prove_store("three_ne",
+e0
+(cheat)
+(form_goal 
+ “~(α = β) & ~(α = γ) & ~(α = id(α₁)) & ~(α = id(α₂)) &
+  ~(α = id(β₂)) &
+  ~(β = γ) & ~(β = id(α₁)) & ~(β = id(α₂)) &
+  ~(β = id(β₂)) &
+  ~(γ = id(α₁)) & ~(γ = id(α₂)) &
+  ~(γ = id(β₂)) &
+  ~(id(α₁) = id(α₂)) & ~(id(α₁) = id(β₂)) & 
+  ~(id(α₂) = id(β₂))”));
+
+val Thm13_Exp22_3 = prove_store("Thm13_Exp22_3",
+e0
+(qsuff_tac
+ ‘?(cf : fun(Exp(2, 2), 3)).
+        !(a : fun(2, Exp(2, 2)))  (b : fun(2, 3)).
+          a = Tp(lr𝟚) & b = α |
+          a = Tp(ul𝟚) & b = β |
+          a = Tp(v𝟚) & b = γ |
+          a = Tp(c𝟙) & b = id(β₂) |
+          a = Tp(c𝟘) & b = id(α₁) | a = Tp(h𝟚) & b = id(α₂) <=>
+          cf o a = b’
+ >-- (strip_tac >> qexists_tac ‘cf’ >>
+     pop_assum (assume_tac o GSYM) >> 
+     arw[]) >>
+ match_mp_tac
+ (CC5 |> qspecl [‘Exp(2,2)’,‘3’] 
+     |> fVar_sInst_th “R(f:2->Exp(2,2),g:2->3)”
+        “(f = Tp(lr𝟚) & g = α) |
+         (f = Tp(ul𝟚) & g = β) |
+         (f = Tp(v𝟚) & g = γ) |
+         (f = Tp(c𝟙) & g = id(β₂)) |
+         (f = Tp(c𝟘) & g = id(α₁)) |
+         (f = Tp(h𝟚) & g = id(α₂))”) >>
+ strip_tac (* 2 *)
+ >-- (strip_tac >> 
+     qsspecl_then [‘f’] strip_assume_tac to_Exp22 >> 
+     arw[to_Exp22_ne,GSYM to_Exp22_ne,unique_eq]) >>
+ strip_tac (* 2 *)
+ >-- (rpt gen_tac >> strip_tac >> 
+     once_arw[to_Exp22_dom_cod] >> 
+     once_arw[id_dom,id_cod,
+     to_Exp22_ne] >>
+     rw[to_Exp22_dom_cod,id_Tp1_hp,id_Tp1_co,to_Exp22_ne,
+        GSYM to_Exp22_ne,id_Tp1_cz] (* 3 *)>>
+     rw[three_dom_cod]) >> 
+ rpt gen_tac >> strip_tac >> strip_tac >> arw[] (* 6 *)
+ >> (rpt gen_tac >> rpt strip_tac >> 
+     drule $ iffLR cpsb_def >>
+     rfs[to_Exp22_dom_cod,
+       to_Exp22_ne,GSYM to_Exp22_ne,Tp1_eq_eq,CC2_0,
+       GSYM CC2_0,three_oa,three_ne,oa_id,GSYM three_ne](* 8 *)
+     >> fs[twotwo2two_Tp_oa,to_Exp22_ne,GSYM to_Exp22_ne](* 3 *)
+     >> fs[to_Exp22_dom_cod,
+       to_Exp22_ne,GSYM to_Exp22_ne,Tp1_eq_eq,CC2_0,
+       GSYM CC2_0,three_oa,three_ne,oa_id,GSYM three_ne]))
+(form_goal 
+ “∃f:Exp(2,2) -> 3. 
+  f o Tp(lr𝟚) = α & f o Tp(ul𝟚) = β & f o Tp(v𝟚) = γ &
+  f o Tp(c𝟙) = id(β₂) & f o Tp(c𝟘) = id(α₁) & f o Tp(h𝟚) = id(α₂)”));
+
 val Thm12 = prove_store("Thm12",
 e0
-(rw[areIso_def] >> cheat)
+(rw[areIso_def] >>
+)
 (form_goal “areIso(Exp(2,2),3)”));
 
 
@@ -2444,6 +3088,19 @@ rw[o_assoc,Swap_Pa,Pt_def,Pa_distr,p12_of_Pa,cod_def])
 (form_goal
 “∀A g:2->Exp(2,A). 
  csB(Pt(g)) = Tp0(cod(g))”));
+
+
+val csT_Pt_Tp0 = prove_store("csT_Pt_Tp0",
+e0
+(rpt strip_tac >> rw[csT_Pt,GSYM Tp0_def,Er1_def] >>
+rw[o_assoc,Ed_def,IdL,Pa_distr,p12_of_Pa] >>
+ rw[Ev_of_Tp_el] >> 
+rw[o_assoc,Pa_distr,To1_def,p12_of_Pa] >>
+rw[Ev_of_Tp_el'] >> 
+rw[o_assoc,Swap_Pa,Pt_def,Pa_distr,p12_of_Pa,dom_def])
+(form_goal
+“∀A g:2->Exp(2,A). 
+ csT(Pt(g)) = Tp0(dom(g))”));
 
 val csT_Pt_oa = prove_store("csT_Pt_oa",
 e0
