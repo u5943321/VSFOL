@@ -3096,7 +3096,7 @@ e0
 (cheat)
 (form_goal “~(α₁ = α₂) & ~(α₁ = β₂) & ~(α₂ = β₂)”));
 
-val Thm12_Exp22_3 = prove_store("Thm12_Exp22_3",
+val Thm12_3_Exp22 = prove_store("Thm12_3_Exp22",
 e0
 (qsuff_tac
  ‘?(cf : fun(3, Exp(2, 2))).
@@ -3149,7 +3149,17 @@ e0
 val Thm12 = prove_store("Thm12",
 e0
 (rw[areIso_def] >>
-)
+ strip_assume_tac Thm12_Exp22_3 >> 
+ x_choose_then "g" strip_assume_tac Thm12_3_Exp22 >>
+ qexistsl_tac [‘f’,‘g’] >> strip_tac (* 2 *)
+ >-- (irule $ iffLR fun_ext >> 
+     strip_tac >> rw[o_assoc,IdL] >>
+     qsspecl_then [‘a’] strip_assume_tac to_3_cases >>
+     arw[]) >>
+ irule $ iffLR fun_ext >> 
+ strip_tac >> rw[o_assoc,IdL] >>
+ qsspecl_then [‘a’] strip_assume_tac to_Exp22 >>
+ arw[])
 (form_goal “areIso(Exp(2,2),3)”));
 
 
