@@ -3318,8 +3318,16 @@ e0
 (form_goal “∀A B η:A -> Exp(2,B). 
  Nt(η,Er1(B) o  Ed(0f,B) o η, Er1(B) o Ed(1f,B) o η)”));
 
+(*
 val ID_def = qdefine_psym("ID",[‘F:A->B’])
 ‘Tp(F o p2(2,A))’ |> gen_all
+*)
+
+
+val ID_def = 
+qdefine_fsym("ID",[‘F:A->B’])
+‘Tp(Pt(id(Tp1(F))) o Swap(2,A))’
+
 
 val Ec_def = qdefine_fsym("Ec",[‘f:A->B’,‘C’])
 ‘Tp(f o Ev(C,A))’ |> gen_all
