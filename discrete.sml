@@ -2,7 +2,7 @@ val Disc_def = qdefine_psym("Disc",[‘A’]) ‘!f:2->A. isid(f)’ |> gen_all;
 
 val Epi_onto_obj = prove_store("Epi_onto_obj",
 e0
-(cheat)
+(rw[Thm15])
 (form_goal
  “!A B f:A->B. Epi(f) ==>
   !b:1->B. ?a:1->A. b = f o a”));
@@ -543,15 +543,75 @@ e0
       iscoEq(F,G,q) ==> Disc(Q)”));
 
 
+(*val DISTI_EL = store_ax("DISTI_EL",“?X x1:1->X x2. ~(x1 = x2)”);*)
+val i1_ne_i2 = prove_store("i1_ne_i2",
+e0
+(ccontra_tac >>
+ assume_tac zf_ne_of >>
+ qsuff_tac ‘0f = 1f’ >-- arw[] >>
+ qby_tac ‘coPa(0f,1f) o i1(1,1) = 0f &
+          coPa(0f,1f) o i2(1,1) = 1f’ >--
+ rw[i12_of_coPa] >>
+ pop_assum (assume_tac o GSYM) >> 
+ qpick_x_assum ‘~(0f = 1f)’ (K all_tac) >> 
+ once_arw[] >> pop_assum (K all_tac) >> arw[])
+(form_goal
+ “~(i1(1,1) = i2(1,1))”));
+
+val i1_xor_i2_1 = prove_store("i1_xor_i2_1",
+e0
+(strip_tac >>
+ qsspecl_then [‘id(x)’] assume_tac Thm16 >>
+ fs[one_to_one_Id,To1_def,GSYM id_def,id_eq_eq] 
+ >-- rw[i1_ne_i2] >> rw[GSYM i1_ne_i2])
+(form_goal 
+ “!x:1->1+1. x = i1(1,1) <=> ~(x = i2(1,1))”));
+
+
+val i1_xor_i2' = prove_store("i1_xor_i2",
+e0
+(rw[i1_xor_i2_1])
+(form_goal
+ “∀x:1->1+1. ~(x = i1(1,1)) ⇔ x = i2(1,1)”));
+
+val ar_of_11 = prove_store("ar_of_11",
+e0
+(strip_tac >>
+ qsspecl_then [‘f’] assume_tac Thm16 >>
+ fs[To1_def,GSYM id_def])
+(form_goal “!f. f = id(i1(1,1)) | f = id(i2(1,1))”));
+
+
+val i1_xor_i2_1_ar = prove_store("i1_xor_i2_1_ar",
+e0
+(strip_tac >>
+ qsspecl_then [‘x’] assume_tac ar_of_11 >> fs[] 
+ >-- fs[id_eq_eq,i1_ne_i2] >>
+ fs[id_eq_eq,GSYM i1_ne_i2])
+(form_goal 
+ “!x:2->1+1. x = id(i1(1,1)) <=> ~(x = id(i2(1,1)))”));
+
+
+val i1_xor_i2_ar' = prove_store("i1_xor_i2_ar'",
+e0
+(rw[i1_xor_i2_1_ar])
+(form_goal
+ “∀x:2->1+1. ~(x = id(i1(1,1))) ⇔ x = id(i2(1,1))”));
+
 val to_2_eq = prove_store("to_2_eq",
 e0
-((*rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
- irule FUN_EXT >> strip_tac >>
- first_x_assum (qspecl_then [‘a’] assume_tac) >>
- qcases ‘f1 o a = i1(1,1)’ 
- >-- (arw[] >> flip_tac >> rw[i1_xor_i2_1] >> 
-     fs[i1_xor_i2_1]) >>
- fs[i1_xor_i2'] *) cheat)
+(rpt strip_tac >> dimp_tac >> strip_tac >> arw[] >>
+ irule $ iffLR fun_ext >> strip_tac >>  
+ qcases ‘f1 o a = id(i1(1,1))’ 
+ >-- (arw[] >> flip_tac >> ccontra_tac >> 
+     drule $ iffLR i1_xor_i2_ar' >> 
+     first_x_assum (qsspecl_then [‘dom(a)’] assume_tac) >>
+     rfs[dom_def,GSYM o_assoc] >> fs[id_def,o_assoc,one_to_one_Id,IdR]) >>
+ drule $ iffLR i1_xor_i2_ar' >> arw[] >> flip_tac >> ccontra_tac >>
+ drule $ iffRL i1_xor_i2_1_ar >> 
+ first_x_assum (qsspecl_then [‘dom(a)’] assume_tac) >>
+ fs[GSYM o_assoc,dom_def] >> rfs[] >>
+ fs[id_def,one_to_one_Id,IdR,o_assoc])
 (form_goal
  “∀X f1:X->1+1 f2. f1 = f2 ⇔ 
      (∀x. f1 o x = i2(1,1) ⇔ f2 o x = i2(1,1))”));
@@ -665,20 +725,6 @@ e0
     (!d:1->D. (?s:1->S. i o s = d) <=> c o d = i2(1,1)) ==>
     isPb(c, i2(1, 1), i, To1(S))”));
 
-(*val DISTI_EL = store_ax("DISTI_EL",“?X x1:1->X x2. ~(x1 = x2)”);*)
-val i1_ne_i2 = prove_store("i1_ne_i2",
-e0
-(ccontra_tac >>
- assume_tac zf_ne_of >>
- qsuff_tac ‘0f = 1f’ >-- arw[] >>
- qby_tac ‘coPa(0f,1f) o i1(1,1) = 0f &
-          coPa(0f,1f) o i2(1,1) = 1f’ >--
- rw[i12_of_coPa] >>
- pop_assum (assume_tac o GSYM) >> 
- qpick_x_assum ‘~(0f = 1f)’ (K all_tac) >> 
- once_arw[] >> pop_assum (K all_tac) >> arw[])
-(form_goal
- “~(i1(1,1) = i2(1,1))”));
 
 val Thm21 = prove_store("Thm21",
 e0
