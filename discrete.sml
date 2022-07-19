@@ -1001,3 +1001,121 @@ e0
   !Aop Sop. isop(A,Aop) & isop(S,Sop) ==>
   !sop:Sop->Aop. isopf(s,sop) ==> SO(sop)”));
 
+val Thm23_Iso_ex = prove_store("Thm23_Iso_ex",
+e0
+(rpt strip_tac >>
+ qsuff_tac
+ ‘(?!i:D->Dop. !od:1->D odop:1->Dop. isopf(od,odop) <=> i o od = odop)’
+ >-- (strip_tac >> pop_assum (strip_assume_tac o uex2ex_rule) >>
+     qexists_tac ‘i’ >> arw[]) >>
+ irule
+ (CC5_Disc_uex' |> qspecl [‘D’,‘Dop’] 
+ |> fVar_sInst_th “R(od:1->D,odop:1->Dop)”
+    “isopf(od:1->D,odop:1->Dop)”) >> arw[] >>
+ strip_tac >> irule opf_uex >> arw[op_1])
+(form_goal
+ “!D. Disc(D) ==> !Dop. isop(D,Dop) ==> 
+  (?i:D->Dop. !od:1->D odop:1->Dop. isopf(od,odop) <=> i o od = odop)”));
+
+val Thm23_with_CC5_1 = prove_store("Thm23_with_CC5_1",
+e0
+(rpt strip_tac >>
+ drule Thm23_Iso_ex >>
+ first_x_assum drule >> pop_assum strip_assume_tac >>
+ drule op_Disc_Disc >>
+ first_x_assum drule >>
+ drule Thm23_Iso_ex >>
+ drule op_op_refl >> first_x_assum drule >>
+ pop_assum (x_choose_then "j" assume_tac) >>
+ qexistsl_tac [‘i’,‘j’] >>
+ arw[] >>
+ qby_tac ‘(!od:1->D. isopf(od,i o od)) &
+  (!odop:1->Dop. isopf(odop,j o odop))’ >-- arw[] >>
+ arw[] >>
+ strip_tac (* 2 *)
+ >-- (irule fun_ext_Disc >> arw[IdL,o_assoc] >>
+     strip_tac >>
+     qpick_x_assum ‘!(od : fun(1, Dop))  (odop : fun(1, D)).
+               isopf(od, odop) <=> j o od = odop’ (assume_tac o GSYM) >>
+     arw[] >> irule opf_opf_refl >> arw[]) >>
+ irule fun_ext_Disc >> arw[IdL,o_assoc] >>
+ strip_tac >>
+ qpick_x_assum ‘!(od : fun(1, D))  (odop : fun(1, Dop)).
+               isopf(od, odop) <=> i o od = odop’ (assume_tac o GSYM) >> 
+ arw[] >>
+ irule opf_opf_refl >> arw[])
+(form_goal 
+ “!D. Disc(D) ==> !Dop. isop(D,Dop) ==> 
+  ?i:D->Dop j:Dop->D. 
+  (!od:1->D. isopf(od,i o od)) &
+  (!odop:1->Dop. isopf(odop,j o odop)) &
+  j o i = Id(D) & i o j = Id(Dop)”));
+
+(*should I add an axiom saying A \cong B  ==> (isop(A,C) <=> isop(B,C))? *)
+
+
+val Mono_o_Iso_Mono = prove_store("Mono_o_Iso_Mono",
+e0
+(rpt strip_tac >> fs[Mono_def] >> rpt strip_tac >>
+ fs[o_assoc] >> first_x_assum drule >>
+ fs[Iso_def] >>
+ qby_tac ‘f' o i o g = f' o i o h’ >-- arw[] >>
+ fs[GSYM o_assoc] >> rfs[IdL])
+(form_goal “!A B f:A->B. Mono(f) ==> 
+   !A' i:A'->A. Iso(i) ==> Mono(f o i)”));
+
+val Thm23_with_CC5_2 = prove_store("Thm23_with_CC5_2",
+e0
+(rpt strip_tac >> 
+ drule $ iffLR SO_def >> pop_assum strip_assume_tac >>
+ drule Thm23_with_CC5_1 >>
+ qspecl_then [‘S’] assume_tac op_ex >>
+ pop_assum (x_choose_then "Sop" assume_tac) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ qspecl_then [‘S’,‘A’,‘s’,‘Sop’,‘Aop’] assume_tac opf_uex >>
+ rfs[] >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum (x_choose_then "sop" assume_tac) >>
+ qexists_tac ‘sop o i’ >> rw[SO_def] >> 
+ qby_tac ‘Mono(sop o i)’ >--
+ (qby_tac ‘Mono(sop)’ 
+ >-- (irule opf_Mono_Mono >> qexistsl_tac [‘S’,‘A’,‘s’] >> arw[]) >>
+ irule Mono_o_Iso_Mono >> arw[] >>
+ rw[Iso_def] >> qexists_tac ‘j’ >> arw[]) >> arw[] >>
+ rpt strip_tac >>
+ rw[o_assoc] >> 
+ qspecl_then [‘D’] assume_tac op_ex >>
+ pop_assum (x_choose_then "Dop" assume_tac) >>
+ drule op_Disc_Disc >>
+ first_x_assum drule >>
+ qspecl_then [‘D’,‘Aop’,‘d’,‘Dop’,‘A’] assume_tac opf_uex >>
+ rfs[] >>
+ rev_drule op_op_refl >>
+ first_x_assum drule >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum (x_choose_then "dop" assume_tac) >>
+ first_x_assum (qsspecl_then [‘dop’] assume_tac) >> 
+ first_x_assum drule >>
+ pop_assum (x_choose_then "d0op" assume_tac) >>
+ qspecl_then [‘Dop’,‘S’,‘d0op’,‘D’,‘Sop’] assume_tac opf_uex >>
+ rfs[] >>
+ qspecl_then [‘D’,‘Dop’] assume_tac op_op_refl >>
+ first_x_assum drule >> first_x_assum drule >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum (x_choose_then "d0" assume_tac) >>
+ qexists_tac ‘j o d0’ >> 
+ qsuff_tac ‘d = sop o (i o j) o d0’ >-- rw[o_assoc] >>
+ arw[IdL] >>
+ irule eq_opf_eq >>
+ qexistsl_tac [‘Dop’,‘A’,‘dop’,‘s o d0op’] >> arw[] >>
+ strip_tac (* 2 *)
+ >-- (irule opf_o_opf >> arw[]) >>
+ qpick_x_assum ‘dop = s o d0op’ (assume_tac o GSYM) >> arw[] >>
+ irule opf_opf_refl >> arw[])
+(form_goal 
+ “!A S s:S->A. SO(s) ==>
+  !Aop. isop(A,Aop) ==> ?s':S->Aop.SO(s')”));
+
+
+
