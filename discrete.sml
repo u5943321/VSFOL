@@ -898,3 +898,106 @@ e0
 (form_goal
  “!A S s:S->A.SO(s) ==>
   !B f1 f2:B->A Q q:A->Q.  iscoEq(f1,f2,q) ==> ?S' s':S'->Q. SO(s')”));
+
+val eq_opf_eq = prove_store("eq_opf_eq",
+e0
+(rpt strip_tac >> irule $ iffLR fun_ext >> strip_tac >>
+rev_drule op_op_refl >>
+drule opar_uex >> 
+first_x_assum (qspecl_then [‘a’] assume_tac) >>
+pop_assum (assume_tac o uex2ex_rule) >>
+pop_assum (x_choose_then "a0" assume_tac) >> 
+qsuff_tac ‘isopf(f o a0,fop o a) & isopf(g o a0,gop o a)’  
+>-- (strip_tac >> rfs[] >>
+    irule opar_unique >> qexistsl_tac [‘B’,‘g o a0’] >> arw[]) >>
+strip_tac (* 2 *)
+>-- (irule opf_o_opf >> arw[] >> irule opf_opf_refl >> arw[]) >>
+(irule opf_o_opf >> arw[] >> irule opf_opf_refl >> arw[]))
+(form_goal “isop(A,Aop) & isop(B,Bop) ==> 
+ !f g:A->B. f = g ==>
+ !fop gop:Aop->Bop. isopf(f,fop) & isopf(g,gop) ==> fop = gop”));
+
+
+val opf_Mono_Mono = prove_store("opf_Mono_Mono",
+e0
+(rpt strip_tac >> fs[Mono_def] >> rpt strip_tac >>
+ qspecl_then [‘X’] assume_tac op_ex >>
+ pop_assum (x_choose_then "Xop" assume_tac) >>
+ qspecl_then [‘X’,‘A'’,‘g’,‘Xop’,‘A’] assume_tac opf_uex >> rfs[] >>
+ rev_drule op_op_refl >> first_x_assum drule >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum (x_choose_then "g0" assume_tac) >> 
+ qspecl_then [‘X’,‘A'’,‘h’,‘Xop’,‘A’] assume_tac opf_uex >> rfs[] >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum (x_choose_then "h0" assume_tac) >> 
+ qby_tac ‘f o g0 = f o h0’ 
+ >-- (irule eq_opf_eq >>
+     qexistsl_tac [‘X’,‘B'’,‘f' o g’,‘f' o h’] >> arw[] >>
+     qspecl_then [‘B’,‘B'’] assume_tac op_op_refl >> 
+     first_x_assum drule >> arw[] >> strip_tac (* 2 *)
+     >-- (irule opf_o_opf >> arw[] >> irule opf_opf_refl >> arw[]) >>
+     qpick_x_assum ‘f' o g = f' o h’ (assume_tac o GSYM) >> arw[] >>
+     irule opf_o_opf >> arw[] >> irule opf_opf_refl >> arw[]) >>
+ first_x_assum drule >> fs[] >>
+ irule opf_unique >> qexistsl_tac [‘Xop’,‘A’,‘h0’] >>
+ arw[] >> rpt strip_tac (* 3 *)
+ >-- (irule opf_opf_refl >> arw[]) 
+ >-- (irule op_op_refl >> arw[]) 
+ >-- (irule opf_opf_refl >> arw[]))
+(form_goal
+ “!A B f:A->B. Mono(f) ==> 
+  !A' B' f':A'->B'. isop(A,A') & isop(B,B') & isopf(f,f') ==>
+  Mono(f')”));
+
+val op_Disc_Disc = prove_store("op_Disc_Disc",
+e0
+(rpt strip_tac >> fs[Disc_def] >>
+ strip_tac >> drule op_op_refl >>
+ drule opar_uex >> 
+ first_x_assum (qspecl_then [‘f’] assume_tac) >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum (x_choose_then "f0" assume_tac) >>
+ drule isid_opf >> first_x_assum drule >> fs[])
+(form_goal
+ “!D. Disc(D) ==> !D'. isop(D,D') ==> Disc(D')”));
+
+val Thm23_without_CC5 = prove_store("Thm23_without_CC5",
+e0
+(rpt strip_tac >> rw[SO_def] >>
+ qby_tac ‘Mono(sop)’ 
+ >-- (irule opf_Mono_Mono >> 
+     qexistsl_tac [‘S’,‘A’,‘s’] >> fs[SO_def]) >> arw[] >>
+ qby_tac ‘Disc(Sop)’ 
+ >-- (irule op_Disc_Disc >> qexists_tac ‘S’ >> fs[SO_def]) >> arw[] >>
+ rpt strip_tac >> 
+ qspecl_then [‘D’] assume_tac op_ex >>
+ pop_assum (x_choose_then "D0" assume_tac) >>
+ drule op_Disc_Disc >>
+ first_x_assum drule >>
+ drule $ iffLR SO_def >> fs[] >>
+ qspecl_then [‘D’,‘Aop’,‘d’,‘D0’,‘A’] assume_tac opf_uex >>
+ rev_drule op_op_refl >> rfs[] >> first_x_assum drule >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum (x_choose_then "dop" assume_tac) >>
+ first_x_assum (qsspecl_then [‘dop’] assume_tac) >> first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ qspecl_then [‘D0’,‘S’,‘d0’,‘D’,‘Sop’] assume_tac opf_uex >>
+ rfs[] >>
+ qspecl_then [‘D’,‘D0’] assume_tac op_op_refl >>
+ first_x_assum drule >>
+ first_x_assum drule >>
+ pop_assum (assume_tac o uex2ex_rule) >>
+ pop_assum (x_choose_then "d0op" assume_tac) >>
+ qexists_tac ‘d0op’ >> 
+ irule eq_opf_eq >>
+ qexistsl_tac [‘D0’,‘A’,‘dop’,‘s o d0’] >>
+ arw[] >> strip_tac (* 2 *)
+ >-- (irule opf_o_opf >> arw[]) >>
+ qpick_x_assum ‘dop = s o d0’ (assume_tac o GSYM) >> arw[] >>
+ irule opf_opf_refl >>
+ arw[])
+(form_goal
+ “!A S s:S->A. SO(s) ==> 
+  !Aop Sop. isop(A,Aop) & isop(S,Sop) ==>
+  !sop:Sop->Aop. isopf(s,sop) ==> SO(sop)”));
+
