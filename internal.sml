@@ -106,12 +106,55 @@ new_spec argQ arg12eqr fnames vl (eth|> spec_all) eqvth uexth
 end
 
 
-val isicat_def = 
-define_pred
-("isicat",
-[‘d:Ar->Ob’,‘c:Ar->Ob’,‘iid:Ob->Ar’,‘io:Pbo(c,d) -> Ar’])
-‘isPb(c,d,p1,p2) & 
- !’
+val IidL_def = 
+qdefine_psym("IidL",
+[‘d0:C1->C0’,‘d1:C1->C0’,‘i:C0->C1’,
+ ‘gamma:Pbo(d1:C1->C0,d0:C1->C0) -> C1’])
+‘!ci1:Pbo(Id(C0),d0) -> Pbo(d1,d0). 
+ Pba1(d1,d0) o ci1 = i o Pba1(Id(C0),d0) & 
+ Pba2(d1,d0) o ci1 = Pba2(Id(C0),d0) ==>
+ gamma o ci1 = Pba2(Id(C0),d0)’
+
+
+val IidR_def = 
+qdefine_psym("IidR",
+[‘d0:C1->C0’,‘d1:C1->C0’,‘i:C0->C1’,
+ ‘gamma:Pbo(d1:C1->C0,d0:C1->C0) -> C1’])
+‘!c1i:Pbo(d1,Id(C0)) -> Pbo(d1,d0). 
+ Pba1(d1,d0) o c1i = Pba1(d1,Id(C0)) & 
+ Pba2(d1,d0) o c1i = i o Pba2(d1,Id(C0)) ==>
+ gamma o c1i = Pba1(d1,Id(C0))’
+
+
+val Iassoc_def = 
+qdefine_psym("Iassoc",
+[‘d0:C1->C0’,‘d1:C1->C0’,‘i:C0->C1’,
+ ‘gamma:Pbo(d1:C1->C0,d0:C1->C0) -> C1’])
+‘!cr1:Pbo(d1 o gamma,d0) -> Pbo(d1,d0) 
+  aiso
+  c1r:Pbo(d1,d0 o gamma) -> Pbo(d1,d0). 
+  Pba1(d1,d0) o cr1 = gamma o Pba1(d1 o gamma,d0) &
+  Pba2(d1,d0) o cr1 = Pba2(d1 o gamma,d0) ==>
+  gamma o cr1 = gamma o c1r o aiso’
+
+val Icat_def = 
+qdefine_psym
+("Icat",
+[‘d0:C1->C0’,‘d1:C1->C0’,‘i:C0->C1’,
+ ‘gamma:Pbo(d1:C1->C0,d0:C1->C0) -> C1’])
+‘d0 o i = Id(C0) &
+ d1 o i = Id(C0) &
+ IidL(d0,d1,i,gamma) & IidR(d0,d1,i,gamma) &
+ d0 o gamma = d0 o Pba2(d1,d0) &
+ d1 o gamma = d1 o Pba1(d1,d0) & 
+ ’
+
+
+rastt "Pba2(Id(C0),d0:C1->C0)" fun(Pbo(Id(C0), d0), C1)
+rastt " gamma o ci1"
+
+rastt "Pba1(d1,d0) o ci1:Pbo(Id(C0),d1) -> Pbo(d1:C1->C0,d0:C1->C0)"  fun(Pbo(Id(C0), d1), C1)
+
 val is_o_def = 
 
 
