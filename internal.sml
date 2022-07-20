@@ -134,7 +134,9 @@ qdefine_psym("Iassoc",
   aiso
   c1r:Pbo(d1,d0 o gamma) -> Pbo(d1,d0). 
   Pba1(d1,d0) o cr1 = gamma o Pba1(d1 o gamma,d0) &
-  Pba2(d1,d0) o cr1 = Pba2(d1 o gamma,d0) ==>
+  Pba2(d1,d0) o cr1 = Pba2(d1 o gamma,d0) &
+  Pba1(d1,d0) o c1r = Pba1(d1,d0 o gamma)  &
+  Pba2(d1,d0) o c1r = gamma o Pba2(d1,d0 o gamma) ==>
   gamma o cr1 = gamma o c1r o aiso’
 
 val Icat_def = 
