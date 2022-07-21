@@ -186,10 +186,156 @@ val IFun_def = qdefine_psym("IFun",
  Ipreso(cd0, cd1, ci, cr, dd0, dd1, di, dr, f0, f1)’
 
 
+val ISC_def = 
+qdefine_psym
+("ISC",
+[‘d0:C1->C0’,‘d1:C1->C0’,‘i:C0->C1’,
+ ‘gamma:Pbo(d1:C1->C0,d0:C1->C0) -> C1’])
+‘Icat(d0,d1,i,gamma) & Disc(C0) & Disc(C1)’
+ 
+val Id0_def = qdefine_fsym("Id0",[‘A’])
+‘Er1(A) o Ed(0f,A)’
+
+val Id1_def = qdefine_fsym("Id1",[‘A’])
+‘Er1(A) o Ed(1f,A)’
+
+
+
+val pb2tri_tri2pb_ex = proved_th $
+e0
+(cheat)
+(form_goal
+ “?pb2tri: Pbo(Id1(A),Id0(A)) -> Exp(3,A)
+   tri2pb:Exp(3,A)-> Pbo(Id1(A),Id0(A)). 
+  pb2tri o tri2pb = Id(Exp(3,A)) & 
+  tri2pb o pb2tri = Id(Pbo(Id1(A),Id0(A))) &
+  Ed(α,A) o pb2tri = Pba1(Id1(A),Id0(A)) & 
+  Ed(β,A) o pb2tri = Pba2(Id1(A),Id0(A)) & 
+  Pba1(Id1(A),Id0(A)) o tri2pb = Ed(α,A) &
+  Pba2(Id1(A),Id0(A)) o tri2pb = Ed(β,A)
+  ”)
+
+
+
+val pb2tri_uex = proved_th $
+e0
+(cheat)
+(form_goal
+ “?!pb2tri: Pbo(Id1(A),Id0(A)) -> Exp(3,A).
+   ?tri2pb:Exp(3,A)-> Pbo(Id1(A),Id0(A)). 
+  pb2tri o tri2pb = Id(Exp(3,A)) & 
+  tri2pb o pb2tri = Id(Pbo(Id1(A),Id0(A))) &
+  Ed(α,A) o pb2tri = Pba1(Id1(A),Id0(A)) & 
+  Ed(β,A) o pb2tri = Pba2(Id1(A),Id0(A)) & 
+  Pba1(Id1(A),Id0(A)) o tri2pb = Ed(α,A) &
+  Pba2(Id1(A),Id0(A)) o tri2pb = Ed(β,A)
+  ”)
+|> qsimple_uex_spec "pb2tri" [‘A’]
+
+
+val tri2pb_def = proved_th $
+e0
+(cheat)
+(form_goal
+ “?!tri2pb:Exp(3,A)-> Pbo(Id1(A),Id0(A)). 
+  pb2tri(A) o tri2pb = Id(Exp(3,A)) & 
+  tri2pb o pb2tri(A) = Id(Pbo(Id1(A),Id0(A))) &
+  Ed(α,A) o pb2tri(A) = Pba1(Id1(A),Id0(A)) & 
+  Ed(β,A) o pb2tri(A) = Pba2(Id1(A),Id0(A)) & 
+  Pba1(Id1(A),Id0(A)) o tri2pb = Ed(α,A) &
+  Pba2(Id1(A),Id0(A)) o tri2pb = Ed(β,A)
+  ”)
+|> qsimple_uex_spec "tri2pb" [‘A’]
+
+
+
+val Ir_def = qdefine_fsym("Ir",[‘A’])
+‘Ed(γ,A) o pb2tri(A)’
+
+
+val Ii_def = qdefine_fsym("Ii",[‘A’])
+‘Tp(p2(2,A))’
+
+val C2Icat_cl12 = proved_th $
+e0
+(rw[Ii_def,Id1_def,Id0_def,Er1_def,Ed_def,o_assoc,
+    Pa_distr,p12_of_Pa,To1_def,IdL,Ev_of_Tp_el,Ev_of_Tp_el'])
+(form_goal “Id0(A) o Ii(A) = Id(A) & 
+           Id1(A) o Ii(A) = Id(A)”)
+
+
+
+
+val C2Icat_cl3 = proved_th $
+e0
+(rw[IidL_def] >> rpt strip_tac >> 
+ )
+(form_goal “IidL(Id0(A), Id1(A), Ii(A), Ir(A))”)
+
+
+val C2Icat = prove_store("C2Icat",
+e0
+(strip_tac >> rw[Icat_def] >>
+ )
+(form_goal “!A.Icat(Id0(A),Id1(A),Ii(A),Ir(A))”));
+
+(*
+rastt "Id0(A)"; sort_of it;
+rastt "Id1(A)"; sort_of it;
+rastt "Ir(A)"; sort_of it;
+*)
+
+val Sq_def = qdefine_fsym("Sq",[‘F:A->B’])
+‘Tp(F o Ev(2,A))’
+
+(*rastt "Sq(F:A->B)" sort_of it*)
+
+val Thm24 = prove_store("Thm24",
+e0
+(rpt strip_tac >>
+ qby_tac ‘!aob:1->Exp(2,A). G o aob = Sq(F) o aob’ 
+ >-- cheat >>
+ fs[IFun_def] >>
+ irule $ iffLR fun_ext >> strip_tac >>
+ irule $ iffLR Pt_eq_eq >>
+ irule cs_ext >> 
+ 
+ )
+(form_goal
+ “!A B F:A->B G. 
+  IFun(Id0(A),Id1(A),Ii(A),Ir(A),
+       Id0(B),Id1(B),Ii(B),Ir(B),F,G) ==>
+   G = Sq(F)”));
+
+val Thm25 = prove_store("Thm25",
+e0
+()
+(form_goal
+ “!A T t:T->Exp(2,A). SO(t) ==>
+  !S s:S->A.SO(s) ==>
+  ?td0:T->S td1:T->S ti:S->T tr:Pbo(td1,td0) -> T. 
+  ISC(td0,td1,ti,tr) & 
+  IFun(td0,td1,ti,tr,Id0(A),Id1(A),Ii(A),Ir(A),s,t)”));
+
+val Thm26 = prove_store("Thm26",
+e0
+()
+(form_goal 
+ “!A Ta ta:Ta->Exp(2,A) Sa sa:Sa->A
+   B Tb tb:Tb->Exp(2,B) Sb sb:Sb->B. 
+  SO(ta) & SO(sa) & SO(tb) & SO(sb) &
+  !S s:S->A.SO(s) ==>
+  !td0:T->S td1:T->S ti:S->T tr:Pbo(td1,td0) -> T. 
+  ISC(td0,td1,ti,tr) & 
+  IFun(td0,td1,ti,tr,Id0(A),Id1(A),Ii(A),Ir(A),s,t)”));
+
+(*
 rastt "Pba2(Id(C0),d0:C1->C0)" fun(Pbo(Id(C0), d0), C1)
 rastt " gamma o ci1"
 
 rastt "Pba1(d1,d0) o ci1:Pbo(Id(C0),d1) -> Pbo(d1:C1->C0,d0:C1->C0)"  fun(Pbo(Id(C0), d1), C1)
+
+*)
 
 val is_o_def = 
 
