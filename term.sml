@@ -61,12 +61,8 @@ fun view_term t =
       | Bound i => vB i (*raise ERR instead, user cannot see it!*)
       | Fun sst => vFun sst
 
-fun view_sort s = 
-    case s of 
-      srt (str,tl) => vSrt (str,tl)
-
-fun dest_sort s = 
-    case s of srt (str,tl) => (str,tl)
+fun view_sort (srt p) = vSrt p
+fun dest_sort (srt p) = p
 
 
 
@@ -195,37 +191,6 @@ fun list_compare c (l1,l2) =
       | (_,[]) => GREATER
 
 
-fun sort_compare (s1,s2) = 
-    if PolyML.pointerEq(s1,s2) then EQUAL else
-    case (dest_sort s1,dest_sort s2) of 
-        ((sn1,tl1),(sn2,tl2)) =>
-        (case String.compare (sn1,sn2) of 
-             EQUAL =>
-             list_compare term_compare (tl1,tl2) 
-           | x =>x)
-and term_compare (t1,t2) = 
-    if PolyML.pointerEq(t1,t2) then EQUAL else
-    case (t1,t2) of 
-        (Var ns1,Var ns2) => pair_compare String.compare sort_compare (ns1,ns2)
-     | (Var _ , _) => LESS
-     | (_,Var _) => GREATER
-     | (Bound i1, Bound i2) => Int.compare (i1,i2)
-     | (Bound _ , _) => LESS
-     | (_, Bound _) => GREATER
-     | (Fun fsl1, Fun fsl2) => 
-       inv_image_compare (fn (a,b,c) => (a,(b,c))) 
-                         (pair_compare String.compare 
-                                       (pair_compare sort_compare 
-                                                     (list_compare term_compare))) 
-                         (fsl1,fsl2)  
-
-val var_ord = (pair_compare String.compare sort_compare)
-
-fun var_ord1 ((n1,s1),(n2,s2)) =
-    case String.compare(n1,n2) of 
-        EQUAL => sort_compare (s1,s2)
-      | x => x
-
 fun sort_cpr (s1,s2) = 
     if PolyML.pointerEq(s1,s2) then EQUAL else
     case (dest_sort s1,dest_sort s2) of 
@@ -256,9 +221,11 @@ and term_cpr (t1,t2) =
 
 val term_compare = term_cpr;
 val sort_compare = sort_cpr;
-
-
-
+fun var_ord (ns1 as (n1,s1),ns2 as (n2,s2)) =
+    if PolyML.pointerEq(ns1,ns2) then EQUAL else
+    case String.compare(n1,n2) of 
+        EQUAL => sort_compare (s1,s2)
+      | x => x
 
 (*empty string-sort-pair set*)
 val essps = HOLset.empty var_ord
@@ -267,7 +234,7 @@ type vd = ((string * sort),term)Binarymap.dict
 
 fun pvd vd = Binarymap.listItems vd
 
-val emptyvd:vd = Binarymap.mkDict (pair_compare String.compare sort_compare)
+val emptyvd:vd = Binarymap.mkDict var_ord
 
 fun mk_tenv l = 
     case l of 
@@ -499,12 +466,24 @@ fun ill_formed_fv (n,s) =
     case dest_sort s of (_,tl) => 
                         List.exists is_bound tl
 
+fun tml_cmp([],[]) = EQUAL
+  | tml_cmp (_, []) = GREATER
+  | tml_cmp ([], _) = LESS
+  | tml_cmp (t1::tl1, t2::tl2) =
+     case term_compare(t1,t2) of
+       EQUAL => tml_cmp(tl1,tl2)
+     | x => x
+
+fun strtml_cmp ((s1, tl1), (s2, tl2)) =
+    case String.compare(s1,s2) of
+    	 EQUAL => tml_cmp (tl1,tl2)
+	 | x => x 
 val abbrdict0: 
- (string * (term list), string * (term list)) Binarymap.dict = Binarymap.mkDict (pair_compare String.compare (list_compare term_compare))
+ (string * (term list), string * (term list)) Binarymap.dict = Binarymap.mkDict strtml_cmp
 
 val abbrdict = ref abbrdict0
 
-val unabbrdict0: (string * (term list), string * (term list)) Binarymap.dict = Binarymap.mkDict (pair_compare String.compare (list_compare term_compare))
+val unabbrdict0: (string * (term list), string * (term list)) Binarymap.dict = Binarymap.mkDict strtml_cmp
 
 val unabbrdict = ref unabbrdict0
 
