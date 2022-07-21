@@ -204,7 +204,7 @@ e0
  (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
  ?!cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b”));
 
-(*
+
 val CC5_Disc_uex = prove_store("CC5_Disc_uex",
 e0
 (rpt strip_tac >> 
@@ -237,10 +237,16 @@ e0
  “∀A. Disc(A) ==> !B. 
  (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
  ?!cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b”));
-*)
+
+
+
+
 
 (*up to here, can have output, but very slow.*)
 
+
+
+(*
 (*
 proved_th $
 e0
@@ -1119,3 +1125,4 @@ e0
 
 
 
+*)
