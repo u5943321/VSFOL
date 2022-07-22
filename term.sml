@@ -192,12 +192,11 @@ fun list_compare c (l1,l2) =
 
 
 fun sort_cpr (s1,s2) = 
-    if PolyML.pointerEq(s1,s2) then EQUAL else
+    if PolyML.pointerEq(s1,s2) then EQUAL else 
     case (dest_sort s1,dest_sort s2) of 
         ((sn1,tl1),(sn2,tl2)) =>
         (case String.compare (sn1,sn2) of 
-             EQUAL =>
-             list_compare term_cpr (tl1,tl2) 
+             EQUAL => tml_cmp (tl1,tl2) 
            | x => x)
 and term_cpr (t1,t2) = 
     if PolyML.pointerEq(t1,t2) then EQUAL else
@@ -215,9 +214,18 @@ and term_cpr (t1,t2) =
        (case String.compare(f1,f2) of 
            EQUAL => 
            (case sort_cpr(s1,s2) of 
-                EQUAL => list_compare term_cpr (l1,l2)
+                EQUAL => tml_cmp (l1,l2)
               | x => x)
          | x => x)
+and tml_cmp([],[]) = EQUAL
+  | tml_cmp (_, []) = GREATER
+  | tml_cmp ([], _) = LESS
+  | tml_cmp (t1::tl1, t2::tl2) =
+     case term_cpr(t1,t2) of
+       EQUAL => tml_cmp(tl1,tl2)
+     | x => x
+
+
 
 val term_compare = term_cpr;
 val sort_compare = sort_cpr;
@@ -375,6 +383,15 @@ and fvtla a [] = a
 and fvsa a (srt(sname,ts)) = 
     fvtla a ts
 
+fun FVT a t =
+  case t of
+    Var (p as (_, s)) => FVS (p::a) s
+  | Bound _ => a
+  | Fun (_, s, tl) => FVTL (FVS a s) tl
+and FVTL a [] = a
+  | FVTL a (t::ts) = FVTL (FVT a t) ts
+and FVS a (srt (_, ts)) = FVTL a ts
+
 val fvt = fvta essps
 
 val fvtl = fvtla essps
@@ -465,14 +482,6 @@ fun new_fun f (s,tl) = fsyms := Binarymap.insert (!fsyms,f,(s,tl))
 fun ill_formed_fv (n,s) = 
     case dest_sort s of (_,tl) => 
                         List.exists is_bound tl
-
-fun tml_cmp([],[]) = EQUAL
-  | tml_cmp (_, []) = GREATER
-  | tml_cmp ([], _) = LESS
-  | tml_cmp (t1::tl1, t2::tl2) =
-     case term_compare(t1,t2) of
-       EQUAL => tml_cmp(tl1,tl2)
-     | x => x
 
 fun strtml_cmp ((s1, tl1), (s2, tl2)) =
     case String.compare(s1,s2) of

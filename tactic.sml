@@ -381,7 +381,7 @@ fun repeat tac g = ((tac >> (repeat tac)) Orelse all_tac) g
 
 fun fconv_tac fc (G,fl,f) = 
     let 
-        val th = fc f
+        val th = qfconv fc f
         val G' = HOLset.union(G,cont th)
         val (_,rhs) = dest_dimp (concl th)
     in
@@ -441,14 +441,13 @@ and occurs_ts t s =
     case dest_sort s of 
         (_, tl) => List.exists (occurs_tt t) tl
 
-fun occurs_f f1 f2 = PolyML.pointerEq(f1,f2) orelse
-    case (view_form f1,view_form f2) of
-        (vPred _,vPred _) => eq_form(f1,f2)
-      | (vQ(q1,n1,s1,b1) ,vQ(q2,n2,s2,b2)) => 
-        eq_form(f1,f2) orelse occurs_f f1 b2
-      | (_,vConn(co,fl)) => List.exists (occurs_f f1) fl
-      | (_,vQ(_,_,_,b)) => occurs_f f1 b
-      | (_,_) => false
+fun occurs_f f1 f2 =
+  PolyML.pointerEq(f1,f2) orelse
+  eq_form(f1,f2) orelse 
+  case view_form f2 of
+    vQ(q2,n2,s2,b2) => occurs_f f1 b2
+  | vConn(co,fl) => List.exists (occurs_f f1) fl
+  | _ => false
 
 
 
