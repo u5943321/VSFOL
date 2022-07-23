@@ -1716,6 +1716,19 @@ e0
  rw[BL_cs2,RT_cs2]) 
 (form_goal “∀A s: 2 * 2 ->A. csR(s) @ csT(s) = csB(s) @ csL(s)”));
 
+
+val cs_cpsb = prove_store("cs_cpsb",
+e0
+(rpt gen_tac >> 
+ rw[csR_def,csT_def,csB_def,csL_def] >>
+ assume_tac cs2_BL_cpsb >>
+ assume_tac cs2_RT_cpsb >>
+ rw[cpsb_def] >> rw[dom_o,cod_o] >> fs[cpsb_def])
+(form_goal
+ “∀A s: 2 * 2 ->A. 
+ cpsb(csR(s),csT(s)) & 
+ cpsb(csB(s),csL(s))”));
+
 val Thm8 = prove_store("Thm8",
 e0
 (rpt strip_tac >>
