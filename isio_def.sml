@@ -38,6 +38,18 @@ e0
    ”));
 
 
+val isio_compatible = prove_store("isio_compatible",
+e0
+()
+(form_goal
+ “!C0 C1 d0:C1->C0 d1:C1->C0 
+   C1C1 p1:C1C1->C1 p2:C1C1->C1. 
+   isPb(d1,d0,p1,p2) ==>
+   !Pb p1':Pb->C1 p2':Pb->C1.
+   isPb(d1,d0,p1',p2') ==>
+   ”));
+
+
 val isio_ex = prove_store("isio_ex",
 e0
 (rpt strip_tac>>
@@ -122,6 +134,32 @@ e0
    d0 o gf = d0 o f & d1 o gf = d1 o g”));
 
 
+val isio_dom = prove_store("isio_dom",
+e0
+(rpt strip_tac >> drule isio_dom_cod >>
+ first_x_assum drule >> arw[])
+(form_goal “!C0 C1 d0:C1->C0 d1:C1->C0 
+   C1C1 p1:C1C1->C1 p2:C1C1->C1.
+   isPb(d1,d0,p1,p2) ==>
+   !r
+   A g f:A->C1 gf:A->C1.isio(d0,d1,p1,p2,r,g,f,gf) ==>
+   d0 o gf = d0 o f”));
+
+
+val isio_cod = prove_store("isio_cod",
+e0
+(rpt strip_tac >> drule isio_dom_cod >>
+ first_x_assum drule >> arw[])
+(form_goal “!C0 C1 d0:C1->C0 d1:C1->C0 
+   C1C1 p1:C1C1->C1 p2:C1C1->C1.
+   isPb(d1,d0,p1,p2) ==>
+   !r
+   A g f:A->C1 gf:A->C1.isio(d0,d1,p1,p2,r,g,f,gf) ==>
+    d1 o gf = d1 o g”));
+
+
+
+
 
 val isio_o_r1 = prove_store("isio_o_r1",
 e0
@@ -141,10 +179,225 @@ e0
 ”));
 
 
+
+
+
+val tuple_ex = prove_store("tuple_ex",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+ drule through_Pb >>
+ first_x_assum (qsspecl_then [‘t1’,‘t2’] assume_tac) >>
+ rfs[] >>
+ qsspecl_then [‘d1 o r’,‘d0’] assume_tac Pb_def >>
+ drule through_Pb >>
+ first_x_assum (qsspecl_then [‘a0’,‘t3’] assume_tac)>>
+ rfs[] >> fs[o_assoc] >> rfs[] >>
+ qexists_tac ‘a0'’ >> arw[])
+(form_goal
+ “!C1 C0 d0:C1->C0 d1:C1->C0 i:C0->C1 r.
+  d0 o r = d0 o Pba1(d1, d0) & 
+  d1 o r = d1 o Pba2(d1, d0) ==>
+  !T t3 t2 t1:T->C1. 
+   d0 o t2 = d1 o t1 & 
+   d0 o t3 = d1 o t2 ==> 
+ ?tuple:T->Pbo(d1 o r,d0).
+   Pba1(d1,d0) o Pba1(d1 o r,d0) o tuple = t1 & 
+   Pba2(d1,d0) o Pba1(d1 o r,d0) o tuple = t2 & 
+   Pba2(d1 o r,d0) o tuple = t3”));
+
+val cr1_aiso_cr1_ex = prove_store("cr1_aiso_cr1_ex",
+e0
+(rpt strip_tac >>
+ qby_tac
+ ‘?cr1.
+  Pba1(d1, d0) o cr1 = r o Pba1(d1 o r, d0) &
+  Pba2(d1, d0) o cr1 = Pba2(d1 o r, d0)’
+ >-- (qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+     drule through_Pb >> 
+     first_x_assum $ irule o iffLR >>
+     rw[GSYM o_assoc,Pb_eqn]) >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘cr1’ >> once_arw[] >> rw[] >> 
+ qby_tac
+ ‘?c1r. 
+  Pba1(d1, d0) o c1r = Pba1(d1, d0 o r) &
+  Pba2(d1, d0) o c1r = r o Pba2(d1, d0 o r)’ 
+ >-- (qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+     drule through_Pb >>
+     first_x_assum $ irule o iffLR >>
+     rw[GSYM o_assoc,Pb_eqn]) >>
+ pop_assum strip_assume_tac >>
+ qsuff_tac
+ ‘?c1r aiso.
+               Pba1(d1, d0) o c1r = Pba1(d1, d0 o r) &
+               Pba2(d1, d0) o c1r = r o Pba2(d1, d0 o r) &
+               Pba1(d1, (d0 o r)) o aiso = Pba1(d1, d0) o Pba1(d1 o r, d0) &
+               Pba1(d1, d0) o Pba2(d1, (d0 o r)) o aiso = Pba2(d1, d0) o
+                 Pba1(d1 o r, d0) &
+               Pba2(d1, d0) o Pba2(d1, (d0 o r)) o aiso = Pba2(d1 o r, d0)’  
+ >-- (strip_tac >> qexistsl_tac [‘aiso’,‘c1r’] >>
+     arw[]) >>
+ qexists_tac ‘c1r’ >> once_arw[] >> rw[] >>
+ qby_tac 
+ ‘d1 o Pba2(d1, d0) o Pba1(d1 o r, d0) = 
+  d0 o Pba2(d1 o r, d0)’
+ >-- (qpick_x_assum ‘d1 o r = d1 o Pba2(d1, d0)’
+     (assume_tac o GSYM) >> arw[GSYM o_assoc]  >>
+     rw[Pb_eqn]) >> 
+ qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+ drule through_Pb >>
+ first_x_assum
+ (qsspecl_then [‘Pba2(d1,d0) o Pba1(d1 o r,d0)’,‘Pba2(d1 o r,d0)’] assume_tac) >>
+ first_x_assum (drule o iffLR) >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘d1 o Pba1(d1, d0) o Pba1(d1 o r, d0) = (d0 o r) o a0’
+ >-- (arw[] >> rw[o_assoc] >> arw[] >> 
+     rw[GSYM o_assoc,Pb_eqn]) >>
+ qsspecl_then [‘d1’,‘d0 o r’] assume_tac Pb_def >>
+ drule $ through_Pb >>
+ first_x_assum 
+ (qsspecl_then 
+  [‘Pba1(d1,d0) o Pba1(d1 o r,d0)’,‘a0’]
+  assume_tac)  >>
+ first_x_assum (drule o iffLR) >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘a0'’ >> arw[])
+(form_goal
+ “!C1 C0 d0:C1->C0 d1:C1->C0 i:C0->C1 r.
+  d0 o r = d0 o Pba1(d1, d0) & 
+  d1 o r = d1 o Pba2(d1, d0) ==>
+  ?cr1 aiso c1r.Pba1(d1, d0) o cr1 = r o Pba1(d1 o r, d0) &
+               Pba2(d1, d0) o cr1 = Pba2(d1 o r, d0) &
+               Pba1(d1, d0) o c1r = Pba1(d1, d0 o r) &
+               Pba2(d1, d0) o c1r = r o Pba2(d1, d0 o r) &
+               Pba1(d1, (d0 o r)) o aiso = Pba1(d1, d0) o Pba1(d1 o r, d0) &
+               Pba1(d1, d0) o Pba2(d1, (d0 o r)) o aiso = Pba2(d1, d0) o
+                 Pba1(d1 o r, d0) &
+               Pba2(d1, d0) o Pba2(d1, (d0 o r)) o aiso = Pba2(d1 o r, d0)”));
+
 val Iassoc_alt = prove_store("Iassoc_alt",
 e0
-(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
- >-- cheat >>
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *) >--
+ (rpt strip_tac >>
+ drule $ iffLR Iassoc_def >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘?t21.
+  isio(d0, d1, Pba1(d1, d0), Pba2(d1, d0), r, t2, t1, t21)’
+ >-- (irule isio_ex >> arw[Pb_def]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘?t32.
+  isio(d0, d1, Pba1(d1, d0), Pba2(d1, d0), r, t3, t2, t32)’
+ >-- (irule isio_ex >> arw[Pb_def]) >>
+ pop_assum strip_assume_tac >> 
+ qby_tac
+ ‘?cr1 aiso c1r.Pba1(d1, d0) o cr1 = r o Pba1(d1 o r, d0) &
+               Pba2(d1, d0) o cr1 = Pba2(d1 o r, d0) &
+               Pba1(d1, d0) o c1r = Pba1(d1, d0 o r) &
+               Pba2(d1, d0) o c1r = r o Pba2(d1, d0 o r) &
+               Pba1(d1, (d0 o r)) o aiso = Pba1(d1, d0) o Pba1(d1 o r, d0) &
+               Pba1(d1, d0) o Pba2(d1, (d0 o r)) o aiso = Pba2(d1, d0) o
+                 Pba1(d1 o r, d0) &
+               Pba2(d1, d0) o Pba2(d1, (d0 o r)) o aiso = Pba2(d1 o r, d0)’ 
+ >-- (qsspecl_then [‘d0’,‘d1’,‘i’,‘r’] assume_tac
+     cr1_aiso_cr1_ex >> 
+     first_x_assum irule >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ first_x_assum 
+ (qsspecl_then [‘cr1’,‘aiso’,‘c1r’] assume_tac) >> rfs[] >> 
+ qby_tac
+ ‘?t321l. isio(d0, d1, Pba1(d1, d0), Pba2(d1, d0), r, t3, t21, t321l)’ 
+ >-- (qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+     drule isio_ex >> 
+     first_x_assum irule >> arw[] >>
+     drule isio_cod >> flip_tac >>
+     first_x_assum irule >> 
+     qexistsl_tac [‘t1’,‘r’] >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘?t321r. isio(d0, d1, Pba1(d1, d0), Pba2(d1, d0), r, t32, t1, t321r)’ 
+ >-- (qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+     drule isio_ex >> 
+     first_x_assum irule >> arw[] >>
+     qpick_x_assum ‘d0 o t2 = d1 o t1’ (assume_tac o GSYM) >>
+     arw[] >> 
+     drule isio_dom >>
+     first_x_assum irule >> 
+     qexistsl_tac [‘t3’,‘r’] >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qsuff_tac ‘t321r = t321l’ 
+ >-- (strip_tac >>
+     qexistsl_tac [‘t321l’,‘t32’,‘t21’] >> arw[] >> fs[]) >>
+ qsuff_tac 
+ ‘?tuple:T->Pbo(d1 o r, d0). 
+  t321l = r o cr1 o tuple & t321r = r o c1r o aiso o tuple’
+ >-- (strip_tac >>
+     arw[] >> 
+     qsuff_tac ‘(r o cr1) o tuple = 
+                            (r o c1r o aiso) o tuple’ 
+     >-- rw[o_assoc] >> arw[] >> strip_tac >>
+    arw[]) >>
+ qsuff_tac
+ ‘?tuple:T->Pbo(d1 o r,d0).
+   Pba1(d1,d0) o Pba1(d1 o r,d0) o tuple = t1 & 
+   Pba2(d1,d0) o Pba1(d1 o r,d0) o tuple = t2 & 
+   Pba2(d1 o r,d0) o tuple = t3’ >-- (strip_tac >>
+ qexists_tac ‘tuple’ >>
+ strip_tac (* 2 *)
+ >-- (qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+     drule isio_unique1 >>
+     first_x_assum  
+     (qsspecl_then [‘r’,‘t3’,‘t21’,‘t321l’,‘r o cr1 o tuple’] assume_tac) >> rfs[] >>
+     first_x_assum irule >>
+     drule isio_o_r1 >>
+     first_x_assum (qsspecl_then [‘r’] assume_tac) >>
+     rfs[] >>
+     first_x_assum irule >> 
+     arw[GSYM o_assoc] >>
+     qby_tac ‘d1 o t2 = d1 o t21’ 
+     >-- (flip_tac >> drule isio_cod >> 
+         first_x_assum irule >> 
+         qexistsl_tac [‘t1’,‘r’] >> arw[]) >> arw[] >>
+     rw[o_assoc] >> 
+     drule isio_unique1 >>
+     first_x_assum (qsspecl_then [‘r’,‘t2’,‘t1’,‘r o Pba1((d1 o r), d0) o tuple’,‘t21’] assume_tac) >> rfs[] >>
+     first_x_assum irule >> 
+     drule isio_o_r1 >>
+     first_x_assum (qsspecl_then [‘r’] assume_tac) >> rfs[]>>
+     first_x_assum irule >> arw[]) >>
+ qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+ drule isio_unique1 >> 
+ first_x_assum  
+     (qsspecl_then [‘r’,‘t32’,‘t1’,‘t321r’,‘r o c1r o aiso o tuple’] assume_tac) >> rfs[] >> 
+ first_x_assum irule >>
+ drule isio_o_r1 >>
+ first_x_assum (qsspecl_then [‘r’] assume_tac) >> rfs[] >>
+ first_x_assum irule >> arw[GSYM o_assoc] >>
+ arw[o_assoc] >>
+ qby_tac ‘d0 o t32 = d1 o t1’ 
+ >-- (qpick_x_assum ‘d0 o t2 = d1 o t1’ 
+      (assume_tac o GSYM) >>
+     arw[] >> drule isio_dom >>
+     first_x_assum irule >> 
+     qexistsl_tac [‘t3’,‘r’] >> arw[]) >> 
+ arw[] >>
+ drule isio_unique1 >>
+ first_x_assum (qsspecl_then [‘r’,‘t3’,‘t2’,‘r o Pba2(d1, (d0 o r)) o aiso o tuple’,‘t32’] assume_tac) >>
+ rfs[] >> first_x_assum irule >>
+ drule isio_o_r1 >>
+ first_x_assum (qsspecl_then [‘r’] assume_tac) >> rfs[] >>
+ first_x_assum irule >> arw[] >>
+ qsuff_tac
+ ‘(Pba1(d1, d0) o Pba2(d1, (d0 o r)) o aiso) o tuple = t2 &
+  (Pba2(d1, d0) o Pba2(d1, (d0 o r)) o aiso) o tuple = t3’
+ >-- rw[o_assoc] >>
+ arw[] >> arw[o_assoc]) >>
+ qsspecl_then [‘d0’,‘d1’,‘i’,‘r’] assume_tac tuple_ex >>
+ first_x_assum irule >>
+ arw[]) >> 
  rw[Iassoc_def] >> 
  rpt strip_tac >>
  irule $ iffLR fun_ext >> strip_tac >>
@@ -238,7 +491,124 @@ qsuff_tac
 val Iassoc_alt_2 = prove_store("Iassoc_alt_2",
 e0
 (rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
- >-- cheat >>
+ >-- (rpt strip_tac >>
+ drule $ iffLR Iassoc_def >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘?t21.
+  isio(d0, d1, Pba1(d1, d0), Pba2(d1, d0), r, t2, t1, t21)’
+ >-- (irule isio_ex >> arw[Pb_def]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘?t32.
+  isio(d0, d1, Pba1(d1, d0), Pba2(d1, d0), r, t3, t2, t32)’
+ >-- (irule isio_ex >> arw[Pb_def]) >>
+ pop_assum strip_assume_tac >> 
+ qby_tac
+ ‘?cr1 aiso c1r.Pba1(d1, d0) o cr1 = r o Pba1(d1 o r, d0) &
+               Pba2(d1, d0) o cr1 = Pba2(d1 o r, d0) &
+               Pba1(d1, d0) o c1r = Pba1(d1, d0 o r) &
+               Pba2(d1, d0) o c1r = r o Pba2(d1, d0 o r) &
+               Pba1(d1, (d0 o r)) o aiso = Pba1(d1, d0) o Pba1(d1 o r, d0) &
+               Pba1(d1, d0) o Pba2(d1, (d0 o r)) o aiso = Pba2(d1, d0) o
+                 Pba1(d1 o r, d0) &
+               Pba2(d1, d0) o Pba2(d1, (d0 o r)) o aiso = Pba2(d1 o r, d0)’ 
+ >-- (qsspecl_then [‘d0’,‘d1’,‘i’,‘r’] assume_tac
+     cr1_aiso_cr1_ex >> 
+     first_x_assum irule >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ first_x_assum 
+ (qsspecl_then [‘cr1’,‘aiso’,‘c1r’] assume_tac) >> rfs[] >> 
+ qby_tac
+ ‘?t321l. isio(d0, d1, Pba1(d1, d0), Pba2(d1, d0), r, t3, t21, t321l)’ 
+ >-- (qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+     drule isio_ex >> 
+     first_x_assum irule >> arw[] >>
+     drule isio_cod >> flip_tac >>
+     first_x_assum irule >> 
+     qexistsl_tac [‘t1’,‘r’] >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qby_tac
+ ‘?t321r. isio(d0, d1, Pba1(d1, d0), Pba2(d1, d0), r, t32, t1, t321r)’ 
+ >-- (qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+     drule isio_ex >> 
+     first_x_assum irule >> arw[] >>
+     qpick_x_assum ‘d0 o t2 = d1 o t1’ (assume_tac o GSYM) >>
+     arw[] >> 
+     drule isio_dom >>
+     first_x_assum irule >> 
+     qexistsl_tac [‘t3’,‘r’] >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ qsuff_tac ‘t321r = t321l’ 
+ >-- (strip_tac >>
+     qexistsl_tac [‘t321l’,‘t32’,‘t21’] >> arw[] >> fs[]) >>
+ qsuff_tac 
+ ‘?tuple:2->Pbo(d1 o r, d0). 
+  t321l = r o cr1 o tuple & t321r = r o c1r o aiso o tuple’
+ >-- (strip_tac >>
+     arw[] >> 
+     qsuff_tac ‘(r o cr1) o tuple = 
+                            (r o c1r o aiso) o tuple’ 
+     >-- rw[o_assoc] >> arw[] >> strip_tac >>
+    arw[]) >>
+ qsuff_tac
+ ‘?tuple:2->Pbo(d1 o r,d0).
+   Pba1(d1,d0) o Pba1(d1 o r,d0) o tuple = t1 & 
+   Pba2(d1,d0) o Pba1(d1 o r,d0) o tuple = t2 & 
+   Pba2(d1 o r,d0) o tuple = t3’ >-- (strip_tac >>
+ qexists_tac ‘tuple’ >>
+ strip_tac (* 2 *)
+ >-- (qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+     drule isio_unique1 >>
+     first_x_assum  
+     (qsspecl_then [‘r’,‘t3’,‘t21’,‘t321l’,‘r o cr1 o tuple’] assume_tac) >> rfs[] >>
+     first_x_assum irule >>
+     drule isio_o_r1 >>
+     first_x_assum (qsspecl_then [‘r’] assume_tac) >>
+     rfs[] >>
+     first_x_assum irule >> 
+     arw[GSYM o_assoc] >>
+     qby_tac ‘d1 o t2 = d1 o t21’ 
+     >-- (flip_tac >> drule isio_cod >> 
+         first_x_assum irule >> 
+         qexistsl_tac [‘t1’,‘r’] >> arw[]) >> arw[] >>
+     rw[o_assoc] >> 
+     drule isio_unique1 >>
+     first_x_assum (qsspecl_then [‘r’,‘t2’,‘t1’,‘r o Pba1((d1 o r), d0) o tuple’,‘t21’] assume_tac) >> rfs[] >>
+     first_x_assum irule >> 
+     drule isio_o_r1 >>
+     first_x_assum (qsspecl_then [‘r’] assume_tac) >> rfs[]>>
+     first_x_assum irule >> arw[]) >>
+ qsspecl_then [‘d1’,‘d0’] assume_tac Pb_def >>
+ drule isio_unique1 >> 
+ first_x_assum  
+     (qsspecl_then [‘r’,‘t32’,‘t1’,‘t321r’,‘r o c1r o aiso o tuple’] assume_tac) >> rfs[] >> 
+ first_x_assum irule >>
+ drule isio_o_r1 >>
+ first_x_assum (qsspecl_then [‘r’] assume_tac) >> rfs[] >>
+ first_x_assum irule >> arw[GSYM o_assoc] >>
+ arw[o_assoc] >>
+ qby_tac ‘d0 o t32 = d1 o t1’ 
+ >-- (qpick_x_assum ‘d0 o t2 = d1 o t1’ 
+      (assume_tac o GSYM) >>
+     arw[] >> drule isio_dom >>
+     first_x_assum irule >> 
+     qexistsl_tac [‘t3’,‘r’] >> arw[]) >> 
+ arw[] >>
+ drule isio_unique1 >>
+ first_x_assum (qsspecl_then [‘r’,‘t3’,‘t2’,‘r o Pba2(d1, (d0 o r)) o aiso o tuple’,‘t32’] assume_tac) >>
+ rfs[] >> first_x_assum irule >>
+ drule isio_o_r1 >>
+ first_x_assum (qsspecl_then [‘r’] assume_tac) >> rfs[] >>
+ first_x_assum irule >> arw[] >>
+ qsuff_tac
+ ‘(Pba1(d1, d0) o Pba2(d1, (d0 o r)) o aiso) o tuple = t2 &
+  (Pba2(d1, d0) o Pba2(d1, (d0 o r)) o aiso) o tuple = t3’
+ >-- rw[o_assoc] >>
+ arw[] >> arw[o_assoc]) >>
+ qsspecl_then [‘d0’,‘d1’,‘i’,‘r’] assume_tac tuple_ex >>
+ first_x_assum irule >>
+ arw[]) >>
  rw[Iassoc_def] >> 
  rpt strip_tac >>
  irule $ iffLR fun_ext >> strip_tac >>
@@ -327,3 +697,4 @@ qsuff_tac
    isio(d0,d1,Pba1(d1,d0),Pba2(d1,d0),r,t32,t1,t321) &
    isio(d0,d1,Pba1(d1,d0),Pba2(d1,d0),r,t3,t21,t321))
    ”));
+
