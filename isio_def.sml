@@ -40,13 +40,56 @@ e0
 
 val isio_compatible = prove_store("isio_compatible",
 e0
-()
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *)
+ >-- (fs[isio_def] >> arw[GSYM o_assoc] >>
+     arw[o_assoc] >>
+     rev_drule through_Pb >>
+     first_x_assum (qsspecl_then [‘f’,‘g’] assume_tac) >>
+     rfs[] >> 
+     qexists_tac ‘a0’>> arw[] >> 
+     qpick_x_assum ‘r o fg0 = gf’ (assume_tac o GSYM) >>
+     arw[] >>
+     qsuff_tac ‘i o a0 = fg0’ >-- (strip_tac >> arw[]) >>
+     drule Pb12_eq_eq >> first_x_assum irule >>
+     arw[GSYM o_assoc]) >>
+ fs[isio_def] >> 
+ qsspecl_then [‘d1’,‘d0’,‘p1’,‘p2’,‘p1'’,‘p2'’]
+ assume_tac isPb_unique >>
+ rfs[] >> 
+ qby_tac ‘j = i’ 
+ >-- (rev_drule Pb12_eq_eq >> first_x_assum irule >> arw[])>>
+ fs[] >>
+ qby_tac
+ ‘d0 o r = d0 o p1’ 
+ >-- (qby_tac ‘d0 o r o i o i' = d0 o p1' o i'’ 
+     >-- fs[GSYM o_assoc] >>
+     rfs[IdR]) >> arw[] >>
+ qby_tac ‘d1 o r = d1 o p2’ 
+ >-- (qby_tac ‘d1 o r o i o i' = d1 o p2' o i'’ 
+     >-- fs[GSYM o_assoc] >>
+     rfs[IdR]) >> arw[] >>
+ rev_drule through_Pb >>
+ first_x_assum (qsspecl_then [‘f’,‘g’] assume_tac) >>
+ rfs[] >>
+ qexists_tac ‘a0’ >> arw[] >>
+ qpick_x_assum ‘(r o i) o fg0 = gf’ (assume_tac o GSYM) >>
+ arw[] >>
+ rw[o_assoc] >>
+ qsuff_tac ‘a0 = i o fg0’ 
+ >-- (strip_tac >> arw[]) >>
+ rev_drule Pb12_eq_eq >>
+ first_x_assum irule >> arw[GSYM o_assoc])
 (form_goal
  “!C0 C1 d0:C1->C0 d1:C1->C0 
    C1C1 p1:C1C1->C1 p2:C1C1->C1. 
    isPb(d1,d0,p1,p2) ==>
    !Pb p1':Pb->C1 p2':Pb->C1.
    isPb(d1,d0,p1',p2') ==>
+   !i:Pb->C1C1.
+   p1 o i = p1' & p2 o i = p2' ==>
+   !r A g f:A->C1 gf.
+    isio(d0,d1,p1,p2,r,g,f,gf) <=> 
+    isio(d0,d1,p1',p2',r o i,g,f,gf)
    ”));
 
 
