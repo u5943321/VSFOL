@@ -1307,3 +1307,128 @@ e0
   d1 o a = c ⇒
   isio(d0,d1,Pba1(d1,d0),Pba2(d1,d0),r,i o c,a,a))
   ”));
+
+
+val C2Icat_IidR = prove_store("C2Icat_IidR",
+e0
+(irule $ iffRL IidR_alt >>
+ rw[C2ICat_cod,C2ICat_dom,C2Icat_cl12] >> rw[Ii_ID] >>
+ rpt strip_tac >>
+ irule $ iffRL isio_iff_vo' >> fs[Id1_Cod] >>
+ pop_assum (assume_tac o GSYM) >> arw[] >>
+ rw[ID_Dom_Cod] >>
+ rw[IDL])
+(form_goal
+ “IidR(Id0(A),Id1(A),Ii(A),Ir(A))”));
+
+
+val C2ICat = prove_store("C2ICat",
+e0
+(rw[Icat_def] >>
+ rw[C2Icat_cl12] >> rw[C2ICat_dom] >> rw[C2ICat_cod] >>
+ rw[C2Icat_IidL,C2Icat_IidR,C2Icat_Iassoc])
+(form_goal “Icat(Id0(A),Id1(A),Ii(A),Ir(A))”));
+
+
+ dd0 o f1 = f0 o cd0 &
+      dd1 o f1 = f0 o cd1 &
+      di o f0 = f1 o ci
+
+val ff1_ex = prove_store("ff1_ex",
+e0
+(rpt strip_tac >>
+ qsspecl_then [‘dd1’,‘dd0’] assume_tac Pb_def >>
+ drule through_Pb >>
+ first_x_assum (qsspecl_then [‘f1 o Pba1(cd1, cd0)’,
+                              ‘f1 o Pba2(cd1, cd0)’] 
+                assume_tac) >>
+ rfs[GSYM o_assoc] >> fs[o_assoc,Pb_eqn] >>
+ qexists_tac ‘a0’ >> arw[])
+(form_goal
+ “!C0 C1 cd0:C1->C0 cd1:C1->C0
+   D0 D1 dd0:D1->D0 dd1:D1->D0
+   f0:C0->D0 f1:C1->D1.
+ dd0 o f1 = f0 o cd0 &
+ dd1 o f1 = f0 o cd1 ⇒ 
+ ∃ff1. Pba1(dd1, dd0) o ff1 = f1 o Pba1(cd1, cd0) &
+       Pba2(dd1, dd0) o ff1 = f1 o Pba2(cd1, cd0)”));
+
+val Ipreso_alt = prove_store("Ipreso_alt",
+e0
+(rpt strip_tac >> dimp_tac >> strip_tac (* 2 *) >-- 
+ (rpt strip_tac >> drule $ iffLR Ipreso_def >>
+ qby_tac
+ ‘∃ff1. Pba1(dd1, dd0) o ff1 = f1 o Pba1(cd1, cd0) &
+        Pba2(dd1, dd0) o ff1 = f1 o Pba2(cd1, cd0)’
+ >-- (match_mp_tac ff1_ex >>
+     qexists_tac ‘f0’ >> arw[]) >>
+ pop_assum strip_assume_tac >>
+ first_x_assum (qsspecl_then [‘ff1’] assume_tac) >> rfs[] >>
+ qsspecl_then [‘cd1’,‘cd0’] assume_tac Pb_def >>
+ drule through_Pb >>
+ first_x_assum (qsspecl_then [‘f’,‘g’] assume_tac) >> 
+ rfs[] >>
+ qby_tac 
+ ‘isio(cd0, cd1, Pba1(cd1, cd0), Pba2(cd1, cd0), cr, g, f, cr o a0)’
+ >-- (drule isio_o_r1 >>
+     first_x_assum (qsspecl_then [‘cr’] assume_tac) >>
+     first_x_assum irule >>
+     arw[] >> fs[Icat_def]) >>
+ qexists_tac ‘cr o a0’ >> arw[] >>
+ qpick_x_assum ‘dr o ff1 = f1 o cr’ (assume_tac o GSYM) >>
+ arw[GSYM o_assoc] >>
+ rw[o_assoc] >>
+ qsspecl_then [‘dd1’,‘dd0’] assume_tac Pb_def >>
+ drule isio_o_r1 >>
+ first_x_assum (qsspecl_then [‘dr’] assume_tac) >>
+ first_x_assum irule >>
+ arw[GSYM o_assoc] >> arw[o_assoc] >>
+ fs[Icat_def]) >>
+ rw[Ipreso_def] >> rpt strip_tac >>
+ irule $ iffLR fun_ext >> strip_tac >> rw[o_assoc] >>
+ qabbrev_tac ‘Pba1(cd1,cd0) o a = t1’ >>
+ qabbrev_tac ‘Pba2(cd1,cd0) o a = t2’ >>
+ qby_tac ‘cd0 o t2 = cd1 o t1’ 
+ >-- (qpick_x_assum ‘Pba2(cd1, cd0) o a = t2’
+     (assume_tac o GSYM) >> arw[] >> 
+     qpick_x_assum ‘Pba1(cd1, cd0) o a = t1’
+     (assume_tac o GSYM) >> arw[] >> 
+     rw[GSYM o_assoc,Pb_eqn]) >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ qsuff_tac ‘cr o a = gf & dr o ff1 o a = f1 o gf’ 
+ >-- (strip_tac >> arw[]) >> strip_tac (* 2 *)
+ >-- (qsspecl_then [‘cd1’,‘cd0’] assume_tac Pb_def >>
+     drule isio_unique1 >>
+     first_x_assum
+     (qsspecl_then [‘cr’,‘t2’,‘t1’,‘cr o a’,‘gf’]
+      assume_tac) >> 
+     first_x_assum irule >> arw[] >>
+     drule isio_o_r1 >>
+     first_x_assum (qsspecl_then [‘cr’] assume_tac) >>
+     first_x_assum irule >> arw[] >>
+     fs[Icat_def]) >>
+ qsspecl_then [‘dd1’,‘dd0’] assume_tac Pb_def >>
+ drule isio_unique1 >>
+ first_x_assum (qsspecl_then [‘dr’,‘f1 o t2’,‘f1 o t1’,‘dr o ff1 o a’,‘f1 o gf’] assume_tac) >>
+ first_x_assum irule >> arw[] >>
+ drule isio_o_r1 >>
+ first_x_assum (qsspecl_then [‘dr’] assume_tac) >>
+ first_x_assum irule >>
+ arw[GSYM o_assoc] >> arw[o_assoc] >>
+ fs[Icat_def]) 
+(form_goal 
+ “!C0 C1 cd0:C1->C0 cd1:C1->C0 ci:C0->C1 cr
+   D0 D1 dd0:D1->D0 dd1:D1->D0 di:D0->D1 dr 
+   f0:C0->D0 f1:C1->D1.
+ Icat(cd0,cd1,ci,cr) & Icat(dd0,dd1,di,dr) & 
+ dd0 o f1 = f0 o cd0 &
+ dd1 o f1 = f0 o cd1  ⇒ 
+ (Ipreso(cd0, cd1, ci, cr, dd0, dd1, di, dr, f0, f1) ⇔
+  ∀T f g:T->C1. 
+  cd0 o g = cd1 o f ⇒
+  ∃gf:T->C1.
+  isio(cd0,cd1,Pba1(cd1,cd0),Pba2(cd1,cd0),cr,g,f,gf) & 
+  isio(dd0,dd1,Pba1(dd1,dd0),Pba2(dd1,dd0),dr,f1 o g, f1 o f,f1 o gf))”));
+
+
