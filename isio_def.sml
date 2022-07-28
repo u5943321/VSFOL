@@ -1330,10 +1330,6 @@ e0
 (form_goal “Icat(Id0(A),Id1(A),Ii(A),Ir(A))”));
 
 
- dd0 o f1 = f0 o cd0 &
-      dd1 o f1 = f0 o cd1 &
-      di o f0 = f1 o ci
-
 val ff1_ex = prove_store("ff1_ex",
 e0
 (rpt strip_tac >>
