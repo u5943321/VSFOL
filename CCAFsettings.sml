@@ -20,7 +20,49 @@ val Pa_def0 = p2_def |> rewr_rule[isPr_def] |> spec_all
                     |> gen_all
 
 
-val Pa_def = prove_store("Pa_def",
+val Pa_def =
+
+val g = 
+ cg $
+e0
+(rpt gen_tac >>
+ qsspecl_then [‘f’,‘g’] assume_tac Pa_def0 >> arw[] >>
+ qspecl_then [‘A’,‘B’] assume_tac p2_def)
+(form_goal
+ “∀A B X f:X->A g:X->B.
+ (p1(A, B) o Pa(f, g) = f & p2(A, B) o Pa(f, g) = g) &
+ !fg' : X -> A * B.
+ p1(A, B) o fg' = f & p2(A, B) o fg' = g ==>
+ fg' = Pa(f, g)”)
+
+fun simp_asm thms (t, l') = rewr_rule (l' @ thms) t :: l'
+
+fun f r (tac:thm_tactic) thms asms:tactic = 
+    map_every tac (r (List.foldl (simp_asm thms) [] (r asms)))
+
+
+val ([g1],v) = 
+pop_assum_list (f I strip_assume_tac [isPr_def]) g
+
+rw_tac [isPr_def] g1
+
+val thl = [isPr_def] ;
+val fc = it;
+val (G,fl,f) = g1;
+
+fconv_tac fc g1 
+
+val ()
+
+fconv_tac (gen_rewrite_fconv basic_fconv Net.empty fempty thl)
+
+
+(pop_assum_list (f I strip_assume_tac [isPr_def]) 
+then_tac arw_tac [isPr_def]) g
+
+
+val Pa_def = 
+ prove_store("Pa_def",
 e0
 (rpt gen_tac >>
  qsspecl_then [‘f’,‘g’] assume_tac Pa_def0 >> arw[] >>
@@ -4632,14 +4674,14 @@ e0
                ∃c0:1->A. cod(p) = i1(A, B) o c0’
  >-- (rpt strip_tac >> first_x_assum drule >>
      qsspecl_then [‘cod(p)’] assume_tac Thm15_comment >>
-     rfs[] >> qexists_tac ‘a’ >> rw[]) >> 
+     rfs[] >> qexists_tac ‘a1’ >> rw[]) >> 
  qby_tac
 ‘!(p : fun(2, A + B))  (d0 : fun(1, B)).
                dom(p) = i2(A, B) o d0 ==>
                ∃c0:1->B. cod(p) = i2(A, B) o c0’
  >-- (rpt strip_tac >> first_x_assum drule >>
      qsspecl_then [‘cod(p)’] assume_tac Thm15_comment >>
-     rfs[] >> qexists_tac ‘b’ >> rw[]) >> 
+     rfs[] >> qexists_tac ‘a2’ >> rw[]) >> 
  qby_tac
  ‘∀ab:1->A + B a. 
   ab = i1(A,B) o a ⇒
@@ -4668,7 +4710,7 @@ e0
      Thm15_comment (* 2 *)
      >-- (uex_tac >> qexists_tac ‘i1(A, B) o j o f'’ >>
          rpt strip_tac (* 2 *)
-         >-- (disj1_tac >> qexists_tac ‘a’ >>
+         >-- (disj1_tac >> qexists_tac ‘a1’ >>
              arw[]) >> 
          first_x_assum drule >>
          fs[]) >>

@@ -389,7 +389,7 @@ fun fconv_tac fc (G,fl,f) =
         then ([],empty (add_cont G' $ dimp_mp_l2r (trueI fl) (iff_swap th)))
         else
             ([(G',fl,rhs)],
-              sing (dimp_mp_r2l (fc f)))
+              sing (dimp_mp_r2l th))
     end
 
 
@@ -983,6 +983,7 @@ val arw_tac = arw;
 
 val once_arw_tac = once_arw;
 
+(*fun simp_asm thms (t, l') = rewr_rule (l' @ thms) t :: l'*)
 
 fun f r (tac:thm_tactic) thms asms:tactic = 
     map_every tac (r (List.foldl (simp_asm thms) [] (r asms)))
