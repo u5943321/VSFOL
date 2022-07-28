@@ -613,14 +613,166 @@ qdefine_psym("ISOof",
  IFun(td0,td1,ti,tr,Id0(A),Id1(A),Ii(A),Ir(A),s,t)’
 
 
+val Sq_Ii = prove_store("Sq_Ii",
+e0
+(rpt strip_tac >> rw[Ii_ID] >> rw[Ii_def,Sq_def] >>
+ rw[ID_def] >> 
+ irule Ev_eq_eq >> rw[Ev_of_Tp_el] >>
+ rw[o_assoc,Ev_of_Tp_el] >> rw[p12_of_Pa] >>
+ rw[Pt_def] >> rw[id_def,o_assoc,GSYM Tp1_def,Ev_of_Tp_el,Swap_Pa] >>
+ rw[Pa_distr,p12_of_Pa,o_assoc] >> rw[Ev_of_Tp_el] >>
+ rw[o_assoc,p12_of_Pa])
+(form_goal “!A B F:A->B.Ii(B) o F = Sq(F) o Ii(A)”));
+
+val Sq_Rw = prove_store("Sq_Rw",
+e0
+(rpt strip_tac >> rw[Rw_def] >> rw[Ec_def] >> rw[Sq_def])
+(form_goal
+“∀A B F:A->B T η.Sq(F:A->B) o η:T->Exp(2,A) = Rw(F,η)”));
+
+
+val Rw_vo = prove_store("Rw_vo",
+e0
+(rpt strip_tac >>
+ irule $ Nt_ext_cpnt >>
+ qabbrev_tac ‘Dom(f) = F1’ >>
+ qabbrev_tac ‘Cod(f) = F2’ >>
+ qabbrev_tac ‘Cod(g) = F3’ >>
+ qby_tac ‘Nt(f,F1,F2)’ 
+ >-- (qsspecl_then [‘f’] assume_tac Nt_Dom_Cod >> rfs[]) >>
+ qby_tac ‘Nt(g,F2,F3)’ 
+ >-- (qsspecl_then [‘g’] assume_tac Nt_Dom_Cod >> rfs[]) >>
+ qby_tac ‘Nt(vo(g,f),F1,F3)’ 
+ >-- (irule vo_Nt_Nt >> qexists_tac ‘F2’ >> arw[]) >>
+ drule Nt_Rw_Nt >>
+ first_x_assum (qsspecl_then [‘F’] assume_tac) >>
+ rev_drule Nt_Rw_Nt >>
+ first_x_assum (qsspecl_then [‘F’] assume_tac) >>
+ qsspecl_then [‘F2’,‘F3’,‘g’] assume_tac Nt_Rw_Nt >>
+ first_x_assum drule >>
+ first_x_assum (qsspecl_then [‘F’] assume_tac) >>
+ qby_tac ‘Nt(vo(Rw(F, g), Rw(F, f)), F o F1, F o F3)’
+ >-- (irule vo_Nt_Nt >> qexists_tac ‘F o F2’ >> arw[]) >>
+ rpt strip_tac (* 2 *)
+ >-- (qexistsl_tac [‘F o F1’,‘F o F3’] >> arw[]) >>
+ rw[Rw_cpnt] >>
+ qby_tac ‘cpnt(vo(g, f), a) = cpnt(g, a) @ cpnt(f,a)’ 
+ >-- (irule Nt_vo_cpnt >> qexistsl_tac [‘F1’,‘F2’,‘F3’] >> arw[]) >> arw[] >>
+ qby_tac ‘cpsb(cpnt(g, a),cpnt(f, a))’ 
+ >-- (irule Dom_Cod_vo_cpsb >> arw[]) >>
+ drule fun_pres_oa >> 
+ first_x_assum (qsspecl_then [‘F’] assume_tac) >> arw[] >>
+ qby_tac
+ ‘cpnt(vo(Rw(F, g), Rw(F, f)), a) = 
+  cpnt(Rw(F, g), a) @ cpnt(Rw(F, f), a)’ 
+ >-- (irule Nt_vo_cpnt >> qexistsl_tac [‘F o F1’,‘F o F2’,‘F o F3’] >>
+     arw[]) >> arw[] >>
+ rw[Rw_cpnt])
+(form_goal 
+ “∀A B F:A->B g f:T->Exp(2,A). 
+  Dom(g) = Cod(f) ⇒
+  Rw(F, vo(g, f)) = vo(Rw(F, g), Rw(F, f))”));
+
+val Sq_IFun = prove_store("Sq_IFun",
+e0
+(rpt strip_tac >> rw[IFun_def] >>
+ qby_tac ‘Icat(Id0(A), Id1(A), Ii(A), Ir(A))’
+ >-- rw[C2ICat] >>
+ qby_tac ‘Icat(Id0(B), Id1(B), Ii(B), Ir(B))’
+ >-- rw[C2ICat] >> arw[] >>
+ qby_tac ‘Id0(B) o Sq(F) = F o Id0(A)’
+ >-- rw[Id0_Sq] >>
+ qby_tac ‘Id1(B) o Sq(F) = F o Id1(A)’
+ >-- rw[Id1_Sq] >> arw[]>>
+ qby_tac ‘Ii(B) o F = Sq(F) o Ii(A)’
+ >-- rw[Sq_Ii] >> arw[] >>
+ irule $ iffRL Ipreso_alt >> arw[] >>
+ rpt strip_tac >>
+ qsspecl_then [‘Id1(A)’,‘Id0(A)’] assume_tac Pb_def >>
+ drule isio_ex >>
+ first_x_assum (qsspecl_then [‘Ir(A)’] assume_tac) >>
+ qby_tac ‘Id0(A) o Ir(A) = Id0(A) o Pba1(Id1(A), Id0(A)) &
+          Id1(A) o Ir(A) = Id1(A) o Pba2(Id1(A), Id0(A)) ’
+ >-- fs[Icat_def] >>
+ first_x_assum drule >>
+ first_x_assum drule >>
+ pop_assum strip_assume_tac >>
+ qexists_tac ‘gf’ >> arw[] >>
+ irule $ iffRL isio_iff_vo' >>
+ qby_tac ‘Dom(Sq(F) o g) = Cod(Sq(F) o f)’
+ >-- (fs[GSYM Id0_Dom,GSYM Id1_Cod] >> arw[GSYM o_assoc] >> 
+     arw[o_assoc]) >> arw[] >>
+ rw[Sq_Rw]  >>
+ qby_tac ‘gf = vo(g,f)’ 
+ >-- (irule $ iffLR isio_iff_vo' >> arw[GSYM Id0_Dom,GSYM Id1_Cod]) >>
+ arw[] >>
+ irule Rw_vo >> arw[GSYM Id0_Dom,GSYM Id1_Cod])
+(form_goal 
+ “!A B F:A->B G. 
+  IFun(Id0(A),Id1(A),Ii(A),Ir(A),
+       Id0(B),Id1(B),Ii(B),Ir(B),F,Sq(F))”));
+
 val Thm26_L2R = prove_store("Thm26_L2R",
 e0
-()
+(rpt strip_tac >>
+ qby_tac ‘?f0. Bs o f0 = F o As’ 
+ >-- (drule $ iffLR ISOof_def >>
+     pop_assum strip_assume_tac >>
+     drule $ iffLR SO_def >> pop_assum strip_assume_tac >>
+     first_x_assum (qsspecl_then [‘F o As’] assume_tac) >>
+     flip_tac >> first_x_assum irule >> 
+     rev_drule $ iffLR ISOof_def >> pop_assum strip_assume_tac >>
+     drule $ iffLR SO_def >> arw[]) >>
+ pop_assum strip_assume_tac >> qexists_tac ‘f0’ >> arw[] >>
+ qby_tac ‘?f1. Bt o f1 = Sq(F) o At’ 
+ >-- (drule $ iffLR ISOof_def >>
+     pop_assum strip_assume_tac >>
+     rev_drule $ iffLR SO_def >>
+     pop_assum strip_assume_tac >>
+     first_x_assum (qsspecl_then [‘Sq(F) o At’] assume_tac) >>
+     flip_tac >> first_x_assum irule >>
+     rev_drule $ iffLR ISOof_def >>
+     pop_assum strip_assume_tac >> 
+     fs[SO_def]) >> pop_assum strip_assume_tac >>
+ qexists_tac ‘f1’ >> arw[] >>
+ rw[IFun_def] >>
+ qby_tac ‘Icat(Ad0, Ad1, Ai, Ar)’ 
+ >-- (rev_drule $ iffLR ISOof_def >>  
+     pop_assum strip_assume_tac >>
+     fs[ISC_def]) >> arw[] >>
+ qby_tac ‘Icat(Bd0, Bd1, Bi, Br)’ 
+ >-- (drule $ iffLR ISOof_def >>  
+     pop_assum strip_assume_tac >>
+     fs[ISC_def]) >> arw[] >>
+ qby_tac ‘Bd0 o f1 = f0 o Ad0’
+ >-- qsuff_tac ‘Bs o Bd0 o f1 = Bs o f0 o Ad0’ 
+     >-- cheat >>
+     arw[GSYM o_assoc] >> rw[o_assoc] >>
+     qby_tac ‘Bs o Bd0 = Id0(B) o Bt’ >-- cheat >>
+     arw[GSYM o_assoc] >> arw[o_assoc] >>
+     qby_tac ‘ Id0(B) o Sq(F) = F o Id0(A)’ 
+     >-- cheat >> arw[GSYM o_assoc] >>
+     rw[o_assoc] >> 
+ )
 (form_goal 
- “ISOof(Atd0:AT->AS, atd1:Ta->Sa, ati:Sa->Ta, atr,
-        as:Sa->A, at:Ta->Exp(2,A)) & 
-  ISOof(td0:Tb->Sb, td1:Ta->Sa, ti:Sa->Ta, tr,
-        s:Sa->A, t:Ta->Exp(2,A))”));
+ “!A B F:A->B
+   A0 A1 
+   Ad0:A1->A0 Ad1:A1->A0 Ai:A0->A1 Ar
+   As:A0->A At:A1->Exp(2,A)
+   B0 B1
+   Bd0:B1->B0 Bd1:B1->A0 Bi:B0->B1 Br
+   Bs:B0->B Bt:B1->Exp(2,B).
+  ISOof(Ad0:A1->A0, Ad1:A1->A0, Ai:A0->A1, Ar,
+        As:A0->A, At:A1->Exp(2,A)) & 
+  ISOof(Bd0:B1->B0, Bd1:B1->B0, Bi:B0->B1, Br,
+        Bs:B0->B, Bt:B1->Exp(2,B)) ==>
+  ?f0:A0->B0 f1:A1->B1. 
+   Bs o f0 = F o As & Bt o f1 = Sq(F) o At & 
+   IFun(Ad0,Ad1,Ai,Ar,Bd0,Bd1,Bi,Br,f0,f1) 
+  ”));
+
+“ISOof(Ad0:A1->A0, Ad1:A1->A0, Ai:A0->A1, Ar,
+        As:A0->A, At:A1->Exp(2,A))”
 
 val Thm26_R2L = prove_store("Thm26_R2L",
 e0
