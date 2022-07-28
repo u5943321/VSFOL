@@ -597,3 +597,44 @@ e0
   ISC(td0,td1,ti,tr) & 
   IFun(td0,td1,ti,tr,Id0(A),Id1(A),Ii(A),Ir(A),s,t)”));
 
+val ISOof_def = 
+qdefine_psym("ISOof",
+[‘td0:T->S’,‘td1:T->S’,‘ti:S->T’,‘tr:Pbo(td1:T->S,td0:T->S)->T’,
+ ‘s:S->A’,‘t:T->Exp(2,A)’]) 
+‘SO(t) & SO(s) & 
+ s o td0 = Id0(A) o t & 
+ s o td1 = Id1(A) o t &
+ t o ti = Ii(A) o s & 
+ (!tt: Pbo(td1,td0) -> Pbo(Id1(A),Id0(A)).
+  Pba1(Id1(A),Id0(A)) o tt = t o Pba1(td1,td0) & 
+  Pba2(Id1(A),Id0(A)) o tt = t o Pba2(td1,td0) ==>
+ t o tr = Ir(A) o tt) & 
+ ISC(td0,td1,ti,tr) & 
+ IFun(td0,td1,ti,tr,Id0(A),Id1(A),Ii(A),Ir(A),s,t)’
+
+
+val Thm26_L2R = prove_store("Thm26_L2R",
+e0
+()
+(form_goal 
+ “ISOof(Atd0:AT->AS, atd1:Ta->Sa, ati:Sa->Ta, atr,
+        as:Sa->A, at:Ta->Exp(2,A)) & 
+  ISOof(td0:Tb->Sb, td1:Ta->Sa, ti:Sa->Ta, tr,
+        s:Sa->A, t:Ta->Exp(2,A))”));
+
+val Thm26_R2L = prove_store("Thm26_R2L",
+e0
+()
+(form_goal
+ “!A T t:T->Exp(2,A). SO(t) ==>
+  !S s:S->A.SO(s) ==>
+  !td0:T->S td1:T->S ti:S->T tr:Pbo(td1,td0) -> T. 
+  s o td0 = Id0(A) o t & 
+  s o td1 = Id1(A) o t &
+  t o ti = Ii(A) o s & 
+  (!tt: Pbo(td1,td0) -> Pbo(Id1(A),Id0(A)).
+   Pba1(Id1(A),Id0(A)) o tt = t o Pba1(td1,td0) & 
+   Pba2(Id1(A),Id0(A)) o tt = t o Pba2(td1,td0) ==>
+   t o tr = Ir(A) o tt) ==>
+  !f0:S->A f1:T->A. 
+  IFun()”));
