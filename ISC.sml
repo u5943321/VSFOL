@@ -1448,37 +1448,65 @@ e0
  pop_assum (x_choose_then "agf0" assume_tac) >>
  rpt gen_tac >>
  disch_tac >> pop_assum strip_assume_tac >> 
- arw[] >> drule ISOof_Ir_iff >>
- qby_tac ‘dom(Tp0(Bt o f1 o a1')) = cod(Tp0(Bt o f1 o a1))’ 
- >-- cheat >>
+ qby_tac ‘Ipreso(Ad0, Ad1, Ai, Ar, Bd0, Bd1, Bi, Br, f0, f1)’
+ >-- fs[IFun_def] >>
+ qby_tac
+ ‘Icat(Ad0, Ad1, Ai, Ar) &
+  Icat(Bd0, Bd1, Bi, Br) &
+  Bd0 o f1 = f0 o Ad0 & Bd1 o f1 = f0 o Ad1’
+ >-- (drule ISOof_Icat >> arw[] >>
+     rev_drule ISOof_Icat >> arw[] >>
+     fs[IFun_def]) >>
+ drule Ipreso_alt  >>
+ first_x_assum (drule o iffLR) >>
+ first_x_assum (qsspecl_then [‘a1’,‘a1'’] assume_tac) >>
+ rev_drule ISOof_cpsb >>
+ first_x_assum (drule o iffLR) >>
+ first_x_assum (qsspecl_then [‘a1’,‘a1'’] assume_tac) >>
+ qby_tac ‘Ad0 o a1' = Ad1 o a1’ >-- (first_x_assum irule >> arw[]) >>
+ qpick_x_assum ‘af = Tp0(At o a1) & ag = Tp0(At o a1') ==> Ad0 o a1' = Ad1 o a1’
+ (K all_tac) >>
  first_x_assum drule >>
- arw[] >> pop_assum (K all_tac) >>
- rpt strip_tac >>
- rw[Tp1_Tp0_inv] >>
- qexistsl_tac [‘f1 o a1’,‘f1 o a1'’,‘f1 o agf0’] >>
- rw[] >>
- drule isio_ISOof >>
- first_x_assum (irule o iffRL) >>
- qby_tac ‘Bd0 o f1 o a1' = Bd1 o f1 o a1’ >-- cheat >> arw[] >>
- irule $ iffRL isio_iff_vo' >>
- qby_tac ‘Dom(Bt o f1 o a1') = Cod(Bt o f1 o a1)’
- >-- cheat >> arw[] >>
+ pop_assum strip_assume_tac >>
+ qby_tac ‘isio(Ad0, Ad1, Pba1(Ad1, Ad0), Pba2(Ad1, Ad0), Ar, a1', a1, agf0)’
+ >-- (qby_tac ‘At o agf0 = vo(At o a1',At o a1)’
+     >-- (irule $ iffLR Tp0_eq_eq >>
+         qsuff_tac ‘ag @ af = Tp0(vo(At o a1', At o a1))’ 
+         >-- arw[] >>
+         qsuff_tac
+         ‘ag @ af = Tp0(vo(Tp1(Tp0(At o a1')), Tp1(Tp0(At o a1))))’ 
+         >-- rw[Tp1_Tp0_inv] >>
+         qsuff_tac ‘ag @ af = Tp0(vo(Tp1(ag), Tp1(af)))’
+         >-- arw[] >>
+         irule vo_1 >> arw[]) >>
+     rev_drule isio_ISOof_vo >>
+     first_x_assum $ irule o iffRL >> arw[]) >>
+ qby_tac ‘gf = agf0’ 
+ >-- (qsspecl_then [‘Ad1’,‘Ad0’] assume_tac Pb_def >>
+     drule isio_unique1 >>
+     first_x_assum (qspecl_then [‘Ar’] assume_tac) >>
+     first_x_assum irule >> 
+     qexistsl_tac [‘a1’,‘a1'’] >> arw[]) >>
+ fs[] >>
+ drule isio_ISOof_vo >>
+ pop_assum (qsspecl_then [‘f1 o a1’,‘f1 o a1'’,‘f1 o agf0’] assume_tac) >>
+ qby_tac ‘Bd0 o f1 o a1' = Bd1 o f1 o a1’ 
+ >-- (arw[GSYM o_assoc] >> arw[o_assoc]) >>
+ first_x_assum drule >>
+ first_x_assum $ drule o iffLR >>
+ arw[] >> flip_tac >>
  qsuff_tac
- ‘Bt o f1 o agf0 = vo(Tp1(Tp0(Bt o f1 o a1')), Tp1(Tp0(Bt o f1 o a1)))’ 
+ ‘Tp0((Bt o f1 o a1')) @ Tp0(Bt o f1 o a1) =
+  Tp0(vo(Tp1(Tp0(Bt o f1 o a1')), Tp1(Tp0(Bt o f1 o a1))))’
  >-- rw[Tp1_Tp0_inv] >>
- drule vo_1 >> 
- qby_tac ‘cpsb(Tp0(Bt o f1 o a1'),Tp0(Bt o f1 o a1))’
- >-- arw[cpsb_def] >>
- drule $ GSYM vo_1 >>
- once_rw[GSYM Tp0_eq_eq] >> arw[] >> 
- Ipreso_alt
- 
- 
- qby_tac ‘’
-
-
- qby_tac ‘ Bd0 o g# = Bd1 o f#’
- )
+ irule vo_1 >> 
+ drule ISOof_cpsb >>
+ first_x_assum (irule o iffRL) >>
+ rpt strip_tac >>
+ qsuff_tac ‘f1 o a1 = f1' & f1 o a1' = g1’ 
+ >-- (strip_tac >> fs[]) >>
+ strip_tac (* 2 *) >>
+ (drule ISOof_ar_lift_unique >> first_x_assum irule >> arw[]))
 (form_goal 
  “!A B 
    A0 A1 
@@ -1502,9 +1530,6 @@ e0
                  (?(a1 : fun(1, A1)).
                      ag = Tp0(At o a1) & ag1 = Tp0(Bt o f1 o a1)) ==>
                  h = ag1 @ af1”));
-
-
-
 
 
 val Thm26_R2L = prove_store("Thm26_R2L",
@@ -1540,35 +1565,16 @@ e0
                  ?(a1 : fun(1, A1)).
                    id(cod(a)) = Tp0(At o a1) &
                    id(cod(b)) = Tp0(Bt o f1 o a1))’
- 
  >-- (rpt gen_tac  >> strip_tac >> irule Thm26_cl_id >>
      strip_tac (* 2 *)
      >-- (qexistsl_tac 
      [‘A0’,‘Ad0’,‘Ad1’,‘Ai’,‘Ar’,‘As’,‘B0’,‘Bd0’,‘Bd1’,‘Bi’,‘Br’,‘Bs’,‘f0’] >>
      arw[]) >> qexists_tac ‘a1’ >> arw[]) >>
  arw[] >>
- 
-
-
- qby_tac
- ‘∀a0:1->A.∃a00:1->A0. a0 = As o a00’ 
- >-- (rev_drule ISOof_SO >>
-     pop_assum strip_assume_tac >>
-     fs[SO_def] >>
-     strip_tac >> first_x_assum irule >> rw[Disc_1]) >>
-
-
- qby_tac
- ‘∀a:2->A. ∃a1:1->A1. a = Tp0(At o a1)’ (*in fact unique*)
- >-- (strip_tac >> once_rw[GSYM Tp1_eq_eq] >>
-     rev_drule ISOof_SO >>
-     pop_assum strip_assume_tac >>
-     fs[SO_def] >> rw[Tp1_Tp0_inv] >>
-     first_x_assum irule >> rw[Disc_1]) >>
- 
- 
-                               
-)
+ assume_tac (spec_all Thm26_cl_oa) >>
+ first_x_assum drule >>
+ first_x_assum drule >>
+ first_x_assum drule >> arw[])
 (form_goal
  “!A B 
    A0 A1 
