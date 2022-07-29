@@ -972,23 +972,241 @@ e0
    IFun(Ad0,Ad1,Ai,Ar,Bd0,Bd1,Bi,Br,f0,f1) 
   ”));
 
-“ISOof(Ad0:A1->A0, Ad1:A1->A0, Ai:A0->A1, Ar,
-        As:A0->A, At:A1->Exp(2,A))”
+
+
+
+val ISOof_SO = prove_store("ISOof_SO",
+e0
+(rpt strip_tac >> fs[ISOof_def])
+(form_goal
+ “!A A0 A1 
+   Ad0:A1->A0 Ad1:A1->A0 Ai:A0->A1 Ar
+   As:A0->A At:A1->Exp(2,A).
+  ISOof(Ad0:A1->A0, Ad1:A1->A0, Ai:A0->A1, Ar,
+        As:A0->A, At:A1->Exp(2,A)) ⇒
+  SO(As) & SO(At)”));
+
+val ISOof_ar_lift_ex = prove_store("ISOof_ar_lift_ex",
+e0
+(rpt strip_tac >> once_rw[GSYM Tp1_eq_eq] >>
+ rev_drule ISOof_SO >>
+ pop_assum strip_assume_tac >>
+ fs[SO_def] >> rw[Tp1_Tp0_inv] >>
+ first_x_assum irule >> rw[Disc_1])
+(form_goal
+ “!A
+   A0 A1 
+   Ad0:A1->A0 Ad1:A1->A0 Ai:A0->A1 Ar
+   As:A0->A At:A1->Exp(2,A).
+  ISOof(Ad0:A1->A0, Ad1:A1->A0, Ai:A0->A1, Ar,
+        As:A0->A, At:A1->Exp(2,A)) ⇒
+  ∀a:2->A. ∃a1:1->A1. a = Tp0(At o a1)”));
+
+
+val ISOof_Ii_iff = prove_store("ISOof_Ii_iff",
+e0
+(rpt strip_tac >>
+ qby_tac
+ ‘∀a:2->A. ∃a1:1->A1. a = Tp0(At o a1)’ (*in fact unique*)
+ >-- (strip_tac >> once_rw[GSYM Tp1_eq_eq] >>
+     rev_drule ISOof_SO >>
+     pop_assum strip_assume_tac >>
+     fs[SO_def] >> rw[Tp1_Tp0_inv] >>
+     first_x_assum irule >> rw[Disc_1]) >>
+ qby_tac
+ ‘∀a0:1->A.∃a00:1->A0. a0 = As o a00’ 
+ >-- (rev_drule ISOof_SO >>
+     pop_assum strip_assume_tac >>
+     fs[SO_def] >>
+     strip_tac >> first_x_assum irule >> rw[Disc_1]) >>
+ rpt strip_tac >>
+     dimp_tac >> rpt strip_tac (* 2 *)
+     >-- (first_x_assum (qsspecl_then [‘a0’] assume_tac) >>
+         pop_assum strip_assume_tac >> qexists_tac ‘a00’ >> arw[] >>
+         qsuff_tac ‘At o a1 = At o Ai o a00’
+         >-- (rev_drule ISOof_Mono >> fs[Mono_def]) >>
+         qby_tac ‘At o a1 = Tp1(id(a0))’ 
+         >-- (irule $ iffLR Tp0_eq_eq >>
+             qpick_x_assum ‘a = Tp0(At o a1)’ (assume_tac o GSYM) >>
+             arw[] >> rw[Tp0_Tp1_inv]) >>
+         arw[] >> 
+         first_assum (qsspecl_then [‘id(As o a00)’] assume_tac) >>
+         pop_assum strip_assume_tac >>
+         arw[] >> rw[Tp1_Tp0_inv] >> 
+         once_rw[GSYM Tp0_eq_eq] >> 
+         pop_assum (assume_tac o GSYM) >> arw[] >>
+         once_rw[GSYM Tp1_eq_eq] >> rw[Tp1_Tp0_inv] >>
+         rw[GSYM Ii_ap] >> 
+         qsuff_tac ‘Ii(A) o As = At o Ai’ 
+         >-- (strip_tac >> arw[GSYM o_assoc]) >>
+         rev_drule $ iffLR ISOof_def >> arw[]) >>
+     first_assum (qsspecl_then [‘a’] assume_tac) >>
+     pop_assum strip_assume_tac >> 
+     first_x_assum drule >>
+     pop_assum strip_assume_tac >> 
+     arw[] >> pop_assum (assume_tac o GSYM) >> arw[] >>
+     qby_tac ‘At o Ai = Ii(A) o As’ 
+     >-- (rev_drule $ iffLR ISOof_def >> arw[]) >>
+     arw[GSYM o_assoc] >> rw[o_assoc] >>
+     rw[Ii_ap] >> rw[Tp0_Tp1_inv])
+(form_goal
+ “!A
+   A0 A1 
+   Ad0:A1->A0 Ad1:A1->A0 Ai:A0->A1 Ar
+   As:A0->A At:A1->Exp(2,A).
+  ISOof(Ad0:A1->A0, Ad1:A1->A0, Ai:A0->A1, Ar,
+        As:A0->A, At:A1->Exp(2,A)) ⇒
+  ∀a:2->A a0:1->A. a = id(a0) ⇔
+  (∀a1:1->A1. a = Tp0(At o a1) ⇒
+  ∃a00:1->A0. a1 = Ai o a00 & As o a00 = a0)”));
+
+val ISOof_cpsb = 
+
+val Tp1_Dom = prove_store("Tp1_Dom",
+e0
+(rpt strip_tac >> rw[Dom_def,GSYM Tp1_def,dom_def] >>
+ rw[Er1_def,Ed_def] >> rw[o_assoc,Pa_distr,p12_of_Pa] >>
+ rw[To1_def] >> rw[IdL] >>
+ rw[Ev_of_Tp_el] >> rw[o_assoc,p12_of_Pa,Pa_distr] >>
+ rw[Ev_of_Tp_el'] >> rw[o_assoc,p12_of_Pa] >>
+ rw[To1_def] >> rw[one_to_one_Id,IdR]
+ )
+(form_goal “∀A f:2->A. Dom(Tp1(f)) = dom(f)”));
+
+
+val Tp1_Cod = prove_store("Tp1_Cod",
+e0
+(rpt strip_tac >> rw[Cod_def,GSYM Tp1_def,cod_def] >>
+ rw[Er1_def,Ed_def] >> rw[o_assoc,Pa_distr,p12_of_Pa] >>
+ rw[To1_def] >> rw[IdL] >>
+ rw[Ev_of_Tp_el] >> rw[o_assoc,p12_of_Pa,Pa_distr] >>
+ rw[Ev_of_Tp_el'] >> rw[o_assoc,p12_of_Pa] >>
+ rw[To1_def] >> rw[one_to_one_Id,IdR])
+(form_goal “∀A f:2->A. Cod(Tp1(f)) = cod(f)”));
+
+
+
+
+val cpnt_Tp1 = prove_store("cpnt_Tp1",
+e0
+(rpt strip_tac >> rw[cpnt_def] >>
+ rw[Pt_def] >> rw[o_assoc,Pa_distr,p12_of_Pa] >>
+ rw[GSYM Tp1_def] >>
+ rw[Ev_of_Tp_el] >> rw[o_assoc,p12_of_Pa] >>
+ rw[IdR])
+(form_goal “∀A f:2->A dot. cpnt(Tp1(f), dot) = f”));
+
+val vo_1 = prove_store("vo_1",
+e0
+(rpt strip_tac >> flip_tac >> rw[Tp0_iff_Tp1] >>
+ irule $ Nt_ext_cpnt >>
+ qsspecl_then [‘f’] assume_tac Tp1_Dom >>
+ qsspecl_then [‘f’] assume_tac Tp1_Cod >>
+ qsspecl_then [‘g’] assume_tac Tp1_Dom >>
+ qsspecl_then [‘g’] assume_tac Tp1_Cod >>
+ drule oa_dom_cod >>
+ qsspecl_then [‘g @ f’] assume_tac Tp1_Dom >>
+ qsspecl_then [‘g @ f’] assume_tac Tp1_Cod >>
+ qsspecl_then [‘Tp1(g @ f)’] assume_tac Nt_Dom_Cod >> rfs[] >>
+ qsspecl_then [‘dom(f)’,‘cod(f)’,‘cod(g)’,‘Tp1(f)’,‘Tp1(g)’]
+ assume_tac vo_Nt_Nt >>
+ qsspecl_then [‘Tp1(f)’] assume_tac Nt_Dom_Cod >> rfs[] >>
+ qsspecl_then [‘Tp1(g)’] assume_tac Nt_Dom_Cod >> rfs[] >> fs[] >>
+ fs[cpsb_def] >> rfs[] >> first_x_assum drule >>
+ rpt strip_tac (* 2 *)
+ >-- (qexistsl_tac [‘dom(f)’,‘cod(g)’] >> arw[]) >>
+ rw[cpnt_Tp1] >>
+ qsspecl_then [‘dom(f)’,‘cod(f)’,‘cod(g)’,‘Tp1(f)’,‘Tp1(g)’]
+ assume_tac Nt_vo_cpnt >>
+ rfs[] >> rw[cpnt_Tp1])
+(form_goal “∀A f:2->A g:2->A.
+cpsb(g,f) ⇒
+g @ f = Tp0(vo(Tp1(g), Tp1(f))) ”));
+
+
+val ISOof_Ir_iff = prove_store("ISOof_Ir_iff",
+e0
+(rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
+ >-- drule ISOof_ar_lift_ex >>
+     first_assum (qsspecl_then [‘f’] assume_tac) >>
+     pop_assum (x_choose_then "f1" assume_tac) >>
+     first_assum (qsspecl_then [‘g’] assume_tac) >>
+     pop_assum (x_choose_then "g1" assume_tac) >>
+     qexistsl_tac [‘f1’,‘g1’,‘gf1’] >> rw[GSYM Tp0_iff_Tp1] >>
+     arw[] >>
+     drule isio_ISOof_vo >>
+     first_x_assum (irule o iffRL) >>
+     qby_tac ‘Ad0 o g1 = Ad1 o f1’ >-- cheat >> arw[] >>
+     once_rw[GSYM Tp0_eq_eq] >>
+     qpick_x_assum ‘gf = Tp0(At o gf1)’ (assume_tac o GSYM) >> arw[] >>
+     qpick_x_assum ‘f = Tp0(At o f1)’ (assume_tac o GSYM) >>
+     arw[] >>
+     qpick_x_assum ‘g = Tp0(At o g1)’ (assume_tac o GSYM) >> arw[] >>
+     fs[Tp0_iff_Tp1] >>
+
+     
+     
+     )
+(form_goal
+ “!A
+   A0 A1 
+   Ad0:A1->A0 Ad1:A1->A0 Ai:A0->A1 Ar
+   As:A0->A At:A1->Exp(2,A).
+  ISOof(Ad0:A1->A0, Ad1:A1->A0, Ai:A0->A1, Ar,
+        As:A0->A, At:A1->Exp(2,A)) ⇒
+  ∀f:2->A g:2->A.
+  dom(g) = cod(f) ⇒
+  ∀gf:2->A. gf = g @ f ⇔
+  (∀gf1:1->A1. gf = Tp0(At o gf1) ⇒
+  ∃f1:1->A1 g1:1->A1 gf1. 
+  isio(Ad0,Ad1,Pba1(Ad1,Ad0),Pba2(Ad1,Ad0),Ar,g1,f1,gf1) & 
+  At o f1 = Tp1(f) & At o g1 = Tp1(g) & 
+  At o gf1 = Tp1(gf))”));
+
+
+
+
+
 
 val Thm26_R2L = prove_store("Thm26_R2L",
 e0
-()
+(rpt strip_tac >>
+ qsuff_tac
+ ‘∃F:A->B. 
+   ∀a:2->A b:2->B. 
+   (∃a1:1->A1. a = Tp0(At o a1) & b = Tp0(Bt o f1 o a1)) ⇔
+   F o a = b’
+ >-- (strip_tac >> qexists_tac ‘F’ >> arw[]) >>
+ qby_tac
+ ‘∀a:2->A. ∃a1:1->A1. a = Tp0(At o a1)’ (*in fact unique*)
+ >-- (strip_tac >> once_rw[GSYM Tp1_eq_eq] >>
+     rev_drule ISOof_SO >>
+     pop_assum strip_assume_tac >>
+     fs[SO_def] >> rw[Tp1_Tp0_inv] >>
+     first_x_assum irule >> rw[Disc_1]) >>
+ qby_tac
+ ‘∀a0:1->A.∃a00:1->A0. a0 = As o a00’ 
+ >-- (rev_drule ISOof_SO >>
+     pop_assum strip_assume_tac >>
+     fs[SO_def] >>
+     strip_tac >> first_x_assum irule >> rw[Disc_1]) >>
+ 
+                               
+)
 (form_goal
- “!A T t:T->Exp(2,A). SO(t) ==>
-  !S s:S->A.SO(s) ==>
-  !td0:T->S td1:T->S ti:S->T tr:Pbo(td1,td0) -> T. 
-  s o td0 = Id0(A) o t & 
-  s o td1 = Id1(A) o t &
-  t o ti = Ii(A) o s & 
-  (!tt: Pbo(td1,td0) -> Pbo(Id1(A),Id0(A)).
-   Pba1(Id1(A),Id0(A)) o tt = t o Pba1(td1,td0) & 
-   Pba2(Id1(A),Id0(A)) o tt = t o Pba2(td1,td0) ==>
-   t o tr = Ir(A) o tt) ==>
-  !f0:S->A f1:T->A. 
-  IFun()”));
+ “!A B 
+   A0 A1 
+   Ad0:A1->A0 Ad1:A1->A0 Ai:A0->A1 Ar
+   As:A0->A At:A1->Exp(2,A)
+   B0 B1
+   Bd0:B1->B0 Bd1:B1->A0 Bi:B0->B1 Br
+   Bs:B0->B Bt:B1->Exp(2,B) f0:A0->B0 f1:A1->B1.
+  ISOof(Ad0:A1->A0, Ad1:A1->A0, Ai:A0->A1, Ar,
+        As:A0->A, At:A1->Exp(2,A)) & 
+  ISOof(Bd0:B1->B0, Bd1:B1->B0, Bi:B0->B1, Br,
+        Bs:B0->B, Bt:B1->Exp(2,B)) & 
+  IFun(Ad0,Ad1,Ai,Ar,Bd0,Bd1,Bi,Br,f0,f1) ⇒
+  ∃F:A->B. 
+   ∀a:2->A b:2->B. F o a = b ⇔
+   ∃a1:1->A1. a = Tp0(At o a1) & b = Tp0(Bt o f1 o a1) ”));
 
