@@ -1378,14 +1378,14 @@ e0
  drule ISOof_Ad0_dom_Tp0 >> first_x_assum drule >> rfs[] >>
  strip_tac (* 2 *)
  >-- (qexists_tac ‘Ai o Ad0 o a1’ >> strip_tac (* 2 *) >--
-     (rev_drule ISOof_Ii >> flip_tac >>
+     (rev_drule ISOof_Ii_iff >> flip_tac >>
      arw[] >> rpt strip_tac >>
      qby_tac ‘Ai o Ad0 o a1 = a1'’ 
      >-- (rev_drule ISOof_ar_lift_unique >>
          first_x_assum drule >> arw[]) >>
      pop_assum (assume_tac o GSYM) >> arw[] >>
      qexists_tac ‘Ad0 o a1’ >> rw[]) >>
-     drule ISOof_Ii >> flip_tac >> arw[] >>
+     drule ISOof_Ii_iff >> flip_tac >> arw[] >>
      rpt strip_tac >>
      qby_tac ‘f1 o Ai o Ad0 o a1 = a1'’
      >-- (drule ISOof_ar_lift_unique >>
@@ -1397,14 +1397,14 @@ e0
      qsuff_tac ‘(f1 o Ai o Ad0) o a1 = (Bi o Bd0 o f1) o a1’ 
      >-- rw[o_assoc] >> arw[]) >>
  qexists_tac ‘Ai o Ad1 o a1’ >> strip_tac (* 2 *) >--
-     (rev_drule ISOof_Ii >> flip_tac >>
+     (rev_drule ISOof_Ii_iff >> flip_tac >>
      arw[] >> rpt strip_tac >>
      qby_tac ‘Ai o Ad1 o a1 = a1'’ 
      >-- (rev_drule ISOof_ar_lift_unique >>
          first_x_assum drule >> arw[]) >>
      pop_assum (assume_tac o GSYM) >> arw[] >>
      qexists_tac ‘Ad1 o a1’ >> rw[]) >>
-     drule ISOof_Ii >> flip_tac >> arw[] >>
+     drule ISOof_Ii_iff >> flip_tac >> arw[] >>
      rpt strip_tac >>
      qby_tac ‘f1 o Ai o Ad1 o a1 = a1'’
      >-- (drule ISOof_ar_lift_unique >>
