@@ -2,7 +2,7 @@ use "master.ML";
 use "newspec.sml";
 use "CCAFsorts.sml";
 use "CCAFnewspec.sml";
-use "CCAFsettings.sml";
+use "CCAFsetting.sml";
 use "adjunction.sml";
 use "duals.sml";
 use "discrete.sml";
