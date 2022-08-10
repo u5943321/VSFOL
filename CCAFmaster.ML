@@ -3,7 +3,7 @@ use "newspec.sml";
 use "CCAFsorts.sml";
 use "CCAFnewspec.sml";
 use "CCAFsetting.sml";
-use "adjunction.sml";
+use "adj.sml";
 use "duals.sml";
 use "discrete.sml";
 use "Pb_def.sml";
