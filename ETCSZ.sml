@@ -920,7 +920,8 @@ e0
 val Negz_char = prove_store("Neg_char",
 e0
 (rpt strip_tac >>
- strip_assume_tac main_negz1 >> arw[ZC_ZR] >>
+ x_choosel_then ["a1","a2"] assume_tac main_negz1
+ (*strip_assume_tac main_negz1*) >> arw[ZC_ZR] >>
  assume_tac negf0_resp >>
  fs[resp_def] >>
  first_x_assum (qsspecl_then [‘Pa(a,b)’,‘Pa(a1,a2)’] assume_tac) >>
@@ -1280,7 +1281,8 @@ val cases_z = prove_store("cases_z",
 e0
 (strip_tac >> 
  qspecl_then [‘z’] assume_tac Z_has_rep >>
- pop_assum strip_assume_tac >>
+ pop_assum (x_choosel_then ["n1","n2"] assume_tac)>>
+(* pop_assum strip_assume_tac >> *)
  qexistsl_tac [‘n1’,‘n2’] >> fs[GSYM ZC_def,GSYM Zc_def,GSYM Repz_def] >>
  irule Repz_eq_eq>> arw[Asz_Repz])
 (form_goal “!z.?a b. z = Asz(a,b)”));
@@ -1489,7 +1491,8 @@ val LEz_TRANS = prove_store("LEz_TRANS",
 e0
 (rw[TRANS_def,LEz_def,Lez_def] >>
  rpt strip_tac >> 
- qspecl_then [‘a2’] strip_assume_tac Repz_Zc >>
+ qspecl_then [‘a2’] assume_tac Repz_Zc >>
+ pop_assum (x_choosel_then ["n1","n2"] assume_tac) >>
  first_x_assum (qspecl_then [‘n1’,‘n2’,‘c’,‘d’] assume_tac) >> rfs[] >>
  first_x_assum (qspecl_then [‘a’,‘b’,‘n1’,‘n2’] assume_tac) >> rfs[] >>
  (qspecl_then [‘Add(n1, d)’,‘Add(a, n2)’,
