@@ -608,6 +608,21 @@ val forall_cross_tac =  depth_fconv_tac no_conv forall_cross_fconv;
 
 use "lambda.sml";
 
+
+(*
+qfconv
+
+normalise_lambda_input
+“!ab.(Holds(R:A~>B,Fst(ab),Snd(ab)) ==> App(f,ab) = App(i2(1,1),dot)) &
+     (ELSE ==> App(f,ab) = App(i1(1,1),dot))”
+
+val fm0 = “!ab.(Holds(R:A~>B,Fst(ab),Snd(ab)) ==> App(f,ab) = App(i2(1,1),dot)) &
+     (ELSE ==> App(f,ab) = App(i1(1,1),dot))”
+
+val (n,ante) = hd it
+*)
+
+
 val r2f_def = 
 proved_th $
 e0

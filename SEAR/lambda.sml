@@ -228,17 +228,18 @@ fun define_lambda_fun f =
  
 
 fun conj_assoc_fm f = 
-    let val th = basic_fconv no_conv conj_assoc_fconv f 
+    let val th = qfconv (basic_fconv no_conv conj_assoc_fconv) f 
     in th |> concl |> dest_dimp |> #2
     end
 
 fun nlist n = 
     if n = 0 then [] else (nlist (n-1)) @ [n]
 
+(*
 val fm0 = “!a.(P1(a) ==> App(f,a) = Suc(a)) &
              (P2(a) ==> App(f,a) = Suc(Suc(a))) &
              (ELSE ==> App(f,a) = a)”
-
+*)
 
 
 fun normalise_lambda_input fm0 = 
