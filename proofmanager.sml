@@ -175,8 +175,22 @@ fun PPproof printdepth _ (prf:proofmanager.proof) =
     in pretty
     end
 
+
+fun top_goal() =
+  let val tp = top_proof()
+      open goalstack
+  in
+    case tp of
+      GOALSTACK gsth =>
+      let val gstk = History.project (fn x => x) gsth
+      in
+         case gstk of
+	   GSTK{stack, ...} => current_goal (hd stack)
+	     handle Empty => raise Fail "Goal already proved"
+      end
+  end
+
 val _ = PolyML.addPrettyPrinter PPproof
 
 end
-
 
