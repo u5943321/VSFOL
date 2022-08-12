@@ -42,6 +42,7 @@ structure Globals =
 struct
   val hol_clock = Timer.startCPUTimer()
   val interactive = ref true
+  val HOLDIR = "/home/mn200/yiming/VSFOL/"
 end
 
 structure HOL_Interactive =
