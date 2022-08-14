@@ -2642,3 +2642,61 @@ e0
    (Adj(F,G2,η2,e2) ∧
    ∀a:1->A. cod(cpnt(e2,a)) = a ∧ U(G2 o a,cpnt(e2,a))) ⇒
    G1 = G2 & η1 = η2 & e1 = e2”));
+
+
+
+
+val uex_three_lemma = prove_store("uex_three_lemma",
+e0
+(rpt strip_tac >> 
+ uex_tac >> qexists_tac ‘f1’ >>
+ qsuff_tac ‘?!f2:C->D f3:X->Y. P(f1,f2,f3)’ 
+ >-- (strip_tac>> once_arw[] >> rw[] >> rpt strip_tac >> 
+     pop_assum (assume_tac o uex2ex_rule) >>
+     pop_assum (x_choose_then "f2'" assume_tac) >>
+     pop_assum (assume_tac o uex2ex_rule) >>
+     pop_assum (x_choose_then "f3'" assume_tac) >>
+     rpt strip_tac >>
+     first_x_assum 
+     (qsspecl_then [‘f1’,‘f2’,‘f3’,‘f1'’,‘f2'’,‘f3'’] assume_tac) >> 
+     rfs[]) >>
+ uex_tac >> qexists_tac ‘f2’ >> 
+ qsuff_tac ‘?!f3:X->Y. P(f1,f2,f3)’ 
+ >-- (strip_tac >> once_arw[] >> rw[] >> rpt strip_tac >>
+     pop_assum (assume_tac o uex2ex_rule) >>
+     pop_assum (x_choose_then "f3'" assume_tac) >>
+     first_x_assum
+     (qsspecl_then [‘f1’,‘f2’,‘f3’,‘f1’,‘f2'’,‘f3'’] assume_tac) >>
+     rfs[]) >>
+ uex_tac >> qexists_tac ‘f3’ >> arw[] >>
+ rpt strip_tac >>
+ first_x_assum (qsspecl_then [‘f1’,‘f2’,‘f3’,‘f1’,‘f2’,‘f3'’] assume_tac) >>
+ rfs[])
+(form_goal
+ “!A B C D X Y. 
+  (?f1:A->B f2:C->D f3:X->Y. P(f1,f2,f3)) &
+  (!f1:A->B f2:C->D f3:X->Y f1':A->B f2':C->D f3':X->Y. 
+   P(f1,f2,f3) & P(f1',f2',f3') ==> f1 = f1' & f2 = f2' & f3 = f3') ==>
+  ?!f1:A->B f2:C->D f3:X->Y. P(f1,f2,f3)”));
+
+
+val Thm13_uex = prove_store("Thm13_uex",
+e0
+(rpt gen_tac >> rpt strip_tac >>
+ match_mp_tac
+ (uex_three_lemma |> qspecl [‘A’,‘X’,‘X’,‘Exp(2,X)’,‘A’,‘Exp(2,A)’] 
+ |> fVar_sInst_th “P(G:A->X,η:X->Exp(2,X),ε:A->Exp(2,A))”
+    “Adj(F:X->A,G:A->X,η:X->Exp(2,X),ε:A->Exp(2,A)) ∧
+   ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))”) >> strip_tac (* 2 *)
+ >-- (match_mp_tac Thm13_ex >> arw[]) >>
+ match_mp_tac Thm13_unique >> arw[]
+ )
+(form_goal
+ “∀X A F:X->A. 
+  (∀x:1->X f:2->A. U(x,f) ⇒ UFrom(F,cod(f),x,f)) ∧
+  (∀a:1->A. ∃x:1->X f:2->A. cod(f) = a ∧ U(x,f)) &
+  (∀a:1->A x1:1->X f1:2->A x2:1->X f2:2->A. 
+   cod(f1) = a ∧ U(x1,f1) &
+   cod(f2) = a ∧ U(x2,f2) ⇒ x1 = x2 & f1 = f2) ⇒
+  ∃!G:A->X η ε:A->Exp(2,A). Adj(F,G,η,ε) ∧
+   ∀a:1->A. cod(cpnt(ε,a)) = a ∧ U(G o a,cpnt(ε,a))”));

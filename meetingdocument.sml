@@ -1,4 +1,4 @@
-val indisc_2_FSCC = prove_store("indisc_2_FSCC",
+val indisc_2_FSCC = cg $
 e0
 (rpt strip_tac >>
  rw[FSCC_def] >> rpt strip_tac >>
@@ -55,7 +55,7 @@ e0
           first_x_assum (qsspecl_then [‘a’] strip_assume_tac) >>
           first_x_assum drule >>
           first_x_assum rev_drule >> 
-          first_x_assum (qsspecl_then [‘a’] strip_assume_tac) >> (*if from here, then not slow at all*)
+          first_x_assum (qsspecl_then [‘a’] strip_assume_tac) >> 
           first_x_assum drule >>
           qsuff_tac ‘c' o a = a1 & c o a = a1’
           >-- (strip_tac >> arw[]) >>
@@ -73,4 +73,18 @@ e0
  (!oc:1->Cl. oc = o1 | oc = o2) & 
  (∀a:2-> Cl. a = id(o1) | a = id(o2) | a = a1 | a = a2) ==>
  FSCC(o1)”));
+
+
+val indisc_2_FSCC = cg $
+e0
+(rpt strip_tac )
+(form_goal
+ “!Cl o1:1->Cl o2:1->Cl a1:2->Cl a2:2->Cl. 
+ dom(a1) = o1 ∧ cod(a1) = o2 ∧ 
+ dom(a2) = o2 ∧ cod(a2) = o1 ∧ 
+ a1 @ a2 = id(o2) ∧ a2 @ a1 = id(o1) ∧
+ ~(o1 = o2) &
+ (!oc:1->Cl. oc = o1 | oc = o2) & 
+ (∀a:2-> Cl. a = id(o1) | a = id(o2) | a = a1 | a = a2) ==>
+ FSCC(o1)”)
 
