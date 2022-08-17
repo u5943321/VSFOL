@@ -2,9 +2,7 @@ structure pp =
 struct 
 open smpp
 
-infix >>
-
-fun is_infix sym = 
+fun is_infix sym =
     if mem sym ["*","+","=","o","==","@"] then true else false
 
  

@@ -125,5 +125,6 @@ val rewrites_fconv: fconv fnet -> form -> thm
 val ONCE_REWR_FCONV: thm list -> fconv
 val REWR_CONV: thm list -> conv
 val REWR_FCONV: thm list -> fconv
+val disj_cases_then: thm_tactical
 
 end

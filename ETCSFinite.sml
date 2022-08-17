@@ -612,7 +612,7 @@ e0
 
 
 
-
+(*convfix rename, as LT_TRANS, both due to O_xor_Suc*)
 val Cdr_Del = prove_store("Cdr_Del",
 e0
 (strip_tac >> assume_tac Cdr_Del_IL >>
@@ -634,7 +634,7 @@ e0
  qby_tac ‘Del(Ins(x, xs0), x') = Ins(x, Del(xs0,x'))’
  >-- (irule Del_Ins_SWAP >> ccontra_tac >> fs[]) >>
  arw[] >> irule $ iffRL Cdr_Ins >> 
- qexistsl_tac [‘Del(xs0, x')’,‘n0'’,‘x’] >> arw[Del_def1])
+ qexistsl_tac [‘Del(xs0, x')’,‘x0’,‘x’] >> arw[Del_def1])
 (form_goal
  “!X xs:1->Exp(X,1+1) n.Cdr(xs,n) ==> 
   Cdr(xs,n) & !x. IN(x,xs) ==> Cdr(Del(xs,x),Pre(n))”));

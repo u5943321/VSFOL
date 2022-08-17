@@ -1,9 +1,9 @@
-use "master.ML";
+
 use "newspec.sml";
 use "CCAFsorts.sml";
 use "CCAFnewspec.sml";
-use "CCAFsettings.sml";
-use "adjunction.sml";
+use "CCAFsetting.sml";
+use "adj.sml";
 use "duals.sml";
 use "discrete.sml";
 use "Pb_def.sml";

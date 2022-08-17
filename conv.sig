@@ -1,6 +1,8 @@
 signature conv = 
 sig
 include abbrev
+val qtconv : conv -> conv
+val qfconv : fconv -> fconv
 val all_conv: conv
 val all_fconv: fconv
 val arg_conv: conv -> conv

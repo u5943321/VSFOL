@@ -1102,7 +1102,7 @@ e0
  
 
 
-
+(*convfix rename*)
 val LT_TRANS = prove_store("LT_TRANS",
 e0
 (rw[TRANS_def] >> rw[HLT_Lt] >> rw[Lt_def] >>
@@ -1116,8 +1116,8 @@ e0
   qby_tac ‘~(p' = O)’ >-- 
   (ccontra_tac >> fs[Add_O2]) >>
   fs[O_xor_Suc] >> strip_tac
- >-- (qexists_tac ‘n0'’ >> once_rw[Add_comm] >> fs[]) >>
- qexists_tac ‘n0’ >> once_rw[Add_comm] >> fs[]) >>
+ >-- (qexists_tac ‘x0'’ >> once_rw[Add_comm] >> fs[]) >>
+ qexists_tac ‘x0’ >> once_rw[Add_comm] >> fs[]) >>
  pop_assum (strip_assume_tac o GSYM) >>
  fs[] >> rw[GSYM Add_assoc] >> once_rw[Add_Suc] >>
  assume_tac Add_Suc_Lt >> fs[Lt_def])

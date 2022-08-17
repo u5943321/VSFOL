@@ -948,8 +948,10 @@ e0
 (strip_tac >>
  qspecl_then [‘X’] strip_assume_tac CB_rules00 >>
  rpt strip_tac (* 2 *)
- >-- (first_x_assum irule >> rw[]) >>
- first_x_assum irule >> qexists_tac ‘l02’ >> arw[])
+ >-- ((*first_x_assum*) last_x_assum irule >> rw[]) >>
+ first_x_assum irule >> 
+ qexistsl_tac [‘l01’,‘l02’,‘x’]
+ (*qexists_tac ‘l02’*) >> arw[])
 (form_goal
  “!X. IN(Pair(LNil(X),LNil(X)),gfp(CB(X))) &
   !l01 l02. 

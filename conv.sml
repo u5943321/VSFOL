@@ -12,26 +12,31 @@ fun part_tmatch partfn th t =
     end
 
 val rewr_conv = part_tmatch (fst o dest_eq o concl)
-
+exception UNCH
 
 
 (*operations on conv*)
 
-fun all_conv t = refl t
+fun all_conv t = raise UNCH
 
 infix thenc
+
+fun qtconv c t = c t handle UNCH => refl t
+fun qfconv c f = c f handle UNCH => frefl f
 
 fun thenc (c1,c2) t = 
     let 
         val th1 = c1 t 
     in 
         trans th1 (c2 (snd (dest_eq (concl th1))))
-    end
+	handle UNCH => th1
+    end handle UNCH => c2 t
 
 infix orelsec
 
 fun orelsec (c1,c2) t = 
-    c1 t handle _ => c2 t
+    c1 t handle UNCH => raise UNCH
+              | _ => c2 t
 
 fun try_conv c = c orelsec all_conv
 
@@ -44,12 +49,30 @@ fun first_conv cl:conv =
     case cl of [] => no_conv
              | h :: t => h orelsec (first_conv t)
 
-(*conv on subterms*)
+fun Utotal c t =
+  SOME (c t) handle UNCH => NONE
 
+(*conv on subterms*)
+fun mapUNCH' thA c ts =
+  case ts of
+    [] => List.rev thA
+  | t::rest =>
+    case Utotal c t of
+      NONE => mapUNCH' (refl t :: thA) c rest
+    | SOME th => mapUNCH' (th :: thA) c rest
+       
+fun mapUNCH A c ts =
+  case ts of
+    [] => raise UNCH
+  | t::rest =>
+    case Utotal c t of
+      NONE => mapUNCH (t::A) c rest
+    | SOME th => mapUNCH' (th::map refl A) c rest
+    
 
 fun arg_conv c t = 
     case (view_term t) of 
-        vFun (f,s,l) => EQ_fsym f (List.map c l)
+        vFun (f,s,l) => EQ_fsym f (mapUNCH [] c l)
       | _ => raise ERR ("arg_conv.not a function term",[],[t],[])
 
 
@@ -61,7 +84,11 @@ fun land_conv c t =
 
 fun rand_conv c t = 
     case (view_term t) of 
-        vFun (f,s,[t1,t2]) => EQ_fsym f [refl t1,c t2]
+        vFun (f,s,[t1,t2]) =>
+        let val th2 = c t2
+	in
+           EQ_fsym f [refl t1,th2]
+	end
       | _ => raise ERR ("land_conv.not a function term",[],[t],[])
 
 
@@ -73,9 +100,12 @@ fun redepth_conv c t =
               ((c thenc (redepth_conv c)) orelsec all_conv))
         t
 
-fun changed_conv (c:term -> thm) t = 
-    if eq_thm (c t) (refl t) then raise unchanged ("changed_conv",[t],[])
-    else c t
+fun changed_conv (c:term -> thm) t =
+  let val th = c t
+  in
+    if eq_thm th (refl t) then raise unchanged ("changed_conv",[t],[])
+    else th
+  end handle UNCH => raise unchanged ("changed_conv",[t],[])
 
 
 fun top_depth_conv conv tm =
@@ -120,14 +150,15 @@ fun thenfc (fc1:fconv,fc2:fconv) f =
         val th1 = fc1 f 
     in 
         iff_trans th1 (fc2 (snd (dest_dimp (concl th1))))
-    end
+	handle UNCH => th1
+    end handle UNCH => fc2 f
 
 
-fun all_fconv f = frefl f
+fun all_fconv f = raise UNCH
 
 infix orelsefc;
 
-fun orelsefc (fc1,fc2) f = fc1 f handle _ => fc2 f
+fun orelsefc (fc1,fc2) f = fc1 f handle UNCH => raise UNCH | _ => fc2 f
 
 fun no_fconv f = raise simple_fail "no_fconv"
 
@@ -160,7 +191,7 @@ fun pred_fconv c f =
     let val (P,tl) = dest_pred f
                      handle _ => dest_fvar f
     in
-        EQ_psym P (List.map c tl)
+        EQ_psym P (mapUNCH [] c tl)
         handle _ => raise ERR ("pred_fconv.not a predicate",[],[],[f])
     end
 
@@ -174,10 +205,16 @@ fun disj_fconv fc f =
       | _ => raise ERR ("disj_fconv.not a disjunction",[],[],[f])
 *)
 
+fun UNCHmk2 mk c f1 f2 =
+  let val th1 = c f1
+  in
+      mk th1 (c f2) handle UNCH => mk th1 (frefl f2)
+  end handle UNCH => let val th2 = c f2 in mk (frefl f1) th2 end
+
 fun disj_fconv fc f = 
     let val (p,q) = dest_disj f
-    in disj_iff (fc p) (fc q)
-       handle _ => raise ERR ("disj_fconv.not a disjunction",[],[],[f])
+          handle _ => raise ERR ("disj_fconv.not a disjunction",[],[],[f])
+    in UNCHmk2 disj_iff fc p q
     end
 
 (*
@@ -203,8 +240,9 @@ fun rdisj_fconv fc f =
 
 fun rdisj_fconv fc f = 
     let val (p,q) = dest_disj f
-    in disj_iff (frefl p) (fc q)
-       handle _ => raise ERR ("rdisj_fconv.not a disjunction",[],[],[f])
+          handle _ => raise ERR ("rdisj_fconv.not a disjunction",[],[],[f])
+	val th = fc q 
+    in disj_iff (frefl p) th
     end
 
 (*
@@ -217,8 +255,9 @@ fun conj_fconv fc f =
 
 fun conj_fconv fc f = 
     let val (p,q) = dest_conj f
-    in conj_iff (fc p) (fc q)
-       handle _ => raise ERR ("conj_fconv.not a conjunction",[],[],[f])
+          handle _ => raise ERR ("conj_fconv.not a conjunction",[],[],[f])
+    in UNCHmk2 conj_iff fc p q
+
     end
 
 (*
@@ -230,8 +269,8 @@ fun lconj_fconv fc f =
 
 fun lconj_fconv fc f = 
     let val (p,q) = dest_conj f
+          handle _ => raise ERR ("lconj_fconv.not a conjunction",[],[],[f])
     in conj_iff (fc p) (frefl q)
-       handle _ => raise ERR ("lconj_fconv.not a conjunction",[],[],[f])
     end
 
 (*
@@ -243,8 +282,9 @@ fun rconj_fconv fc f =
 
 fun rconj_fconv fc f = 
     let val (p,q) = dest_conj f
-    in conj_iff (frefl p) (fc q)
-       handle _ => raise ERR ("rconj_fconv.not a conjunction",[],[],[f])
+          handle _ => raise ERR ("rconj_fconv.not a conjunction",[],[],[f])
+	val th2 = fc q 
+    in conj_iff (frefl p) th2
     end
 
 (*
@@ -257,8 +297,8 @@ fun neg_fconv fc f =
 
 fun neg_fconv fc f = 
     let val f0 = dest_neg f
+         handle _ => raise ERR ("neg_fconv.not a negation",[],[],[f])
     in neg_iff (fc f0)
-       handle _ => raise ERR ("neg_fconv.not a negation",[],[],[f])
     end
 
 (*
@@ -271,8 +311,8 @@ fun imp_fconv fc f =
 
 fun imp_fconv fc f = 
     let val (p,q) = dest_imp f
-    in imp_iff (fc p) (fc q)
-       handle _ => raise ERR ("imp_fconv.not a implication",[],[],[f])
+         handle _ => raise ERR ("imp_fconv.not a implication",[],[],[f])
+    in UNCHmk2 imp_iff fc p q
     end
 
 (*
@@ -284,8 +324,8 @@ fun limp_fconv fc f =
 
 fun limp_fconv fc f = 
     let val (p,q) = dest_imp f
+           handle _ => raise ERR ("limp_fconv.not a implication",[],[],[f])
     in imp_iff (fc p) (frefl q)
-       handle _ => raise ERR ("limp_fconv.not a implication",[],[],[f])
     end
 
 (*
@@ -297,7 +337,8 @@ fun rimp_fconv fc f =
 
 fun rimp_fconv fc f = 
     let val (p,q) = dest_imp f
-    in imp_iff (frefl p) (fc q)
+        val th2 = fc q
+    in imp_iff (frefl p) th2
        handle _ => raise ERR ("rimp_fconv.not a implication",[],[],[f])
     end
 
@@ -311,8 +352,8 @@ fun dimp_fconv fc f =
 
 fun dimp_fconv fc f = 
     let val (p,q) = dest_dimp f
-    in dimp_iff (fc p) (fc q)
-       handle _ => raise ERR ("dimp_fconv.not an iff",[],[],[f])
+          handle _ => raise ERR ("dimp_fconv.not an iff",[],[],[f])
+    in UNCHmk2 dimp_iff fc p q
     end
 
 (*
@@ -325,8 +366,8 @@ fun ldimp_fconv fc f =
 
 fun ldimp_fconv fc f = 
     let val (p,q) = dest_dimp f
+         handle _ => raise ERR ("ldimp_fconv.not an iff",[],[],[f])
     in dimp_iff (fc p) (frefl q)
-       handle _ => raise ERR ("ldimp_fconv.not an iff",[],[],[f])
     end
 
 (*
@@ -339,8 +380,9 @@ fun rdimp_fconv fc f =
 
 fun rdimp_fconv fc f = 
     let val (p,q) = dest_dimp f
-    in dimp_iff (frefl p) (fc q)
-       handle _ => raise ERR ("rdimp_fconv.not an iff",[],[],[f])
+         handle _ => raise ERR ("rdimp_fconv.not an iff",[],[],[f])
+	val th2 = fc q
+    in dimp_iff (frefl p) th2
     end
 
 
@@ -374,8 +416,6 @@ fun forall_fconv fc f =
 
 
 fun forall_fconv fc f = 
-    if can dest_forall f
-    then
     let val ((n,s),b) = dest_forall f
         val th0 = fc b
         in forall_iff (n,s) th0
@@ -390,7 +430,6 @@ fun forall_fconv fc f =
                       forall_iff (n',s') th1
                   end
         end
-    else raise ERR ("forall_fconv.not a forall",[],[],[f])
  
 (*
 fun exists_fconv fc f = 
@@ -414,8 +453,6 @@ fun exists_fconv fc f =
 
 
 fun exists_fconv fc f = 
-    if can dest_exists f
-    then
         let val ((n,s),b) = dest_exists f
             val th0 = fc b
         in exists_iff (n,s) th0
@@ -430,7 +467,6 @@ fun exists_fconv fc f =
                       exists_iff (n',s') th1
                   end
         end
-    else raise ERR ("exists_fconv.not an all",[],[],[f])
 
 (*
 fun uex_fconv fc f = 
@@ -454,8 +490,7 @@ fun uex_fconv fc f =
 
 
 fun uex_fconv fc f = 
-    if can dest_uex f
-    then let val ((n,s),b) = dest_uex f
+         let val ((n,s),b) = dest_uex f
              val th0 = fc (*subst_bound (mk_var(n,s)*) b
          in uex_iff (n,s) th0
            handle _ =>
@@ -469,7 +504,6 @@ fun uex_fconv fc f =
                       uex_iff (n',s') th1
                   end
         end
-    else raise ERR ("uex_fconv.not an uex",[],[],[f])
 
 
 (*
@@ -608,7 +642,7 @@ fun basic_once_fconv c fc =
 
 
 
-fun conv_rule c th = dimp_mp_l2r th (c (concl th)) 
+fun conv_rule c th = dimp_mp_l2r th (qfconv c (concl th)) 
 
 
 

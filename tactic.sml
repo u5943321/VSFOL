@@ -299,16 +299,19 @@ fun then_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) =
 
 
 
-fun then_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) = 
-    let val (gl,func) = tac1 (G,fl,f)
-        val branches = List.map tac2 gl
-        val (sgs,vs) = ListPair.unzip branches
-        val gl1 = flatten sgs
-        val shapes = (List.map List.length sgs)
-        fun func1 l = 
-            (if List.length l = List.length gl1 then 
+fun then_tac (tac1:tactic,tac2:tactic) =
+  fn (G,fl,f) =>
+    let
+      val (gl,func) = tac1 (G,fl,f)
+      val branches = List.map tac2 gl
+      val (sgs,vs) = ListPair.unzip branches
+      val gl1 = flatten sgs
+      val shapes = (List.map List.length sgs)
+      fun func1 l =
+          if List.length l = List.length gl1 then
                  func (mapshape shapes vs l)
-             else raise ERR ("then_tac.length list not consistent,start with respectively: ",[],[],[concl (hd l),#3 (hd gl1)]))
+             else raise ERR ("then_tac.length list not consistent,start with respectively: ",[],[],
+                             [concl (hd l),#3 (hd gl1)])
     in (gl1,func1) 
     end
 
@@ -331,7 +334,8 @@ fun then1_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) =
 
 *)
 
-fun then1_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) = 
+fun then1_tac ((tac1:tactic),(tac2:tactic)) =
+    fn (G,fl,f) =>
     let val (gl,func) = tac1 (G,fl,f)
         val (gl1,func1) = tac2 (hd gl)
         val gl' = gl1 @ (tl gl)
@@ -381,7 +385,7 @@ fun repeat tac g = ((tac >> (repeat tac)) Orelse all_tac) g
 
 fun fconv_tac fc (G,fl,f) = 
     let 
-        val th = fc f
+        val th = qfconv fc f
         val G' = HOLset.union(G,cont th)
         val (_,rhs) = dest_dimp (concl th)
     in
@@ -389,7 +393,7 @@ fun fconv_tac fc (G,fl,f) =
         then ([],empty (add_cont G' $ dimp_mp_l2r (trueI fl) (iff_swap th)))
         else
             ([(G',fl,rhs)],
-              sing (dimp_mp_r2l (fc f)))
+              sing (dimp_mp_r2l th))
     end
 
 
@@ -441,14 +445,13 @@ and occurs_ts t s =
     case dest_sort s of 
         (_, tl) => List.exists (occurs_tt t) tl
 
-fun occurs_f f1 f2 = PolyML.pointerEq(f1,f2) orelse
-    case (view_form f1,view_form f2) of
-        (vPred _,vPred _) => eq_form(f1,f2)
-      | (vQ(q1,n1,s1,b1) ,vQ(q2,n2,s2,b2)) => 
-        eq_form(f1,f2) orelse occurs_f f1 b2
-      | (_,vConn(co,fl)) => List.exists (occurs_f f1) fl
-      | (_,vQ(_,_,_,b)) => occurs_f f1 b
-      | (_,_) => false
+fun occurs_f f1 f2 =
+  PolyML.pointerEq(f1,f2) orelse
+  eq_form(f1,f2) orelse 
+  case view_form f2 of
+    vQ(q2,n2,s2,b2) => occurs_f f1 b2
+  | vConn(co,fl) => List.exists (occurs_f f1) fl
+  | _ => false
 
 
 
@@ -984,6 +987,7 @@ val arw_tac = arw;
 
 val once_arw_tac = once_arw;
 
+(*fun simp_asm thms (t, l') = rewr_rule (l' @ thms) t :: l'*)
 
 fun f r (tac:thm_tactic) thms asms:tactic = 
     map_every tac (r (List.foldl (simp_asm thms) [] (r asms)))

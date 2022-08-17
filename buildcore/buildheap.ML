@@ -42,6 +42,7 @@ structure Globals =
 struct
   val hol_clock = Timer.startCPUTimer()
   val interactive = ref true
+  val HOLDIR = OS.FileSys.getDir()
 end
 
 structure HOL_Interactive =
@@ -66,12 +67,10 @@ struct
 end
 
 structure PPBackEnd = struct datatype foo = emacs_terminal end
-structure Parse =
-struct
-  val current_backend = ref PPBackEnd.emacs_terminal
-end
 
-val use = QUse.use
+val use = QUse.use;
+
+val _ = use "master.ML";
 
 fun main() = let
   val diag = case CommandLine.arguments() of

@@ -1,4 +1,4 @@
-
+val use = QUse.use;
 fun emacs_hol_mode_loaded () =
    ["HOL_Interactive", "Meta",
   "Array", "ArraySlice", "BinIO", "BinPrimIO", "Bool", "Byte",
@@ -30,9 +30,7 @@ use "smpp.sml";
 use "HOLset.sig";
 use "HOLset.sml";
 
-infixr 1 $ ?;
-infix |> >> |>> ||->;
-infix 3 ##;
+use "infixes.sml";
 use "Portable.sml";
 open Portable;
 
@@ -80,7 +78,6 @@ use "drule.sml";
 open drule;
 
 
-use "infixes.sml";
 use "abbrev.sig";
 use "abbrev.sml";
 open abbrev;
