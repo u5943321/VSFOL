@@ -1131,6 +1131,8 @@ end
 
 
 
-structure Parse = struct open parser val Term=readfq end
-
-
+structure Parse = struct
+  open parser
+  val Term=readfq
+  val current_backend = ref PPBackEnd.emacs_terminal
+end

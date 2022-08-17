@@ -7,7 +7,6 @@ use "ETCSZ.sml";
 *)
 
 
-use "master.ML";
 use "newspec.sml";
 use "ETCSsorts.sml";
 use "ETCSnewspec.sml";

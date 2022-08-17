@@ -1,4 +1,4 @@
-
+val use = QUse.use;
 fun emacs_hol_mode_loaded () =
    ["HOL_Interactive", "Meta",
   "Array", "ArraySlice", "BinIO", "BinPrimIO", "Bool", "Byte",
