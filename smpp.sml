@@ -1,7 +1,7 @@
 structure smpp :> smpp =
 struct
 
-infix >- >>
+infix >-
 
 type ('a,'b) t =
      'a * HOLPP.pretty list -> ('b * ('a * HOLPP.pretty list)) option
