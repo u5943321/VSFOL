@@ -185,8 +185,9 @@ fun top_goal() =
       let val gstk = History.project (fn x => x) gsth
       in
          case gstk of
-	   GSTK{stack, ...} => current_goal (hd stack)
-	     handle Empty => raise Fail "Goal already proved"
+	   GSTK{stack = g::_, ...} => current_goal g
+         | GSTK{stack = [], prop = POSED g} => g
+         | GSTK{prop = PROVED _, ...} => raise Fail "Goal already proved"
       end
   end
 
