@@ -299,16 +299,19 @@ fun then_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) =
 
 
 
-fun then_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) = 
-    let val (gl,func) = tac1 (G,fl,f)
-        val branches = List.map tac2 gl
-        val (sgs,vs) = ListPair.unzip branches
-        val gl1 = flatten sgs
-        val shapes = (List.map List.length sgs)
-        fun func1 l = 
-            (if List.length l = List.length gl1 then 
+fun then_tac (tac1:tactic,tac2:tactic) =
+  fn (G,fl,f) =>
+    let
+      val (gl,func) = tac1 (G,fl,f)
+      val branches = List.map tac2 gl
+      val (sgs,vs) = ListPair.unzip branches
+      val gl1 = flatten sgs
+      val shapes = (List.map List.length sgs)
+      fun func1 l =
+          if List.length l = List.length gl1 then
                  func (mapshape shapes vs l)
-             else raise ERR ("then_tac.length list not consistent,start with respectively: ",[],[],[concl (hd l),#3 (hd gl1)]))
+             else raise ERR ("then_tac.length list not consistent,start with respectively: ",[],[],
+                             [concl (hd l),#3 (hd gl1)])
     in (gl1,func1) 
     end
 
@@ -331,7 +334,8 @@ fun then1_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) =
 
 *)
 
-fun then1_tac ((tac1:tactic),(tac2:tactic)) (G,fl,f) = 
+fun then1_tac ((tac1:tactic),(tac2:tactic)) =
+    fn (G,fl,f) =>
     let val (gl,func) = tac1 (G,fl,f)
         val (gl1,func1) = tac2 (hd gl)
         val gl' = gl1 @ (tl gl)
