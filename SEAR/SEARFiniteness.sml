@@ -370,10 +370,14 @@ e0
   !x. IN(x,xs) ==> Card(Del(xs,x)) = Pre(Card(xs))”));
  
 
+(*
+
 val IMAGE_FINITE = prove_store("IMAGE_FINITE",
 e0
 (cheat)
 (form_goal “!A s:mem(Pow(A)).Fin(s) ==> !B f:A->B.Fin(IMAGE(f,s))”));
+*)
+
  
 val IN_App_IMAGE = prove_store("IN_App_IMAGE",
 e0

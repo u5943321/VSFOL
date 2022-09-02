@@ -1,57 +1,22 @@
 
+val default0 = [p31_def,p32_def,p33_def,
+o_assoc,All_def,Ex_def,p12_of_Pa,IMP_def,CONJ_def,IFF_def,NEG_def',Eq_property_TRUE,Pa_distr,DISJ_def,LT_Lt,LE_Le,Sub_def,Mul_def,Add_def,Suc_def,Pre_def,one_to_one_id,idL,idR];
 
+val default_thl = ref default0;
 
-(*
+fun ILrw () = rw(!default_thl)
 
-val bvs = List.map (dest_var o rastt) ["a:1->A","s:1->Exp(A,1+1)"] 
-val t = rastt "Ins(a:1->A,s:1->Exp(A,1+1))"
-
-
-val bvs = List.map (dest_var o rastt) ["n:1->N","m:1->N"] 
-val t = rastt "Sub(n:1->N,m)"
-val (f,s,tl) = dest_fun t
+val _ = default_thl := IN_def :: (!default_thl)
 
 
 
-
-fn finfo =>  binop_t "o" (corres_fterm finfo [])
-Binarymap.peek(!fsym2IL,"Ins")
-
-corres_fterm finfo (List.map mk_var bvs
-
-val f = “IN(a:1->A,f:Exp(A,1+1)->Exp(A,1+1) o s:1->Exp(A,1+1))”
-val (P,tl) = dest_pred f
-val p = rastt "In(A)";
-val l = List.map (dest_var o rastt) ["a:X->A","ss:X->Exp(A,1+1)"]
-
-
-qform2IL [‘s:1-> Exp(Exp(X,1+1),1+1)’] ‘!a.IN(a:1->Exp(X,1+1),f o s) ==> IN(a,s)’
-
-
-pain point of form2IL
-*)
-
-
-
-
-(*
-qform2IL [‘a:1->A’,‘s:1-> Exp(A,1+1)’] ‘IN(a:1->A,s)’
-
-val bvs = List.map (dest_var o rastt) ["a:1->A","s:1->Exp(A,1+1)"] 
-val f = “IN(a:1->A,s)”
-val (P,tl) = dest_pred f
-val p = rastt "In(A)";
-val l = List.map (dest_var o rastt) ["a:1->A","ss:1->Exp(A,1+1)"]
-
-
-‘!a:1->A.IN(a, f o s) ==> IN(a,s)’
-
- rw[SS_def] >> strip_tac >>
- strip_tac >>
- qexists_tac 
- ‘ALL(Imp(In(A) o Pa(p1(A,Exp(A,1+1)), f o p2(A,Exp(A,1+1))),In(A)))’ >>
-*)  
-
+val IL_ex_tac: tactic = fn (ct,asl,w) =>
+    let val (pv as (pn,ps),b0) = dest_exists w
+        val (bv as (bn,bs),b) = dest_forall b0
+        val lhs = b |> dest_dimp |> #1
+        val ILpred = form2IL [bv] lhs
+    in exists_tac ILpred (ct,asl,w)
+    end
 
 
 val prim_lemma = prove_store("SS_lemma",
@@ -65,7 +30,7 @@ e0
  rw[SS_def] >>
  exists_tac 
  (qform2IL [‘sa:1->Exp(A,1+1)’] ‘!a:1->A.IN(a,f o sa) ==> IN(a,sa)’) >>
- strip_tac >> rw[o_assoc,All_def,Pa_distr,IMP_def,p12_of_Pa,IN_def])
+ ILrw())
 (form_goal
 “!A f:Exp(A,1+1)->Exp(A,1+1). ?!p:Exp(A,1+1) ->1+1.
   !a.p o a = TRUE <=> SS(f o a,a)”));
@@ -111,17 +76,8 @@ proved_th $
 e0
 (rpt strip_tac  >>
  rw[o_assoc,Pa_distr,DISJ_def,p12_of_Pa,Eq_property_TRUE,
-             one_to_one_id,idR,FIr_def] >>
- rw[Ex_def,o_assoc] >> rw[CONJ_def,Pa_distr] >>
- rw[p31_def,p32_def,p33_def] >>
- once_rw[p52_def] >> once_rw[p51_def] >> once_rw[p53_def] >>
- once_rw[p54_def] >> once_rw[p55_def] >> 
- once_rw[All_def] >> rw[o_assoc,IFF_def,Pa_distr] >>
- rw[DISJ_def,o_assoc,Pa_distr] >>
- rw[Ex_def,o_assoc] >> rw[CONJ_def,Pa_distr] >>
- rw[o_assoc,p12_of_Pa,Pa_distr] >>
- rw[one_to_one_id] >> rw[idR,Eq_property_TRUE] >>
- rw[IN_def,Ins_def])
+             one_to_one_id,idR,FIr_def,Ex_def,CONJ_def,p31_def,p32_def,p33_def,p52_def,p51_def,p53_def,p54_def,p55_def,
+ All_def,IFF_def,idR,Eq_property_TRUE,IN_def,Ins_def])
 (form_goal “!a:1->Exp(Exp(X,1+1),1+1) a'.
  FIr(X) o Pa(a,a') =TRUE <=>
   (!xs. IN(xs,a') <=> 
@@ -139,14 +95,7 @@ define_fsym("FIsi",[dest_var (rastt "a : 1->Exp(Exp(X,1+1),1+1)")]) (qform2IL [�
             IN(xs0, a) & xs = Ins(x, xs0)’);
 val FIsi_property = proved_th $
 e0
-(rw[FIsi_def] >> rpt strip_tac >>
- rw[o_assoc,DISJ_def,Pa_distr] >> 
- once_rw[Ex_def] >> rw[o_assoc,Ex_def] >>
- rw[CONJ_def,Pa_distr,o_assoc] >>
- rw[one_to_one_id,idR] >>
- once_rw[p31_def,p32_def,p33_def] >>
- rw[p12_of_Pa,o_assoc,Pa_distr] >>
- rw[Eq_property_TRUE,IN_def,Ins_def,idL])
+(rw[FIsi_def,o_assoc,DISJ_def,Pa_distr,Ex_def,CONJ_def,one_to_one_id,idR,p31_def,p32_def,p33_def,p12_of_Pa,o_assoc,Eq_property_TRUE,IN_def,Ins_def,idL])
 (form_goal 
 “!a: 1->Exp(Exp(X,1+1),1+1) xs. FIsi(a) o xs = TRUE <=>
  xs = Empty(X) |
@@ -215,10 +164,9 @@ e0
       irule $ iffLR  IN_EXT >> arw[]) >>
  exists_tac (Tp (qform2IL [‘x:1->X’,‘xs:1->Exp(X,1+1)’,‘x0:1->X’]
  ‘IN(x,xs) & ~(x = x0)’)) >>
- rw[IN_def,In_def] >> rw[Ev_of_Tp_el] >>
- rw[CONJ_def,Pa_distr,o_assoc,NEG_def'] >>
- once_rw[p31_def,p32_def,p33_def] >>
- rw[Pa_distr,o_assoc,p12_of_Pa,Eq_property_TRUE])
+ rw[IN_def,In_def,Ev_of_Tp_el,
+   CONJ_def,Pa_distr,o_assoc,NEG_def',
+   p31_def,p32_def,p33_def,p12_of_Pa,Eq_property_TRUE])
 (form_goal “!X.?!DEL:Exp(X,1+1) * X -> Exp(X,1 + 1).
  !x0 xs x. IN(x,DEL o Pa(xs,x0)) <=> IN(x,xs) & ~(x = x0)”)
 |> spec_all 
@@ -280,27 +228,11 @@ proved_th $
 e0
 (rpt strip_tac  >>
  rw[o_assoc,Pa_distr,DISJ_def,p12_of_Pa,Eq_property_TRUE,
-             one_to_one_id,idR,Cdr_def] >>
- rw[one_to_one_id,idL,idR] >>
- once_rw[All_def,o_assoc,Pa_distr] >>
- rw[IFF_def,o_assoc,Pa_distr] >>
- rw[DISJ_def,o_assoc,Pa_distr] >>
- once_rw[Ex_def] >> rw[o_assoc] >> once_rw[Ex_def] >>
- once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[CONJ_def] >>
- once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[CONJ_def] >>
- once_rw[p52_def] >> once_rw[p51_def] >> once_rw[p53_def] >>
- once_rw[p54_def] >> once_rw[p55_def] >> 
- once_rw[p31_def] >> once_rw[p32_def] >> once_rw[p33_def] >>
- once_rw[o_assoc] >> once_rw[NEG_def'] >>
- once_rw[Pa_distr] >> once_rw[Eq_property_TRUE] >>
- once_rw[p12_of_Pa] >> once_rw[p12_of_Pa] >> 
- rw[Pa_distr] >> rw[p12_of_Pa,o_assoc] >> rw[Pa_distr] >>
- rw[p12_of_Pa] >> rw[one_to_one_id] >> rw[idR] >>
- once_rw[o_assoc] >> once_rw[p12_of_Pa] >>
- once_rw[o_assoc] >> once_rw[p12_of_Pa] >>
- rw[p12_of_Pa] >>
- rw[GSYM Fst_def,GSYM Snd_def] >>
- rw[Ins_def,IN_def] >> rw[Suc_def])
+             one_to_one_id,idR,Cdr_def,one_to_one_id,idL,
+  All_def,IFF_def,Ex_def,CONJ_def,p52_def,p51_def,p53_def,
+  p54_def,p55_def,p31_def,p32_def,p33_def,NEG_def',
+  Pa_distr,Eq_property_TRUE,p12_of_Pa,o_assoc,one_to_one_id,
+    idR,Ins_def,IN_def,Suc_def,Fst_def,Snd_def])
 (form_goal “!a:1->Exp(Exp(X,1+1)* N,1+1) a'.
  Cdr(X) o Pa(a,a') =TRUE <=>
   (!xsn : 1 -> Exp(X, 1+1) * N.
@@ -322,14 +254,11 @@ define_fsym("Cdsi",[dest_var (rastt "a : 1->Exp(Exp(X,1+1)*N,1+1)")]) (qform2IL 
 val Cdsi_property = proved_th $
 e0
 (rw[Cdsi_def] >> rpt strip_tac >>
- rw[o_assoc,DISJ_def,Pa_distr] >> 
- once_rw[Ex_def] >> rw[o_assoc,Ex_def] >>
- rw[CONJ_def,Pa_distr,o_assoc] >>
- rw[one_to_one_id,idR] >>
- once_rw[p31_def,p32_def,p33_def] >>
- rw[p12_of_Pa,o_assoc,Pa_distr] >>
- rw[Eq_property_TRUE,IN_def,Ins_def,NEG_def'] >>
- rw[GSYM Fst_def,GSYM Snd_def,Suc_def,idL])
+ rw[o_assoc,DISJ_def,Pa_distr,Ex_def,CONJ_def,
+    one_to_one_id,idR,p31_def,p32_def,p33_def,
+    p12_of_Pa,
+    Eq_property_TRUE,IN_def,Ins_def,NEG_def',
+   Fst_def,Snd_def,Suc_def,idL])
 (form_goal 
 “!a: 1->Exp(Exp(X,1+1) * N,1+1) xsn. Cdsi(a) o xsn = TRUE <=>
  xsn = Pa(Empty(X), O) |
@@ -607,9 +536,9 @@ e0
 val Cdr_Del_IL = proved_th $
 e0
 (exists_tac $ qform2IL [‘xs:1->Exp(X,1+1)’,‘n:1->N’] ‘Cdr(xs,n) & !x. IN(x,xs) ==> Cdr(Del(xs,x),Pre(n))’ >>
- rw[o_assoc,Pa_distr,CONJ_def,All_def,IMP_def] >>
- once_rw[p31_def,p32_def,p33_def] >> rw[p12_of_Pa,Pa_distr,o_assoc] >>
- rw[Cdr_Tp0_Cds] >> rw[Del_def,Pre_def,IN_def])
+ rw[o_assoc,Pa_distr,CONJ_def,All_def,IMP_def,
+    p31_def,p32_def,p33_def,
+    p12_of_Pa,Cdr_Tp0_Cds,Del_def,Pre_def,IN_def])
 (form_goal “?P. !xs:1->Exp(X,1+1) n. (Cdr(xs,n) & !x. IN(x,xs) ==> Cdr(Del(xs,x),Pre(n))) <=> P o Pa(xs,n) = TRUE ”)
 
 
@@ -757,8 +686,7 @@ val Fin_Ins = FI_rules |> conjE2 |> rewr_rule[GSYM Fin_def]
 val Fin_Del0_IL = proved_th $
 e0
 (exists_tac $ qform2IL [‘xs:1->Exp(X,1+1)’] ‘Fin(xs) & !x. Fin(Del(xs,x))’ >>
- rw[CONJ_def,o_assoc,Pa_distr,p12_of_Pa,idL,All_def] >>
- rw[Fin_Tp0_FIs,Del_def])
+ rw[CONJ_def,o_assoc,Pa_distr,p12_of_Pa,idL,All_def,Fin_Tp0_FIs,Del_def])
 (form_goal “?P.!xs:1->Exp(X,1+1). (Fin(xs) &  !x. Fin(Del(xs,x))) <=> P o xs = TRUE”)
 
 val Fin_Del0 = prove_store("Fin_Del",

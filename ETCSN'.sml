@@ -365,12 +365,55 @@ fun ind_with0 th =
  arw[] >> irule th >>
  pop_assum (assume_tac o GSYM) >> arw[]
 
+
+val LE_def = define_fsym("LE",[])
+(form2IL [dest_var $ rastt "n1:1->N",dest_var $ rastt "n2:1->N"]
+“Sub(n1,n2) = O”) |> store_as "LE_def";
+
+val _ = new_psym2IL ("Le",(mk_fun "LE" [],[]))
+
+val LT_def = define_fsym("LT",[])
+(form2IL [dest_var $ rastt "n1:1->N",dest_var $ rastt "n2:1->N"]
+“Le(n1:1->N,n2) & ~(n1 = n2)”) |> store_as "LT_def";
+
+val _ = new_psym2IL ("Lt",(mk_fun "LT" [],[]))
+
+
+
+val LE_Le = prove_store("LE_Le",
+e0
+(rw[Le_def,LE_def,Pa_distr,p12_of_Pa,
+    Eq_property_TRUE,o_assoc,one_to_one_id,idR,Sub_def])
+(form_goal “!a b. LE o Pa(a,b) = TRUE <=> Le(a,b)”));
+
+
+val LT_Lt = prove_store("LT_Lt",
+e0
+(rw[Lt_def,LT_def,Pa_distr,p12_of_Pa,CONJ_def,NEG_def',
+    Eq_property_TRUE,o_assoc,one_to_one_id,idR,Sub_def,
+    LE_Le])
+(form_goal “!a b. LT o Pa(a,b) = TRUE <=> Lt(a,b)”));
+
+
+val MUL_def0 = Thm1 |> qspecl [‘N’,‘N’,‘O o To1(N)’,
+                               ‘ADD o Pa(p2(N * N,N),p1(N, N) o p1(N * N,N))’] |> qsimple_uex_spec "MUL" [] 
+                    |> rewr_rule[o_assoc,To1_def,Pa_distr,p12_of_Pa,idR] 
+                    |> store_as "MUL_def0";
+
+
+
+val Mul_def = qdefine_fsym ("Mul",[‘n1:1->N’,‘n2:1->N’]) ‘MUL o Pa(n1,n2)’ |> gen_all |> store_as "Mul_def";
+
+val _ = new_fsym2IL1 ("Mul",mk_fun "MUL" []);
+
+val default = rw[p31_def,p32_def,p33_def,
+o_assoc,All_def,Ex_def,p12_of_Pa,IMP_def,CONJ_def,IFF_def,NEG_def',Eq_property_TRUE,Pa_distr,DISJ_def,LT_Lt,LE_Le,Sub_def,Mul_def,Add_def,Suc_def,Pre_def,one_to_one_id,idL,idR]
+
+
 val Sub_mono_eq = prove_store("Sub_mono_eq",
 e0
 (strip_tac >> IL_tac 
- >-- (IL_ex_tac >> 
-     rw[Pa_distr,o_assoc,idL,one_to_one_id,idR,
-        Eq_property_TRUE,Sub_def,Suc_def]) >>
+ >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> 
  rw[Sub_O,Sub_Suc] >> 
  rpt strip_tac (* 2 *) >-- rw[Pre_Suc] >>
@@ -381,8 +424,7 @@ e0
 
 val Add_Sub = prove_store("Add_Sub",
 e0
-(IL_tac >-- (IL_ex_tac >> 
-             rw[All_def,Pa_distr,p12_of_Pa,Eq_property_TRUE,o_assoc,Sub_def,Add_def]) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> 
  rw[Add_O,Sub_O] >> rpt strip_tac >>
  arw[Add_Suc,Sub_mono_eq])
@@ -391,7 +433,7 @@ e0
 
 val Add_O2 = prove_store("Add_O2",
 e0
-(IL_tac >-- (IL_ex_tac >> rw[Eq_property_TRUE,Pa_distr,one_to_one_id,idL,idR,o_assoc,CONJ_def,Add_def]) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> rw[Add_Suc,Add_O] >> 
  rpt strip_tac >> arw[])
 (form_goal
@@ -440,56 +482,20 @@ e0
  “!n. ~(Suc(n) =O)”));
 
 
-val LE_def = define_fsym("LE",[])
-(form2IL [dest_var $ rastt "n1:1->N",dest_var $ rastt "n2:1->N"]
-“Sub(n1,n2) = O”) |> store_as "LE_def";
-
-val _ = new_psym2IL ("Le",(mk_fun "LE" [],[]))
-
-val LT_def = define_fsym("LT",[])
-(form2IL [dest_var $ rastt "n1:1->N",dest_var $ rastt "n2:1->N"]
-“Le(n1:1->N,n2) & ~(n1 = n2)”) |> store_as "LT_def";
-
-val _ = new_psym2IL ("Lt",(mk_fun "LT" [],[]))
-
-
-
-val LE_Le = prove_store("LE_Le",
-e0
-(rw[Le_def,LE_def,Pa_distr,p12_of_Pa,
-    Eq_property_TRUE,o_assoc,one_to_one_id,idR,Sub_def])
-(form_goal “!a b. LE o Pa(a,b) = TRUE <=> Le(a,b)”));
-
-
-val LT_Lt = prove_store("LT_Lt",
-e0
-(rw[Lt_def,LT_def,Pa_distr,p12_of_Pa,CONJ_def,NEG_def',
-    Eq_property_TRUE,o_assoc,one_to_one_id,idR,Sub_def,
-    LE_Le])
-(form_goal “!a b. LT o Pa(a,b) = TRUE <=> Lt(a,b)”));
-
 val cancel_Sub = prove_store("cancel_Sub",
 e0
 (IL_tac 
- >-- (IL_ex_tac >> strip_tac >>
-     rw[p31_def,p32_def,p33_def] >>
-     rw[o_assoc,All_def,p12_of_Pa,IMP_def,CONJ_def,IFF_def,
-        Eq_property_TRUE,Pa_distr] >>
-     rw[LE_Le,Sub_def]) >>
+ >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> 
  rw[Sub_O] >> 
  strip_tac >> strip_tac >>  
  IL_tac >--
- (IL_ex_tac >>
-  rw[All_def,IMP_def,CONJ_def,Eq_property_TRUE,Pa_distr,p12_of_Pa,o_assoc,IFF_def,one_to_one_id,idL,idR] >>
-  rw[LE_Le,Sub_def,Suc_def]) >>
+ (IL_ex_tac >> default) >>
  ind_with0 N_induct >> strip_tac >--
  (rpt strip_tac >> fs[Le_Sub,Sub_O,Suc_NONZERO]) >>
  strip_tac>> strip_tac >> 
  IL_tac >--
- (IL_ex_tac >>
- rw[IMP_def,CONJ_def,IFF_def,Eq_property_TRUE,Pa_distr,o_assoc,p12_of_Pa,idL,idR,one_to_one_id] >>
- rw[LE_Le,Sub_def,Suc_def]) >>
+ (IL_ex_tac >> default) >>
  ind_with0 N_induct >> strip_tac
  >-- fs[Le_def,Sub_O,Suc_NONZERO] >>
  rw[Sub_mono_eq,Le_def] >> rpt strip_tac >> rw[Suc_eq_eq] >>
@@ -500,7 +506,7 @@ e0
 
 val Sub_of_O = prove_store("Sub_of_O",
 e0
-(IL_tac >-- (IL_ex_tac >> rw[Eq_property_TRUE,o_assoc,Pa_distr,one_to_one_id,idL,Sub_def,idR]) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> rw[Sub_O,Sub_Suc] >> rpt strip_tac>>
  arw[Pre_O])
 (form_goal
@@ -546,17 +552,13 @@ e0
 val LESS_cases = prove_store("LESS_cases",
 e0
 (IL_tac >-- 
- (IL_ex_tac >> 
-  rw[All_def,DISJ_def,o_assoc,Pa_distr,p12_of_Pa,
-     Lt_def,LE_Le,NEG_def',LT_Lt]) >>
+ (IL_ex_tac >> default) >>
  ind_with0 N_induct >> strip_tac (* 2 *)
  >-- (rw[LE_O_iff] >> rw[Lt_def,O_LESS_EQ] >> strip_tac >>
      cases_on “O = b” >> arw[]) >>
  strip_tac >> strip_tac >>
  IL_tac >--
- (IL_ex_tac >>
-  rw[DISJ_def,Pa_distr,idL,idR,one_to_one_id,LT_Lt,LE_Le,
-     o_assoc,Suc_def]) >>
+ (IL_ex_tac >> default) >>
  ind_with0 N_induct >> 
  rw[O_LESS_EQ] >> rw[LESS_MONO_EQ,LESS_EQ_MONO] >> arw[])
 (form_goal
@@ -574,9 +576,7 @@ e0
 
 val Add_Suc1 = prove_store("Add_Suc1",
 e0
-(IL_tac >-- (IL_ex_tac >> 
- rw[All_def,o_assoc,Pa_distr,p12_of_Pa,Eq_property_TRUE,
-    Suc_def,Add_def]) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
 ind_with0 N_induct >> strip_tac >> rw[Add_O] >>
  rpt strip_tac >> rw[Add_Suc] >> arw[])
 (form_goal
@@ -585,9 +585,7 @@ ind_with0 N_induct >> strip_tac >> rw[Add_O] >>
 
 val Add_comm = prove_store("Add_comm",
 e0
-(IL_tac >-- (IL_ex_tac >> 
-rw[All_def,o_assoc,Pa_distr,p12_of_Pa,Eq_property_TRUE,
-  Add_def]) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
 ind_with0 N_induct >> rw[Add_O,Add_O2] >> rpt strip_tac >>
  rw[Add_Suc] >> arw[] >> rw[Add_Suc1] )
 (form_goal
@@ -674,9 +672,7 @@ e0
       pop_assum (qspecl_then [‘n’,‘n’] assume_tac) >>
       first_assum irule >> rw[Le_refl]) >>
  IL_tac
- >-- (IL_ex_tac >> 
-      rw[All_def,o_assoc,IMP_def,Pa_distr,p12_of_Pa,
-        Eq_property_TRUE,one_to_one_id,idR,LE_Le]) >>
+ >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> strip_tac (* 2 *)
  >-- (rpt strip_tac >> drule Le_O >> arw[] >>
       first_assum irule >> rpt strip_tac >>
@@ -731,7 +727,7 @@ e0
  >-- (strip_tac >> rpt strip_tac >> first_x_assum irule >>
      qexists_tac ‘n’ >> rw[Le_refl]) >>
  IL_tac
- >-- (IL_ex_tac >> rw[All_def,IMP_def,NEG_def',Eq_property_TRUE,o_assoc,Pa_distr,one_to_one_id,idR,p12_of_Pa,LE_Le]) >>
+ >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> rpt strip_tac (* 2 *) >--
  (drule Le_O >> arw[] >> ccontra_tac >>
  first_x_assum drule >> pop_assum strip_assume_tac >>
@@ -759,16 +755,6 @@ e0
   LE o Pa(l,n) = TRUE”));
 *)
 
-val MUL_def0 = Thm1 |> qspecl [‘N’,‘N’,‘O o To1(N)’,
-                               ‘ADD o Pa(p2(N * N,N),p1(N, N) o p1(N * N,N))’] |> qsimple_uex_spec "MUL" [] 
-                    |> rewr_rule[o_assoc,To1_def,Pa_distr,p12_of_Pa,idR] 
-                    |> store_as "MUL_def0";
-
-
-
-val Mul_def = qdefine_fsym ("Mul",[‘n1:1->N’,‘n2:1->N’]) ‘MUL o Pa(n1,n2)’ |> gen_all |> store_as "Mul_def";
-
-val _ = new_fsym2IL1 ("Mul",mk_fun "MUL" []);
 
 val Mul_O = prove_store("Mul_O",
 e0
@@ -793,14 +779,14 @@ e0
 
 val Mul_LEFT_O = prove_store("Mul_LEFT_O",
 e0
-(IL_tac >-- (IL_ex_tac >> rw[Eq_property_TRUE,o_assoc,Pa_distr,one_to_one_id,idR,idL,Mul_def]) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> rw[Mul_O,Mul_Suc,Add_O])
 (form_goal “!m. Mul(O,m) = O”));
 
 
 val Mul_LEFT_1 = prove_store("Mul_LEFT_1",
 e0
-(IL_tac >-- (IL_ex_tac >> rw[Eq_property_TRUE,o_assoc,Pa_distr,one_to_one_id,idR,idL,Mul_def,Suc_def]) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> rw[Mul_O,Mul_Suc] >> rpt strip_tac >>
  arw[Add_Suc,Add_O])
 (form_goal “!m.Mul(Suc(O),m) = m”));
@@ -816,8 +802,7 @@ val Add_comm' = GSYM Add_comm |> store_as "Add_comm'";
 (*Add_assoc slow, and the one with three layers slow*)
 val Add_assoc = prove_store("Add_assoc",
 e0
-(IL_tac >-- (IL_ex_tac >> strip_tac >>
-rw[Eq_property_TRUE,o_assoc,Pa_distr,one_to_one_id,idR,idL,Mul_def,Suc_def,All_def,p32_def,p33_def,p31_def,p12_of_Pa,Add_def]) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> rw[Add_O,Add_Suc,Add_Suc1,Add_O2] >>
  rpt strip_tac >>arw[])
 (form_goal
@@ -838,7 +823,7 @@ e0
 val Mul_Suc1 = prove_store("Mul_Suc1",
 e0
 (IL_tac 
- >-- (IL_ex_tac >> rw[All_def,Eq_property_TRUE,o_assoc,Pa_distr,p12_of_Pa,Mul_def,Suc_def,Add_def]) >>
+ >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> 
  rw[Mul_O,Add_O] >> rw[Mul_Suc] >> rpt strip_tac >>
  arw[] >> arw[Add_Suc] >>
@@ -865,7 +850,7 @@ e0
 
 val Mul_comm = prove_store("Mul_comm",
 e0
-(IL_tac >-- (IL_ex_tac >> rw[All_def,Eq_property_TRUE,o_assoc,Pa_distr,p12_of_Pa,Mul_def]) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> rw[Mul_clauses,Suc_def] >>
  rpt strip_tac >> arw[] >>
  qsspecl_then [‘Mul(n',n)’,‘n'’] accept_tac Add_comm')
@@ -886,7 +871,7 @@ val Nind_tac = ind_with N_induct
 val RIGHT_DISTR = prove_store("RIGHT_DISTR",
 e0
 (strip_tac >> strip_tac >>
- IL_tac >-- (IL_ex_tac >> rw[Eq_property_TRUE,Mul_def,Add_def,Pa_distr,p12_of_Pa,o_assoc,one_to_one_id,idL,idR] ) >>
+ IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >>
  rw[Mul_clauses,Add_clauses] >>
  strip_tac >> arw[] >>
@@ -916,7 +901,7 @@ e0
 
 val Mul_assoc = prove_store("Mul_assoc",
 e0
-(IL_tac >-- (IL_ex_tac >> rw[Eq_property_TRUE,Mul_def,Add_def,Pa_distr,p12_of_Pa,o_assoc,one_to_one_id,idL,idR,All_def,p31_def,p32_def,p33_def] ) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >>
  rw[Mul_clauses,RIGHT_DISTR] >> rpt strip_tac >>
  arw[] >> rw[GSYM Add_assoc])
@@ -925,14 +910,14 @@ e0
 
 val Sub_Add = prove_store("SUB_Add",
 e0
-(IL_tac >-- (IL_ex_tac >> rw[Eq_property_TRUE,Mul_def,Add_def,Pa_distr,p12_of_Pa,o_assoc,one_to_one_id,idL,idR,All_def,p31_def,p32_def,p33_def,Sub_def] ) >>
+(IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >>
  rw[Sub_of_O] >> strip_tac >>
  strip_tac >>
-IL_tac >-- (IL_ex_tac >> rw[Eq_property_TRUE,Mul_def,Add_def,Pa_distr,p12_of_Pa,o_assoc,one_to_one_id,idL,idR,All_def,p31_def,p32_def,p33_def,Sub_def,Suc_def] ) >>
+IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >>
  rw[Add_O2,Sub_O] >> strip_tac >> strip_tac >>
-IL_tac >-- (IL_ex_tac >> rw[Eq_property_TRUE,Mul_def,Add_def,Pa_distr,p12_of_Pa,o_assoc,one_to_one_id,idL,idR,All_def,p31_def,p32_def,p33_def,Sub_def,Suc_def] ) >>
+IL_tac >-- (IL_ex_tac >> default) >>
  ind_with0 N_induct >> rw[Sub_O,Add_O] >> rpt strip_tac >>
  rw[Add_Suc1] >> rw[Sub_mono_eq] >> arw[])
 (form_goal “!a b c. Sub(a,Add(b,c)) = Sub(Sub(a,b),c)”));
@@ -956,7 +941,7 @@ e0
 val Le_Add_ex = prove_store("Le_Add_ex",
 e0
 (IL_tac >--
- (IL_ex_tac >> rw[Eq_property_TRUE,Mul_def,Add_def,Pa_distr,p12_of_Pa,o_assoc,one_to_one_id,All_def,p31_def,p32_def,p33_def,LE_Le,IMP_def,Ex_def] ) >>
+ (IL_ex_tac >> default) >>
  ind_with0 N_induct >>
  rw[Le_O_iff] >>
  rpt strip_tac (* 2 *)
@@ -1012,9 +997,6 @@ e0
  rw[Sub_of_O])
 (form_goal “TRANS(LE)”));
 
-
-val default = rw[p31_def,p32_def,p33_def,
-o_assoc,All_def,Ex_def,p12_of_Pa,IMP_def,CONJ_def,IFF_def,NEG_def',Eq_property_TRUE,Pa_distr,DISJ_def,LT_Lt,LE_Le,Sub_def,Mul_def,Add_def,Suc_def,Pre_def,one_to_one_id,idL,idR]
 
 val LESS_MONO_ADD = prove_store("LESS_MONO_ADD",
 e0

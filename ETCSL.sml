@@ -18,24 +18,10 @@ val isLr_def = define_fsym("isLr",[("X",ob_sort)]) (qform2IL [‘isLs0 : 1->Exp(
 val IL_lemma = 
 proved_th $
 e0
-(rpt strip_tac  >>
+(rpt strip_tac >>
  rw[o_assoc,Pa_distr,DISJ_def,p12_of_Pa,Eq_property_TRUE,
-             one_to_one_id,idR,isLr_def] >>
- once_rw[All_def,o_assoc,Pa_distr] >>
- rw[IFF_def,o_assoc,Pa_distr] >>
- rw[DISJ_def,o_assoc,Pa_distr] >>
- once_rw[Ex_def] >> rw[o_assoc] >> once_rw[Ex_def] >>
- once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[CONJ_def] >>
- once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[CONJ_def] >>
- once_rw[p52_def] >> once_rw[p51_def] >> once_rw[p53_def] >>
- once_rw[p54_def] >> once_rw[p55_def] >> 
- once_rw[p31_def] >> once_rw[p32_def] >> once_rw[p33_def] >>
- once_rw[o_assoc] >> 
- once_rw[Pa_distr] >> once_rw[Eq_property_TRUE] >>
- once_rw[p12_of_Pa] >> once_rw[p12_of_Pa] >> 
- rw[Pa_distr] >> rw[p12_of_Pa,o_assoc] >> rw[Pa_distr] >>
- rw[one_to_one_id] >> rw[idR] >>
- rw[Card_def] >> rw[Ins_def,IN_def])
+             one_to_one_id,idR,isLr_def,All_def,IFF_def,Ex_def,CONJ_def,p52_def,
+   p51_def,p53_def,p54_def,p55_def,p31_def,p32_def,p33_def,Card_def,Ins_def,IN_def])
 (form_goal “!a a'.
  isLr(X) o Pa(a,a') =TRUE <=>
   !ls : 1-> Exp(N * X,1+1).
@@ -51,14 +37,9 @@ define_fsym("isLsi",[dest_var (rastt "a : 1->Exp(Exp(N * X,1+1),1+1)")]) (qform2
 val isLsi_property = proved_th $
 e0
 (rw[isLsi_def] >> rpt strip_tac >>
- rw[o_assoc,DISJ_def,Pa_distr] >> 
- once_rw[Ex_def] >> rw[o_assoc,Ex_def] >>
- rw[CONJ_def,Pa_distr,o_assoc] >>
- rw[one_to_one_id,idR] >>
- once_rw[p31_def,p32_def,p33_def] >>
- rw[p12_of_Pa,o_assoc,Pa_distr] >>
- rw[Eq_property_TRUE,IN_def,Ins_def] >> 
- rw[Card_def,idL])
+ rw[o_assoc,DISJ_def,Pa_distr,Ex_def,CONJ_def,one_to_one_id,idR,
+   p31_def,p32_def,p33_def,p12_of_Pa,Eq_property_TRUE,IN_def,Ins_def,
+   Card_def,idL])
 (form_goal 
 “!a ls. isLsi(a) o ls = TRUE <=>
  ls = Empty(N * X) |
@@ -387,8 +368,7 @@ e0
       ‘isL(nxs) &
        !l:1-> List(X). Repl(l) = nxs ==> P o l = TRUE’) >>
       rw[o_assoc,CONJ_def,Pa_distr,p12_of_Pa,All_def,
-         IMP_def,Eq_property_TRUE,one_to_one_id,idL,idR] >>
-      rw[Repl_def,isL_def] >> rw[IN_Tp0]) >>
+         IMP_def,Eq_property_TRUE,one_to_one_id,idL,idR,Repl_def,isL_def,IN_Tp0]) >>
  ind_with1 (isL_induct |> qspecl [‘X’]) >>
  rw[isL_Empty] >> strip_tac (* 2 *)
  >-- (rpt strip_tac >>
@@ -434,10 +414,8 @@ e0
  >-- (exists_tac (qform2IL [‘l:1->List(X)’]
       ‘!n x:1->X. 
   (IN(Pa(n, x), Repl(l)) ==> Lt(n, Card(Repl(l))))’) >>
-      rw[All_def,o_assoc,Pa_distr,p12_of_Pa,IMP_def] >>
-      once_rw[p31_def,p32_def,p33_def] >>
-      rw[Pa_distr,o_assoc,p12_of_Pa] >>
-      rw[LT_Lt,Repl_def,IN_def,Card_def]) >>
+      rw[All_def,o_assoc,Pa_distr,p12_of_Pa,IMP_def,
+         p31_def,p32_def,p33_def,LT_Lt,Repl_def,IN_def,Card_def]) >>
 ind_with1 (List_induct |> qspecl [‘X’]) >>
  rw[Nil_def,Empty_def,Repl_Cons,Ins_def1,Pa_eq_eq] >>
  rpt strip_tac (* 2 *)
@@ -572,24 +550,9 @@ proved_th $
 e0
 (rpt strip_tac  >>
  rw[o_assoc,Pa_distr,DISJ_def,p12_of_Pa,Eq_property_TRUE,
-             one_to_one_id,idR,Lindr_def] >>
- once_rw[All_def,o_assoc,Pa_distr] >>
- rw[IFF_def,o_assoc,Pa_distr] >>
- rw[DISJ_def,o_assoc,Pa_distr] >>
- once_rw[Ex_def] >> rw[o_assoc] >> once_rw[Ex_def] >>
- once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[CONJ_def] >>
- once_rw[o_assoc] >> once_rw[Pa_distr] >> once_rw[CONJ_def] >>
- once_rw[p52_def] >> once_rw[p51_def] >> once_rw[p53_def] >>
- once_rw[p54_def] >> once_rw[p55_def] >> 
- once_rw[p31_def] >> once_rw[p32_def] >> once_rw[p33_def] >>
- once_rw[o_assoc] >> 
- once_rw[Pa_distr] >> once_rw[Eq_property_TRUE] >>
- once_rw[p12_of_Pa] >> once_rw[p12_of_Pa] >> 
- rw[Pa_distr] >> rw[p12_of_Pa,o_assoc] >> rw[Pa_distr] >>
- rw[one_to_one_id] >> rw[idR] >>
- once_rw[Fst_def,Snd_def] >>
- rw[Pa_distr,o_assoc,p12_of_Pa] >>
- rw[Cons_def] >> rw[Ins_def,IN_def])
+    one_to_one_id,idR,Lindr_def,All_def,IFF_def,DISJ_def,Ex_def,CONJ_def,
+    p51_def,p52_def,p53_def,p54_def,p55_def,p31_def,p32_def,p33_def,
+    Fst_def,Snd_def,Cons_def,Ins_def,IN_def])
 (form_goal “!a a'.
  Lindr(a0:1->A,f0:X * A -> A) o Pa(a,a') =TRUE <=>
  !p : 1-> List(X) * A.
@@ -608,16 +571,9 @@ List.map (dest_var o rastt)
 val Lindsi_property = proved_th $
 e0
 (rw[Lindsi_def] >> rpt strip_tac >>
- rw[o_assoc,DISJ_def,Pa_distr] >> 
- once_rw[Ex_def] >> rw[o_assoc,Ex_def] >>
- rw[CONJ_def,Pa_distr,o_assoc] >>
- rw[one_to_one_id,idR] >>
- once_rw[p31_def,p32_def,p33_def] >>
- rw[p12_of_Pa,o_assoc,Pa_distr] >>
- rw[Eq_property_TRUE,IN_def,Ins_def] >> 
- once_rw[Fst_def,Snd_def] >>
- rw[o_assoc,Pa_distr,p12_of_Pa] >> 
- rw[Cons_def,idL])
+ rw[o_assoc,DISJ_def,Pa_distr,Ex_def,CONJ_def,one_to_one_id,idR,
+   p31_def,p32_def,p33_def,p12_of_Pa,Eq_property_TRUE,IN_def,Ins_def,
+   Fst_def,Snd_def,Cons_def,idL])
 (form_goal 
 “!a p. Lindsi(a0:1->A,f0,a) o p = TRUE <=>
  p = Pa(Nil(X), a0) |

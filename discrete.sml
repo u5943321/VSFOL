@@ -198,175 +198,12 @@ e0
      first_x_assum irule >> arw[]) >>
  arw[] >>
  flip_tac >> irule cpsb_idL >> rw[cpsb_def] >>
- rw[id_dom,id_cod] (*line by line okay, seems loop if as a whole cheat*) )
+ rw[id_dom,id_cod] )
 (form_goal
  “∀A. Disc(A) ==> !B. 
  (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
  ?!cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b”));
 
-(*
-val CC5_Disc_uex = prove_store("CC5_Disc_uex",
-e0
-(rpt strip_tac >> 
-  assume_tac
- (CC5_uex |> qspecl [‘A’,‘B’] 
- |> fVar_sInst_th “R(f:2->A,g:2->B)”
-    “∃a1:1->A b1:1->B. f = id(a1) & g = id(b1) & R(a1,b1)”) >>
- qsuff_tac
- ‘?!cf:A->B. 
-   ∀a:2->A b:2->B.
-    (∃a1:1->A b1:1->B. a = id(a1) & b = id(b1) & R(a1,b1)) ⇔ 
-   cf o a = b’ 
- >-- cheat >>
- first_x_assum irule >> rpt strip_tac (* 4 *)
- >-- cheat
- >-- cheat
- >-- (qsuff_tac
-     ‘∃g:2->B.
-        ∃a1 b1. f = id(a1) & g = id(b1) & R(a1,b1)’
-     >-- (strip_tac >> uex_tac >> qexists_tac ‘g’ >> rpt strip_tac (* 2 *)
-         >-- cheat (*qexistsl_tac [‘a1’,‘b1’]  >> arw[]*) >>
-         fs[id_eq_eq] >> rfs[] >>
-         first_x_assum (qspecl_then [‘a1’] assume_tac) >>
-         pop_assum (strip_assume_tac o uex_expand) >>
-         qsuff_tac ‘b1' = b & b1 = b’ 
-         >-- cheat (*rpt strip_tac >> arw[]*) >>
-         strip_tac >> first_x_assum irule >> arw[]) >> cheat
-     ) >> cheat  )
-(form_goal
- “∀A. Disc(A) ==> !B. 
- (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
- ?!cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b”));
-*)
-
-
-
-
-(*up to here, can have output, but very slow.*)
-
-
-
-
-(*
-proved_th $
-e0
-(rpt strip_tac >> 
-  assume_tac
- (CC5_uex |> qspecl [‘A’,‘B’] 
- |> fVar_sInst_th “R(f:2->A,g:2->B)”
-    “∃a1:1->A b1:1->B. f = id(a1) & g = id(b1) & R(a1,b1)”) >>
- first_x_assum irule >> rpt strip_tac (* 4 *)
- >-- cheat
- >-- cheat
- >-- (qsuff_tac
-     ‘∃g:2->B.
-        ∃a1 b1. f = id(a1) & g = id(b1) & R(a1,b1)’
-     >-- (strip_tac >> uex_tac >> qexists_tac ‘g’ >> rpt strip_tac (* 2 *)
-         >-- (qexistsl_tac [‘a1’,‘b1’]  >> arw[]) >>
-         fs[id_eq_eq] >> rfs[] >>
-         first_x_assum (qspecl_then [‘a1’] assume_tac) >>
-         pop_assum (strip_assume_tac o uex_expand) >>
-         qsuff_tac ‘b1' = b & b1 = b’ 
-         >-- (rpt strip_tac >> arw[]) >>
-         strip_tac >> first_x_assum irule >> arw[]) >> cheat
-     ) >> cheat)
-(form_goal
-“∀A. Disc(A) ==> !B. 
- (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
- ?!cf:A->B. 
-   ∀a:2->A b:2->B.
-    (∃a1:1->A b1:1->B. a = id(a1) & b = id(b1) & R(a1,b1)) ⇔ 
-   cf o a = b”)
-
-
-val CC5_Disc_uex = prove_store("CC5_Disc_uex",
-e0
-(rpt strip_tac >> 
- qsuff_tac
- ‘?cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b’
- >-- (strip_tac >> uex_tac >> qexists_tac ‘cf’ >> arw[] >>
-      rpt strip_tac >> irule fun_ext_Disc >> arw[] >>
-      pop_assum (assume_tac o GSYM) >> arw[]) >>
- assume_tac
- (CC5_uex |> qspecl [‘A’,‘B’] 
- |> fVar_sInst_th “R(f:2->A,g:2->B)”
-    “∃a1:1->A b1:1->B. f = id(a1) & g = id(b1) & R(a1,b1)”) >>
- qsuff_tac
- ‘?!cf:A->B. 
-   ∀a:2->A b:2->B.
-    (∃a1:1->A b1:1->B. a = id(a1) & b = id(b1) & R(a1,b1)) ⇔ 
-   cf o a = b’ 
- >-- (strip_tac >> 
-     pop_assum (strip_assume_tac o uex2ex_rule) >>
-     qexists_tac ‘cf’ >> 
-     rpt strip_tac >> dimp_tac >> rpt strip_tac (* 2 *)
-     >-- (first_x_assum (qspecl_then [‘id(a)’,‘id(b)’] assume_tac) >>
-         qsuff_tac ‘cf o id(a) = id(b)’ 
-         >-- (rw[id_def] >>
-             strip_tac >>
-             qby_tac ‘(cf o a o To1(2)) o 0f = (b o To1(2)) o 0f’ 
-             >-- arw[] >> fs[o_assoc,one_to_one_Id,IdR]) >>
-         first_x_assum (irule o iffLR) >> 
-         qexistsl_tac [‘a’,‘b’] >> arw[]) >>
-     first_x_assum (qspecl_then [‘id(a)’,‘id(b)’] assume_tac) >>
-   (*  fs[id_def] loop ,do not know why*)
-     qsuff_tac ‘cf o id(a) = id(b)’ 
-     >-- (strip_tac >> first_x_assum (drule o iffRL) >>
-         pop_assum strip_assume_tac >> fs[id_eq_eq] (*slow*)) >>
-     rw[id_def] >> arw[GSYM o_assoc]) >>
- first_x_assum irule >> rpt strip_tac (* 4 *)
- >-- (qexistsl_tac [‘a1’,‘b1’] >> arw[] >> rw[id_dom]) 
- >-- (qexistsl_tac [‘a1’,‘b1’] >> arw[] >> rw[id_cod]) 
- >-- qsuff_tac
-     ‘∃g:2->B.
-        ∃a1 b1. f = id(a1) & g = id(b1) & R(a1,b1)’
-     >-- (strip_tac >> uex_tac >> qexists_tac ‘g’ >> rpt strip_tac (* 2 *)
-         >-- (qexistsl_tac [‘a1’,‘b1’]  >> arw[]) >>
-         fs[id_eq_eq] >> rfs[] >>
-         first_x_assum (qspecl_then [‘a1’] assume_tac) >>
-         pop_assum (strip_assume_tac o uex_expand) >>
-         qsuff_tac ‘b1' = b & b1 = b’ 
-         >-- (rpt strip_tac >> arw[]) >>
-         strip_tac >> first_x_assum irule >> arw[]) 
- >-- (qsuff_tac
-     ‘∃g:2->B.
-        ∃a1 b1. f = id(a1) & g = id(b1) & R(a1,b1)’
-     >-- (strip_tac >> uex_tac >> qexists_tac ‘g’ >> rpt strip_tac (* 2 *)
-         >-- (qexistsl_tac [‘a1’,‘b1’]  >> arw[]) >>
-         fs[id_eq_eq] >> rfs[] >>
-         first_x_assum (qspecl_then [‘a1’] assume_tac) >>
-         pop_assum (strip_assume_tac o uex_expand) >>
-         qsuff_tac ‘b1' = b & b1 = b’ 
-         >-- (rpt strip_tac >> arw[]) >>
-         strip_tac >> first_x_assum irule >> arw[]) >>
-     first_x_assum 
-     (qspecl_then [‘dom(f)’] (strip_assume_tac o uex2ex_rule)) >>
-     qexistsl_tac [‘id(b)’,‘dom(f)’,‘b’] >> arw[] >>
-     flip_tac >> fs[Disc_def,isid_alt]) >>
- fs[] >> 
- qby_tac ‘a1'' = a1’ 
- >-- (drule cpsb_idR >> fs[id_eq_eq])  >>
- qby_tac ‘a1' = a1’
- >-- (drule cpsb_idL >> fs[id_eq_eq]) >>
- fs[] >>
- qby_tac ‘b1' = b1’
- >-- (first_x_assum (qspecl_then [‘a1’] (strip_assume_tac o uex_expand)) >>
-     qsuff_tac ‘b1 = b & b1' = b’
-     >-- (strip_tac >> arw[]) >> strip_tac >> 
-     first_x_assum irule >> arw[]) >>
- qby_tac ‘b1'' = b1’
- >-- (first_x_assum (qspecl_then [‘a1’] (strip_assume_tac o uex_expand)) >>
-     qsuff_tac ‘b1 = b & b1'' = b’
-     >-- (strip_tac >> arw[]) >> strip_tac >> 
-     first_x_assum irule >> arw[]) >>
- arw[] >>
- flip_tac >> irule cpsb_idL >> rw[cpsb_def] >>
- rw[id_dom,id_cod]  )
-(form_goal
- “∀A. Disc(A) ==> !B. 
- (∀a:1->A. ∃!b:1->B. R(a,b)) ⇒
- ?!cf:A->B. ∀a:1->A b:1->B. R(a,b) ⇔ cf o a = b”));
-*)
 
 (*zf_ne_of,CC2_1*)
 val zf_xor_of = prove_store("zf_xor_of",
@@ -390,16 +227,7 @@ e0
  “!f:1->2. ~(f = 0f) <=> f = 1f”));
 
 
-(*
 
-val CC5_Disc_uex_one = prove_store("CC5_Disc_uex_one",
-e0
-(cheat)
-(form_goal
- “∀A. Disc(A) ==> 
-    !a0:1->A.
-      ?!cf:A->2. ∀a:1->A. cf o a = 0f <=> a = a0”));
-*)
 
 val no_arrow_1f_to_0f = prove_store("no_arrow_1f_to_0f",
 e0
@@ -453,17 +281,6 @@ e0
  “!A. 
     (!a:1->A f:2->A. cod(f) = a ==> dom(f) = a) ==>
     ∃F:A->A. ∀f:2->A. F o f = id(dom(f))”));
-
-(*
-val CC5_ap2_Thm20 = prove_store("CC5_ap2_Thm20",
-e0
-(rpt strip_tac >>
- )
-(form_goal
- “!A. 
-    (!a:1->A f:2->A. cod(f) = a ==> dom(f) = a) ==>
-    !f:2->A. Id(A) o f = id(dom(f))”));
-*)
 
 
 val Disc_fac_eq = prove_store("Disc_fac_eq",
@@ -683,27 +500,12 @@ e0
  “!D c:D->1+1 S i:S->D. isPb(c, i2(1, 1), i, To1(S)) ==>
   !d:1->D. (?s:1->S. i o s = d) <=> c o d = i2(1,1)”));
 
-(*not really used
-val FSC_Disc_Disc = prove_store("FSC_Disc_Disc",
-e0
-cheat
-(form_goal “!D. Disc(D) ==>
-            !S i:S->D. FSC(i) ==> Disc(S)”));
-*)
-
 val Disc_1 = prove_store("Disc_1",
 e0
 (rw[Disc_def,isid_def] >> 
  strip_tac >> qexists_tac ‘Id(1)’ >> rw[IdL,To1_def])
 (form_goal “Disc(1)”));
 
-(*
-val i2_Mono = prove_store("i2_Mono",
-e0
-cheat
-(form_goal “Mono(i2(1,1))”));
-not really used
-*)
 
 
 val FSC_def = qdefine_psym("FSC",[‘i:S->A’])

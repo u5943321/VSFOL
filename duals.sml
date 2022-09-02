@@ -233,14 +233,6 @@ e0
  fs[three_dom_cod] >> fs[three_ob_ne])
 (form_goal “∀f:2->3 g:2->3. ~isid(f) ∧ ~isid(g) ∧ dom(g) = cod(f) ⇒ g = β ∧ f = α”));
 
-(*
-val isid_opf = prove_store("isid_opf",
-e0
-(cheat)
-(form_goal “∀A A'. isop(A,A') ⇒ 
- (∀f:2->A. isid(f) ⇔ isid(opf(f,2,A')))”));
-*)
-
 
 val opf_To1 = prove_store("opf_To1",
 e0
@@ -358,61 +350,6 @@ e0
      fs[three_ob_ne,three_dom_cod]))
 (form_goal “~isid(α) ∧ ~isid(β)”));
 
-(*
-val dom_opf_cod = prove_store("dom_opf_cod",
-e0
-(rpt strip_tac >> drule opar_dom_cod >>
- irule is_opf >> arw[op_1] >> 
- qsuff_tac ‘isopf(f,opf(f,2,A'))’ 
- >-- (strip_tac >> first_x_assum drule >> arw[]) >>
- irule opf_property >> arw[op_2]
- )
-(form_goal “∀A A'. isop(A,A') ⇒ 
- ∀f:2->A. dom(opf(f,2,A')) = opf(cod(f),1,A') ”));
-*)
-
-(*
-val dom_opf_cod = prove_store("dom_opf_cod",
-e0
-(rpt strip_tac >> drule opar_dom_cod >>
- irule is_opf >> arw[op_1] >> 
- qsuff_tac ‘isopf(f,opf(f,2,A'))’ 
- >-- (strip_tac >> first_x_assum drule >> arw[]) >>
- irule opf_property >> arw[op_2] cheat
- )
-(form_goal “∀A A'. isop(A,A') ⇒ 
- ∀f:2->A f':2->A'.isopf(f,f') ⇒
- isopf(cod(f),dom(f')) ”));
-is precisely opar_dom_cod 
-*)
-
-(*
-
-val opf_ab = prove_store("opf_ab",
-e0
-(irule oa_gamma_ba >>
- assume_tac op_3 >> drule $ GSYM isid_opf >> arw[] >>
- rw[ab_not_id] >> 
- drule dom_opf_cod >> arw[] >>
- drule cod_opf_dom >> arw[] >>
- assume_tac ab_dom_cod >> 
- cheat
- (*cannot use category as input, trouble here! 
- alternatively, have a machinary that regard op(_,2,3), not 
- op(_,_,_), as a function symbol.*)
- )
-(form_goal “opf(α,2,3) = β ∧ opf(β,2,3) = α”));
-
-*)
-
-(* not used, but good to prove
-val opf_cod_a = prove_store("opf_cod_a",
-e0
-cheat
-(form_goal
- “isopf(cod(α), cod(α))”));
-*)
-
 val opf_ab = prove_store("opf_ab",
 e0
 (qsuff_tac
@@ -445,37 +382,6 @@ e0
  rw[ab_dom_cod] >> 
  first_x_assum rev_drule >> arw[])
 (form_goal “isopf(α,β) & isopf(β,α)”));
-
-
-
-(*if add the assumption that opf ⇒ is op cat, then agree with the actual situation, and can avoid the precondition in opf_opf_o*)
-
-
-
-(*
-val opf_opf_o = prove_store("opf_opf_o",
-e0
-(rpt strip_tac >> irule is_opf >> arw[] >>
- irule opf_o_opf >> strip_tac >> irule opf_property >> arw[])
-(form_goal “∀A A'.isop(A,A') ⇒ ∀B B'. isop(B,B') ⇒
-  ∀C C'. isop(C,C') ⇒ 
-  ∀f:A->B g:B->C f':A'->B' g':B'->C'. 
-  
- opf(g,B',C') o opf(f,A',B') = 
-  opf(g o f,A',C')”));
-*)
-
-
-
-
-(*for all f:A->B exists f':A'->B' such that f' is op to f and A' is op to A and B' is op to B*)
-
-(*
-val ob_of_3 = prove_store("ob_of_3",
-e0
-(cheat)
-(form_goal “∀f:1->3. f = α₁ | f = α₂ | f = β₂”));
-*)
 
 
 val op_alpha1_beta2 = prove_store("op_alpha1_beta2",
@@ -623,17 +529,6 @@ e0
  cpsb(f',g') ∧
 isopf(g @ f,f' @ g')”));
 
-(*
-
-val opf_oa = prove_store("opf_oa",
-e0
-(cheat)
-(form_goal
- “∀A f:2->A g:2->A. cpsb(g,f) ⇒
-  ∀A'. isop(A,A') ⇒ 
-  ∀f' g':2->A'.isopf(f,f') & isopf(g,g') ⇒
-isopf(g @ f,f' @ g')”));
-*)
 
 
 val Thm18 = prove_store("Thm18",

@@ -721,27 +721,6 @@ e0
  (!f. ~(Bot(A) = Diam(f))) &
  (!f1 f2. ~(Bot(A) = Disj(f1,f2)))”));
 
-(*
-val F0_NOT_Disj0 = prove_store("F0_NOT_Disj0",
-e0
-(rw[set_NEQ] >> disj1_tac >> 
- qby_tac ‘?a:mem(A). T’ >-- cheat >>
- pop_assum strip_assume_tac >> 
- qexists_tac ‘Pair(O,a)’ >>
- rw[IN_F0,IN_Disj0] >> rw[Div2_def,Div_of_O,Odd_not_Even,O_NEQ_num3,O_Even] )
-(form_goal “~(F0(A) = Disj0(f1,f2))”));
-
-
-
-val F0_NOT_Neg0 = prove_store("F0_NOT_Neg0",
-e0
-(rw[set_NEQ] >> disj1_tac >> 
- qby_tac ‘?a:mem(A). T’ >-- cheat >>
- pop_assum strip_assume_tac >> 
- qexists_tac ‘Pair(O,a)’ >>
- rw[IN_F0,IN_Neg0] >> rw[Div2_def,Div_of_O,Odd_not_Even,O_NEQ_num2,O_Even] )
-(form_goal “~(F0(A) = Neg0(f0))”));
-*)
 
 
 val InjN_Inj = prove_store("InjN_Inj",
