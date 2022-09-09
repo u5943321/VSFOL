@@ -802,7 +802,7 @@ fun contain_aBinder ast n =
                                         contain_aBinder ast2 n
               | _ => false
 
-
+(*
 fun ast2pf ast (env:env,n) = 
     case ast of 
         aId(a) => 
@@ -858,7 +858,72 @@ fun ast2pf ast (env:env,n) =
                 (mk_pQuant str name ps pf,(env8,n2))
             end
         else raise simple_fail "not a quantifier" 
+
+*)
+
+
+(*new 09/09/2022*)
  
+
+
+fun ast2pf ast (env:env,n) = 
+    case ast of 
+        aId(a) => 
+        if a = "T" then (pPred("T",[]),(env,n)) else 
+        if a = "F" then (pPred("F",[]),(env,n)) else
+        (case (lookup_pred (!psyms) a) of
+             SOME l => if l = [] then (pPred(a,[]),(env,n))
+             | _ => (pfVar(a,[]),(env,n)))
+      | aApp("~",[ast]) => 
+        let val (pf,(env1,n1)) = ast2pf ast (env,n) in
+            (pConn("~",[pf]),(env1,n1))
+        end
+      | aApp(str,astl) =>
+        let val (constr,cconstr) = 
+                if is_pred str orelse str = "=" then (pPred,pPred_cons)
+                else (pfVar,pfVar_cons)
+        in
+            case astl of
+                 [] => (constr(str,[]),(env,n))
+               | h :: t => 
+                 let val (pf,(env1,n1)) = ast2pf (aApp(str,t)) (env,n)
+                     val (pt,(env2,n2)) = ast2pt h (env1,n1)
+                 in (cconstr pf pt,(env2,n2))
+                 end
+        end
+      | aInfix(ast1,str,ast2) => 
+        if mem str ["&","|","<=>","==>"] then
+            let
+                val (pf1,(env1,n1)) = ast2pf ast1 (env,n)
+                val (pf2,(env2,n2)) = ast2pf ast2 (env1,n1)
+            in
+                (pConn(str,[pf1,pf2]),(env2,n2))
+            end else 
+        if mem str ["=","=="] then
+            let
+                val (pt1,(env1,n1)) = ast2pt ast1 (env,n)
+                val (pt2,(env2,n2)) = ast2pt ast2 (env1,n1)
+            in
+                (pPred(str,[pt1,pt2]),(env2,n2))
+            end else
+        raise simple_fail ("not an infix operator: " ^ str)
+     | aBinder(str,ns,b) => 
+        if mem str ["!","?","?!"] then
+            let val name = name_of_ast ns
+                val pso = ps_of env name
+                val env1 = clear_ps name env
+                val (Av,env2) = fresh_var env1 
+                val env3 = record_ps name (psvar Av) env2 
+                val (pt,(env4,n1)) = ast2pt ns (env3,n) 
+                val (ps,env5) = ps_of_pt pt env4
+                val (pf,(env6,n2)) = ast2pf b (env5,n1)
+                val env7 = clear_ps name env6
+                val env8 = case pso of SOME ps => record_ps name ps env7 | _ => env7
+            in 
+                (mk_pQuant str name ps pf,(env8,n2))
+            end
+        else raise simple_fail "not a quantifier" 
+
 
 (*
 (C ast2pf (empty,0)) $ fst o parse_ast $ lex "!a:mem(A). (!a:mem(B).P(a)) & P(a)";
