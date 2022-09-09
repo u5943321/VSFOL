@@ -873,6 +873,8 @@ fun ast2pf ast (env:env,n) =
         if a = "F" then (pPred("F",[]),(env,n)) else
         (case (lookup_pred (!psyms) a) of
              SOME l => if l = [] then (pPred(a,[]),(env,n))
+                       else raise simple_fail ("Using multi-argument "^a^
+                                               " as a pred. var")
              | _ => (pfVar(a,[]),(env,n)))
       | aApp("~",[ast]) => 
         let val (pf,(env1,n1)) = ast2pf ast (env,n) in
